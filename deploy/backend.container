@@ -1,0 +1,26 @@
+[Unit]
+Description=Backend API Service
+After=network-online.target
+
+[Container]
+Image=node:20-alpine
+# Atau gunakan image hasil build docker Anda
+# Image=registry.localhost/my-app:latest
+
+# Hubungkan ke network yang sama dengan Cloudflared
+Network=global_net
+
+# Map environment variable
+Environment=NODE_ENV=production
+Environment=API_ONLY=true
+Environment=DATABASE_URL=postgresql://user:password@db:5432/mydb?schema=public
+# Karena di-expose via cloudflare tunnel yang handle SSL/Domain, port tetap 3000
+PublishPort=3001:3000 
+
+# Jika pakai volume:
+# Volume=/path/to/app:/app
+# WorkingDir=/app
+# Exec=node dist/server.cjs
+
+[Install]
+WantedBy=default.target

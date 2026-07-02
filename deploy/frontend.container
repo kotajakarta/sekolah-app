@@ -1,0 +1,18 @@
+[Unit]
+Description=Frontend React Service
+After=network-online.target
+
+[Container]
+Image=nginx:alpine
+
+# Hubungkan ke network yang sama
+Network=global_net
+
+# Map folder static files hasil `npm run build` (di folder dist/) ke nginx
+Volume=/path/to/app/dist:/usr/share/nginx/html:ro
+
+# Optional, custom nginx config untuk handle React Router fallback
+# Volume=/path/to/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+[Install]
+WantedBy=default.target

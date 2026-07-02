@@ -1,0 +1,8 @@
+{
+  "name": "Pusdatin App",
+  "description": "Pusat Data dan Informasi App with React and Backend",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

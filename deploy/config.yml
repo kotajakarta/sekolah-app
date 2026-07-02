@@ -1,0 +1,22 @@
+tunnel: <YOUR-TUNNEL-ID>
+credentials-file: /root/.cloudflared/<YOUR-TUNNEL-ID>.json
+
+ingress:
+  # 1. Routing khusus untuk Backend API
+  # Jika ada request ke app.domainku.com/api/*, akan diarahkan ke container backend
+  - hostname: app.domainku.com
+    path: /api/*
+    service: http://backend:3000
+
+  # 2. Routing khusus untuk App Pesantren (Aplikasi Lain)
+  # Jika ingin dipisah domainnya
+  # - hostname: pesantren.domainku.com
+  #   service: http://app-pesantren:80
+
+  # 3. Routing untuk Frontend Web (sebagai default/fallback path / )
+  # Jika request bukan ke /api, arahkan ke container frontend
+  - hostname: app.domainku.com
+    service: http://frontend:80
+
+  # Fallback
+  - service: http_status:404

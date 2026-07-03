@@ -118,18 +118,41 @@ export default function Sinkronisasi() {
       const data = response.data;
 
       const exportData = data.map((item: any) => ({
+        // --- DATA BIODATA (CORE) ---
         no_glodemy: item.biodata?.noGlodemy || '',
         nik: item.biodata?.nik || '',
+        nis_lokal: item.biodata?.nisLokal || '',
         nama_siswa: item.biodata?.fullName || '',
+        tempat_lahir: item.biodata?.tempatLahir || '',
         tanggal_lahir: item.biodata?.tanggalLahir ? new Date(item.biodata.tanggalLahir).toISOString().split('T')[0] : '',
         jenis_kelamin: item.biodata?.jenisKelamin || '',
+        kewarganegaraan: item.biodata?.kewarganegaraan || '',
+        alamat: item.biodata?.address || '',
+        telepon: item.biodata?.phone || '',
         wilayah: item.wilayah?.name || '',
         cabang: item.cabang?.name || '',
-        // Formal (Sekolah)
+        
+        // --- DATA KELUARGA (CORE) ---
+        nama_ayah: item.biodata?.namaAyah || '',
+        status_hidup_ayah: item.biodata?.statusHidupAyah || '',
+        pekerjaan_ayah: item.biodata?.pekerjaanAyah || '',
+        pendidikan_ayah: item.biodata?.pendidikanAyah || '',
+        nama_ibu: item.biodata?.namaIbu || '',
+        status_hidup_ibu: item.biodata?.statusHidupIbu || '',
+        pekerjaan_ibu: item.biodata?.pekerjaanIbu || '',
+        pendidikan_ibu: item.biodata?.pendidikanIbu || '',
+        
+        // --- KONTAK DARURAT (CORE) ---
+        kontak_darurat_nama: item.biodata?.kontakDaruratNama || '',
+        kontak_darurat_telp: item.biodata?.kontakDaruratTelp || '',
+        kontak_darurat_hubungan: item.biodata?.kontakDaruratHubungan || '',
+
+        // --- DATA SEKOLAH (FORMAL) ---
         nis_formal: item.siswaFormal?.nis || '',
         nisn_formal: item.siswaFormal?.nisn || '',
         kelas_formal: item.siswaFormal?.kelas?.name || '',
-        // Pesantren
+
+        // --- DATA PESANTREN (DAIMI) ---
         nis_pesantren: item.dataDaimi?.nis || '',
         kelas_pesantren: item.dataDaimi?.kelas?.name || '',
         grup_pesantren: item.dataDaimi?.grup?.name || '',

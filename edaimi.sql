@@ -5,7 +5,7 @@
 -- Dumped from database version 16.13 (Debian 16.13-1.pgdg13+1)
 -- Dumped by pg_dump version 17.0
 
--- Started on 2026-07-02 11:28:29
+-- Started on 2026-07-03 13:57:30
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -60,7 +60,7 @@ CREATE SCHEMA pesantren;
 ALTER SCHEMA pesantren OWNER TO aithendi;
 
 --
--- TOC entry 891 (class 1247 OID 27270)
+-- TOC entry 892 (class 1247 OID 27270)
 -- Name: StatusPool; Type: TYPE; Schema: core; Owner: aithendi
 --
 
@@ -76,7 +76,7 @@ CREATE TYPE core."StatusPool" AS ENUM (
 ALTER TYPE core."StatusPool" OWNER TO aithendi;
 
 --
--- TOC entry 888 (class 1247 OID 27262)
+-- TOC entry 889 (class 1247 OID 27262)
 -- Name: UserDivisi; Type: TYPE; Schema: core; Owner: aithendi
 --
 
@@ -90,7 +90,7 @@ CREATE TYPE core."UserDivisi" AS ENUM (
 ALTER TYPE core."UserDivisi" OWNER TO aithendi;
 
 --
--- TOC entry 885 (class 1247 OID 27255)
+-- TOC entry 886 (class 1247 OID 27255)
 -- Name: UserScope; Type: TYPE; Schema: core; Owner: aithendi
 --
 
@@ -407,7 +407,7 @@ CREATE SEQUENCE pesantren.failed_jobs_id_seq
 ALTER SEQUENCE pesantren.failed_jobs_id_seq OWNER TO aithendi;
 
 --
--- TOC entry 3703 (class 0 OID 0)
+-- TOC entry 3711 (class 0 OID 0)
 -- Dependencies: 248
 -- Name: failed_jobs_id_seq; Type: SEQUENCE OWNED BY; Schema: pesantren; Owner: aithendi
 --
@@ -483,7 +483,7 @@ CREATE SEQUENCE pesantren.jobs_id_seq
 ALTER SEQUENCE pesantren.jobs_id_seq OWNER TO aithendi;
 
 --
--- TOC entry 3704 (class 0 OID 0)
+-- TOC entry 3712 (class 0 OID 0)
 -- Dependencies: 245
 -- Name: jobs_id_seq; Type: SEQUENCE OWNED BY; Schema: pesantren; Owner: aithendi
 --
@@ -551,7 +551,7 @@ CREATE SEQUENCE pesantren.migrations_id_seq
 ALTER SEQUENCE pesantren.migrations_id_seq OWNER TO aithendi;
 
 --
--- TOC entry 3705 (class 0 OID 0)
+-- TOC entry 3713 (class 0 OID 0)
 -- Dependencies: 237
 -- Name: migrations_id_seq; Type: SEQUENCE OWNED BY; Schema: pesantren; Owner: aithendi
 --
@@ -646,7 +646,7 @@ CREATE SEQUENCE pesantren.permissions_id_seq
 ALTER SEQUENCE pesantren.permissions_id_seq OWNER TO aithendi;
 
 --
--- TOC entry 3706 (class 0 OID 0)
+-- TOC entry 3714 (class 0 OID 0)
 -- Dependencies: 250
 -- Name: permissions_id_seq; Type: SEQUENCE OWNED BY; Schema: pesantren; Owner: aithendi
 --
@@ -691,7 +691,7 @@ CREATE SEQUENCE pesantren.personal_access_tokens_id_seq
 ALTER SEQUENCE pesantren.personal_access_tokens_id_seq OWNER TO aithendi;
 
 --
--- TOC entry 3707 (class 0 OID 0)
+-- TOC entry 3715 (class 0 OID 0)
 -- Dependencies: 259
 -- Name: personal_access_tokens_id_seq; Type: SEQUENCE OWNED BY; Schema: pesantren; Owner: aithendi
 --
@@ -736,7 +736,7 @@ CREATE SEQUENCE pesantren.role_assignment_histories_id_seq
 ALTER SEQUENCE pesantren.role_assignment_histories_id_seq OWNER TO aithendi;
 
 --
--- TOC entry 3708 (class 0 OID 0)
+-- TOC entry 3716 (class 0 OID 0)
 -- Dependencies: 257
 -- Name: role_assignment_histories_id_seq; Type: SEQUENCE OWNED BY; Schema: pesantren; Owner: aithendi
 --
@@ -791,7 +791,7 @@ CREATE SEQUENCE pesantren.roles_id_seq
 ALTER SEQUENCE pesantren.roles_id_seq OWNER TO aithendi;
 
 --
--- TOC entry 3709 (class 0 OID 0)
+-- TOC entry 3717 (class 0 OID 0)
 -- Dependencies: 252
 -- Name: roles_id_seq; Type: SEQUENCE OWNED BY; Schema: pesantren; Owner: aithendi
 --
@@ -863,7 +863,7 @@ CREATE SEQUENCE pesantren.users_id_seq
 ALTER SEQUENCE pesantren.users_id_seq OWNER TO aithendi;
 
 --
--- TOC entry 3710 (class 0 OID 0)
+-- TOC entry 3718 (class 0 OID 0)
 -- Dependencies: 239
 -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: pesantren; Owner: aithendi
 --
@@ -872,7 +872,26 @@ ALTER SEQUENCE pesantren.users_id_seq OWNED BY pesantren.users.id;
 
 
 --
--- TOC entry 3427 (class 2604 OID 29126)
+-- TOC entry 261 (class 1259 OID 29295)
+-- Name: _prisma_migrations; Type: TABLE; Schema: public; Owner: aithendi
+--
+
+CREATE TABLE public._prisma_migrations (
+    id character varying(36) NOT NULL,
+    checksum character varying(64) NOT NULL,
+    finished_at timestamp with time zone,
+    migration_name character varying(255) NOT NULL,
+    logs text,
+    rolled_back_at timestamp with time zone,
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
+    applied_steps_count integer DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public._prisma_migrations OWNER TO aithendi;
+
+--
+-- TOC entry 3431 (class 2604 OID 29126)
 -- Name: failed_jobs id; Type: DEFAULT; Schema: pesantren; Owner: aithendi
 --
 
@@ -880,7 +899,7 @@ ALTER TABLE ONLY pesantren.failed_jobs ALTER COLUMN id SET DEFAULT nextval('pesa
 
 
 --
--- TOC entry 3426 (class 2604 OID 29109)
+-- TOC entry 3430 (class 2604 OID 29109)
 -- Name: jobs id; Type: DEFAULT; Schema: pesantren; Owner: aithendi
 --
 
@@ -888,7 +907,7 @@ ALTER TABLE ONLY pesantren.jobs ALTER COLUMN id SET DEFAULT nextval('pesantren.j
 
 
 --
--- TOC entry 3423 (class 2604 OID 28998)
+-- TOC entry 3427 (class 2604 OID 28998)
 -- Name: migrations id; Type: DEFAULT; Schema: pesantren; Owner: aithendi
 --
 
@@ -896,7 +915,7 @@ ALTER TABLE ONLY pesantren.migrations ALTER COLUMN id SET DEFAULT nextval('pesan
 
 
 --
--- TOC entry 3429 (class 2604 OID 29138)
+-- TOC entry 3433 (class 2604 OID 29138)
 -- Name: permissions id; Type: DEFAULT; Schema: pesantren; Owner: aithendi
 --
 
@@ -904,7 +923,7 @@ ALTER TABLE ONLY pesantren.permissions ALTER COLUMN id SET DEFAULT nextval('pesa
 
 
 --
--- TOC entry 3433 (class 2604 OID 29222)
+-- TOC entry 3437 (class 2604 OID 29222)
 -- Name: personal_access_tokens id; Type: DEFAULT; Schema: pesantren; Owner: aithendi
 --
 
@@ -912,7 +931,7 @@ ALTER TABLE ONLY pesantren.personal_access_tokens ALTER COLUMN id SET DEFAULT ne
 
 
 --
--- TOC entry 3432 (class 2604 OID 29198)
+-- TOC entry 3436 (class 2604 OID 29198)
 -- Name: role_assignment_histories id; Type: DEFAULT; Schema: pesantren; Owner: aithendi
 --
 
@@ -920,7 +939,7 @@ ALTER TABLE ONLY pesantren.role_assignment_histories ALTER COLUMN id SET DEFAULT
 
 
 --
--- TOC entry 3430 (class 2604 OID 29149)
+-- TOC entry 3434 (class 2604 OID 29149)
 -- Name: roles id; Type: DEFAULT; Schema: pesantren; Owner: aithendi
 --
 
@@ -928,7 +947,7 @@ ALTER TABLE ONLY pesantren.roles ALTER COLUMN id SET DEFAULT nextval('pesantren.
 
 
 --
--- TOC entry 3424 (class 2604 OID 29005)
+-- TOC entry 3428 (class 2604 OID 29005)
 -- Name: users id; Type: DEFAULT; Schema: pesantren; Owner: aithendi
 --
 
@@ -936,7 +955,7 @@ ALTER TABLE ONLY pesantren.users ALTER COLUMN id SET DEFAULT nextval('pesantren.
 
 
 --
--- TOC entry 3475 (class 2606 OID 27410)
+-- TOC entry 3481 (class 2606 OID 27410)
 -- Name: log_kehadiran log_kehadiran_pkey; Type: CONSTRAINT; Schema: absensi; Owner: aithendi
 --
 
@@ -945,7 +964,7 @@ ALTER TABLE ONLY absensi.log_kehadiran
 
 
 --
--- TOC entry 3473 (class 2606 OID 27402)
+-- TOC entry 3479 (class 2606 OID 27402)
 -- Name: tipe_kegiatan tipe_kegiatan_pkey; Type: CONSTRAINT; Schema: absensi; Owner: aithendi
 --
 
@@ -954,7 +973,7 @@ ALTER TABLE ONLY absensi.tipe_kegiatan
 
 
 --
--- TOC entry 3443 (class 2606 OID 27308)
+-- TOC entry 3449 (class 2606 OID 27308)
 -- Name: biodata biodata_pkey; Type: CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -963,7 +982,7 @@ ALTER TABLE ONLY core.biodata
 
 
 --
--- TOC entry 3437 (class 2606 OID 27294)
+-- TOC entry 3443 (class 2606 OID 27294)
 -- Name: cabang cabang_pkey; Type: CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -972,7 +991,7 @@ ALTER TABLE ONLY core.cabang
 
 
 --
--- TOC entry 3448 (class 2606 OID 27323)
+-- TOC entry 3454 (class 2606 OID 27323)
 -- Name: riwayat_pendidikan riwayat_pendidikan_pkey; Type: CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -981,7 +1000,7 @@ ALTER TABLE ONLY core.riwayat_pendidikan
 
 
 --
--- TOC entry 3450 (class 2606 OID 27331)
+-- TOC entry 3456 (class 2606 OID 27331)
 -- Name: staff staff_pkey; Type: CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -990,7 +1009,7 @@ ALTER TABLE ONLY core.staff
 
 
 --
--- TOC entry 3446 (class 2606 OID 27316)
+-- TOC entry 3452 (class 2606 OID 27316)
 -- Name: students students_pkey; Type: CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -999,7 +1018,7 @@ ALTER TABLE ONLY core.students
 
 
 --
--- TOC entry 3439 (class 2606 OID 27301)
+-- TOC entry 3445 (class 2606 OID 27301)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1008,7 +1027,7 @@ ALTER TABLE ONLY core.users
 
 
 --
--- TOC entry 3435 (class 2606 OID 27287)
+-- TOC entry 3441 (class 2606 OID 27287)
 -- Name: wilayah wilayah_pkey; Type: CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1017,7 +1036,7 @@ ALTER TABLE ONLY core.wilayah
 
 
 --
--- TOC entry 3456 (class 2606 OID 27346)
+-- TOC entry 3462 (class 2606 OID 27346)
 -- Name: kelas kelas_pkey; Type: CONSTRAINT; Schema: formal; Owner: aithendi
 --
 
@@ -1026,7 +1045,7 @@ ALTER TABLE ONLY formal.kelas
 
 
 --
--- TOC entry 3458 (class 2606 OID 27353)
+-- TOC entry 3464 (class 2606 OID 27353)
 -- Name: mata_pelajaran mata_pelajaran_pkey; Type: CONSTRAINT; Schema: formal; Owner: aithendi
 --
 
@@ -1035,7 +1054,7 @@ ALTER TABLE ONLY formal.mata_pelajaran
 
 
 --
--- TOC entry 3460 (class 2606 OID 27360)
+-- TOC entry 3466 (class 2606 OID 27360)
 -- Name: nilai_formal nilai_formal_pkey; Type: CONSTRAINT; Schema: formal; Owner: aithendi
 --
 
@@ -1044,7 +1063,7 @@ ALTER TABLE ONLY formal.nilai_formal
 
 
 --
--- TOC entry 3453 (class 2606 OID 27338)
+-- TOC entry 3459 (class 2606 OID 27338)
 -- Name: siswa_formal siswa_formal_pkey; Type: CONSTRAINT; Schema: formal; Owner: aithendi
 --
 
@@ -1053,7 +1072,7 @@ ALTER TABLE ONLY formal.siswa_formal
 
 
 --
--- TOC entry 3493 (class 2606 OID 29103)
+-- TOC entry 3499 (class 2606 OID 29103)
 -- Name: cache_locks cache_locks_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1062,7 +1081,7 @@ ALTER TABLE ONLY pesantren.cache_locks
 
 
 --
--- TOC entry 3490 (class 2606 OID 29095)
+-- TOC entry 3496 (class 2606 OID 29095)
 -- Name: cache cache_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1071,7 +1090,7 @@ ALTER TABLE ONLY pesantren.cache
 
 
 --
--- TOC entry 3468 (class 2606 OID 27388)
+-- TOC entry 3474 (class 2606 OID 27388)
 -- Name: data_daimi data_daimi_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1080,7 +1099,7 @@ ALTER TABLE ONLY pesantren.data_daimi
 
 
 --
--- TOC entry 3500 (class 2606 OID 29131)
+-- TOC entry 3506 (class 2606 OID 29131)
 -- Name: failed_jobs failed_jobs_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1089,7 +1108,7 @@ ALTER TABLE ONLY pesantren.failed_jobs
 
 
 --
--- TOC entry 3502 (class 2606 OID 29133)
+-- TOC entry 3508 (class 2606 OID 29133)
 -- Name: failed_jobs failed_jobs_uuid_unique; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1098,7 +1117,7 @@ ALTER TABLE ONLY pesantren.failed_jobs
 
 
 --
--- TOC entry 3464 (class 2606 OID 27374)
+-- TOC entry 3470 (class 2606 OID 27374)
 -- Name: grup_daimi grup_daimi_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1107,7 +1126,7 @@ ALTER TABLE ONLY pesantren.grup_daimi
 
 
 --
--- TOC entry 3498 (class 2606 OID 29121)
+-- TOC entry 3504 (class 2606 OID 29121)
 -- Name: job_batches job_batches_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1116,7 +1135,7 @@ ALTER TABLE ONLY pesantren.job_batches
 
 
 --
--- TOC entry 3495 (class 2606 OID 29113)
+-- TOC entry 3501 (class 2606 OID 29113)
 -- Name: jobs jobs_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1125,7 +1144,7 @@ ALTER TABLE ONLY pesantren.jobs
 
 
 --
--- TOC entry 3462 (class 2606 OID 27367)
+-- TOC entry 3468 (class 2606 OID 27367)
 -- Name: kamar kamar_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1134,7 +1153,7 @@ ALTER TABLE ONLY pesantren.kamar
 
 
 --
--- TOC entry 3466 (class 2606 OID 27381)
+-- TOC entry 3472 (class 2606 OID 27381)
 -- Name: kelas_daimi kelas_daimi_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1143,7 +1162,7 @@ ALTER TABLE ONLY pesantren.kelas_daimi
 
 
 --
--- TOC entry 3477 (class 2606 OID 29000)
+-- TOC entry 3483 (class 2606 OID 29000)
 -- Name: migrations migrations_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1152,7 +1171,7 @@ ALTER TABLE ONLY pesantren.migrations
 
 
 --
--- TOC entry 3513 (class 2606 OID 29167)
+-- TOC entry 3519 (class 2606 OID 29167)
 -- Name: model_has_permissions model_has_permissions_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1161,7 +1180,7 @@ ALTER TABLE ONLY pesantren.model_has_permissions
 
 
 --
--- TOC entry 3516 (class 2606 OID 29178)
+-- TOC entry 3522 (class 2606 OID 29178)
 -- Name: model_has_roles model_has_roles_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1170,7 +1189,7 @@ ALTER TABLE ONLY pesantren.model_has_roles
 
 
 --
--- TOC entry 3471 (class 2606 OID 27395)
+-- TOC entry 3477 (class 2606 OID 27395)
 -- Name: nilai_kitab nilai_kitab_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1179,7 +1198,7 @@ ALTER TABLE ONLY pesantren.nilai_kitab
 
 
 --
--- TOC entry 3483 (class 2606 OID 29019)
+-- TOC entry 3489 (class 2606 OID 29019)
 -- Name: password_reset_tokens password_reset_tokens_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1188,7 +1207,7 @@ ALTER TABLE ONLY pesantren.password_reset_tokens
 
 
 --
--- TOC entry 3504 (class 2606 OID 29144)
+-- TOC entry 3510 (class 2606 OID 29144)
 -- Name: permissions permissions_name_guard_name_unique; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1197,7 +1216,7 @@ ALTER TABLE ONLY pesantren.permissions
 
 
 --
--- TOC entry 3506 (class 2606 OID 29142)
+-- TOC entry 3512 (class 2606 OID 29142)
 -- Name: permissions permissions_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1206,7 +1225,7 @@ ALTER TABLE ONLY pesantren.permissions
 
 
 --
--- TOC entry 3523 (class 2606 OID 29226)
+-- TOC entry 3529 (class 2606 OID 29226)
 -- Name: personal_access_tokens personal_access_tokens_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1215,7 +1234,7 @@ ALTER TABLE ONLY pesantren.personal_access_tokens
 
 
 --
--- TOC entry 3525 (class 2606 OID 29229)
+-- TOC entry 3531 (class 2606 OID 29229)
 -- Name: personal_access_tokens personal_access_tokens_token_unique; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1224,7 +1243,7 @@ ALTER TABLE ONLY pesantren.personal_access_tokens
 
 
 --
--- TOC entry 3520 (class 2606 OID 29202)
+-- TOC entry 3526 (class 2606 OID 29202)
 -- Name: role_assignment_histories role_assignment_histories_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1233,7 +1252,7 @@ ALTER TABLE ONLY pesantren.role_assignment_histories
 
 
 --
--- TOC entry 3518 (class 2606 OID 29193)
+-- TOC entry 3524 (class 2606 OID 29193)
 -- Name: role_has_permissions role_has_permissions_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1242,7 +1261,7 @@ ALTER TABLE ONLY pesantren.role_has_permissions
 
 
 --
--- TOC entry 3508 (class 2606 OID 29156)
+-- TOC entry 3514 (class 2606 OID 29156)
 -- Name: roles roles_name_guard_name_unique; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1251,7 +1270,7 @@ ALTER TABLE ONLY pesantren.roles
 
 
 --
--- TOC entry 3510 (class 2606 OID 29154)
+-- TOC entry 3516 (class 2606 OID 29154)
 -- Name: roles roles_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1260,7 +1279,7 @@ ALTER TABLE ONLY pesantren.roles
 
 
 --
--- TOC entry 3486 (class 2606 OID 29026)
+-- TOC entry 3492 (class 2606 OID 29026)
 -- Name: sessions sessions_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1269,7 +1288,7 @@ ALTER TABLE ONLY pesantren.sessions
 
 
 --
--- TOC entry 3479 (class 2606 OID 29012)
+-- TOC entry 3485 (class 2606 OID 29012)
 -- Name: users users_email_unique; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1278,7 +1297,7 @@ ALTER TABLE ONLY pesantren.users
 
 
 --
--- TOC entry 3481 (class 2606 OID 29010)
+-- TOC entry 3487 (class 2606 OID 29010)
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1287,7 +1306,16 @@ ALTER TABLE ONLY pesantren.users
 
 
 --
--- TOC entry 3441 (class 1259 OID 27412)
+-- TOC entry 3534 (class 2606 OID 29303)
+-- Name: _prisma_migrations _prisma_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: aithendi
+--
+
+ALTER TABLE ONLY public._prisma_migrations
+    ADD CONSTRAINT _prisma_migrations_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 3447 (class 1259 OID 27412)
 -- Name: biodata_nik_key; Type: INDEX; Schema: core; Owner: aithendi
 --
 
@@ -1295,7 +1323,7 @@ CREATE UNIQUE INDEX biodata_nik_key ON core.biodata USING btree (nik);
 
 
 --
--- TOC entry 3444 (class 1259 OID 27413)
+-- TOC entry 3450 (class 1259 OID 27413)
 -- Name: students_biodata_id_key; Type: INDEX; Schema: core; Owner: aithendi
 --
 
@@ -1303,7 +1331,7 @@ CREATE UNIQUE INDEX students_biodata_id_key ON core.students USING btree (biodat
 
 
 --
--- TOC entry 3440 (class 1259 OID 27411)
+-- TOC entry 3446 (class 1259 OID 27411)
 -- Name: users_username_key; Type: INDEX; Schema: core; Owner: aithendi
 --
 
@@ -1311,7 +1339,7 @@ CREATE UNIQUE INDEX users_username_key ON core.users USING btree (username);
 
 
 --
--- TOC entry 3451 (class 1259 OID 27415)
+-- TOC entry 3457 (class 1259 OID 27415)
 -- Name: siswa_formal_nisn_key; Type: INDEX; Schema: formal; Owner: aithendi
 --
 
@@ -1319,7 +1347,7 @@ CREATE UNIQUE INDEX siswa_formal_nisn_key ON formal.siswa_formal USING btree (ni
 
 
 --
--- TOC entry 3454 (class 1259 OID 27414)
+-- TOC entry 3460 (class 1259 OID 27414)
 -- Name: siswa_formal_student_id_key; Type: INDEX; Schema: formal; Owner: aithendi
 --
 
@@ -1327,7 +1355,7 @@ CREATE UNIQUE INDEX siswa_formal_student_id_key ON formal.siswa_formal USING btr
 
 
 --
--- TOC entry 3488 (class 1259 OID 29096)
+-- TOC entry 3494 (class 1259 OID 29096)
 -- Name: cache_expiration_index; Type: INDEX; Schema: pesantren; Owner: aithendi
 --
 
@@ -1335,7 +1363,7 @@ CREATE INDEX cache_expiration_index ON pesantren.cache USING btree (expiration);
 
 
 --
--- TOC entry 3491 (class 1259 OID 29104)
+-- TOC entry 3497 (class 1259 OID 29104)
 -- Name: cache_locks_expiration_index; Type: INDEX; Schema: pesantren; Owner: aithendi
 --
 
@@ -1343,7 +1371,7 @@ CREATE INDEX cache_locks_expiration_index ON pesantren.cache_locks USING btree (
 
 
 --
--- TOC entry 3469 (class 1259 OID 27416)
+-- TOC entry 3475 (class 1259 OID 27416)
 -- Name: data_daimi_student_id_key; Type: INDEX; Schema: pesantren; Owner: aithendi
 --
 
@@ -1351,7 +1379,7 @@ CREATE UNIQUE INDEX data_daimi_student_id_key ON pesantren.data_daimi USING btre
 
 
 --
--- TOC entry 3496 (class 1259 OID 29114)
+-- TOC entry 3502 (class 1259 OID 29114)
 -- Name: jobs_queue_index; Type: INDEX; Schema: pesantren; Owner: aithendi
 --
 
@@ -1359,7 +1387,7 @@ CREATE INDEX jobs_queue_index ON pesantren.jobs USING btree (queue);
 
 
 --
--- TOC entry 3511 (class 1259 OID 29160)
+-- TOC entry 3517 (class 1259 OID 29160)
 -- Name: model_has_permissions_model_id_model_type_index; Type: INDEX; Schema: pesantren; Owner: aithendi
 --
 
@@ -1367,7 +1395,7 @@ CREATE INDEX model_has_permissions_model_id_model_type_index ON pesantren.model_
 
 
 --
--- TOC entry 3514 (class 1259 OID 29171)
+-- TOC entry 3520 (class 1259 OID 29171)
 -- Name: model_has_roles_model_id_model_type_index; Type: INDEX; Schema: pesantren; Owner: aithendi
 --
 
@@ -1375,7 +1403,7 @@ CREATE INDEX model_has_roles_model_id_model_type_index ON pesantren.model_has_ro
 
 
 --
--- TOC entry 3521 (class 1259 OID 29230)
+-- TOC entry 3527 (class 1259 OID 29230)
 -- Name: personal_access_tokens_expires_at_index; Type: INDEX; Schema: pesantren; Owner: aithendi
 --
 
@@ -1383,7 +1411,7 @@ CREATE INDEX personal_access_tokens_expires_at_index ON pesantren.personal_acces
 
 
 --
--- TOC entry 3526 (class 1259 OID 29227)
+-- TOC entry 3532 (class 1259 OID 29227)
 -- Name: personal_access_tokens_tokenable_type_tokenable_id_index; Type: INDEX; Schema: pesantren; Owner: aithendi
 --
 
@@ -1391,7 +1419,7 @@ CREATE INDEX personal_access_tokens_tokenable_type_tokenable_id_index ON pesantr
 
 
 --
--- TOC entry 3484 (class 1259 OID 29028)
+-- TOC entry 3490 (class 1259 OID 29028)
 -- Name: sessions_last_activity_index; Type: INDEX; Schema: pesantren; Owner: aithendi
 --
 
@@ -1399,7 +1427,7 @@ CREATE INDEX sessions_last_activity_index ON pesantren.sessions USING btree (las
 
 
 --
--- TOC entry 3487 (class 1259 OID 29027)
+-- TOC entry 3493 (class 1259 OID 29027)
 -- Name: sessions_user_id_index; Type: INDEX; Schema: pesantren; Owner: aithendi
 --
 
@@ -1407,7 +1435,7 @@ CREATE INDEX sessions_user_id_index ON pesantren.sessions USING btree (user_id);
 
 
 --
--- TOC entry 3547 (class 2606 OID 27517)
+-- TOC entry 3555 (class 2606 OID 27517)
 -- Name: log_kehadiran log_kehadiran_student_id_fkey; Type: FK CONSTRAINT; Schema: absensi; Owner: aithendi
 --
 
@@ -1416,7 +1444,7 @@ ALTER TABLE ONLY absensi.log_kehadiran
 
 
 --
--- TOC entry 3527 (class 2606 OID 28568)
+-- TOC entry 3535 (class 2606 OID 28568)
 -- Name: cabang cabang_wilayah_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1425,7 +1453,7 @@ ALTER TABLE ONLY core.cabang
 
 
 --
--- TOC entry 3533 (class 2606 OID 28578)
+-- TOC entry 3541 (class 2606 OID 28578)
 -- Name: riwayat_pendidikan riwayat_pendidikan_cabang_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1434,7 +1462,7 @@ ALTER TABLE ONLY core.riwayat_pendidikan
 
 
 --
--- TOC entry 3534 (class 2606 OID 27447)
+-- TOC entry 3542 (class 2606 OID 27447)
 -- Name: riwayat_pendidikan riwayat_pendidikan_student_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1443,7 +1471,7 @@ ALTER TABLE ONLY core.riwayat_pendidikan
 
 
 --
--- TOC entry 3535 (class 2606 OID 27462)
+-- TOC entry 3543 (class 2606 OID 27462)
 -- Name: staff staff_cabang_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1452,7 +1480,7 @@ ALTER TABLE ONLY core.staff
 
 
 --
--- TOC entry 3536 (class 2606 OID 27467)
+-- TOC entry 3544 (class 2606 OID 27467)
 -- Name: staff staff_grup_daimi_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1461,7 +1489,7 @@ ALTER TABLE ONLY core.staff
 
 
 --
--- TOC entry 3537 (class 2606 OID 27457)
+-- TOC entry 3545 (class 2606 OID 27457)
 -- Name: staff staff_wilayah_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1470,7 +1498,7 @@ ALTER TABLE ONLY core.staff
 
 
 --
--- TOC entry 3530 (class 2606 OID 27432)
+-- TOC entry 3538 (class 2606 OID 27432)
 -- Name: students students_biodata_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1479,7 +1507,7 @@ ALTER TABLE ONLY core.students
 
 
 --
--- TOC entry 3531 (class 2606 OID 27442)
+-- TOC entry 3539 (class 2606 OID 27442)
 -- Name: students students_cabang_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1488,7 +1516,7 @@ ALTER TABLE ONLY core.students
 
 
 --
--- TOC entry 3532 (class 2606 OID 28573)
+-- TOC entry 3540 (class 2606 OID 28573)
 -- Name: students students_wilayah_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1497,7 +1525,7 @@ ALTER TABLE ONLY core.students
 
 
 --
--- TOC entry 3528 (class 2606 OID 27427)
+-- TOC entry 3536 (class 2606 OID 27427)
 -- Name: users users_cabang_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1506,7 +1534,7 @@ ALTER TABLE ONLY core.users
 
 
 --
--- TOC entry 3529 (class 2606 OID 27422)
+-- TOC entry 3537 (class 2606 OID 27422)
 -- Name: users users_wilayah_id_fkey; Type: FK CONSTRAINT; Schema: core; Owner: aithendi
 --
 
@@ -1515,7 +1543,7 @@ ALTER TABLE ONLY core.users
 
 
 --
--- TOC entry 3540 (class 2606 OID 27482)
+-- TOC entry 3548 (class 2606 OID 27482)
 -- Name: kelas kelas_cabang_id_fkey; Type: FK CONSTRAINT; Schema: formal; Owner: aithendi
 --
 
@@ -1524,7 +1552,7 @@ ALTER TABLE ONLY formal.kelas
 
 
 --
--- TOC entry 3538 (class 2606 OID 27477)
+-- TOC entry 3546 (class 2606 OID 27477)
 -- Name: siswa_formal siswa_formal_kelas_id_fkey; Type: FK CONSTRAINT; Schema: formal; Owner: aithendi
 --
 
@@ -1533,7 +1561,7 @@ ALTER TABLE ONLY formal.siswa_formal
 
 
 --
--- TOC entry 3539 (class 2606 OID 27472)
+-- TOC entry 3547 (class 2606 OID 27472)
 -- Name: siswa_formal siswa_formal_student_id_fkey; Type: FK CONSTRAINT; Schema: formal; Owner: aithendi
 --
 
@@ -1542,7 +1570,7 @@ ALTER TABLE ONLY formal.siswa_formal
 
 
 --
--- TOC entry 3544 (class 2606 OID 27507)
+-- TOC entry 3552 (class 2606 OID 27507)
 -- Name: data_daimi data_daimi_grup_id_fkey; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1551,7 +1579,7 @@ ALTER TABLE ONLY pesantren.data_daimi
 
 
 --
--- TOC entry 3545 (class 2606 OID 27512)
+-- TOC entry 3553 (class 2606 OID 27512)
 -- Name: data_daimi data_daimi_kelas_id_fkey; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1560,7 +1588,7 @@ ALTER TABLE ONLY pesantren.data_daimi
 
 
 --
--- TOC entry 3546 (class 2606 OID 27502)
+-- TOC entry 3554 (class 2606 OID 27502)
 -- Name: data_daimi data_daimi_student_id_fkey; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1569,7 +1597,7 @@ ALTER TABLE ONLY pesantren.data_daimi
 
 
 --
--- TOC entry 3541 (class 2606 OID 27497)
+-- TOC entry 3549 (class 2606 OID 27497)
 -- Name: kelas_daimi kelas_daimi_cabang_id_fkey; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1578,7 +1606,7 @@ ALTER TABLE ONLY pesantren.kelas_daimi
 
 
 --
--- TOC entry 3542 (class 2606 OID 27487)
+-- TOC entry 3550 (class 2606 OID 27487)
 -- Name: kelas_daimi kelas_daimi_grup_id_fkey; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1587,7 +1615,7 @@ ALTER TABLE ONLY pesantren.kelas_daimi
 
 
 --
--- TOC entry 3543 (class 2606 OID 27492)
+-- TOC entry 3551 (class 2606 OID 27492)
 -- Name: kelas_daimi kelas_daimi_wilayah_id_fkey; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1596,7 +1624,7 @@ ALTER TABLE ONLY pesantren.kelas_daimi
 
 
 --
--- TOC entry 3548 (class 2606 OID 29161)
+-- TOC entry 3556 (class 2606 OID 29161)
 -- Name: model_has_permissions model_has_permissions_permission_id_foreign; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1605,7 +1633,7 @@ ALTER TABLE ONLY pesantren.model_has_permissions
 
 
 --
--- TOC entry 3549 (class 2606 OID 29172)
+-- TOC entry 3557 (class 2606 OID 29172)
 -- Name: model_has_roles model_has_roles_role_id_foreign; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1614,7 +1642,7 @@ ALTER TABLE ONLY pesantren.model_has_roles
 
 
 --
--- TOC entry 3552 (class 2606 OID 29213)
+-- TOC entry 3560 (class 2606 OID 29213)
 -- Name: role_assignment_histories role_assignment_histories_assigned_by_foreign; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1623,7 +1651,7 @@ ALTER TABLE ONLY pesantren.role_assignment_histories
 
 
 --
--- TOC entry 3553 (class 2606 OID 29208)
+-- TOC entry 3561 (class 2606 OID 29208)
 -- Name: role_assignment_histories role_assignment_histories_role_id_foreign; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1632,7 +1660,7 @@ ALTER TABLE ONLY pesantren.role_assignment_histories
 
 
 --
--- TOC entry 3554 (class 2606 OID 29203)
+-- TOC entry 3562 (class 2606 OID 29203)
 -- Name: role_assignment_histories role_assignment_histories_user_id_foreign; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1641,7 +1669,7 @@ ALTER TABLE ONLY pesantren.role_assignment_histories
 
 
 --
--- TOC entry 3550 (class 2606 OID 29182)
+-- TOC entry 3558 (class 2606 OID 29182)
 -- Name: role_has_permissions role_has_permissions_permission_id_foreign; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1650,7 +1678,7 @@ ALTER TABLE ONLY pesantren.role_has_permissions
 
 
 --
--- TOC entry 3551 (class 2606 OID 29187)
+-- TOC entry 3559 (class 2606 OID 29187)
 -- Name: role_has_permissions role_has_permissions_role_id_foreign; Type: FK CONSTRAINT; Schema: pesantren; Owner: aithendi
 --
 
@@ -1658,7 +1686,7 @@ ALTER TABLE ONLY pesantren.role_has_permissions
     ADD CONSTRAINT role_has_permissions_role_id_foreign FOREIGN KEY (role_id) REFERENCES pesantren.roles(id) ON DELETE CASCADE;
 
 
--- Completed on 2026-07-02 11:28:33
+-- Completed on 2026-07-03 13:57:31
 
 --
 -- PostgreSQL database dump complete

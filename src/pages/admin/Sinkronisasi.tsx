@@ -6,6 +6,7 @@ import apiClient from '../../lib/apiClient';
 interface SyncConfig {
   name: string;
   exportUrl?: string; // If empty, we can't export directly (maybe we need to fetch all)
+  exportDetailUrl?: string; // For detail export combining schemas
   importUrl: string;
   templateKeys: string[];
 }
@@ -15,6 +16,7 @@ const SYNC_MODULES: Record<string, SyncConfig> = {
     name: 'Siswa',
     importUrl: '/students/import',
     exportUrl: '/students',
+    exportDetailUrl: '/students/export/detail',
     templateKeys: ['no_glodemy', 'nama_siswa', 'tanggal_lahir', 'jenis_kelamin', 'wilayah', 'cabang'],
   },
   Guru: {
@@ -103,6 +105,44 @@ export default function Sinkronisasi() {
       alert(`Gagal mengekspor data ${moduleName}`);
     } finally {
       setLoadingModules((prev) => ({ ...prev, [moduleName]: false }));
+    }
+  };
+
+  const handleExportDetail = async (moduleName: string) => {
+    const config = SYNC_MODULES[moduleName];
+    if (!config.exportDetailUrl) return;
+
+    setLoadingModules((prev) => ({ ...prev, [`${moduleName}_detail`]: true }));
+    try {
+      const response = await apiClient.get(config.exportDetailUrl);
+      const data = response.data;
+
+      const exportData = data.map((item: any) => ({
+        no_glodemy: item.biodata?.noGlodemy || '',
+        nik: item.biodata?.nik || '',
+        nama_siswa: item.biodata?.fullName || '',
+        tanggal_lahir: item.biodata?.tanggalLahir ? new Date(item.biodata.tanggalLahir).toISOString().split('T')[0] : '',
+        jenis_kelamin: item.biodata?.jenisKelamin || '',
+        wilayah: item.wilayah?.name || '',
+        cabang: item.cabang?.name || '',
+        // Formal (Sekolah)
+        nis_formal: item.siswaFormal?.nis || '',
+        nisn_formal: item.siswaFormal?.nisn || '',
+        kelas_formal: item.siswaFormal?.kelas?.name || '',
+        // Pesantren
+        nis_pesantren: item.dataDaimi?.nis || '',
+        kelas_pesantren: item.dataDaimi?.kelas?.name || '',
+        grup_pesantren: item.dataDaimi?.grup?.name || '',
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, `${moduleName} Detail`);
+      XLSX.writeFile(workbook, `Data_${moduleName}_Export_Detail.xlsx`);
+    } catch (err) {
+      alert(`Gagal mengekspor detail data ${moduleName}`);
+    } finally {
+      setLoadingModules((prev) => ({ ...prev, [`${moduleName}_detail`]: false }));
     }
   };
 
@@ -238,6 +278,17 @@ export default function Sinkronisasi() {
                   <Download className="w-4 h-4 mr-2" />
                   Export {moduleName}
                 </button>
+
+                {SYNC_MODULES[moduleName].exportDetailUrl && (
+                  <button
+                    onClick={() => handleExportDetail(moduleName)}
+                    disabled={loadingModules[`${moduleName}_detail`]}
+                    className="w-full flex items-center justify-center px-4 py-2 border border-slate-300 shadow-sm text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export {moduleName} Detail
+                  </button>
+                )}
 
                 <div className="relative">
                   <input

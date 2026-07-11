@@ -8,10 +8,18 @@ interface ConfirmModalProps {
   onConfirm: () => void;
   title: string;
   message: string;
+  requireInput?: string;
 }
 
-export default function ConfirmModal({ isOpen, onClose, onConfirm, title, message }: ConfirmModalProps) {
+export default function ConfirmModal({ isOpen, onClose, onConfirm, title, message, requireInput }: ConfirmModalProps) {
   const { t } = useTranslation();
+  const [inputValue, setInputValue] = React.useState('');
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setInputValue('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -27,8 +35,22 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6">
+        <div className="p-6 space-y-4">
           <p className="text-sm text-slate-600">{message}</p>
+          {requireInput && (
+            <div>
+              <p className="text-sm font-medium text-slate-700 mb-1">
+                Ketik <strong className="text-red-600">{requireInput}</strong> untuk melanjutkan:
+              </p>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
+                placeholder={requireInput}
+              />
+            </div>
+          )}
         </div>
         <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
           <button
@@ -38,11 +60,12 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
             {t('common.cancel') || 'Batal'}
           </button>
           <button
+            disabled={requireInput ? inputValue !== requireInput : false}
             onClick={() => {
               onConfirm();
               onClose();
             }}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('common.delete') || 'Hapus'}
           </button>

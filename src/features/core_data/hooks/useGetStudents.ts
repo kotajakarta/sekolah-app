@@ -27,6 +27,16 @@ export interface Biodata {
   fotoBase64?: string | null;
   ijazahBase64?: string | null;
   kkBase64?: string | null;
+  nisn?: string | null;
+  alamatProvId?: string | null;
+  alamatProvName?: string | null;
+  alamatKabId?: string | null;
+  alamatKabName?: string | null;
+  alamatKecId?: string | null;
+  alamatKecName?: string | null;
+  alamatKelId?: string | null;
+  alamatKelName?: string | null;
+  alamatJalan?: string | null;
 }
 
 export interface Wilayah {
@@ -61,6 +71,14 @@ export interface Student {
   wilayah?: Wilayah;
   cabang?: Cabang;
   riwayatPendidikan?: RiwayatPendidikan[];
+  jenisSiswa?: string | null;
+  grupDaimi?: string | null;
+  siswaFormal?: {
+    kelas?: {
+      name: string;
+    };
+  } | null;
+  isActive?: boolean;
 }
 
 export const useGetStudents = () => {

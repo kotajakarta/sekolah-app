@@ -94,7 +94,9 @@ export default function UsersWilayah() {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50/80 border-b border-slate-200">
                 <tr>
+                  <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Username</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Nama Operator</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Scope</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Divisi</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Wilayah</th>
@@ -103,9 +105,13 @@ export default function UsersWilayah() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {(Array.isArray(users) ? users : [])?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item) => (
+                {(Array.isArray(users) ? users : [])?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, idx) => (
                   <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
+                      {(currentPage - 1) * itemsPerPage + idx + 1}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">{item.username}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{item.operatorName || '-'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.scope}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.divisi}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.wilayah?.name || '-'}</td>

@@ -59,22 +59,40 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
       studentIds: selectedStudentIds, 
       cabangId: selectedCabangId 
     }, {
-      onSuccess: () => {
+      onSuccess: (data) => {
+        if (data?.message) alert(data.message);
         onClose();
       }
     });
   };
 
+  const selectedStudentsData = poolStudents?.filter(s => selectedStudentIds.includes(s.id)) || [];
+  const activeCount = selectedStudentsData.filter(s => s.statusPool === 'AKTIF_CABANG').length;
+  const availableCount = selectedStudentsData.filter(s => s.statusPool === 'TERSEDIA').length;
+
+  let buttonText = `Tarik ${selectedStudentIds.length} Siswa`;
+  let buttonColor = 'bg-blue-600 hover:bg-blue-500';
+  
+  if (selectedStudentIds.length > 0) {
+    if (activeCount > 0 && availableCount === 0) {
+      buttonText = `Minta ke Pusat (${selectedStudentIds.length} Siswa)`;
+      buttonColor = 'bg-amber-600 hover:bg-amber-500';
+    } else if (activeCount > 0 && availableCount > 0) {
+      buttonText = `Proses Tarik & Minta (${selectedStudentIds.length} Siswa)`;
+      buttonColor = 'bg-indigo-600 hover:bg-indigo-500';
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-        <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl flex flex-col max-h-[85vh]">
+        <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-5xl flex flex-col max-h-[85vh]">
           <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold leading-6 text-gray-900">
-                Tarik Siswa dari Pool
+                Tarik Data Siswa
               </h3>
               <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
                 <X className="h-5 w-5" />
@@ -138,10 +156,10 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
               </div>
             ) : filteredStudents.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
-                Tidak ada siswa yang ditemukan di pool.
+                Tidak ada siswa yang ditemukan.
               </div>
             ) : (
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -155,13 +173,13 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wilayah Asal</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cabang Terakhir</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lokasi / Status</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredStudents.map((student) => (
                       <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-normal">
                           <input
                             type="checkbox"
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
@@ -169,15 +187,23 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
                             onChange={() => toggleStudentSelection(student.id)}
                           />
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-4 whitespace-normal">
                           <div className="text-sm font-medium text-gray-900">{student.biodata?.fullName}</div>
                           <div className="text-xs text-gray-500">{student.biodata?.phone || '-'}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-normal text-sm text-gray-500">
                           {student.wilayah?.name || '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {student.cabang?.name || '-'}
+                        <td className="px-6 py-4 whitespace-normal text-sm text-gray-500">
+                          {student.statusPool === 'AKTIF_CABANG' ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
+                              Di Cabang: {student.cabang?.name || '-'}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                              Pool (Tersedia)
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -192,9 +218,9 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
               type="button"
               disabled={!selectedCabangId || selectedStudentIds.length === 0 || tarikMassalMutation.isPending}
               onClick={handleTarik}
-              className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto disabled:opacity-50"
+              className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm sm:ml-3 sm:w-auto disabled:opacity-50 ${buttonColor}`}
             >
-              {tarikMassalMutation.isPending ? 'Memproses...' : `Tarik ${selectedStudentIds.length} Siswa`}
+              {tarikMassalMutation.isPending ? 'Memproses...' : buttonText}
             </button>
             <button
               type="button"

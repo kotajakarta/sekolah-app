@@ -34,12 +34,10 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-500/20">
-            <Database className="w-6 h-6 text-white" />
-          </div>
+          <img src="https://cdn.aithendi.my.id/assets/logoyts-modern2.png" alt="eSiswa Logo" className="h-16 w-auto object-contain" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-display font-bold text-slate-800 tracking-tight">
-          Pusdatin<span className="text-indigo-600">App</span>
+          eSiswa
         </h2>
         <p className="mt-2 text-center text-sm text-slate-500">
           Sign in to access your dashboard

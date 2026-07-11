@@ -74,6 +74,7 @@ export default function PoolGuru() {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50/80 border-b border-slate-200">
                 <tr>
+                  <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.name')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Jabatan / Posisi</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('wilayah.region_name')}</th>
@@ -81,8 +82,11 @@ export default function PoolGuru() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {(Array.isArray(guruPool) ? guruPool : [])?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item: any) => (
+                {(Array.isArray(guruPool) ? guruPool : [])?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item: any, idx: number) => (
                   <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
+                      {(currentPage - 1) * itemsPerPage + idx + 1}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
                       {item.name}
                     </td>

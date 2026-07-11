@@ -15,6 +15,7 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
   const [formData, setFormData] = useState({
     username: '',
     password: '',
+    operatorName: '',
     scope: 'GLOBAL',
     divisi: 'ALL',
     wilayahId: '',
@@ -42,6 +43,7 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
       setFormData({
         username: userToEdit.username || '',
         password: '',
+        operatorName: userToEdit.operatorName || '',
         scope: userToEdit.scope || 'GLOBAL',
         divisi: userToEdit.divisi || 'ALL',
         wilayahId: userToEdit.wilayahId || '',
@@ -51,6 +53,7 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
       setFormData({
         username: '',
         password: '',
+        operatorName: '',
         scope: 'GLOBAL',
         divisi: 'ALL',
         wilayahId: '',
@@ -99,6 +102,15 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Nama Operator</label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              value={formData.operatorName}
+              onChange={(e) => setFormData({ ...formData, operatorName: e.target.value })}
             />
           </div>
           <div>

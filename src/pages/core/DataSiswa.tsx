@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { Users, Plus, UserMinus, UserPlus, Edit2, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Users, Plus, UserMinus, UserPlus, Edit2, Trash2, Search, User } from 'lucide-react';
 import { useGetStudents, Student } from '../../features/core_data/hooks/useGetStudents';
 import LepasSiswaModal from '../../features/core_data/components/LepasSiswaModal';
 import TarikSiswaMassalModal from '../../features/core_data/components/TarikSiswaMassalModal';
 import StudentModal from '../../features/core_data/components/StudentModal';
+import StudentProfileModal from '../../features/core_data/components/StudentProfileModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
@@ -13,6 +15,7 @@ import apiClient from '../../lib/apiClient';
 
 export default function DataSiswa() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const itemsPerPage = 10;
 
   const { user } = useAuth();
@@ -22,10 +25,29 @@ export default function DataSiswa() {
   const { data: students, isLoading, isError } = useGetStudents();
   const [studentToLepas, setStudentToLepas] = useState<Student | null>(null);
   const [studentToEdit, setStudentToEdit] = useState<Student | null>(null);
+  const [studentToView, setStudentToView] = useState<Student | null>(null);
   const [isTarikModalOpen, setIsTarikModalOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isConfirmDeleteAllOpen, setIsConfirmDeleteAllOpen] = useState(false);
   const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (students && students.length > 0) {
+      const searchParams = new URLSearchParams(location.search);
+      const viewId = searchParams.get('viewId');
+      if (viewId) {
+        const student = students.find((s: Student) => s.id === viewId);
+        if (student) {
+          setStudentToView(student);
+          // Remove viewId from URL without reloading
+          searchParams.delete('viewId');
+          navigate({ search: searchParams.toString() }, { replace: true });
+        }
+      }
+    }
+  }, [students, location.search, navigate]);
 
   const deleteAllMutation = useMutation({
     mutationFn: async () => {
@@ -75,7 +97,7 @@ export default function DataSiswa() {
               className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
             >
               <UserPlus className="w-4 h-4 mr-2" />
-              Tarik dari Pool
+              Tarik Data Siswa
             </button>
           )}
           <button onClick={handleAdd} className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
@@ -86,6 +108,22 @@ export default function DataSiswa() {
       </div>
       
       <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-slate-200/70 bg-slate-50/50">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari nama, NIK, atau NISN..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white"
+            />
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="p-8 text-center text-slate-500">{t('common.loading')}</div>
         ) : isError ? (
@@ -95,6 +133,7 @@ export default function DataSiswa() {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50/80 border-b border-slate-200">
                 <tr>
+                  <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.name')} & NIK</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('wilayah.region_name')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
@@ -103,11 +142,26 @@ export default function DataSiswa() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {(Array.isArray(students) ? students : [])?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((student) => (
+                {(Array.isArray(students) ? students : [])
+                  .filter(s => {
+                    const q = searchQuery.toLowerCase();
+                    return !q || 
+                      s.biodata?.fullName?.toLowerCase().includes(q) ||
+                      s.biodata?.nik?.toLowerCase().includes(q) ||
+                      s.biodata?.nisn?.toLowerCase().includes(q);
+                  })
+                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  .map((student, idx) => (
                   <tr key={student.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
+                      {(currentPage - 1) * itemsPerPage + idx + 1}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-slate-800">{student.biodata?.fullName}</div>
-                      <div className="text-xs text-slate-500">NIK: {student.biodata?.nik || '-'}</div>
+                      <div className="text-xs text-slate-500">
+                        NIK: {student.biodata?.nik || '-'} 
+                        {student.biodata?.nisn ? ` | NISN: ${student.biodata.nisn}` : ''}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                       {student.wilayah?.name || '-'}
@@ -116,15 +170,30 @@ export default function DataSiswa() {
                       {student.cabang?.name || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                        student.statusPool === 'AKTIF_CABANG' ? 'bg-green-100 text-green-800' :
-                        student.statusPool === 'TERSEDIA' ? 'bg-blue-100 text-blue-800' :
-                        'bg-slate-100 text-slate-800'
-                      }`}>
-                        {student.statusPool.replace('_', ' ')}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 w-fit ${
+                          student.statusPool === 'AKTIF_CABANG' ? 'bg-green-100 text-green-800' :
+                          student.statusPool === 'TERSEDIA' ? 'bg-blue-100 text-blue-800' :
+                          student.statusPool === 'MUTASI' ? 'bg-amber-100 text-amber-800' :
+                          'bg-slate-100 text-slate-800'
+                        }`}>
+                          {student.statusPool.replace('_', ' ')}
+                        </span>
+                        {!student.isActive && (
+                          <span className="inline-flex rounded-full px-2 text-[10px] font-semibold leading-4 bg-red-100 text-red-700 w-fit">
+                            Tidak Aktif
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => setStudentToView(student)}
+                        className="inline-flex items-center px-3 py-1.5 border border-slate-200 shadow-sm text-xs font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors mr-2"
+                      >
+                        <User className="h-3.5 w-3.5 mr-1" />
+                        Profil
+                      </button>
                       <button
                         onClick={() => handleEdit(student)}
                         className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-xs font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors mr-2"
@@ -149,9 +218,21 @@ export default function DataSiswa() {
           </div>
           <Pagination 
             currentPage={currentPage} 
-            totalPages={Math.ceil((students?.length || 0) / itemsPerPage)} 
+            totalPages={Math.ceil(((Array.isArray(students) ? students : []).filter(s => {
+              const q = searchQuery.toLowerCase();
+              return !q || 
+                s.biodata?.fullName?.toLowerCase().includes(q) ||
+                s.biodata?.nik?.toLowerCase().includes(q) ||
+                s.biodata?.nisn?.toLowerCase().includes(q);
+            }).length || 0) / itemsPerPage)} 
             onPageChange={setCurrentPage} 
-            totalItems={students?.length || 0} 
+            totalItems={(Array.isArray(students) ? students : []).filter(s => {
+              const q = searchQuery.toLowerCase();
+              return !q || 
+                s.biodata?.fullName?.toLowerCase().includes(q) ||
+                s.biodata?.nik?.toLowerCase().includes(q) ||
+                s.biodata?.nisn?.toLowerCase().includes(q);
+            }).length || 0} 
             itemsPerPage={itemsPerPage} 
           />
         </>
@@ -175,6 +256,17 @@ export default function DataSiswa() {
         />
       )}
 
+      {studentToView && (
+        <StudentProfileModal
+          student={studentToView}
+          onClose={() => setStudentToView(null)}
+          onEdit={() => {
+            handleEdit(studentToView);
+            setStudentToView(null);
+          }}
+        />
+      )}
+
       {isTarikModalOpen && (
         <TarikSiswaMassalModal
           onClose={() => setIsTarikModalOpen(false)}
@@ -194,6 +286,7 @@ export default function DataSiswa() {
         onConfirm={() => deleteAllMutation.mutate()}
         title="Konfirmasi Hapus Semua Siswa"
         message="PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA data siswa? Aksi ini akan menghapus data siswa secara permanen beserta data riwayat dan kehadirannya."
+        requireInput="HAPUS"
       />
     </div>
   );

@@ -4,10 +4,13 @@ import apiClient from '../lib/apiClient';
 export interface AuthUser {
   id: string;
   username?: string;
+  operatorName?: string;
   scope: 'GLOBAL' | 'WILAYAH' | 'CABANG';
   divisi: 'ALL' | 'FORMAL' | 'PESANTREN';
   wilayahId?: string;
   cabangId?: string;
+  wilayahName?: string;
+  cabangName?: string;
 }
 
 interface AuthContextType {
@@ -50,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('dismissed_popup_ids');
   };
 
   return (

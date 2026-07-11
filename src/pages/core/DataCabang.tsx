@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Building2, Plus, Edit2, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useGetCabang, Cabang } from '../../features/core_data/hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
 import CabangModal from '../../features/core_data/components/CabangModal';
 import HulasaCabangModal from '../../features/core_data/components/HulasaCabangModal';
+import { ProfileCabangModal } from '../../features/core_data/components/ProfileCabangModal';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
@@ -23,6 +25,7 @@ export default function DataCabang() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHulasaModalOpen, setIsHulasaModalOpen] = useState(false);
   const [cabangToEdit, setCabangToEdit] = useState<Cabang | null>(null);
+  const [profileCabangId, setProfileCabangId] = useState<string | null>(null);
   
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [cabangToDelete, setCabangToDelete] = useState<string | null>(null);
@@ -32,6 +35,21 @@ export default function DataCabang() {
   const [filterWilayah, setFilterWilayah] = useState('ALL');
   const [sortField, setSortField] = useState<'name' | 'wilayah'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (cabang && cabang.length > 0) {
+      const searchParams = new URLSearchParams(location.search);
+      const viewId = searchParams.get('viewId');
+      if (viewId) {
+        setProfileCabangId(viewId);
+        searchParams.delete('viewId');
+        navigate({ search: searchParams.toString() }, { replace: true });
+      }
+    }
+  }, [cabang, location.search, navigate]);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -254,28 +272,33 @@ export default function DataCabang() {
                     {t('cabang.region')}
                     <SortIcon field="wilayah" />
                   </th>
-                  {isAdmin && <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>}
+                  <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
                 {filteredAndSortedCabang.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer" onClick={() => setProfileCabangId(item.id)}>
                       {item.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                       {item.wilayah?.name || '-'}
                     </td>
-                    {isAdmin && (
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button onClick={() => handleEdit(item)} className="text-indigo-600 hover:text-blue-900 mr-4">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => confirmDelete(item.id)} className="text-red-600 hover:text-red-900">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    )}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button onClick={() => setProfileCabangId(item.id)} className="text-emerald-600 hover:text-emerald-900 mr-4 font-semibold px-2 py-1 rounded bg-emerald-50 hover:bg-emerald-100 transition-colors">
+                        Profile
+                      </button>
+                      {isAdmin && (
+                        <>
+                          <button onClick={() => handleEdit(item)} className="text-indigo-600 hover:text-blue-900 mr-4">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => confirmDelete(item.id)} className="text-red-600 hover:text-red-900">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -329,6 +352,13 @@ export default function DataCabang() {
         onClose={() => setIsHulasaModalOpen(false)} 
         cabangList={cabang} 
       />
+
+      {profileCabangId && (
+        <ProfileCabangModal 
+          cabangId={profileCabangId} 
+          onClose={() => setProfileCabangId(null)} 
+        />
+      )}
     </div>
   );
 }

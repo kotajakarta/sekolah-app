@@ -9,11 +9,20 @@ import Pagination from '../../components/Pagination';
 import Papa from 'papaparse';
 import ImportKelasModal from './ImportKelasModal';
 import ConfirmModal from '../../components/ConfirmModal';
+import GrupDaimiTab from './GrupDaimiTab';
 
 interface Cabang {
   id: string;
   name: string;
+  wilayahId?: string;
   wilayah?: { name: string };
+}
+
+interface LembagaMuadalah {
+  id: string;
+  name: string;
+  code: string;
+  isActive: boolean;
 }
 
 interface Kelas {
@@ -23,9 +32,12 @@ interface Kelas {
   isActive: boolean;
   cabangId?: string;
   cabang?: Cabang;
+  lembagaMuadalahId?: string;
+  lembagaMuadalah?: LembagaMuadalah;
 }
 
 export default function ManajemenKelas() {
+  const [activeTab, setActiveTab] = useState<'kelas' | 'grup-daimi'>('kelas');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -38,11 +50,22 @@ export default function ManajemenKelas() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [editingKelas, setEditingKelas] = useState<Kelas | null>(null);
-  const [formData, setFormData] = useState({ name: '', tingkat: 'Non Muadalah', isActive: true, cabangId: '' });
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    tingkat: 'Non Muadalah', 
+    isActive: true, 
+    cabangId: '', 
+    lembagaMuadalahId: '' 
+  });
   
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [kelasToDelete, setKelasToDelete] = useState<string | null>(null);
   const [isConfirmDeleteAllOpen, setIsConfirmDeleteAllOpen] = useState(false);
+
+  // Filter states
+  const [filterMuadalah, setFilterMuadalah] = useState('');
+  const [filterWilayah, setFilterWilayah] = useState(user?.scope === 'CABANG' || user?.scope === 'WILAYAH' ? user?.wilayahId || '' : '');
+  const [filterCabang, setFilterCabang] = useState(user?.scope === 'CABANG' ? user?.cabangId || '' : '');
 
   const { data: kelasList, isLoading } = useQuery<Kelas[]>({
     queryKey: ['kelas'],
@@ -54,15 +77,50 @@ export default function ManajemenKelas() {
 
   const { data: cabangList, isLoading: loadingCabang } = useGetCabang();
 
+  const { data: muadalahList = [] } = useQuery<LembagaMuadalah[]>({
+    queryKey: ['lembaga-muadalah'],
+    queryFn: async () => {
+      const res = await apiClient.get('/formal/muadalah');
+      return res.data.filter((m: any) => m.isActive);
+    }
+  });
+
+  const { data: wilayahs = [] } = useQuery<any[]>({
+    queryKey: ['master-data', 'wilayah'],
+    queryFn: async () => {
+      const res = await apiClient.get('/master-data/wilayah');
+      return res.data;
+    }
+  });
+
+  const handleFilterWilayahChange = (wId: string) => {
+    setFilterWilayah(wId);
+    setFilterCabang('');
+    setCurrentPage(1);
+  };
+
+  const handleFilterCabangChange = (cId: string) => {
+    setFilterCabang(cId);
+    setCurrentPage(1);
+  };
+
+  const filteredFilterCabangList = cabangList?.filter(c => {
+    if (user?.scope === 'CABANG') return c.id === user.cabangId;
+    if (user?.scope === 'WILAYAH') return c.wilayahId === user.wilayahId;
+    if (filterWilayah) return c.wilayahId === filterWilayah;
+    return true;
+  }) || [];
+
   const handleExport = () => {
     if (!kelasList || kelasList.length === 0) {
       alert('Tidak ada data untuk diexport');
       return;
     }
 
-    const exportData = kelasList.map((kelas) => ({
+    const exportData = filteredKelasList.map((kelas) => ({
       nama_kelas: kelas.name,
       tingkat: kelas.tingkat || '',
+      lembaga_muadalah: kelas.lembagaMuadalah?.name || '',
       is_active: kelas.isActive ? 'true' : 'false',
       cabang: kelas.cabang?.name || '',
       wilayah: kelas.cabang?.wilayah?.name || '',
@@ -81,7 +139,7 @@ export default function ManajemenKelas() {
   };
 
   const createMutation = useMutation({
-    mutationFn: async (data: { name: string, tingkat: string, isActive: boolean, cabangId: string }) => {
+    mutationFn: async (data: typeof formData) => {
       await apiClient.post('/formal/kelas', data);
     },
     onSuccess: () => {
@@ -91,8 +149,13 @@ export default function ManajemenKelas() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (data: { id: string, name: string, tingkat: string, cabangId: string }) => {
-      await apiClient.put(`/formal/kelas/${data.id}`, { name: data.name, tingkat: data.tingkat, cabangId: data.cabangId });
+    mutationFn: async (data: { id: string, name: string, tingkat: string, cabangId: string, lembagaMuadalahId: string }) => {
+      await apiClient.put(`/formal/kelas/${data.id}`, { 
+        name: data.name, 
+        tingkat: data.tingkat, 
+        cabangId: data.cabangId,
+        lembagaMuadalahId: data.lembagaMuadalahId
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kelas'] });
@@ -160,7 +223,13 @@ export default function ManajemenKelas() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingKelas) {
-      updateMutation.mutate({ id: editingKelas.id, name: formData.name, tingkat: formData.tingkat, cabangId: formData.cabangId });
+      updateMutation.mutate({ 
+        id: editingKelas.id, 
+        name: formData.name, 
+        tingkat: formData.tingkat, 
+        cabangId: formData.cabangId,
+        lembagaMuadalahId: formData.lembagaMuadalahId
+      });
     } else {
       createMutation.mutate(formData);
     }
@@ -168,21 +237,47 @@ export default function ManajemenKelas() {
 
   const openAddModal = () => {
     setEditingKelas(null);
-    setFormData({ name: '', tingkat: 'Non Muadalah', isActive: true, cabangId: user?.scope === 'CABANG' ? (user.cabangId || '') : '' });
+    setFormData({ 
+      name: '', 
+      tingkat: 'Non Muadalah', 
+      isActive: true, 
+      cabangId: user?.scope === 'CABANG' ? (user.cabangId || '') : '',
+      lembagaMuadalahId: ''
+    });
     setIsModalOpen(true);
   };
 
   const openEditModal = (kelas: Kelas) => {
     setEditingKelas(kelas);
-    setFormData({ name: kelas.name, tingkat: kelas.tingkat || 'Non Muadalah', isActive: kelas.isActive, cabangId: kelas.cabangId || '' });
+    setFormData({ 
+      name: kelas.name, 
+      tingkat: kelas.tingkat || 'Non Muadalah', 
+      isActive: kelas.isActive, 
+      cabangId: kelas.cabangId || '',
+      lembagaMuadalahId: kelas.lembagaMuadalahId || ''
+    });
     setIsModalOpen(true);
   };
+
+  // Local Filter Logic
+  const filteredKelasList = (kelasList || []).filter((kelas) => {
+    if (filterMuadalah && kelas.lembagaMuadalahId !== filterMuadalah) {
+      return false;
+    }
+    if (filterWilayah && kelas.cabang?.wilayahId !== filterWilayah) {
+      return false;
+    }
+    if (filterCabang && kelas.cabangId !== filterCabang) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-800">{t('formal.kelas_title')}</h1>
+          <h1 className="text-2xl font-semibold text-slate-800">Manajemen Kelas & Grup Daimi</h1>
           <p className="text-sm text-slate-500 mt-1.5">{t('formal.kelas_subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -216,98 +311,199 @@ export default function ManajemenKelas() {
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                {t('common.add')} Kelas
+                Tambah Kelas
               </button>
             </>
           )}
         </div>
       </div>
-      
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="flex justify-center p-8">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-          </div>
-        ) : (<>
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50/80 border-b border-slate-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Nama Kelas</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Tingkat</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-slate-200">
-              {(Array.isArray(kelasList) ? kelasList : [])?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((kelas) => (
-                <tr key={kelas.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
-                    {kelas.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                    {kelas.tingkat || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {kelas.cabang ? `${kelas.cabang.name} ${kelas.cabang.wilayah ? `(${kelas.cabang.wilayah.name})` : ''}` : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${kelas.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {kelas.isActive ? 'Aktif' : 'Tidak Aktif'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                    {isWilayahOrAdmin && (
-                      <button
-                        onClick={() => toggleStatusMutation.mutate({ id: kelas.id, isActive: !kelas.isActive })}
-                        className={`inline-flex items-center px-2 py-1 border rounded text-xs font-medium ${kelas.isActive ? 'text-red-700 bg-red-50 border-red-200 hover:bg-red-100' : 'text-green-700 bg-green-50 border-green-200 hover:bg-green-100'}`}
-                        disabled={toggleStatusMutation.isPending}
-                      >
-                        {kelas.isActive ? <XCircle className="w-3.5 h-3.5 mr-1" /> : <CheckCircle className="w-3.5 h-3.5 mr-1" />}
-                        {kelas.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                      </button>
-                    )}
-                    {isWilayahOrAdmin && (
-                      <button
-                        onClick={() => openEditModal(kelas)}
-                        className="inline-flex items-center px-2 py-1 border border-indigo-200 rounded text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100"
-                      >
-                        <Edit2 className="w-3.5 h-3.5 mr-1" />
-                        {t('common.edit')}
-                      </button>
-                    )}
-                    {isAdmin && (
-                      <button
-                        onClick={() => confirmDelete(kelas.id)}
-                        className="inline-flex items-center px-2 py-1 border border-red-200 rounded text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        Hapus
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {kelasList?.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                    {t('common.no_data')}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          <Pagination 
-            currentPage={currentPage} 
-            totalPages={Math.ceil((kelasList?.length || 0) / itemsPerPage)} 
-            onPageChange={setCurrentPage} 
-            totalItems={kelasList?.length || 0} 
-            itemsPerPage={itemsPerPage} 
-          />
-        
-        </>
-        )}
+
+      {/* Tabs */}
+      <div className="border-b border-slate-200">
+        <nav className="-mb-px flex space-x-6">
+          <button
+            onClick={() => setActiveTab('kelas')}
+            className={`pb-4 px-1 text-sm font-medium border-b-2 transition-all ${
+              activeTab === 'kelas'
+                ? 'border-indigo-600 text-indigo-600 font-semibold'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Manajemen Kelas
+          </button>
+          <button
+            onClick={() => setActiveTab('grup-daimi')}
+            className={`pb-4 px-1 text-sm font-medium border-b-2 transition-all ${
+              activeTab === 'grup-daimi'
+                ? 'border-indigo-600 text-indigo-600 font-semibold'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            Grup Daimi
+          </button>
+        </nav>
       </div>
+
+      {activeTab === 'kelas' ? (
+        <div className="space-y-6 mt-6">
+          {/* Filter Section */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Lembaga Muadalah</label>
+              <select
+                value={filterMuadalah}
+                onChange={e => { setFilterMuadalah(e.target.value); setCurrentPage(1); }}
+                className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
+              >
+                <option value="">-- Semua Lembaga --</option>
+                {muadalahList.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} ({m.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Wilayah</label>
+              <select
+                value={filterWilayah}
+                onChange={e => handleFilterWilayahChange(e.target.value)}
+                disabled={!isAdmin}
+                className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
+              >
+                {isAdmin ? (
+                  <>
+                    <option value="">-- Semua Wilayah --</option>
+                    {wilayahs.map((w: any) => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </>
+                ) : (
+                  <option value={filterWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
+                )}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Cabang</label>
+              <select
+                value={filterCabang}
+                onChange={e => handleFilterCabangChange(e.target.value)}
+                disabled={user?.scope === 'CABANG' || (!isAdmin && !filterWilayah)}
+                className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
+              >
+                {user?.scope === 'CABANG' ? (
+                  <option value={filterCabang}>{user?.cabangName || 'Cabang Terkunci'}</option>
+                ) : (
+                  <>
+                    <option value="">-- Semua Cabang --</option>
+                    {filteredFilterCabangList.map((c: any) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </select>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            {isLoading ? (
+              <div className="flex justify-center p-8">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+              </div>
+            ) : (<>
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50/80 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Nama Kelas</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Tingkat</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Lembaga Muadalah</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-slate-200">
+                  {filteredKelasList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((kelas, idx) => (
+                    <tr key={kelas.id} className="hover:bg-slate-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
+                        {(currentPage - 1) * itemsPerPage + idx + 1}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
+                        {kelas.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                        {kelas.tingkat || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-semibold text-indigo-650">
+                        {kelas.lembagaMuadalah?.name || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                        {kelas.cabang ? `${kelas.cabang.name} ${kelas.cabang.wilayah ? `(${kelas.cabang.wilayah.name})` : ''}` : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${kelas.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                          {kelas.isActive ? 'Aktif' : 'Tidak Aktif'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                        {isWilayahOrAdmin && (
+                          <button
+                            onClick={() => toggleStatusMutation.mutate({ id: kelas.id, isActive: !kelas.isActive })}
+                            className={`inline-flex items-center px-2 py-1 border rounded text-xs font-medium ${kelas.isActive ? 'text-red-700 bg-red-50 border-red-200 hover:bg-red-100' : 'text-green-700 bg-green-50 border-green-200 hover:bg-green-100'}`}
+                            disabled={toggleStatusMutation.isPending}
+                          >
+                            {kelas.isActive ? <XCircle className="w-3.5 h-3.5 mr-1" /> : <CheckCircle className="w-3.5 h-3.5 mr-1" />}
+                            {kelas.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                          </button>
+                        )}
+                        {isWilayahOrAdmin && (
+                          <button
+                            onClick={() => openEditModal(kelas)}
+                            className="inline-flex items-center px-2 py-1 border border-indigo-200 rounded text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 mr-1" />
+                            {t('common.edit')}
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button
+                            onClick={() => confirmDelete(kelas.id)}
+                            className="inline-flex items-center px-2 py-1 border border-red-200 rounded text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-1" />
+                            Hapus
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredKelasList.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                        {t('common.no_data')}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+              <Pagination 
+                currentPage={currentPage} 
+                totalPages={Math.ceil((filteredKelasList.length || 0) / itemsPerPage)} 
+                onPageChange={setCurrentPage} 
+                totalItems={filteredKelasList.length || 0} 
+                itemsPerPage={itemsPerPage} 
+              />
+            </>)}
+          </div>
+        </div>
+      ) : (
+        <GrupDaimiTab />
+      )}
 
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
@@ -366,6 +562,21 @@ export default function ManajemenKelas() {
                     <option value="10">10</option>
                     <option value="11">11</option>
                     <option value="12">12</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Lembaga Muadalah (Opsional)</label>
+                  <select
+                    value={formData.lembagaMuadalahId}
+                    onChange={(e) => setFormData({ ...formData, lembagaMuadalahId: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none"
+                  >
+                    <option value="">-- Tanpa Lembaga (Non Muadalah) --</option>
+                    {muadalahList.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} ({m.code})
+                      </option>
+                    ))}
                   </select>
                 </div>
                 {!editingKelas && (

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { UserCheck, Plus, UserMinus, UserPlus, Edit2, Trash2 } from 'lucide-react';
 import { useGetGuru, useDeleteGuru } from '../../features/core_data/hooks/useMasterData';
 import { Guru } from '../../features/core_data/hooks/usePoolGuru';
@@ -28,6 +29,25 @@ export default function DataGuru() {
   const [isConfirmDeleteAllOpen, setIsConfirmDeleteAllOpen] = useState(false);
   const [guruToEdit, setGuruToEdit] = useState<Guru | null>(null);
   const { t } = useTranslation();
+  
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (guru && guru.length > 0) {
+      const searchParams = new URLSearchParams(location.search);
+      const viewId = searchParams.get('viewId');
+      if (viewId) {
+        const item = guru.find((g: any) => g.id === viewId);
+        if (item) {
+          setGuruToEdit(item as Guru);
+          setIsGuruModalOpen(true);
+          searchParams.delete('viewId');
+          navigate({ search: searchParams.toString() }, { replace: true });
+        }
+      }
+    }
+  }, [guru, location.search, navigate]);
 
   const deleteAllMutation = useMutation({
     mutationFn: async () => {
@@ -112,14 +132,18 @@ export default function DataGuru() {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50/80 border-b border-slate-200">
                 <tr>
+                  <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.name')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.form.jabatan')}</th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {(Array.isArray(guru) ? guru : [])?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item: any) => (
+                {(Array.isArray(guru) ? guru : [])?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item: any, idx: number) => (
                   <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
+                      {(currentPage - 1) * itemsPerPage + idx + 1}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
                       {item.name}
                     </td>

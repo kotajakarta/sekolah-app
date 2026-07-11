@@ -10,6 +10,7 @@ export interface Guru {
   statusPool: string;
   wilayah?: { id: string; name: string };
   cabang?: { id: string; name: string };
+  mapelUmum?: string[];
 }
 
 export const useGetPoolGuru = () => {

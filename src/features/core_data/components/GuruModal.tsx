@@ -7,6 +7,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useGetWilayah, useGetCabang } from '../hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
 import { Guru } from '../hooks/usePoolGuru';
+import Select from 'react-select';
 
 interface GuruModalProps {
   guru?: Guru | null;
@@ -23,7 +24,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
   const { data: kelasList } = useQuery({
     queryKey: ['kelas', user?.cabangId],
     queryFn: async () => {
-      const response = await apiClient.get('/kelas');
+      const response = await apiClient.get('/formal/kelas');
       if (user?.scope === 'CABANG') {
         return response.data.filter((k: any) => k.cabangId === user.cabangId);
       }
@@ -55,7 +56,17 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
     cabangId: user?.scope === 'CABANG' ? user.cabangId || '' : '',
     ifadahUrl: '',
     ktpUrl: '',
+    phone: '',
+    mapelUmum: [] as string[],
   });
+
+  const mapelOptions = [
+    { value: 'Matematika', label: 'Matematika' },
+    { value: 'Bahasa Indonesia', label: 'Bahasa Indonesia' },
+    { value: 'Bahasa Inggris', label: 'Bahasa Inggris' },
+    { value: 'IPA', label: 'IPA' },
+    { value: 'PKn', label: 'PKn' },
+  ];
 
   useEffect(() => {
     if (guru) {
@@ -73,6 +84,8 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
         cabangId: guru.cabangId || '',
         ifadahUrl: (guru as any).ifadahUrl || '',
         ktpUrl: (guru as any).ktpUrl || '',
+        phone: (guru as any).phone || '',
+        mapelUmum: guru.mapelUmum || [],
       });
     }
   }, [guru]);
@@ -131,7 +144,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
       )}
 
       <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-        <div className="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity" onClick={onClose} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
         <div className="relative transform rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl flex flex-col max-h-[90vh]">
           <div className="bg-white px-6 py-4 border-b border-slate-200 rounded-t-xl flex justify-between items-center">
@@ -155,6 +168,11 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
                 <div>
                   <label className="block text-sm font-medium text-slate-700">{t('guru.form.nik')}</label>
                   <input type="text" value={formData.nik} onChange={(e) => setFormData({ ...formData, nik: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">No. Telepon / WhatsApp</label>
+                  <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                 </div>
 
                 
@@ -215,6 +233,26 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
                       <option key={k.id} value={k.id}>{k.name}</option>
                     ))}
                   </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Mata Pelajaran Umum (Multi-Pilih)</label>
+                  <Select
+                    isMulti
+                    options={mapelOptions}
+                    value={mapelOptions.filter(opt => formData.mapelUmum.includes(opt.value))}
+                    onChange={(selected) => {
+                      setFormData({
+                        ...formData,
+                        mapelUmum: selected.map(item => item.value)
+                      });
+                    }}
+                    placeholder="Pilih pelajaran (bisa lebih dari satu)..."
+                    className="text-sm"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    *Pilih mapel umum jika guru ini ditugaskan mengajarkannya. Akan direkap di Dashboard.
+                  </p>
                 </div>
 
               </div>

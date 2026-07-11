@@ -28,11 +28,11 @@ export default function SiswaMuadalahModal({ student, onClose }: SiswaMuadalahMo
   });
 
   useEffect(() => {
-    if (student?.siswaFormal) {
+    if (student) {
       setFormData({
-        nis: student.siswaFormal.nis || '',
-        nisn: student.siswaFormal.nisn || '',
-        kelasId: student.siswaFormal.kelasId || '',
+        nis: student.siswaFormal?.nis || student.biodata?.nisLokal || '',
+        nisn: student.siswaFormal?.nisn || student.biodata?.nisn || '',
+        kelasId: student.siswaFormal?.kelasId || '',
       });
     }
   }, [student]);
@@ -55,7 +55,7 @@ export default function SiswaMuadalahModal({ student, onClose }: SiswaMuadalahMo
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
         <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md">
           <form onSubmit={handleSubmit}>

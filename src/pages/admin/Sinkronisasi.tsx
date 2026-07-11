@@ -118,6 +118,10 @@ export default function Sinkronisasi() {
       const data = response.data;
 
       const exportData = data.map((item: any) => ({
+        // --- DATA SYSTEM (CORE) ---
+        id_siswa: item.id || '',
+        status_pool: item.statusPool || '',
+
         // --- DATA BIODATA (CORE) ---
         no_glodemy: item.biodata?.noGlodemy || '',
         nik: item.biodata?.nik || '',
@@ -131,6 +135,9 @@ export default function Sinkronisasi() {
         telepon: item.biodata?.phone || '',
         wilayah: item.wilayah?.name || '',
         cabang: item.cabang?.name || '',
+        ada_foto: item.biodata?.fotoBase64 ? 'Ya' : 'Tidak',
+        ada_ijazah: item.biodata?.ijazahBase64 ? 'Ya' : 'Tidak',
+        ada_kk: item.biodata?.kkBase64 ? 'Ya' : 'Tidak',
         
         // --- DATA KELUARGA (CORE) ---
         nama_ayah: item.biodata?.namaAyah || '',
@@ -156,6 +163,13 @@ export default function Sinkronisasi() {
         nis_pesantren: item.dataDaimi?.nis || '',
         kelas_pesantren: item.dataDaimi?.kelas?.name || '',
         grup_pesantren: item.dataDaimi?.grup?.name || '',
+        
+        // --- RIWAYAT PENDIDIKAN TERAKHIR (CORE) ---
+        riwayat_terakhir_cabang: item.riwayatPendidikan?.[0]?.cabang?.name || '',
+        riwayat_terakhir_masuk: item.riwayatPendidikan?.[0]?.tanggalMasuk ? new Date(item.riwayatPendidikan[0].tanggalMasuk).toISOString().split('T')[0] : '',
+        riwayat_terakhir_keluar: item.riwayatPendidikan?.[0]?.tanggalKeluar ? new Date(item.riwayatPendidikan[0].tanggalKeluar).toISOString().split('T')[0] : '',
+        riwayat_terakhir_status: item.riwayatPendidikan?.[0]?.statusAkhir || '',
+        riwayat_terakhir_catatan: item.riwayatPendidikan?.[0]?.catatan || '',
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(exportData);

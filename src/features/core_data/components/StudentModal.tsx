@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
 import { Student } from '../hooks/useGetStudents';
 import { compressImage } from '../../../lib/imageCompressor';
@@ -8,6 +8,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useGetWilayah, useGetCabang } from '../hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
 import Select from 'react-select';
+import NotificationModal from '../../../components/NotificationModal';
 
 interface StudentModalProps {
   student?: Student | null;
@@ -20,13 +21,53 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
   const { data: wilayahList } = useGetWilayah();
   const { data: cabangList } = useGetCabang();
   const { t } = useTranslation();
+
+  const [notification, setNotification] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
+
+  const { data: grupDaimiList } = useQuery({
+    queryKey: ['grup-daimi'],
+    queryFn: async () => {
+      const res = await apiClient.get('/pesantren/grup-daimi');
+      return res.data;
+    }
+  });
   
   const [countries, setCountries] = useState<{value: string, label: string}[]>([]);
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [regencies, setRegencies] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]);
+  const [villages, setVillages] = useState<any[]>([]);
+
+  // Fetch provinces
+  useEffect(() => {
+    fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
+      .then((r) => r.json())
+      .then((data) => setProvinces(data))
+      .catch((e) => console.error('Gagal mengambil data provinsi', e));
+  }, []);
+
+
 
   useEffect(() => {
+    // Only attempt to fetch if we don't have countries yet and no error has occurred
+    let mounted = true;
     fetch('https://restcountries.com/v3.1/all?fields=name')
-      .then(res => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch countries');
+        return res.json();
+      })
       .then((data: any[]) => {
+        if (!mounted) return;
         const formatted = data.map(c => ({ value: c.name.common, label: c.name.common }));
         formatted.sort((a, b) => a.label.localeCompare(b.label));
         const idn = formatted.find(c => c.value === 'Indonesia');
@@ -47,7 +88,8 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     akademik: true,
     orangTua: true,
     darurat: true,
-    berkas: true
+    berkas: true,
+    statusAktif: true
   });
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -81,6 +123,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
 
   const [formData, setFormData] = useState({
     nik: '',
+    nisn: '',
     nisLokal: '',
     noGlodemy: '',
     fullName: '',
@@ -106,13 +149,62 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     kkBase64: '',
     wilayahId: user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? user.wilayahId || '' : '',
     cabangId: user?.scope === 'CABANG' ? user.cabangId || '' : '',
-    tanggalMasuk: new Date().toISOString().split('T')[0]
+    jenisSiswa: '',
+    grupDaimi: '',
+    tanggalMasuk: new Date().toISOString().split('T')[0],
+    isActive: true,
+    alamatProvId: '',
+    alamatProvName: '',
+    alamatKabId: '',
+    alamatKabName: '',
+    alamatKecId: '',
+    alamatKecName: '',
+    alamatKelId: '',
+    alamatKelName: '',
+    alamatJalan: '',
   });
+
+  // Fetch regencies when province changes
+  useEffect(() => {
+    if (formData.alamatProvId) {
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${formData.alamatProvId}.json`)
+        .then((r) => r.json())
+        .then((data) => setRegencies(data))
+        .catch((e) => console.error('Gagal mengambil data kabupaten', e));
+    } else {
+      setRegencies([]);
+    }
+  }, [formData.alamatProvId]);
+
+  // Fetch districts when regency changes
+  useEffect(() => {
+    if (formData.alamatKabId) {
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${formData.alamatKabId}.json`)
+        .then((r) => r.json())
+        .then((data) => setDistricts(data))
+        .catch((e) => console.error('Gagal mengambil data kecamatan', e));
+    } else {
+      setDistricts([]);
+    }
+  }, [formData.alamatKabId]);
+
+  // Fetch villages when district changes
+  useEffect(() => {
+    if (formData.alamatKecId) {
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${formData.alamatKecId}.json`)
+        .then((r) => r.json())
+        .then((data) => setVillages(data))
+        .catch((e) => console.error('Gagal mengambil data kelurahan', e));
+    } else {
+      setVillages([]);
+    }
+  }, [formData.alamatKecId]);
 
   useEffect(() => {
     if (student) {
       setFormData({
         nik: student.biodata?.nik || '',
+        nisn: student.biodata?.nisn || '',
         nisLokal: student.biodata?.nisLokal || '',
         noGlodemy: student.biodata?.noGlodemy || '',
         fullName: student.biodata?.fullName || '',
@@ -138,8 +230,40 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
         kkBase64: student.biodata?.kkBase64 || '',
         wilayahId: student.wilayahId || '',
         cabangId: student.cabangId || '',
-        tanggalMasuk: new Date().toISOString().split('T')[0] // Only used on create
+        jenisSiswa: student.jenisSiswa || '',
+        grupDaimi: student.grupDaimi || '',
+        tanggalMasuk: new Date().toISOString().split('T')[0], // Only used on create
+        isActive: student.isActive !== undefined ? student.isActive : true,
+        alamatProvId: (student.biodata as any)?.alamatProvId || '',
+        alamatProvName: (student.biodata as any)?.alamatProvName || '',
+        alamatKabId: (student.biodata as any)?.alamatKabId || '',
+        alamatKabName: (student.biodata as any)?.alamatKabName || '',
+        alamatKecId: (student.biodata as any)?.alamatKecId || '',
+        alamatKecName: (student.biodata as any)?.alamatKecName || '',
+        alamatKelId: (student.biodata as any)?.alamatKelId || '',
+        alamatKelName: (student.biodata as any)?.alamatKelName || '',
+        alamatJalan: (student.biodata as any)?.alamatJalan || '',
       });
+
+      // Preload sub-regions
+      if ((student.biodata as any)?.alamatProvId) {
+        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${(student.biodata as any).alamatProvId}.json`)
+          .then((r) => r.json())
+          .then((d) => setRegencies(d))
+          .catch((e) => console.error(e));
+      }
+      if ((student.biodata as any)?.alamatKabId) {
+        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${(student.biodata as any).alamatKabId}.json`)
+          .then((r) => r.json())
+          .then((d) => setDistricts(d))
+          .catch((e) => console.error(e));
+      }
+      if ((student.biodata as any)?.alamatKecId) {
+        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${(student.biodata as any).alamatKecId}.json`)
+          .then((r) => r.json())
+          .then((d) => setVillages(d))
+          .catch((e) => console.error(e));
+      }
     }
   }, [student]);
 
@@ -154,8 +278,22 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
       queryClient.invalidateQueries({ queryKey: ['students', 'pool'] });
-      onClose();
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Berhasil!',
+        message: 'Data siswa berhasil disimpan'
+      });
     },
+    onError: (error: any) => {
+      const msg = error.response?.data?.message || error.message || 'Terjadi kesalahan internal.';
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Gagal Menyimpan',
+        message: `Terjadi kesalahan saat menyimpan data:\n${msg}\n\nSilakan hubungi administrator jika masalah berlanjut.`
+      });
+    }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -176,7 +314,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-        <div className="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity" onClick={onClose} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
         <div className="relative transform rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-3xl flex flex-col max-h-[90vh]">
           <div className="bg-white px-6 py-4 border-b border-slate-200 rounded-t-xl flex justify-between items-center">
@@ -197,6 +335,10 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                   <div>
                     <label className="block text-sm font-medium text-slate-700">{t('siswa.form.nik')}</label>
                     <input type="text" value={formData.nik} onChange={(e) => setFormData({ ...formData, nik: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">NISN</label>
+                    <input type="text" value={formData.nisn} onChange={(e) => setFormData({ ...formData, nisn: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700">{t('siswa.form.nis_lokal')}</label>
@@ -236,9 +378,136 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                       isClearable
                     />
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.address')}</label>
-                    <textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} rows={2} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                  <div className="md:col-span-2 mt-4 mb-2">
+                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider pb-1 border-b border-slate-100">Alamat Rumah</h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:col-span-2">
+                    {/* Provinsi */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase">Provinsi</label>
+                      <select 
+                        value={formData.alamatProvId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          const name = provinces.find((p) => p.id === id)?.name || '';
+                          setFormData({
+                            ...formData,
+                            alamatProvId: id,
+                            alamatProvName: name,
+                            alamatKabId: '',
+                            alamatKabName: '',
+                            alamatKecId: '',
+                            alamatKecName: '',
+                            alamatKelId: '',
+                            alamatKelName: '',
+                            alamatJalan: '',
+                            address: ''
+                          });
+                        }}
+                        className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                      >
+                        <option value="">-- Pilih Provinsi --</option>
+                        {provinces.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                    </div>
+
+                    {/* Kabupaten */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase">Kabupaten / Kota</label>
+                      <select 
+                        value={formData.alamatKabId}
+                        disabled={!formData.alamatProvId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          const name = regencies.find((r) => r.id === id)?.name || '';
+                          setFormData({
+                            ...formData,
+                            alamatKabId: id,
+                            alamatKabName: name,
+                            alamatKecId: '',
+                            alamatKecName: '',
+                            alamatKelId: '',
+                            alamatKelName: '',
+                            alamatJalan: '',
+                            address: ''
+                          });
+                        }}
+                        className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-slate-50 disabled:text-slate-400"
+                      >
+                        <option value="">-- Pilih Kota/Kabupaten --</option>
+                        {regencies.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                      </select>
+                    </div>
+
+                    {/* Kecamatan */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase">Kecamatan</label>
+                      <select 
+                        value={formData.alamatKecId}
+                        disabled={!formData.alamatKabId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          const name = districts.find((d) => d.id === id)?.name || '';
+                          setFormData({
+                            ...formData,
+                            alamatKecId: id,
+                            alamatKecName: name,
+                            alamatKelId: '',
+                            alamatKelName: '',
+                            alamatJalan: '',
+                            address: ''
+                          });
+                        }}
+                        className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-slate-50 disabled:text-slate-400"
+                      >
+                        <option value="">-- Pilih Kecamatan --</option>
+                        {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                    </div>
+
+                    {/* Kelurahan */}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 uppercase">Kelurahan / Desa</label>
+                      <select 
+                        value={formData.alamatKelId}
+                        disabled={!formData.alamatKecId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          const name = villages.find((v) => v.id === id)?.name || '';
+                          setFormData({
+                            ...formData,
+                            alamatKelId: id,
+                            alamatKelName: name,
+                            alamatJalan: '',
+                            address: ''
+                          });
+                        }}
+                        className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-slate-50 disabled:text-slate-400"
+                      >
+                        <option value="">-- Pilih Kelurahan/Desa --</option>
+                        {villages.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                      </select>
+                    </div>
+
+                    {/* Alamat Detail */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-semibold text-slate-700 uppercase">Alamat Jalan / Kampung</label>
+                      <textarea 
+                        value={formData.alamatJalan}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const unifiedAddress = `${val}, Kel. ${formData.alamatKelName || ''}, Kec. ${formData.alamatKecName || ''}, Kab/Kota. ${formData.alamatKabName || ''}, Prov. ${formData.alamatProvName || ''}`;
+                          setFormData({
+                            ...formData,
+                            alamatJalan: val,
+                            address: unifiedAddress
+                          });
+                        }}
+                        rows={2}
+                        className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Nama Jalan, No Rumah, RT/RW, Kampung, Dusun..."
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700">{t('siswa.form.phone')}</label>
@@ -247,12 +516,11 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                 </div>
               )}
 
-              {!student && (
                 <>
                   <SectionHeader title={t('siswa.form.section_akademik')} section="akademik" />
                   {expandedSections.akademik && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {user?.scope === 'GLOBAL' && (
+                      {!student && user?.scope === 'GLOBAL' && (
                         <div>
                           <label className="block text-sm font-medium text-slate-700">{t('siswa.form.wilayah_daftar')}</label>
                           <select required value={formData.wilayahId} onChange={(e) => setFormData({ ...formData, wilayahId: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
@@ -262,7 +530,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                         </div>
                       )}
                       
-                      {(user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH') && (
+                      {!student && (user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH') && (
                         <div>
                           <label className="block text-sm font-medium text-slate-700">{t('siswa.form.cabang_penempatan')}</label>
                           <select value={formData.cabangId} onChange={(e) => setFormData({ ...formData, cabangId: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
@@ -273,9 +541,54 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           </select>
                         </div>
                       )}
+
                       <div>
                         <label className="block text-sm font-medium text-slate-700">{t('siswa.form.tgl_masuk')}</label>
                         <input type="date" value={formData.tanggalMasuk} onChange={(e) => setFormData({ ...formData, tanggalMasuk: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Jenis Siswa</label>
+                        <select value={formData.jenisSiswa} onChange={(e) => setFormData({ ...formData, jenisSiswa: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                          <option value="">Pilih Jenis Siswa</option>
+                          <option value="MUADALAH">Muadalah</option>
+                          <option value="NON_MUADALAH">Non Muadalah</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700">Grup Daimi</label>
+                        <select value={formData.grupDaimi} onChange={(e) => setFormData({ ...formData, grupDaimi: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                          <option value="">Pilih Grup Daimi</option>
+                          {grupDaimiList?.map((grup: any) => (
+                            <option key={grup.id} value={grup.name}>{grup.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </>
+
+              {student && (
+                <>
+                  <SectionHeader title="Status Aktif" section="statusAktif" />
+                  {expandedSections.statusAktif && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="flex items-center space-x-3 mt-4">
+                          <input 
+                            type="checkbox" 
+                            checked={formData.isActive} 
+                            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                            className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="text-sm font-medium text-slate-700">
+                            Status Aktif (Centang jika siswa aktif)
+                          </span>
+                        </label>
+                        <p className="text-xs text-slate-500 mt-2 ml-8">
+                          Jika tidak dicentang, siswa dianggap tidak aktif meskipun statusnya di cabang masih tercatat.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -473,7 +786,19 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
           </div>
         </div>
       )}
+
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => {
+          setNotification(prev => ({ ...prev, isOpen: false }));
+          if (notification.type === 'success') {
+            onClose();
+          }
+        }}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+      />
     </div>
   );
 }
-

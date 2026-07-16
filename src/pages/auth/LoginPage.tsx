@@ -16,17 +16,14 @@ export default function LoginPage() {
 
   const handleCheckConnection = async () => {
     setConnectionStatus({status: 'loading', message: 'Mengecek koneksi...'});
+    // Ini SAMA PERSIS dengan baseURL yang dipakai apiClient saat login
+    const apiClientBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
-      // Kita coba hit endpoint /health atau sekedar check base url
-      const response = await fetch(`${baseUrl}/health`, { method: 'GET' });
-      if (response.ok) {
-        setConnectionStatus({status: 'success', message: `Terhubung ke API: ${baseUrl}`});
-      } else {
-        setConnectionStatus({status: 'success', message: `Terkoneksi ke API: ${baseUrl} (tapi endpoint /health tidak ditemukan)`});
-      }
+      const response = await fetch(`${apiClientBaseUrl}/health`, { method: 'GET' });
+      const statusText = `Status: ${response.status} ${response.statusText}`;
+      setConnectionStatus({status: 'success', message: `✅ API URL: ${apiClientBaseUrl} | ${statusText}`});
     } catch (err: any) {
-      setConnectionStatus({status: 'error', message: `Gagal terhubung ke API: ${err.message}`});
+      setConnectionStatus({status: 'error', message: `❌ Gagal: ${err.message} | URL yg dipakai: "${apiClientBaseUrl}"`});
     }
   };
 

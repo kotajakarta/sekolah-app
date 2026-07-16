@@ -38,7 +38,12 @@ export default function LoginPage() {
       login(token, { ...user, username });
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      // Debug info lengkap agar mudah diagnosa
+      const status = err.response?.status;
+      const msg = err.response?.data?.message || err.message || 'Unknown error';
+      const url = err.config?.url || err.request?.responseURL || '(URL tidak diketahui)';
+      const baseURL = err.config?.baseURL || '(baseURL tidak diketahui)';
+      setError(`[${status || 'NO_RESPONSE'}] ${msg}\n📡 baseURL: ${baseURL}\n🔗 endpoint: ${url}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -62,7 +67,7 @@ export default function LoginPage() {
         <div className="bg-white py-8 px-4 shadow-sm sm:rounded-2xl sm:px-10 border border-slate-200/70">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-xs" style={{whiteSpace:'pre-wrap',wordBreak:'break-all'}}>
                 {error}
               </div>
             )}

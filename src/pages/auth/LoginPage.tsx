@@ -9,9 +9,26 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<{status: 'idle'|'loading'|'success'|'error', message: string}>({status: 'idle', message: ''});
 
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const handleCheckConnection = async () => {
+    setConnectionStatus({status: 'loading', message: 'Mengecek koneksi...'});
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+      // Kita coba hit endpoint /health atau sekedar check base url
+      const response = await fetch(`${baseUrl}/health`, { method: 'GET' });
+      if (response.ok) {
+        setConnectionStatus({status: 'success', message: `Terhubung ke API: ${baseUrl}`});
+      } else {
+        setConnectionStatus({status: 'success', message: `Terkoneksi ke API: ${baseUrl} (tapi endpoint /health tidak ditemukan)`});
+      }
+    } catch (err: any) {
+      setConnectionStatus({status: 'error', message: `Gagal terhubung ke API: ${err.message}`});
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +127,26 @@ export default function LoginPage() {
             </div>
           </form>
 
-
+          <div className="mt-6 border-t border-slate-200 pt-6">
+            <button
+              type="button"
+              onClick={handleCheckConnection}
+              disabled={connectionStatus.status === 'loading'}
+              className="w-full flex justify-center items-center py-2 px-4 border border-slate-300 rounded-xl shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+            >
+              {connectionStatus.status === 'loading' ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Database className="w-4 h-4 mr-2 text-slate-400" />
+              )}
+              Cek Koneksi API
+            </button>
+            {connectionStatus.message && (
+              <p className={`mt-3 text-center text-xs font-medium ${connectionStatus.status === 'error' ? 'text-red-500' : connectionStatus.status === 'success' ? 'text-green-600' : 'text-slate-500'}`}>
+                {connectionStatus.message}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

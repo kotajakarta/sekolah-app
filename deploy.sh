@@ -7,9 +7,10 @@ APP_DIR="/data/podman-hosting/apps/esantri"
 # Pastikan berada di direktori aplikasi
 cd "$APP_DIR" || exit 1
 
-echo "=== 1. Menyiapkan Direktori ==="
-# Pastikan Anda sudah mengunggah file terbaru (via SCP/SFTP) ke folder ini.
-# git fetch origin main (dinonaktifkan karena tidak ada git di server)
+echo "=== 1. Menarik Update Terbaru (git pull) ==="
+git fetch origin main
+git reset --hard origin/main
+git clean -fd
 
 echo "=== 2. Hapus versi compose (jika sebelumnya dipakai) ==="
 podman-compose down 2>/dev/null || true

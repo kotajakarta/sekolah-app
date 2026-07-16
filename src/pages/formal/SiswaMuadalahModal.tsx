@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { X, Loader2 } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
 
 interface SiswaMuadalahModalProps {
   student: any;
@@ -10,11 +11,13 @@ interface SiswaMuadalahModalProps {
 
 export default function SiswaMuadalahModal({ student, onClose }: SiswaMuadalahModalProps) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   
   const [formData, setFormData] = useState({
     nis: '',
     nisn: '',
     kelasId: '',
+    isVerval: false,
   });
 
   const { data: kelasList } = useQuery({
@@ -22,7 +25,7 @@ export default function SiswaMuadalahModal({ student, onClose }: SiswaMuadalahMo
     queryFn: async () => {
       const { data } = await apiClient.get('/formal/kelas');
       // only show kelas for this student's cabang
-      return data.filter((k: any) => k.cabangId === student.cabangId);
+      return data.filter((k: any) => k.cabangId === student.cabangId && k.isActive);
     },
     enabled: !!student.cabangId,
   });
@@ -33,9 +36,25 @@ export default function SiswaMuadalahModal({ student, onClose }: SiswaMuadalahMo
         nis: student.siswaFormal?.nis || student.biodata?.nisLokal || '',
         nisn: student.siswaFormal?.nisn || student.biodata?.nisn || '',
         kelasId: student.siswaFormal?.kelasId || '',
+        isVerval: student.siswaFormal?.isVerval || false,
       });
     }
   }, [student]);
+
+  const selectedKelas = kelasList?.find((k: any) => k.id === formData.kelasId);
+  const tingkat = selectedKelas?.tingkat || student?.siswaFormal?.kelas?.tingkat || '';
+
+  const biodata = student.biodata || {};
+  const hasNisn = !!formData.nisn?.trim();
+  const hasNik = !!biodata.nik?.trim();
+  const hasNama = !!biodata.fullName?.trim();
+  const hasTempatLahir = !!biodata.tempatLahir?.trim();
+  const hasTanggalLahir = !!biodata.tanggalLahir;
+  const hasNamaIbu = !!biodata.namaIbu?.trim();
+  const hasJenisKelamin = !!biodata.jenisKelamin?.trim();
+  const hasTingkat = !!tingkat?.trim();
+
+  const canVerval = hasNisn && hasNik && hasNama && hasTempatLahir && hasTanggalLahir && hasNamaIbu && hasJenisKelamin && hasTingkat;
 
   const saveMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -49,6 +68,11 @@ export default function SiswaMuadalahModal({ student, onClose }: SiswaMuadalahMo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Double check canVerval if trying to set to true
+    if (formData.isVerval && !canVerval) {
+      showToast('error', 'Tidak dapat memverifikasi siswa. Harap lengkapi semua data wajib: NISN, NIK, Nama, Tempat/Tanggal Lahir, Nama Ibu, Jenis Kelamin, dan Tingkat.');
+      return;
+    }
     saveMutation.mutate(formData);
   };
 
@@ -92,6 +116,26 @@ export default function SiswaMuadalahModal({ student, onClose }: SiswaMuadalahMo
                       <option key={k.id} value={k.id}>{k.name}</option>
                     ))}
                   </select>
+                </div>
+
+                <div className="pt-2">
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      disabled={!canVerval}
+                      checked={formData.isVerval} 
+                      onChange={(e) => setFormData({ ...formData, isVerval: e.target.checked })}
+                      className="h-4.5 w-4.5 rounded border-gray-300 text-indigo-650 focus:ring-indigo-500 disabled:opacity-40"
+                    />
+                    <span className={`text-sm font-semibold ${!canVerval ? 'text-gray-400' : 'text-slate-800'}`}>
+                      Sudah Verval ? (Ceklis data valid)
+                    </span>
+                  </label>
+                  {!canVerval && (
+                    <p className="text-[11px] text-rose-500 mt-1 leading-normal">
+                      * Verval dapat diceklis jika data lengkap: NISN, NIK, Nama, Tempat/Tanggal Lahir, Ibu Kandung, Jenis Kelamin, dan Tingkat Kelas.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

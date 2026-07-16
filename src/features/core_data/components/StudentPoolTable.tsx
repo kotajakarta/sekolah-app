@@ -9,6 +9,8 @@ import Pagination from '../../../components/Pagination';
 import ConfirmModal from '../../../components/ConfirmModal';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
+import { useToast } from '../../../contexts/ToastContext';
+import AdvancedFilterBar, { FilterState } from '../../../components/AdvancedFilterBar';
 
 export default function StudentPoolTable() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -18,11 +20,36 @@ export default function StudentPoolTable() {
 
   const { data: students, isLoading, isError } = useGetPoolStudents();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const isAdmin = user?.scope === 'GLOBAL';
   const queryClient = useQueryClient();
 
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [studentToTarik, setStudentToTarik] = useState<Student | null>(null);
+
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
+    wilayahId: user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? user?.wilayahId || '' : '',
+    cabangId: user?.scope === 'CABANG' ? user?.cabangId || '' : '',
+    kelasId: '',
+    lembagaMuadalahId: ''
+  });
+
+  const filteredStudents = (Array.isArray(students) ? students : []).filter(s => {
+    // Advanced filters
+    if (advancedFilters.wilayahId && s.wilayahId !== advancedFilters.wilayahId) return false;
+    if (advancedFilters.cabangId && s.cabangId !== advancedFilters.cabangId) return false;
+    if (advancedFilters.kelasId && s.siswaFormal?.kelasId !== advancedFilters.kelasId) return false;
+    if (advancedFilters.lembagaMuadalahId && s.siswaFormal?.kelas?.lembagaMuadalah?.id !== advancedFilters.lembagaMuadalahId) return false;
+
+    // Search query
+    const q = searchQuery.toLowerCase();
+    if (q) {
+      return s.biodata?.fullName?.toLowerCase().includes(q) ||
+             s.biodata?.nik?.toLowerCase().includes(q) ||
+             s.biodata?.nisn?.toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   const deleteAllMutation = useMutation({
     mutationFn: async () => {
@@ -30,11 +57,11 @@ export default function StudentPoolTable() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pool-students'] });
-      alert('Berhasil menghapus semua data pool siswa');
+      showToast('success', 'Berhasil menghapus semua data pool siswa');
       setIsConfirmDeleteAllOpen(false);
     },
     onError: (error: any) => {
-      alert(error.response?.data?.message || 'Gagal menghapus data pool siswa');
+      showToast('error', error.response?.data?.message || 'Gagal menghapus data pool siswa');
       setIsConfirmDeleteAllOpen(false);
     }
   });
@@ -65,6 +92,16 @@ export default function StudentPoolTable() {
           </span>
         </div>
       </div>
+
+      <div className="p-4 sm:p-6 pb-0">
+        <AdvancedFilterBar 
+          onFilterChange={setAdvancedFilters} 
+          userScope={user?.scope || ''} 
+          userWilayahId={user?.wilayahId} 
+          userCabangId={user?.cabangId} 
+        />
+      </div>
+
       <div className="p-4 border-b border-gray-200 bg-gray-50/50">
         <div className="relative max-w-md">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -96,21 +133,14 @@ export default function StudentPoolTable() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {students?.length === 0 ? (
+            {filteredStudents.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-500">
                   Tidak ada siswa di pool saat ini.
                 </td>
               </tr>
             ) : (
-              (Array.isArray(students) ? students : [])
-                .filter(s => {
-                  const q = searchQuery.toLowerCase();
-                  return !q || 
-                    s.biodata?.fullName?.toLowerCase().includes(q) ||
-                    s.biodata?.nik?.toLowerCase().includes(q) ||
-                    s.biodata?.nisn?.toLowerCase().includes(q);
-                })
+              filteredStudents
                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                 .map((student, idx) => (
                 <tr key={student.id} className="hover:bg-gray-50 transition-colors">
@@ -155,24 +185,15 @@ export default function StudentPoolTable() {
             )}
           </tbody>
         </table>
-        <div className="px-4 py-3 border-t border-gray-200">
+        <div className="p-4 sm:p-6 border-t border-gray-200 flex justify-between items-center bg-gray-50/50">
+        <div className="text-sm text-gray-500">
+          Total {filteredStudents.length} siswa
+        </div>
         <Pagination 
           currentPage={currentPage} 
-          totalPages={Math.ceil(((Array.isArray(students) ? students : []).filter(s => {
-            const q = searchQuery.toLowerCase();
-            return !q || 
-              s.biodata?.fullName?.toLowerCase().includes(q) ||
-              s.biodata?.nik?.toLowerCase().includes(q) ||
-              s.biodata?.nisn?.toLowerCase().includes(q);
-          }).length || 0) / itemsPerPage)} 
+          totalPages={Math.ceil(filteredStudents.length / itemsPerPage)} 
           onPageChange={setCurrentPage} 
-          totalItems={(Array.isArray(students) ? students : []).filter(s => {
-            const q = searchQuery.toLowerCase();
-            return !q || 
-              s.biodata?.fullName?.toLowerCase().includes(q) ||
-              s.biodata?.nik?.toLowerCase().includes(q) ||
-              s.biodata?.nisn?.toLowerCase().includes(q);
-          }).length || 0} 
+          totalItems={filteredStudents.length} 
           itemsPerPage={itemsPerPage} 
         />
       </div>

@@ -3,6 +3,8 @@ import { X, Plus, Edit2, Trash2 } from 'lucide-react';
 import { Student } from '../hooks/useGetStudents';
 import { useGetRiwayatKelas, useDeleteRiwayatKelas, RiwayatKelasFormal } from '../hooks/useRiwayatKelas';
 import FormRiwayatKelasModal from './FormRiwayatKelasModal';
+import ConfirmModal from '../../../components/ConfirmModal';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface StudentClassHistoryModalProps {
   student: Student;
@@ -11,15 +13,23 @@ interface StudentClassHistoryModalProps {
 
 export default function StudentClassHistoryModal({ student, onClose }: StudentClassHistoryModalProps) {
   const { data: histories, isLoading } = useGetRiwayatKelas(student.id);
+  const { showToast } = useToast();
   const deleteMutation = useDeleteRiwayatKelas();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState<RiwayatKelasFormal | undefined>();
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [historyIdToDelete, setHistoryIdToDelete] = useState<string | null>(null);
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus riwayat kelas ini?')) {
-      deleteMutation.mutate({ id, studentId: student.id });
-    }
+    setHistoryIdToDelete(id);
+    setIsConfirmDeleteOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!historyIdToDelete) return;
+    deleteMutation.mutate({ id: historyIdToDelete, studentId: student.id });
+    setHistoryIdToDelete(null);
   };
 
   const openForm = (history?: RiwayatKelasFormal) => {
@@ -125,6 +135,14 @@ export default function StudentClassHistoryModal({ student, onClose }: StudentCl
           onClose={() => setIsFormOpen(false)}
         />
       )}
+
+      <ConfirmModal
+        isOpen={isConfirmDeleteOpen}
+        onClose={() => { setIsConfirmDeleteOpen(false); setHistoryIdToDelete(null); }}
+        onConfirm={confirmDelete}
+        title="Hapus Riwayat Kelas"
+        message="Apakah Anda yakin ingin menghapus riwayat kelas ini?"
+      />
     </>
   );
 }

@@ -4,6 +4,7 @@ import { useTarikSiswa } from '../hooks/usePoolStudents';
 import { useGetCabang } from '../hooks/useMasterData';
 import { useAuth } from '../../../hooks/useAuth';
 import { X, Loader2 } from 'lucide-react';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface TarikSiswaModalProps {
   student: Student;
@@ -12,6 +13,7 @@ interface TarikSiswaModalProps {
 
 export default function TarikSiswaModal({ student, onClose }: TarikSiswaModalProps) {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const { data: cabangList, isLoading: loadingCabang } = useGetCabang();
   const tarikSiswaMutation = useTarikSiswa();
   
@@ -27,7 +29,7 @@ export default function TarikSiswaModal({ student, onClose }: TarikSiswaModalPro
 
   const handleTarik = () => {
     if (!selectedCabangId) {
-      alert('Pilih cabang tujuan terlebih dahulu');
+      showToast('error', 'Pilih cabang tujuan terlebih dahulu');
       return;
     }
     

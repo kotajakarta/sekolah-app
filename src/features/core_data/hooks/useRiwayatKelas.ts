@@ -10,7 +10,14 @@ export interface RiwayatKelasFormal {
   statusAkhir?: string | null;
   waliKelasId?: string | null;
   catatan?: string | null;
-  kelas?: { id: string; name: string };
+  kelas?: { 
+    id: string; 
+    name: string;
+    tingkat?: number;
+    isActive?: boolean;
+    tahunAjaran?: string;
+    lembagaMuadalah?: { id: string; name: string };
+  };
   waliKelas?: { id: string; name: string };
   createdAt: string;
   updatedAt: string;

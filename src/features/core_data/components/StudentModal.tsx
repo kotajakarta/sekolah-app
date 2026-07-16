@@ -3,20 +3,99 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
 import { Student } from '../hooks/useGetStudents';
 import { compressImage } from '../../../lib/imageCompressor';
-import { X, Loader2, ChevronDown, ChevronUp, Image as ImageIcon, Eye } from 'lucide-react';
+import { 
+  X, Loader2, Image as ImageIcon, Eye, User, Users, MapPin, BookOpen, 
+  Upload, CheckCircle, AlertCircle, ChevronRight, Camera, FileText, Home
+} from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { useGetWilayah, useGetCabang } from '../hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
 import Select from 'react-select';
 import NotificationModal from '../../../components/NotificationModal';
+import { useToast } from '../../../contexts/ToastContext';
+import AktivitasBelajarTab from './AktivitasBelajarTab';
+
+export type TabType = 'SANTRI' | 'ORANG_TUA' | 'ALAMAT' | 'AKTIVITAS_BELAJAR';
 
 interface StudentModalProps {
   student?: Student | null;
   onClose: () => void;
 }
 
+const PENDIDIKAN_OPTIONS = ['SD/Sederajat','SMP/Sederajat','SMA/Sederajat','D1','D2','D3','D4/S1','S2','S3','Tidak Bersekolah','Lainnya'];
+const PEKERJAAN_OPTIONS = ['Tidak Bekerja','Pensiunan','PNS','TNI/Polisi','Guru/Dosen','Pegawai Swasta','Wiraswasta','Pengacara/Jaksa/Hakim/Notaris','Seniman/Pelukis/Artis/Sejenis','Dokter/Bidan/Perawat','Pilot/Pramugara','Pedagang','Petani/Peternak','Nelayan','Buruh (Tani/Pabrik/Bangunan)','Sopir/Masinis/Kondektur','Politikus','Lainnya'];
+const PENGHASILAN_OPTIONS = ['dibawah 800.000','800.001 - 1.200.000','1.200.001 - 1.800.000','1.800.001 - 2.500.000','2.500.001 - 3.500.000','3.500.001 - 4.800.000','4.800.001 - 6.500.000','6.500.001 - 10.000.000','10.000.001 - 20.000.000','diatas 20.000.001'];
+
+// Reusable styled input
+const InputField = ({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
+  <div>
+    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+      {label}{required && <span className="text-rose-500 ml-0.5">*</span>}
+    </label>
+    {children}
+  </div>
+);
+
+const inputCls = "block w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 px-3.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all duration-150";
+const selectCls = inputCls + " appearance-none cursor-pointer";
+
+// File Upload Card
+const FileCard = ({ 
+  label, icon, value, onView, onUpload, isCompressing, aspect = 'portrait' 
+}: { 
+  label: string; icon: React.ReactNode; value: string; 
+  onView: () => void; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; 
+  isCompressing: boolean; aspect?: 'portrait' | 'landscape'
+}) => (
+  <div className="group relative flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 hover:border-indigo-300 hover:shadow-md transition-all duration-200">
+    <div className="flex items-center gap-2 self-start">
+      <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
+        {icon}
+      </div>
+      <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">{label}</span>
+    </div>
+    {value ? (
+      <div 
+        className={`relative ${aspect === 'portrait' ? 'w-20 h-28' : 'w-28 h-20'} rounded-lg overflow-hidden border border-slate-200 shadow-sm cursor-pointer`}
+        onClick={onView}
+      >
+        <img src={value} alt={label} className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-indigo-900/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <Eye className="w-5 h-5 text-white" />
+        </div>
+      </div>
+    ) : (
+      <div className={`${aspect === 'portrait' ? 'w-20 h-28' : 'w-28 h-20'} rounded-lg border-2 border-dashed border-slate-300 bg-slate-100 flex items-center justify-center text-slate-400`}>
+        <ImageIcon className="w-7 h-7" />
+      </div>
+    )}
+    <label className={`w-full cursor-pointer rounded-lg border py-1.5 px-3 text-xs font-semibold text-center transition-all duration-150 ${value ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'} ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+      {isCompressing ? (
+        <span className="flex items-center justify-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Memproses...</span>
+      ) : (
+        <span className="flex items-center justify-center gap-1.5"><Upload className="w-3 h-3" />{value ? 'Ganti' : 'Upload'}</span>
+      )}
+      <input type="file" accept="image/*" className="hidden" onChange={onUpload} disabled={isCompressing} />
+    </label>
+    {value && (
+      <div className="absolute top-3 right-3">
+        <CheckCircle className="w-4 h-4 text-emerald-500" />
+      </div>
+    )}
+  </div>
+);
+
+// Section Divider
+const SectionDivider = ({ title }: { title: string }) => (
+  <div className="col-span-full flex items-center gap-3 pt-2">
+    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">{title}</span>
+    <div className="flex-1 h-px bg-slate-200" />
+  </div>
+);
+
 export default function StudentModal({ student, onClose }: StudentModalProps) {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { data: wilayahList } = useGetWilayah();
   const { data: cabangList } = useGetCabang();
@@ -48,7 +127,6 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
   const [districts, setDistricts] = useState<any[]>([]);
   const [villages, setVillages] = useState<any[]>([]);
 
-  // Fetch provinces
   useEffect(() => {
     fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
       .then((r) => r.json())
@@ -56,10 +134,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
       .catch((e) => console.error('Gagal mengambil data provinsi', e));
   }, []);
 
-
-
   useEffect(() => {
-    // Only attempt to fetch if we don't have countries yet and no error has occurred
     let mounted = true;
     fetch('https://restcountries.com/v3.1/all?fields=name')
       .then((res) => {
@@ -72,50 +147,31 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
         formatted.sort((a, b) => a.label.localeCompare(b.label));
         const idn = formatted.find(c => c.value === 'Indonesia');
         const rest = formatted.filter(c => c.value !== 'Indonesia');
-        if (idn) {
-          setCountries([idn, ...rest]);
-        } else {
-          setCountries(formatted);
-        }
+        setCountries(idn ? [idn, ...rest] : formatted);
       })
-      .catch(err => {
+      .catch(() => {
         setCountries([{ value: 'Indonesia', label: 'Indonesia' }, { value: 'Malaysia', label: 'Malaysia' }]);
       });
+    return () => { mounted = false; };
   }, []);
 
-  const [expandedSections, setExpandedSections] = useState({
-    utama: true,
-    akademik: true,
-    orangTua: true,
-    darurat: true,
-    berkas: true,
-    statusAktif: true
-  });
-
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
-
+  const [activeTab, setActiveTab] = useState<TabType>('SANTRI');
   const [viewImage, setViewImage] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'fotoBase64' | 'ijazahBase64' | 'kkBase64') => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (!file.type.startsWith('image/')) {
-      alert(t('siswa.form.alert_not_image'));
+      showToast('error', 'File harus berupa gambar');
       return;
     }
-
+    setIsCompressing(true);
     try {
-      setIsCompressing(true);
-      // max size 150kb
-      const compressedBase64 = await compressImage(file, 150);
-      setFormData(prev => ({ ...prev, [field]: compressedBase64 }));
-    } catch (error) {
-      console.error('Error compressing image:', error);
-      alert(t('siswa.form.alert_compress_fail'));
+      const compressed = await compressImage(file, 800);
+      setFormData(prev => ({ ...prev, [field]: compressed }));
+    } catch {
+      showToast('error', 'Gagal memproses gambar');
     } finally {
       setIsCompressing(false);
     }
@@ -133,12 +189,20 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     kewarganegaraan: 'WNI',
     namaAyah: '',
     statusHidupAyah: 'Masih Hidup',
+    nikAyah: '',
+    tempatLahirAyah: '',
+    tanggalLahirAyah: '',
     pekerjaanAyah: '',
     pendidikanAyah: '',
+    penghasilanAyah: '',
     namaIbu: '',
     statusHidupIbu: 'Masih Hidup',
+    nikIbu: '',
+    tempatLahirIbu: '',
+    tanggalLahirIbu: '',
     pekerjaanIbu: '',
     pendidikanIbu: '',
+    penghasilanIbu: '',
     address: '',
     phone: '',
     kontakDaruratNama: '',
@@ -164,40 +228,25 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     alamatJalan: '',
   });
 
-  // Fetch regencies when province changes
   useEffect(() => {
     if (formData.alamatProvId) {
       fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${formData.alamatProvId}.json`)
-        .then((r) => r.json())
-        .then((data) => setRegencies(data))
-        .catch((e) => console.error('Gagal mengambil data kabupaten', e));
-    } else {
-      setRegencies([]);
-    }
+        .then((r) => r.json()).then((d) => setRegencies(d)).catch(console.error);
+    } else { setRegencies([]); }
   }, [formData.alamatProvId]);
 
-  // Fetch districts when regency changes
   useEffect(() => {
     if (formData.alamatKabId) {
       fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${formData.alamatKabId}.json`)
-        .then((r) => r.json())
-        .then((data) => setDistricts(data))
-        .catch((e) => console.error('Gagal mengambil data kecamatan', e));
-    } else {
-      setDistricts([]);
-    }
+        .then((r) => r.json()).then((d) => setDistricts(d)).catch(console.error);
+    } else { setDistricts([]); }
   }, [formData.alamatKabId]);
 
-  // Fetch villages when district changes
   useEffect(() => {
     if (formData.alamatKecId) {
       fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${formData.alamatKecId}.json`)
-        .then((r) => r.json())
-        .then((data) => setVillages(data))
-        .catch((e) => console.error('Gagal mengambil data kelurahan', e));
-    } else {
-      setVillages([]);
-    }
+        .then((r) => r.json()).then((d) => setVillages(d)).catch(console.error);
+    } else { setVillages([]); }
   }, [formData.alamatKecId]);
 
   useEffect(() => {
@@ -214,12 +263,20 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
         kewarganegaraan: student.biodata?.kewarganegaraan || 'WNI',
         namaAyah: student.biodata?.namaAyah || '',
         statusHidupAyah: student.biodata?.statusHidupAyah || 'Masih Hidup',
+        nikAyah: (student.biodata as any)?.nikAyah || '',
+        tempatLahirAyah: (student.biodata as any)?.tempatLahirAyah || '',
+        tanggalLahirAyah: (student.biodata as any)?.tanggalLahirAyah ? new Date((student.biodata as any).tanggalLahirAyah).toISOString().split('T')[0] : '',
         pekerjaanAyah: student.biodata?.pekerjaanAyah || '',
         pendidikanAyah: student.biodata?.pendidikanAyah || '',
+        penghasilanAyah: (student.biodata as any)?.penghasilanAyah || '',
         namaIbu: student.biodata?.namaIbu || '',
         statusHidupIbu: student.biodata?.statusHidupIbu || 'Masih Hidup',
+        nikIbu: (student.biodata as any)?.nikIbu || '',
+        tempatLahirIbu: (student.biodata as any)?.tempatLahirIbu || '',
+        tanggalLahirIbu: (student.biodata as any)?.tanggalLahirIbu ? new Date((student.biodata as any).tanggalLahirIbu).toISOString().split('T')[0] : '',
         pekerjaanIbu: student.biodata?.pekerjaanIbu || '',
         pendidikanIbu: student.biodata?.pendidikanIbu || '',
+        penghasilanIbu: (student.biodata as any)?.penghasilanIbu || '',
         address: student.biodata?.address || '',
         phone: student.biodata?.phone || '',
         kontakDaruratNama: student.biodata?.kontakDaruratNama || '',
@@ -232,7 +289,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
         cabangId: student.cabangId || '',
         jenisSiswa: student.jenisSiswa || '',
         grupDaimi: student.grupDaimi || '',
-        tanggalMasuk: new Date().toISOString().split('T')[0], // Only used on create
+        tanggalMasuk: new Date().toISOString().split('T')[0],
         isActive: student.isActive !== undefined ? student.isActive : true,
         alamatProvId: (student.biodata as any)?.alamatProvId || '',
         alamatProvName: (student.biodata as any)?.alamatProvName || '',
@@ -245,24 +302,17 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
         alamatJalan: (student.biodata as any)?.alamatJalan || '',
       });
 
-      // Preload sub-regions
       if ((student.biodata as any)?.alamatProvId) {
         fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${(student.biodata as any).alamatProvId}.json`)
-          .then((r) => r.json())
-          .then((d) => setRegencies(d))
-          .catch((e) => console.error(e));
+          .then((r) => r.json()).then((d) => setRegencies(d)).catch(console.error);
       }
       if ((student.biodata as any)?.alamatKabId) {
         fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${(student.biodata as any).alamatKabId}.json`)
-          .then((r) => r.json())
-          .then((d) => setDistricts(d))
-          .catch((e) => console.error(e));
+          .then((r) => r.json()).then((d) => setDistricts(d)).catch(console.error);
       }
       if ((student.biodata as any)?.alamatKecId) {
         fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${(student.biodata as any).alamatKecId}.json`)
-          .then((r) => r.json())
-          .then((d) => setVillages(d))
-          .catch((e) => console.error(e));
+          .then((r) => r.json()).then((d) => setVillages(d)).catch(console.error);
       }
     }
   }, [student]);
@@ -277,7 +327,6 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['students'] });
-      queryClient.invalidateQueries({ queryKey: ['students', 'pool'] });
       setNotification({
         isOpen: true,
         type: 'success',
@@ -301,489 +350,526 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     saveMutation.mutate(formData);
   };
 
-  const SectionHeader = ({ title, section }: { title: string, section: keyof typeof expandedSections }) => (
-    <div 
-      className="flex justify-between items-center bg-slate-50 p-3 rounded-md cursor-pointer mt-6 mb-4"
-      onClick={() => toggleSection(section)}
-    >
-      <h4 className="text-sm font-semibold text-slate-800">{title}</h4>
-      {expandedSections[section] ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
-    </div>
-  );
+  const tabs: { id: TabType; label: string; shortLabel: string; icon: React.ReactNode; show: boolean }[] = [
+    { id: 'SANTRI',           label: 'Data Santri',       shortLabel: 'Santri',      icon: <User className="w-4 h-4" />,      show: true },
+    { id: 'ORANG_TUA',        label: 'Data Orang Tua',    shortLabel: 'Orang Tua',   icon: <Users className="w-4 h-4" />,     show: true },
+    { id: 'ALAMAT',           label: 'Data Alamat',       shortLabel: 'Alamat',      icon: <MapPin className="w-4 h-4" />,    show: true },
+    { id: 'AKTIVITAS_BELAJAR',label: 'Aktivitas Belajar', shortLabel: 'Aktivitas',   icon: <BookOpen className="w-4 h-4" />,  show: !!student },
+  ];
+
+  const isEditMode = !!student;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+        onClick={onClose} 
+      />
 
-        <div className="relative transform rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-3xl flex flex-col max-h-[90vh]">
-          <div className="bg-white px-6 py-4 border-b border-slate-200 rounded-t-xl flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-slate-900">
-              {student ? t('common.edit') + ' ' + t('siswa.title') : t('common.add') + ' ' + t('siswa.title')}
-            </h3>
-            <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-500">
-              <X className="h-5 w-5" />
-            </button>
+      {/* Modal */}
+      <div className="relative w-full max-w-5xl flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden"
+           style={{ maxHeight: 'calc(100vh - 48px)', height: 'min(820px, calc(100vh - 48px))' }}>
+        
+        {/* ─── HEADER ─────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-900 to-slate-800 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center">
+              <User className="w-4.5 h-4.5 text-indigo-300" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white leading-tight">
+                {isEditMode ? 'Edit Data Santri' : 'Tambah Santri Baru'}
+              </h2>
+              {isEditMode && student?.biodata?.fullName && (
+                <p className="text-xs text-slate-400 mt-0.5 leading-tight">{student.biodata.fullName}</p>
+              )}
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all duration-150"
+          >
+            <X className="w-4.5 h-4.5" />
+          </button>
+        </div>
+
+        {/* ─── BODY: sidebar + content ─────────────────────────── */}
+        <div className="flex flex-1 overflow-hidden min-h-0">
           
-          <div className="overflow-y-auto p-6 flex-1">
-            <form id="student-form" onSubmit={handleSubmit}>
+          {/* Sidebar Tabs */}
+          <div className="w-44 flex-shrink-0 bg-slate-50 border-r border-slate-100 flex flex-col py-3 px-2 gap-1">
+            {tabs.filter(t => t.show).map(tab => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group ${
+                    isActive
+                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-200'
+                      : 'text-slate-500 hover:bg-slate-200/60 hover:text-slate-700'
+                  }`}
+                >
+                  <span className={`flex-shrink-0 ${isActive ? 'text-indigo-200' : 'text-slate-400 group-hover:text-slate-500'}`}>
+                    {tab.icon}
+                  </span>
+                  <span className="text-xs font-semibold leading-tight">{tab.label}</span>
+                  {isActive && <ChevronRight className="w-3 h-3 ml-auto opacity-60" />}
+                </button>
+              );
+            })}
+
+            {/* Document status indicators */}
+            <div className="mt-auto pt-3 border-t border-slate-200 px-1">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Dokumen</p>
+              {[
+                { label: 'Foto', value: formData.fotoBase64 },
+                { label: 'Ijazah', value: formData.ijazahBase64 },
+                { label: 'KK', value: formData.kkBase64 },
+              ].map(doc => (
+                <div key={doc.label} className="flex items-center justify-between py-1">
+                  <span className="text-[11px] text-slate-500">{doc.label}</span>
+                  {doc.value
+                    ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                    : <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                  }
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="flex-1 overflow-y-auto min-w-0">
+            <form id="student-form" onSubmit={handleSubmit} className={activeTab === 'AKTIVITAS_BELAJAR' ? 'hidden' : 'block h-full'}>
               
-              <SectionHeader title={t('siswa.form.section_utama')} section="utama" />
-              {expandedSections.utama && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* ── TAB: DATA SANTRI ─────────────────────────────── */}
+              {activeTab === 'SANTRI' && (
+                <div className="p-6 space-y-6">
+                  
+                  {/* Upload Documents Row */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.nik')}</label>
-                    <input type="text" value={formData.nik} onChange={(e) => setFormData({ ...formData, nik: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">NISN</label>
-                    <input type="text" value={formData.nisn} onChange={(e) => setFormData({ ...formData, nisn: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.nis_lokal')}</label>
-                    <input type="text" value={formData.nisLokal} onChange={(e) => setFormData({ ...formData, nisLokal: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.no_glodemy')}</label>
-                    <input type="text" value={formData.noGlodemy} onChange={(e) => setFormData({ ...formData, noGlodemy: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.full_name')}</label>
-                    <input type="text" required value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.birth_place')}</label>
-                    <input type="text" value={formData.tempatLahir} onChange={(e) => setFormData({ ...formData, tempatLahir: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.birth_date')}</label>
-                    <input type="date" value={formData.tanggalLahir} onChange={(e) => setFormData({ ...formData, tanggalLahir: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.gender')}</label>
-                    <select value={formData.jenisKelamin} onChange={(e) => setFormData({ ...formData, jenisKelamin: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                      <option value="L">{t('siswa.form.gender_l')}</option>
-                      <option value="P">{t('siswa.form.gender_p')}</option>
-                    </select>
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.nationality')}</label>
-                    <Select
-                      options={countries}
-                      value={countries.find(c => c.value === formData.kewarganegaraan) || { value: formData.kewarganegaraan, label: formData.kewarganegaraan }}
-                      onChange={(selected) => setFormData({ ...formData, kewarganegaraan: selected?.value || 'Indonesia' })}
-                      className="mt-1"
-                      placeholder={t('siswa.form.search_country')}
-                      isClearable
-                    />
-                  </div>
-                  <div className="md:col-span-2 mt-4 mb-2">
-                    <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider pb-1 border-b border-slate-100">Alamat Rumah</h4>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:col-span-2">
-                    {/* Provinsi */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 uppercase">Provinsi</label>
-                      <select 
-                        value={formData.alamatProvId}
-                        onChange={(e) => {
-                          const id = e.target.value;
-                          const name = provinces.find((p) => p.id === id)?.name || '';
-                          setFormData({
-                            ...formData,
-                            alamatProvId: id,
-                            alamatProvName: name,
-                            alamatKabId: '',
-                            alamatKabName: '',
-                            alamatKecId: '',
-                            alamatKecName: '',
-                            alamatKelId: '',
-                            alamatKelName: '',
-                            alamatJalan: '',
-                            address: ''
-                          });
-                        }}
-                        className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-                      >
-                        <option value="">-- Pilih Provinsi --</option>
-                        {provinces.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                      </select>
-                    </div>
-
-                    {/* Kabupaten */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 uppercase">Kabupaten / Kota</label>
-                      <select 
-                        value={formData.alamatKabId}
-                        disabled={!formData.alamatProvId}
-                        onChange={(e) => {
-                          const id = e.target.value;
-                          const name = regencies.find((r) => r.id === id)?.name || '';
-                          setFormData({
-                            ...formData,
-                            alamatKabId: id,
-                            alamatKabName: name,
-                            alamatKecId: '',
-                            alamatKecName: '',
-                            alamatKelId: '',
-                            alamatKelName: '',
-                            alamatJalan: '',
-                            address: ''
-                          });
-                        }}
-                        className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-slate-50 disabled:text-slate-400"
-                      >
-                        <option value="">-- Pilih Kota/Kabupaten --</option>
-                        {regencies.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                      </select>
-                    </div>
-
-                    {/* Kecamatan */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 uppercase">Kecamatan</label>
-                      <select 
-                        value={formData.alamatKecId}
-                        disabled={!formData.alamatKabId}
-                        onChange={(e) => {
-                          const id = e.target.value;
-                          const name = districts.find((d) => d.id === id)?.name || '';
-                          setFormData({
-                            ...formData,
-                            alamatKecId: id,
-                            alamatKecName: name,
-                            alamatKelId: '',
-                            alamatKelName: '',
-                            alamatJalan: '',
-                            address: ''
-                          });
-                        }}
-                        className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-slate-50 disabled:text-slate-400"
-                      >
-                        <option value="">-- Pilih Kecamatan --</option>
-                        {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-                      </select>
-                    </div>
-
-                    {/* Kelurahan */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 uppercase">Kelurahan / Desa</label>
-                      <select 
-                        value={formData.alamatKelId}
-                        disabled={!formData.alamatKecId}
-                        onChange={(e) => {
-                          const id = e.target.value;
-                          const name = villages.find((v) => v.id === id)?.name || '';
-                          setFormData({
-                            ...formData,
-                            alamatKelId: id,
-                            alamatKelName: name,
-                            alamatJalan: '',
-                            address: ''
-                          });
-                        }}
-                        className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-slate-50 disabled:text-slate-400"
-                      >
-                        <option value="">-- Pilih Kelurahan/Desa --</option>
-                        {villages.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
-                      </select>
-                    </div>
-
-                    {/* Alamat Detail */}
-                    <div className="sm:col-span-2">
-                      <label className="block text-xs font-semibold text-slate-700 uppercase">Alamat Jalan / Kampung</label>
-                      <textarea 
-                        value={formData.alamatJalan}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          const unifiedAddress = `${val}, Kel. ${formData.alamatKelName || ''}, Kec. ${formData.alamatKecName || ''}, Kab/Kota. ${formData.alamatKabName || ''}, Prov. ${formData.alamatProvName || ''}`;
-                          setFormData({
-                            ...formData,
-                            alamatJalan: val,
-                            address: unifiedAddress
-                          });
-                        }}
-                        rows={2}
-                        className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="Nama Jalan, No Rumah, RT/RW, Kampung, Dusun..."
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Berkas & Dokumen</h3>
+                    <div className="grid grid-cols-3 gap-3">
+                      <FileCard 
+                        label="Foto" 
+                        icon={<Camera className="w-3.5 h-3.5" />} 
+                        value={formData.fotoBase64}
+                        onView={() => setViewImage(formData.fotoBase64)}
+                        onUpload={(e) => handleFileUpload(e, 'fotoBase64')}
+                        isCompressing={isCompressing}
+                        aspect="portrait"
+                      />
+                      <FileCard 
+                        label="Ijazah" 
+                        icon={<FileText className="w-3.5 h-3.5" />} 
+                        value={formData.ijazahBase64}
+                        onView={() => setViewImage(formData.ijazahBase64)}
+                        onUpload={(e) => handleFileUpload(e, 'ijazahBase64')}
+                        isCompressing={isCompressing}
+                        aspect="landscape"
+                      />
+                      <FileCard 
+                        label="Kartu Keluarga" 
+                        icon={<Home className="w-3.5 h-3.5" />} 
+                        value={formData.kkBase64}
+                        onView={() => setViewImage(formData.kkBase64)}
+                        onUpload={(e) => handleFileUpload(e, 'kkBase64')}
+                        isCompressing={isCompressing}
+                        aspect="landscape"
                       />
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.phone')}</label>
-                    <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                  </div>
-                </div>
-              )}
 
-                <>
-                  <SectionHeader title={t('siswa.form.section_akademik')} section="akademik" />
-                  {expandedSections.akademik && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Personal Info */}
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Identitas Diri</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="sm:col-span-2">
+                        <InputField label="Nama Lengkap" required>
+                          <input
+                            type="text"
+                            required
+                            value={formData.fullName}
+                            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                            className={inputCls}
+                            placeholder="Nama lengkap santri..."
+                          />
+                        </InputField>
+                      </div>
+                      <InputField label={t('siswa.form.nik')}>
+                        <input type="text" value={formData.nik} onChange={(e) => setFormData({ ...formData, nik: e.target.value })} className={inputCls} placeholder="16 digit NIK" />
+                      </InputField>
+                      <InputField label="NISN">
+                        <input type="text" value={formData.nisn} onChange={(e) => setFormData({ ...formData, nisn: e.target.value })} className={inputCls} placeholder="Nomor Induk Siswa Nasional" />
+                      </InputField>
+                      <InputField label={`${t('siswa.form.nis_lokal')} / NISM`}>
+                        <input type="text" value={formData.nisLokal} onChange={(e) => setFormData({ ...formData, nisLokal: e.target.value })} className={inputCls} />
+                      </InputField>
+                      <InputField label={t('siswa.form.no_glodemy')}>
+                        <input type="text" value={formData.noGlodemy} onChange={(e) => setFormData({ ...formData, noGlodemy: e.target.value })} className={inputCls} />
+                      </InputField>
+                      <InputField label={t('siswa.form.birth_place')}>
+                        <input type="text" value={formData.tempatLahir} onChange={(e) => setFormData({ ...formData, tempatLahir: e.target.value })} className={inputCls} placeholder="Kota tempat lahir" />
+                      </InputField>
+                      <InputField label={t('siswa.form.birth_date')}>
+                        <input type="date" value={formData.tanggalLahir} onChange={(e) => setFormData({ ...formData, tanggalLahir: e.target.value })} className={inputCls} />
+                      </InputField>
+                      <InputField label={t('siswa.form.gender')}>
+                        <select value={formData.jenisKelamin} onChange={(e) => setFormData({ ...formData, jenisKelamin: e.target.value })} className={selectCls}>
+                          <option value="L">{t('siswa.form.gender_l')}</option>
+                          <option value="P">{t('siswa.form.gender_p')}</option>
+                        </select>
+                      </InputField>
+                      <InputField label={t('siswa.form.nationality')}>
+                        <Select
+                          options={countries}
+                          value={countries.find(c => c.value === formData.kewarganegaraan) || { value: formData.kewarganegaraan, label: formData.kewarganegaraan }}
+                          onChange={(selected) => setFormData({ ...formData, kewarganegaraan: selected?.value || 'Indonesia' })}
+                          placeholder={t('siswa.form.search_country')}
+                          isClearable
+                          styles={{
+                            control: (base) => ({
+                              ...base,
+                              borderColor: '#e2e8f0',
+                              borderRadius: '0.5rem',
+                              backgroundColor: '#f8fafc',
+                              boxShadow: 'none',
+                              '&:hover': { borderColor: '#6366f1' },
+                              minHeight: '42px',
+                              fontSize: '14px',
+                            }),
+                            option: (base, state) => ({
+                              ...base,
+                              backgroundColor: state.isSelected ? '#6366f1' : state.isFocused ? '#eef2ff' : 'white',
+                              color: state.isSelected ? 'white' : '#1e293b',
+                              fontSize: '13px',
+                            }),
+                          }}
+                        />
+                      </InputField>
+                    </div>
+                  </div>
+
+                  {/* Academic Registration */}
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Registrasi Akademik</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {!student && user?.scope === 'GLOBAL' && (
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700">{t('siswa.form.wilayah_daftar')}</label>
-                          <select required value={formData.wilayahId} onChange={(e) => setFormData({ ...formData, wilayahId: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <InputField label={t('siswa.form.wilayah_daftar')} required>
+                          <select required value={formData.wilayahId} onChange={(e) => setFormData({ ...formData, wilayahId: e.target.value })} className={selectCls}>
                             <option value="">{t('siswa.form.select_wilayah')}</option>
                             {wilayahList?.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
                           </select>
-                        </div>
+                        </InputField>
                       )}
-                      
                       {!student && (user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH') && (
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700">{t('siswa.form.cabang_penempatan')}</label>
-                          <select value={formData.cabangId} onChange={(e) => setFormData({ ...formData, cabangId: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <InputField label={t('siswa.form.cabang_penempatan')}>
+                          <select value={formData.cabangId} onChange={(e) => setFormData({ ...formData, cabangId: e.target.value })} className={selectCls}>
                             <option value="">{t('siswa.form.no_cabang')}</option>
                             {cabangList?.filter(c => formData.wilayahId ? c.wilayahId === formData.wilayahId : true).map((c) => (
                               <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                           </select>
-                        </div>
+                        </InputField>
                       )}
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700">{t('siswa.form.tgl_masuk')}</label>
-                        <input type="date" value={formData.tanggalMasuk} onChange={(e) => setFormData({ ...formData, tanggalMasuk: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700">Jenis Siswa</label>
-                        <select value={formData.jenisSiswa} onChange={(e) => setFormData({ ...formData, jenisSiswa: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                      <InputField label={t('siswa.form.tgl_masuk')}>
+                        <input type="date" value={formData.tanggalMasuk} onChange={(e) => setFormData({ ...formData, tanggalMasuk: e.target.value })} className={inputCls} />
+                      </InputField>
+                      <InputField label="Jenis Siswa">
+                        <select value={formData.jenisSiswa} onChange={(e) => setFormData({ ...formData, jenisSiswa: e.target.value })} className={selectCls}>
                           <option value="">Pilih Jenis Siswa</option>
                           <option value="MUADALAH">Muadalah</option>
                           <option value="NON_MUADALAH">Non Muadalah</option>
                         </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700">Grup Daimi</label>
-                        <select value={formData.grupDaimi} onChange={(e) => setFormData({ ...formData, grupDaimi: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                      </InputField>
+                      <InputField label="Grup Daimi">
+                        <select value={formData.grupDaimi} onChange={(e) => setFormData({ ...formData, grupDaimi: e.target.value })} className={selectCls}>
                           <option value="">Pilih Grup Daimi</option>
                           {grupDaimiList?.map((grup: any) => (
                             <option key={grup.id} value={grup.name}>{grup.name}</option>
                           ))}
                         </select>
-                      </div>
+                      </InputField>
                     </div>
-                  )}
-                </>
+                  </div>
+                </div>
+              )}
 
-              {student && (
-                <>
-                  <SectionHeader title="Status Aktif" section="statusAktif" />
-                  {expandedSections.statusAktif && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="flex items-center space-x-3 mt-4">
-                          <input 
-                            type="checkbox" 
-                            checked={formData.isActive} 
-                            onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                            className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              {/* ── TAB: ORANG TUA ───────────────────────────────── */}
+              {activeTab === 'ORANG_TUA' && (
+                <div className="p-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-6">
+                    
+                    {/* Ayah */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                        <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <User className="w-3.5 h-3.5 text-blue-600" />
+                        </div>
+                        <h3 className="text-sm font-bold text-slate-700">{t('siswa.form.ayah_title')}</h3>
+                      </div>
+                      <InputField label={t('siswa.form.nama_ayah')}>
+                        <input type="text" value={formData.namaAyah} onChange={(e) => setFormData({ ...formData, namaAyah: e.target.value })} className={inputCls} placeholder="Nama lengkap ayah" />
+                      </InputField>
+                      <InputField label="NIK Ayah">
+                        <input type="text" value={formData.nikAyah} onChange={(e) => setFormData({ ...formData, nikAyah: e.target.value })} className={inputCls} placeholder="16 digit NIK" maxLength={16} />
+                      </InputField>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <InputField label="Tempat Lahir Ayah">
+                          <input type="text" value={formData.tempatLahirAyah} onChange={(e) => setFormData({ ...formData, tempatLahirAyah: e.target.value })} className={inputCls} placeholder="Kota lahir" />
+                        </InputField>
+                        <InputField label="Tanggal Lahir Ayah">
+                          <input type="date" value={formData.tanggalLahirAyah} onChange={(e) => setFormData({ ...formData, tanggalLahirAyah: e.target.value })} className={inputCls} />
+                        </InputField>
+                      </div>
+                      <InputField label={t('siswa.form.status_hidup_ayah')}>
+                        <select value={formData.statusHidupAyah} onChange={(e) => setFormData({ ...formData, statusHidupAyah: e.target.value })} className={selectCls}>
+                          <option value={t('siswa.form.status_hidup')}>{t('siswa.form.status_hidup')}</option>
+                          <option value={t('siswa.form.status_mati')}>{t('siswa.form.status_mati')}</option>
+                          <option value={t('siswa.form.status_unknown')}>{t('siswa.form.status_unknown')}</option>
+                        </select>
+                      </InputField>
+                      <InputField label={t('siswa.form.pendidikan_ayah')}>
+                        <select value={formData.pendidikanAyah} onChange={(e) => setFormData({ ...formData, pendidikanAyah: e.target.value })} className={selectCls}>
+                          <option value="">Pilih Pendidikan</option>
+                          {PENDIDIKAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                      </InputField>
+                      <InputField label={t('siswa.form.pekerjaan_ayah')}>
+                        <select value={formData.pekerjaanAyah} onChange={(e) => setFormData({ ...formData, pekerjaanAyah: e.target.value })} className={selectCls}>
+                          <option value="">Pilih Pekerjaan</option>
+                          {PEKERJAAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                      </InputField>
+                      <InputField label="Rata-rata Penghasilan Ayah">
+                        <select value={formData.penghasilanAyah} onChange={(e) => setFormData({ ...formData, penghasilanAyah: e.target.value })} className={selectCls}>
+                          <option value="">Pilih Penghasilan</option>
+                          {PENGHASILAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                      </InputField>
+                    </div>
+
+                    {/* Divider for mobile */}
+                    <div className="block lg:hidden my-6 border-t border-slate-100" />
+
+                    {/* Ibu */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                        <div className="w-7 h-7 rounded-lg bg-rose-100 flex items-center justify-center">
+                          <User className="w-3.5 h-3.5 text-rose-500" />
+                        </div>
+                        <h3 className="text-sm font-bold text-slate-700">{t('siswa.form.ibu_title')}</h3>
+                      </div>
+                      <InputField label={t('siswa.form.nama_ibu')}>
+                        <input type="text" value={formData.namaIbu} onChange={(e) => setFormData({ ...formData, namaIbu: e.target.value })} className={inputCls} placeholder="Nama lengkap ibu" />
+                      </InputField>
+                      <InputField label="NIK Ibu">
+                        <input type="text" value={formData.nikIbu} onChange={(e) => setFormData({ ...formData, nikIbu: e.target.value })} className={inputCls} placeholder="16 digit NIK" maxLength={16} />
+                      </InputField>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <InputField label="Tempat Lahir Ibu">
+                          <input type="text" value={formData.tempatLahirIbu} onChange={(e) => setFormData({ ...formData, tempatLahirIbu: e.target.value })} className={inputCls} placeholder="Kota lahir" />
+                        </InputField>
+                        <InputField label="Tanggal Lahir Ibu">
+                          <input type="date" value={formData.tanggalLahirIbu} onChange={(e) => setFormData({ ...formData, tanggalLahirIbu: e.target.value })} className={inputCls} />
+                        </InputField>
+                      </div>
+                      <InputField label={t('siswa.form.status_hidup_ibu')}>
+                        <select value={formData.statusHidupIbu} onChange={(e) => setFormData({ ...formData, statusHidupIbu: e.target.value })} className={selectCls}>
+                          <option value={t('siswa.form.status_hidup')}>{t('siswa.form.status_hidup')}</option>
+                          <option value={t('siswa.form.status_mati')}>{t('siswa.form.status_mati')}</option>
+                          <option value={t('siswa.form.status_unknown')}>{t('siswa.form.status_unknown')}</option>
+                        </select>
+                      </InputField>
+                      <InputField label={t('siswa.form.pendidikan_ibu')}>
+                        <select value={formData.pendidikanIbu} onChange={(e) => setFormData({ ...formData, pendidikanIbu: e.target.value })} className={selectCls}>
+                          <option value="">Pilih Pendidikan</option>
+                          {PENDIDIKAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                      </InputField>
+                      <InputField label={t('siswa.form.pekerjaan_ibu')}>
+                        <select value={formData.pekerjaanIbu} onChange={(e) => setFormData({ ...formData, pekerjaanIbu: e.target.value })} className={selectCls}>
+                          <option value="">Pilih Pekerjaan</option>
+                          {PEKERJAAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                      </InputField>
+                      <InputField label="Rata-rata Penghasilan Ibu">
+                        <select value={formData.penghasilanIbu} onChange={(e) => setFormData({ ...formData, penghasilanIbu: e.target.value })} className={selectCls}>
+                          <option value="">Pilih Penghasilan</option>
+                          {PENGHASILAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                      </InputField>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── TAB: ALAMAT ──────────────────────────────────── */}
+              {activeTab === 'ALAMAT' && (
+                <div className="p-6 space-y-6">
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Alamat Tempat Tinggal</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <InputField label="Provinsi">
+                        <select
+                          value={formData.alamatProvId}
+                          onChange={(e) => {
+                            const id = e.target.value;
+                            const name = provinces.find((p) => p.id === id)?.name || '';
+                            setFormData({ ...formData, alamatProvId: id, alamatProvName: name, alamatKabId: '', alamatKabName: '', alamatKecId: '', alamatKecName: '', alamatKelId: '', alamatKelName: '', alamatJalan: '', address: '' });
+                          }}
+                          className={selectCls}
+                        >
+                          <option value="">-- Pilih Provinsi --</option>
+                          {provinces.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                      </InputField>
+                      <InputField label="Kabupaten / Kota">
+                        <select
+                          value={formData.alamatKabId}
+                          disabled={!formData.alamatProvId}
+                          onChange={(e) => {
+                            const id = e.target.value;
+                            const name = regencies.find((r) => r.id === id)?.name || '';
+                            setFormData({ ...formData, alamatKabId: id, alamatKabName: name, alamatKecId: '', alamatKecName: '', alamatKelId: '', alamatKelName: '', alamatJalan: '', address: '' });
+                          }}
+                          className={selectCls + ' disabled:opacity-50 disabled:cursor-not-allowed'}
+                        >
+                          <option value="">-- Pilih Kota/Kabupaten --</option>
+                          {regencies.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                        </select>
+                      </InputField>
+                      <InputField label="Kecamatan">
+                        <select
+                          value={formData.alamatKecId}
+                          disabled={!formData.alamatKabId}
+                          onChange={(e) => {
+                            const id = e.target.value;
+                            const name = districts.find((d) => d.id === id)?.name || '';
+                            setFormData({ ...formData, alamatKecId: id, alamatKecName: name, alamatKelId: '', alamatKelName: '', alamatJalan: '', address: '' });
+                          }}
+                          className={selectCls + ' disabled:opacity-50 disabled:cursor-not-allowed'}
+                        >
+                          <option value="">-- Pilih Kecamatan --</option>
+                          {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
+                      </InputField>
+                      <InputField label="Kelurahan / Desa">
+                        <select
+                          value={formData.alamatKelId}
+                          disabled={!formData.alamatKecId}
+                          onChange={(e) => {
+                            const id = e.target.value;
+                            const name = villages.find((v) => v.id === id)?.name || '';
+                            setFormData({ ...formData, alamatKelId: id, alamatKelName: name, alamatJalan: '', address: '' });
+                          }}
+                          className={selectCls + ' disabled:opacity-50 disabled:cursor-not-allowed'}
+                        >
+                          <option value="">-- Pilih Kelurahan/Desa --</option>
+                          {villages.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                        </select>
+                      </InputField>
+                      <div className="sm:col-span-2">
+                        <InputField label="Alamat Jalan / Kampung">
+                          <textarea
+                            value={formData.alamatJalan}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const unifiedAddress = `${val}, Kel. ${formData.alamatKelName || ''}, Kec. ${formData.alamatKecName || ''}, Kab/Kota. ${formData.alamatKabName || ''}, Prov. ${formData.alamatProvName || ''}`;
+                              setFormData({ ...formData, alamatJalan: val, address: unifiedAddress });
+                            }}
+                            rows={2}
+                            className={inputCls}
+                            placeholder="Nama Jalan, No. Rumah, RT/RW, Dusun..."
                           />
-                          <span className="text-sm font-medium text-slate-700">
-                            Status Aktif (Centang jika siswa aktif)
-                          </span>
-                        </label>
-                        <p className="text-xs text-slate-500 mt-2 ml-8">
-                          Jika tidak dicentang, siswa dianggap tidak aktif meskipun statusnya di cabang masih tercatat.
-                        </p>
+                        </InputField>
                       </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              <SectionHeader title={t('siswa.form.section_ortu')} section="orangTua" />
-              {expandedSections.orangTua && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-6">
-                  {/* Ayah */}
-                  <div className="space-y-4 border-r border-slate-100 pr-4">
-                    <h5 className="font-medium text-sm text-slate-800 border-b border-slate-100 pb-2">{t('siswa.form.ayah_title')}</h5>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">{t('siswa.form.nama_ayah')}</label>
-                      <input type="text" value={formData.namaAyah} onChange={(e) => setFormData({ ...formData, namaAyah: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">{t('siswa.form.status_hidup_ayah')}</label>
-                      <select value={formData.statusHidupAyah} onChange={(e) => setFormData({ ...formData, statusHidupAyah: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value={t('siswa.form.status_hidup')}>{t('siswa.form.status_hidup')}</option>
-                        <option value={t('siswa.form.status_mati')}>{t('siswa.form.status_mati')}</option>
-                        <option value={t('siswa.form.status_unknown')}>{t('siswa.form.status_unknown')}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">{t('siswa.form.pekerjaan_ayah')}</label>
-                      <input type="text" value={formData.pekerjaanAyah} onChange={(e) => setFormData({ ...formData, pekerjaanAyah: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">{t('siswa.form.pendidikan_ayah')}</label>
-                      <input type="text" value={formData.pendidikanAyah} onChange={(e) => setFormData({ ...formData, pendidikanAyah: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                      <InputField label={t('siswa.form.phone')}>
+                        <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className={inputCls} placeholder="No. Telepon / WhatsApp" />
+                      </InputField>
                     </div>
                   </div>
 
-                  {/* Ibu */}
-                  <div className="space-y-4 pl-4">
-                    <h5 className="font-medium text-sm text-slate-800 border-b border-slate-100 pb-2">{t('siswa.form.ibu_title')}</h5>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">{t('siswa.form.nama_ibu')}</label>
-                      <input type="text" value={formData.namaIbu} onChange={(e) => setFormData({ ...formData, namaIbu: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">{t('siswa.form.status_hidup_ibu')}</label>
-                      <select value={formData.statusHidupIbu} onChange={(e) => setFormData({ ...formData, statusHidupIbu: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value={t('siswa.form.status_hidup')}>{t('siswa.form.status_hidup')}</option>
-                        <option value={t('siswa.form.status_mati')}>{t('siswa.form.status_mati')}</option>
-                        <option value={t('siswa.form.status_unknown')}>{t('siswa.form.status_unknown')}</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">{t('siswa.form.pekerjaan_ibu')}</label>
-                      <input type="text" value={formData.pekerjaanIbu} onChange={(e) => setFormData({ ...formData, pekerjaanIbu: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">{t('siswa.form.pendidikan_ibu')}</label>
-                      <input type="text" value={formData.pendidikanIbu} onChange={(e) => setFormData({ ...formData, pendidikanIbu: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Kontak Darurat</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <InputField label={t('siswa.form.darurat_nama')}>
+                        <input type="text" value={formData.kontakDaruratNama} onChange={(e) => setFormData({ ...formData, kontakDaruratNama: e.target.value })} className={inputCls} placeholder="Nama kontak darurat" />
+                      </InputField>
+                      <InputField label={t('siswa.form.darurat_telp')}>
+                        <input type="text" value={formData.kontakDaruratTelp} onChange={(e) => setFormData({ ...formData, kontakDaruratTelp: e.target.value })} className={inputCls} placeholder="No. Telepon" />
+                      </InputField>
+                      <InputField label={t('siswa.form.darurat_hub')}>
+                        <input type="text" value={formData.kontakDaruratHubungan} onChange={(e) => setFormData({ ...formData, kontakDaruratHubungan: e.target.value })} className={inputCls} placeholder={t('siswa.form.darurat_hub_ph')} />
+                      </InputField>
                     </div>
                   </div>
                 </div>
               )}
-
-              <SectionHeader title={t('siswa.form.section_darurat')} section="darurat" />
-              {expandedSections.darurat && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.darurat_nama')}</label>
-                    <input type="text" value={formData.kontakDaruratNama} onChange={(e) => setFormData({ ...formData, kontakDaruratNama: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.darurat_telp')}</label>
-                    <input type="text" value={formData.kontakDaruratTelp} onChange={(e) => setFormData({ ...formData, kontakDaruratTelp: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700">{t('siswa.form.darurat_hub')}</label>
-                    <input type="text" value={formData.kontakDaruratHubungan} onChange={(e) => setFormData({ ...formData, kontakDaruratHubungan: e.target.value })} placeholder={t('siswa.form.darurat_hub_ph')} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                  </div>
-                </div>
-              )}
-
-              <SectionHeader title={t('siswa.form.section_berkas')} section="berkas" />
-              {expandedSections.berkas && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Foto */}
-                  <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 flex flex-col items-center">
-                    <h5 className="font-medium text-sm text-slate-800 mb-3">{t('siswa.form.foto')}</h5>
-                    {formData.fotoBase64 ? (
-                      <div className="relative w-24 h-32 mb-3 bg-white border border-slate-200 rounded flex items-center justify-center overflow-hidden group">
-                        <img src={formData.fotoBase64} alt="Foto thumbnail" className="object-cover w-full h-full" />
-                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button type="button" onClick={() => setViewImage(formData.fotoBase64)} className="text-white p-2 hover:text-blue-300">
-                            <Eye className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="w-24 h-32 mb-3 bg-slate-200 border border-slate-300 rounded flex items-center justify-center text-slate-400">
-                        <ImageIcon className="w-8 h-8" />
-                      </div>
-                    )}
-                    <label className="cursor-pointer bg-white border border-slate-300 px-3 py-1.5 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm w-full text-center">
-                      <span>{formData.fotoBase64 ? t('siswa.form.change_foto') : t('siswa.form.upload_foto')}</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'fotoBase64')} disabled={isCompressing} />
-                    </label>
-                  </div>
-
-                  {/* Ijazah */}
-                  <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 flex flex-col items-center">
-                    <h5 className="font-medium text-sm text-slate-800 mb-3">{t('siswa.form.ijazah')}</h5>
-                    {formData.ijazahBase64 ? (
-                      <div className="relative w-32 h-24 mb-3 bg-white border border-slate-200 rounded flex items-center justify-center overflow-hidden group">
-                        <img src={formData.ijazahBase64} alt="Ijazah thumbnail" className="object-contain w-full h-full" />
-                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button type="button" onClick={() => setViewImage(formData.ijazahBase64)} className="text-white p-2 hover:text-blue-300">
-                            <Eye className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="w-32 h-24 mb-3 bg-slate-200 border border-slate-300 rounded flex items-center justify-center text-slate-400">
-                        <ImageIcon className="w-8 h-8" />
-                      </div>
-                    )}
-                    <label className="cursor-pointer bg-white border border-slate-300 px-3 py-1.5 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm w-full text-center">
-                      <span>{formData.ijazahBase64 ? t('siswa.form.change_ijazah') : t('siswa.form.upload_ijazah')}</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'ijazahBase64')} disabled={isCompressing} />
-                    </label>
-                  </div>
-
-                  {/* Kartu Keluarga */}
-                  <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 flex flex-col items-center">
-                    <h5 className="font-medium text-sm text-slate-800 mb-3">{t('siswa.form.kk')}</h5>
-                    {formData.kkBase64 ? (
-                      <div className="relative w-32 h-24 mb-3 bg-white border border-slate-200 rounded flex items-center justify-center overflow-hidden group">
-                        <img src={formData.kkBase64} alt="KK thumbnail" className="object-contain w-full h-full" />
-                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button type="button" onClick={() => setViewImage(formData.kkBase64)} className="text-white p-2 hover:text-blue-300">
-                            <Eye className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="w-32 h-24 mb-3 bg-slate-200 border border-slate-300 rounded flex items-center justify-center text-slate-400">
-                        <ImageIcon className="w-8 h-8" />
-                      </div>
-                    )}
-                    <label className="cursor-pointer bg-white border border-slate-300 px-3 py-1.5 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm w-full text-center">
-                      <span>{formData.kkBase64 ? t('siswa.form.change_kk') : t('siswa.form.upload_kk')}</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'kkBase64')} disabled={isCompressing} />
-                    </label>
-                  </div>
-                </div>
-              )}
-
             </form>
+
+            {activeTab === 'AKTIVITAS_BELAJAR' && student && (
+              <div className="p-6 h-full">
+                <AktivitasBelajarTab
+                  student={student}
+                  onStatusChange={(isActive) => {
+                    setFormData({ ...formData, isActive });
+                  }}
+                />
+              </div>
+            )}
           </div>
-            
-          <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 rounded-b-xl flex justify-between items-center">
-            <div className="text-xs text-slate-500">
-              {isCompressing ? <span className="flex items-center"><Loader2 className="w-3 h-3 animate-spin mr-1" /> {t('siswa.form.compressing')}</span> : ''}
-            </div>
-            <div className="flex space-x-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="inline-flex justify-center rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 border border-slate-300 shadow-sm hover:bg-slate-50"
-              >
-                {t('common.cancel')}
-              </button>
+        </div>
+
+        {/* ─── FOOTER ──────────────────────────────────────────── */}
+        <div className="flex items-center justify-between px-6 py-3.5 border-t border-slate-100 bg-white flex-shrink-0">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            {isCompressing && (
+              <span className="flex items-center gap-1.5 text-amber-600">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                {t('siswa.form.compressing')}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all duration-150"
+            >
+              {t('common.cancel')}
+            </button>
+            {activeTab !== 'AKTIVITAS_BELAJAR' && (
               <button
                 type="submit"
                 form="student-form"
                 disabled={saveMutation.isPending || isCompressing}
-                className="inline-flex justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-500 disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shadow-indigo-200"
               >
-                {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                {t('common.save')}
+                {saveMutation.isPending
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Menyimpan...</>
+                  : <>{t('common.save')}</>
+                }
               </button>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* View Image Modal */}
+      {/* ─── IMAGE VIEWER ────────────────────────────────────── */}
       {viewImage && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black bg-opacity-80">
-          <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center">
-            <button 
-              type="button" 
-              onClick={() => setViewImage(null)} 
-              className="absolute top-4 right-4 text-white hover:text-slate-300 bg-black bg-opacity-50 rounded-full p-2"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <img src={viewImage} alt="View" className="max-w-full max-h-full object-contain bg-white rounded-sm shadow-2xl" />
-          </div>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
+          <button
+            type="button"
+            onClick={() => setViewImage(null)}
+            className="absolute top-5 right-5 w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <img src={viewImage} alt="Preview" className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" />
         </div>
       )}
 

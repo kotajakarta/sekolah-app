@@ -73,7 +73,7 @@ export default function AbsensiSiswa() {
   };
 
   // 1. Get Active Programs
-  const { data: programs = [], isLoading: loadingPrograms } = useQuery<Program[]>({
+  const { data: programs, isLoading: loadingPrograms } = useQuery<Program[]>({
     queryKey: ['absensi-programs-active'],
     queryFn: async () => {
       const res = await apiClient.get('/absensi/programs?activeOnly=true');
@@ -118,7 +118,7 @@ export default function AbsensiSiswa() {
     queryFn: async () => {
       const res = await apiClient.get('/formal/kelas');
       if (selectedCabang) {
-        return res.data.filter((c: any) => c.cabangId === selectedCabang);
+        return res.data.filter((c: any) => c.cabangId === selectedCabang && c.isActive);
       }
       return [];
     },
@@ -127,13 +127,13 @@ export default function AbsensiSiswa() {
 
   // Automatically select the first active program when loaded
   useEffect(() => {
-    if (programs.length > 0 && !selectedProgram) {
+    if (programs && programs.length > 0 && !selectedProgram) {
       setSelectedProgram(programs[0].id);
     }
   }, [programs, selectedProgram]);
 
   // 5. Load attendance list of students when filters change
-  const { data: fetchedKehadiran = [], isLoading: loadingKehadiran, refetch, isError } = useQuery<KehadiranRow[]>({
+  const { data: fetchedKehadiran, isLoading: loadingKehadiran, refetch, isError } = useQuery<KehadiranRow[]>({
     queryKey: ['absensi-kehadiran-list', selectedProgram, selectedKelas, selectedCabang],
     queryFn: async () => {
       const res = await apiClient.get(
@@ -217,7 +217,7 @@ export default function AbsensiSiswa() {
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
             >
               <option value="">-- Pilih Program --</option>
-              {programs.map(p => (
+              {(programs || []).map(p => (
                 <option key={p.id} value={p.id}>{p.name} ({new Date(p.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })})</option>
               ))}
             </select>

@@ -5,6 +5,7 @@ export interface Staff {
   id: string;
   name: string;
   position: string;
+  cabangId?: string | null;
 }
 
 export interface Wilayah {
@@ -17,6 +18,9 @@ export interface Cabang {
   name: string;
   wilayahId: string;
   wilayah?: Wilayah;
+  _count?: {
+    students: number;
+  };
 }
 
 export const useGetGuru = () => {

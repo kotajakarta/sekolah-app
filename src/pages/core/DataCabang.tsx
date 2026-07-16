@@ -11,6 +11,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function DataCabang() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -18,6 +19,7 @@ export default function DataCabang() {
 
   const { data: cabang, isLoading, isError } = useGetCabang();
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isAdmin = user?.scope === 'GLOBAL';
@@ -57,13 +59,13 @@ export default function DataCabang() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['master-data', 'cabang'] });
-      alert(t('common.delete_success'));
+      showToast('success', t('common.delete_success'));
     },
     onError: (error: any) => {
       if (error.response?.status === 400 || error.response?.data?.code?.startsWith('P2')) {
-        alert(t('common.delete_constraint_failed'));
+        showToast('error', t('common.delete_constraint_failed'));
       } else {
-        alert(error.response?.data?.message || t('common.delete_failed'));
+        showToast('error', error.response?.data?.message || t('common.delete_failed'));
       }
     }
   });
@@ -74,10 +76,10 @@ export default function DataCabang() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['master-data', 'cabang'] });
-      alert(t('common.delete_success'));
+      showToast('success', t('common.delete_success'));
     },
     onError: (error: any) => {
-      alert(error.response?.data?.message || t('common.delete_failed'));
+      showToast('error', error.response?.data?.message || t('common.delete_failed'));
     }
   });
 
@@ -272,6 +274,9 @@ export default function DataCabang() {
                     {t('cabang.region')}
                     <SortIcon field="wilayah" />
                   </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">
+                    Jumlah Santri
+                  </th>
                   <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
                 </tr>
               </thead>
@@ -283,6 +288,9 @@ export default function DataCabang() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                       {item.wilayah?.name || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                      {item._count?.students || 0} Santri
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button onClick={() => setProfileCabangId(item.id)} className="text-emerald-600 hover:text-emerald-900 mr-4 font-semibold px-2 py-1 rounded bg-emerald-50 hover:bg-emerald-100 transition-colors">

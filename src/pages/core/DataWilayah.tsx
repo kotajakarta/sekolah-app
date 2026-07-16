@@ -8,6 +8,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function DataWilayah() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -15,6 +16,7 @@ export default function DataWilayah() {
 
   const { data: wilayah, isLoading, isError } = useGetWilayah();
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isAdmin = user?.scope === 'GLOBAL';
@@ -32,13 +34,13 @@ export default function DataWilayah() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['master-data', 'wilayah'] });
-      alert(t('common.delete_success'));
+      showToast('success', t('common.delete_success'));
     },
     onError: (error: any) => {
       if (error.response?.status === 400 || error.response?.data?.code?.startsWith('P2')) {
-        alert(t('common.delete_constraint_failed'));
+        showToast('error', t('common.delete_constraint_failed'));
       } else {
-        alert(error.response?.data?.message || t('common.delete_failed'));
+        showToast('error', error.response?.data?.message || t('common.delete_failed'));
       }
     }
   });
@@ -49,10 +51,10 @@ export default function DataWilayah() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['master-data', 'wilayah'] });
-      alert(t('common.delete_success'));
+      showToast('success', t('common.delete_success'));
     },
     onError: (error: any) => {
-      alert(error.response?.data?.message || t('common.delete_failed'));
+      showToast('error', error.response?.data?.message || t('common.delete_failed'));
     }
   });
 

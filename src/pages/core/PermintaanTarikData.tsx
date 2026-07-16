@@ -5,11 +5,13 @@ import { useAuth } from '../../hooks/useAuth';
 import { Database, Check, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function PermintaanTarikData() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const { user } = useAuth();
+  const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useTranslation();
 
@@ -28,10 +30,10 @@ export default function PermintaanTarikData() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['permintaan-tarik'] });
       queryClient.invalidateQueries({ queryKey: ['students'] });
-      alert('Permintaan disetujui');
+      showToast('success', 'Permintaan disetujui');
     },
     onError: (err: any) => {
-      alert(err.response?.data?.message || 'Gagal menyetujui permintaan');
+      showToast('error', err.response?.data?.message || 'Gagal menyetujui permintaan');
     }
   });
 
@@ -41,10 +43,10 @@ export default function PermintaanTarikData() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['permintaan-tarik'] });
-      alert('Permintaan ditolak');
+      showToast('info', 'Permintaan ditolak');
     },
     onError: (err: any) => {
-      alert(err.response?.data?.message || 'Gagal menolak permintaan');
+      showToast('error', err.response?.data?.message || 'Gagal menolak permintaan');
     }
   });
 

@@ -9,7 +9,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -109,13 +109,8 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
-          
-          <div className="mt-6 text-center text-xs text-slate-500">
-            <p>Demo Accounts:</p>
-            <p className="mt-1.5">admin / admin123</p>
-            <p>wilayah1 / wilayah123</p>
-            <p>cabang1 / cabang123</p>
-          </div>
+
+
         </div>
       </div>
     </div>

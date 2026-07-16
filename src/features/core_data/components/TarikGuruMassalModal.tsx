@@ -4,6 +4,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useGetCabang } from '../hooks/useMasterData';
 import { X, Loader2, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface TarikGuruMassalModalProps {
   onClose: () => void;
@@ -11,6 +12,7 @@ interface TarikGuruMassalModalProps {
 
 export default function TarikGuruMassalModal({ onClose }: TarikGuruMassalModalProps) {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const { data: poolGuru, isLoading: isLoadingPool } = useGetPoolGuru();
   const { data: cabangList, isLoading: loadingCabang } = useGetCabang();
   const { t } = useTranslation();
@@ -49,11 +51,11 @@ export default function TarikGuruMassalModal({ onClose }: TarikGuruMassalModalPr
 
   const handleTarik = () => {
     if (!selectedCabangId) {
-      alert(t('guru.tarik.alert_cabang'));
+      showToast('info', t('guru.tarik.alert_cabang'));
       return;
     }
     if (selectedStaffIds.length === 0) {
-      alert(t('guru.tarik.alert_guru'));
+      showToast('info', t('guru.tarik.alert_guru'));
       return;
     }
     

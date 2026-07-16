@@ -202,7 +202,7 @@ export const Sidebar: React.FC = () => {
 
   const santriItems = [
     { to: '/core/siswa', label: 'Data Semua Santri', show: true },
-    { to: '/formal/siswa', label: 'Penempatan & Kelas', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
+    { to: '/formal/siswa', label: 'Santri Muadalah', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
     { to: '/absensi/siswa', label: 'Absensi Siswa', show: true },
     { to: '/core/pool', label: 'Pool Santri', show: user?.scope === 'GLOBAL' },
   ].filter(i => i.show);
@@ -231,6 +231,7 @@ export const Sidebar: React.FC = () => {
   ].filter(i => i.show);
 
   const laporanItems = [
+    { to: '/laporan/absensi', label: 'Rekapitulasi Absensi', show: true },
     { to: '/laporan/evaluasi', label: 'Laporan Evaluasi', show: true, disabled: true },
   ];
 
@@ -245,6 +246,7 @@ export const Sidebar: React.FC = () => {
     if (layananItems.some(i => i.to === location.pathname)) preOpen.layanan = true;
     if (monitoringItems.some(i => i.to === location.pathname)) preOpen.monitoring = true;
     if (konfirmasiItems.some(i => i.to === location.pathname)) preOpen.konfirmasi = true;
+    if (laporanItems.some(i => i.to === location.pathname)) preOpen.laporan = true;
 
     setOpenGroups(prev => ({ ...prev, ...preOpen }));
   }, [location.pathname]);

@@ -27,7 +27,7 @@ export default function FormRiwayatKelasModal({ studentId, initialData, onClose 
 
   useEffect(() => {
     // Fetch options
-    apiClient.get('/formal/kelas').then(res => setKelasOptions(res.data)).catch(console.error);
+    apiClient.get('/formal/kelas').then(res => setKelasOptions(res.data.filter((k: any) => k.isActive))).catch(console.error);
     apiClient.get('/master-data/guru').then(res => setStaffOptions(res.data)).catch(console.error);
   }, []);
 

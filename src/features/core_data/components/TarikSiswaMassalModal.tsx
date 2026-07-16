@@ -3,6 +3,7 @@ import { useGetPoolStudents, useTarikMassalSiswa } from '../hooks/usePoolStudent
 import { useAuth } from '../../../hooks/useAuth';
 import { useGetCabang } from '../hooks/useMasterData';
 import { X, Loader2, Search } from 'lucide-react';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface TarikSiswaMassalModalProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface TarikSiswaMassalModalProps {
 
 export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModalProps) {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const { data: poolStudents, isLoading: isLoadingPool } = useGetPoolStudents();
   const { data: cabangList, isLoading: loadingCabang } = useGetCabang();
   
@@ -47,11 +49,11 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
 
   const handleTarik = () => {
     if (!selectedCabangId) {
-      alert('Pilih cabang tujuan terlebih dahulu');
+      showToast('error', 'Pilih cabang tujuan terlebih dahulu');
       return;
     }
     if (selectedStudentIds.length === 0) {
-      alert('Pilih setidaknya satu siswa');
+      showToast('error', 'Pilih setidaknya satu siswa');
       return;
     }
     
@@ -60,7 +62,7 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
       cabangId: selectedCabangId 
     }, {
       onSuccess: (data) => {
-        if (data?.message) alert(data.message);
+        if (data?.message) showToast('info', data.message);
         onClose();
       }
     });

@@ -3,19 +3,25 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
+import { useToast } from '../../contexts/ToastContext';
 
 interface GrupDaimi {
   id: string;
   name: string;
 }
 
-export default function GrupDaimiTab() {
+interface GrupDaimiTabProps {
+  isAdmin?: boolean;
+}
+
+export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGrup, setEditingGrup] = useState<GrupDaimi | null>(null);
   const [formData, setFormData] = useState({ name: '' });
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [grupToDelete, setGrupToDelete] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const { data: grupList, isLoading } = useQuery<GrupDaimi[]>({
     queryKey: ['grup-daimi'],
@@ -51,10 +57,10 @@ export default function GrupDaimiTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['grup-daimi'] });
-      alert('Berhasil dihapus');
+      showToast('success', 'Berhasil dihapus');
     },
     onError: (error: any) => {
-      alert(error.response?.data?.message || 'Gagal menghapus. Kemungkinan grup ini masih digunakan oleh data santri atau mapel.');
+      showToast('error', error.response?.data?.message || 'Gagal menghapus. Kemungkinan grup ini masih digunakan oleh data santri atau mapel.');
     }
   });
 
@@ -99,13 +105,15 @@ export default function GrupDaimiTab() {
           <h2 className="text-lg font-medium text-slate-800">Manajemen Grup Daimi</h2>
           <p className="text-sm text-slate-500">Kelola master data Grup Daimi yang digunakan pada penempatan santri dan mapel.</p>
         </div>
-        <button 
-          onClick={openAddModal}
-          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Tambah Grup
-        </button>
+        {isAdmin && (
+          <button 
+            onClick={openAddModal}
+            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Tambah Grup
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -128,20 +136,25 @@ export default function GrupDaimiTab() {
                     {grup.name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => openEditModal(grup)}
-                      className="inline-flex items-center px-2 py-1 border border-indigo-200 rounded text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100"
-                    >
-                      <Edit2 className="w-3.5 h-3.5 mr-1" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => confirmDelete(grup.id)}
-                      className="inline-flex items-center px-2 py-1 border border-red-200 rounded text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 mr-1" />
-                      Hapus
-                    </button>
+                    {isAdmin && (
+                      <>
+                        <button
+                          onClick={() => openEditModal(grup)}
+                          className="inline-flex items-center px-2 py-1 border border-indigo-200 rounded text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 mr-1" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => confirmDelete(grup.id)}
+                          className="inline-flex items-center px-2 py-1 border border-red-200 rounded text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          Hapus
+                        </button>
+                      </>
+                    )}
+                    {!isAdmin && <span className="text-slate-400 text-xs">—</span>}
                   </td>
                 </tr>
               ))}

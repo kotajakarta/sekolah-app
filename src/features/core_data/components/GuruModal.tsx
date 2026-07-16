@@ -8,6 +8,7 @@ import { useGetWilayah, useGetCabang } from '../hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
 import { Guru } from '../hooks/usePoolGuru';
 import Select from 'react-select';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface GuruModalProps {
   guru?: Guru | null;
@@ -16,6 +17,7 @@ interface GuruModalProps {
 
 export default function GuruModal({ guru, onClose }: GuruModalProps) {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { data: wilayahList } = useGetWilayah();
   const { data: cabangList } = useGetCabang();
@@ -26,9 +28,9 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
     queryFn: async () => {
       const response = await apiClient.get('/formal/kelas');
       if (user?.scope === 'CABANG') {
-        return response.data.filter((k: any) => k.cabangId === user.cabangId);
+        return response.data.filter((k: any) => k.cabangId === user.cabangId && k.isActive);
       }
-      return response.data;
+      return response.data.filter((k: any) => k.isActive);
     },
   });
 
@@ -94,7 +96,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      alert(t('siswa.form.alert_not_image'));
+      showToast('info', t('siswa.form.alert_not_image'));
       return;
     }
     try {
@@ -103,7 +105,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
       setFormData(prev => ({ ...prev, [field]: compressedBase64 }));
     } catch (error) {
       console.error('Error compressing image:', error);
-      alert(t('siswa.form.alert_compress_fail'));
+      showToast('info', t('siswa.form.alert_compress_fail'));
     } finally {
       setIsCompressing(false);
     }

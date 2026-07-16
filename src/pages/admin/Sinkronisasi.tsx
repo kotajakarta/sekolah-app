@@ -1,7 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { Upload, Download, Loader2, Database, CheckCircle2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
+import { useToast } from '../../contexts/ToastContext';
 
 interface SyncConfig {
   name: string;
@@ -17,7 +19,7 @@ const SYNC_MODULES: Record<string, SyncConfig> = {
     importUrl: '/students/import',
     exportUrl: '/students',
     exportDetailUrl: '/students/export/detail',
-    templateKeys: ['no_glodemy', 'nama_siswa', 'tanggal_lahir', 'jenis_kelamin', 'wilayah', 'cabang'],
+    templateKeys: ['no_glodemy', 'nama_siswa', 'tanggal_lahir', 'jenis_kelamin', 'wilayah', 'cabang', 'nik', 'no_telp', 'nama_ibu', 'nama_ayah', 'tempat_lahir'],
   },
   Guru: {
     name: 'Guru',
@@ -46,7 +48,9 @@ const SYNC_MODULES: Record<string, SyncConfig> = {
 };
 
 export default function Sinkronisasi() {
+  const queryClient = useQueryClient();
   const [loadingModules, setLoadingModules] = useState<Record<string, boolean>>({});
+  const { showToast } = useToast();
   const [progressModules, setProgressModules] = useState<Record<string, { current: number, total: number, percent: number }>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -68,6 +72,11 @@ export default function Sinkronisasi() {
           jenis_kelamin: item.biodata?.jenisKelamin || '',
           wilayah: item.wilayah?.name || '',
           cabang: item.cabang?.name || '',
+          nik: item.biodata?.nik || '',
+          no_telp: item.biodata?.phone || '',
+          nama_ibu: item.biodata?.namaIbu || '',
+          nama_ayah: item.biodata?.namaAyah || '',
+          tempat_lahir: item.biodata?.tempatLahir || '',
         }));
       } else if (moduleName === 'Guru') {
         exportData = data.map((item: any) => ({
@@ -102,7 +111,7 @@ export default function Sinkronisasi() {
       XLSX.utils.book_append_sheet(workbook, worksheet, moduleName);
       XLSX.writeFile(workbook, `Data_${moduleName}_Export.xlsx`);
     } catch (err) {
-      alert(`Gagal mengekspor data ${moduleName}`);
+      showToast('error', `Gagal mengekspor data ${moduleName}`);
     } finally {
       setLoadingModules((prev) => ({ ...prev, [moduleName]: false }));
     }
@@ -177,7 +186,7 @@ export default function Sinkronisasi() {
       XLSX.utils.book_append_sheet(workbook, worksheet, `${moduleName} Detail`);
       XLSX.writeFile(workbook, `Data_${moduleName}_Export_Detail.xlsx`);
     } catch (err) {
-      alert(`Gagal mengekspor detail data ${moduleName}`);
+      showToast('error', `Gagal mengekspor detail data ${moduleName}`);
     } finally {
       setLoadingModules((prev) => ({ ...prev, [`${moduleName}_detail`]: false }));
     }
@@ -205,18 +214,40 @@ export default function Sinkronisasi() {
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
+          // Smart header detection: find row that contains the most expected column names
+          const config = SYNC_MODULES[moduleName];
+          const expectedKeys = config.templateKeys.map(k => k.toLowerCase().replace(/[^a-z0-9]/g, ''));
+          
+          const rawData = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(rawData, { type: 'array' });
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          
+          // Get all rows as raw array to detect actual header row
+          const rawRows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: false });
+          
+          let headerRowIndex = 0;
+          let bestMatch = 0;
+          rawRows.forEach((row, idx) => {
+            const normalized = row.map((cell: any) => String(cell || '').toLowerCase().replace(/[^a-z0-9]/g, ''));
+            const matchCount = normalized.filter((cell: string) => expectedKeys.includes(cell)).length;
+            if (matchCount > bestMatch) {
+              bestMatch = matchCount;
+              headerRowIndex = idx;
+            }
+          });
+          
+          // Re-parse using detected header row
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+            defval: '',
+            raw: false,
+            range: headerRowIndex // start parsing from detected header row
+          });
 
           if (jsonData.length === 0) {
-            alert('File kosong');
+            showToast('error', 'File kosong atau format kolom tidak dikenali. Gunakan template yang disediakan.');
             return;
           }
-
-          const config = SYNC_MODULES[moduleName];
           const totalRows = jsonData.length;
           const BATCH_SIZE = 250;
           
@@ -245,9 +276,10 @@ export default function Sinkronisasi() {
             }
           }
           
-          alert(`Berhasil mengimport data ${moduleName} sebanyak ${totalRows} baris`);
+          queryClient.invalidateQueries();
+          showToast('success', `Berhasil mengimport data ${moduleName} sebanyak ${totalRows} baris`);
         } catch (err: any) {
-          alert(`Gagal mengimport data ${moduleName}:\n${err.message}`);
+          showToast('error', `Gagal mengimport data ${moduleName}:\n${err.message}`);
         } finally {
           setLoadingModules((prev) => ({ ...prev, [moduleName]: false }));
           // Note: we don't clear progress immediately so user can see 100% completion
@@ -262,7 +294,7 @@ export default function Sinkronisasi() {
       };
       reader.readAsArrayBuffer(file);
     } catch (err) {
-      alert(`Gagal membaca file`);
+      showToast('error', `Gagal membaca file`);
       setLoadingModules((prev) => ({ ...prev, [moduleName]: false }));
     }
   };

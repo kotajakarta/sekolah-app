@@ -10,24 +10,48 @@ import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
 import ConfirmModal from '../../components/ConfirmModal';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import AdvancedFilterBar, { FilterState } from '../../components/AdvancedFilterBar';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function DataGuru() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   const { user } = useAuth();
+  const { showToast } = useToast();
   const isAdmin = user?.scope === 'GLOBAL';
   const queryClient = useQueryClient();
 
-  const { data: guru, isLoading, isError } = useGetGuru();
+  const { data: guru, isLoading: isLoadingGuru, isError } = useGetGuru();
+
+  const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery<any[]>({
+    queryKey: ['guru-mapel-kelas'],
+    queryFn: async () => {
+      const res = await apiClient.get('/formal/guru-mapel-kelas');
+      return res.data;
+    }
+  });
+
+  const isLoading = isLoadingGuru || isLoadingAssignments;
+
   const deleteMutation = useDeleteGuru();
   const [guruToLepas, setGuruToLepas] = useState<Guru | null>(null);
   const [isTarikModalOpen, setIsTarikModalOpen] = useState(false);
   const [isGuruModalOpen, setIsGuruModalOpen] = useState(false);
   const [isConfirmDeleteAllOpen, setIsConfirmDeleteAllOpen] = useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [guruIdToDelete, setGuruIdToDelete] = useState<string | null>(null);
   const [guruToEdit, setGuruToEdit] = useState<Guru | null>(null);
+  
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
+    wilayahId: user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? user?.wilayahId || '' : '',
+    cabangId: user?.scope === 'CABANG' ? user?.cabangId || '' : '',
+    kelasId: '',
+    lembagaMuadalahId: ''
+  });
+
   const { t } = useTranslation();
   
   const location = useLocation();
@@ -49,17 +73,36 @@ export default function DataGuru() {
     }
   }, [guru, location.search, navigate]);
 
+  const filteredGuru = (Array.isArray(guru) ? guru : []).filter((g: any) => {
+    // Advanced filters
+    if (advancedFilters.wilayahId && g.wilayahId !== advancedFilters.wilayahId) return false;
+    if (advancedFilters.cabangId && g.cabangId !== advancedFilters.cabangId) return false;
+    
+    // Guru is connected to Kelas via guruMapelKelas
+    if (advancedFilters.kelasId) {
+      const hasKelas = g.guruMapelKelas?.some((asg: any) => asg.kelasId === advancedFilters.kelasId);
+      if (!hasKelas) return false;
+    }
+
+    if (advancedFilters.lembagaMuadalahId) {
+      const hasMuadalah = g.guruMapelKelas?.some((asg: any) => asg.kelas?.lembagaMuadalahId === advancedFilters.lembagaMuadalahId);
+      if (!hasMuadalah) return false;
+    }
+
+    return true;
+  });
+
   const deleteAllMutation = useMutation({
     mutationFn: async () => {
       return apiClient.delete('/master-data/guru/all');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guru'] });
-      alert('Berhasil menghapus semua data guru');
+      showToast('success', 'Berhasil menghapus semua data guru');
       setIsConfirmDeleteAllOpen(false);
     },
     onError: (error: any) => {
-      alert(error.response?.data?.message || 'Gagal menghapus semua data guru');
+      showToast('error', error.response?.data?.message || 'Gagal menghapus semua data guru');
       setIsConfirmDeleteAllOpen(false);
     }
   });
@@ -75,18 +118,23 @@ export default function DataGuru() {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus data guru ini secara permanen?')) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => alert(t('common.delete_success')),
-        onError: (error: any) => {
-          if (error.response?.status === 400 || error.response?.data?.code?.startsWith('P2')) {
-            alert(t('common.delete_constraint_failed'));
-          } else {
-            alert(error.response?.data?.message || t('common.delete_failed'));
-          }
+    setGuruIdToDelete(id);
+    setIsConfirmDeleteOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!guruIdToDelete) return;
+    deleteMutation.mutate(guruIdToDelete, {
+      onSuccess: () => showToast('success', t('common.delete_success')),
+      onError: (error: any) => {
+        if (error.response?.status === 400 || error.response?.data?.code?.startsWith('P2')) {
+          showToast('error', t('common.delete_constraint_failed'));
+        } else {
+          showToast('error', error.response?.data?.message || t('common.delete_failed'));
         }
-      });
-    }
+      }
+    });
+    setGuruIdToDelete(null);
   };
 
   return (
@@ -121,6 +169,13 @@ export default function DataGuru() {
           </button>
         </div>
       </div>
+
+      <AdvancedFilterBar 
+        onFilterChange={setAdvancedFilters} 
+        userScope={user?.scope || ''} 
+        userWilayahId={user?.wilayahId} 
+        userCabangId={user?.cabangId} 
+      />
       
       <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden">
         {isLoading ? (
@@ -135,11 +190,14 @@ export default function DataGuru() {
                   <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.name')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.form.jabatan')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Wilayah</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Cabang</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Tugas</th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {(Array.isArray(guru) ? guru : [])?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item: any, idx: number) => (
+                {filteredGuru.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item: any, idx: number) => (
                   <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
                       {(currentPage - 1) * itemsPerPage + idx + 1}
@@ -153,6 +211,31 @@ export default function DataGuru() {
                       }`}>
                         {item.position || '-'}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                      {item.wilayah?.name || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                      {item.cabang?.name || '-'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-700">
+                      <div className="flex flex-wrap gap-1">
+                        {(() => {
+                          const teacherAssignments = assignments.filter((asg: any) => asg.staffId === item.id);
+                          return (
+                            <>
+                              {teacherAssignments.map((asg: any) => (
+                                <span key={asg.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-150">
+                                  {asg.mataPelajaran?.name || 'Mapel'} ({asg.kelas?.name || 'Kelas'})
+                                </span>
+                              ))}
+                              {teacherAssignments.length === 0 && (
+                                <span className="text-xs text-slate-400 font-normal">-</span>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
@@ -184,9 +267,9 @@ export default function DataGuru() {
           </div>
           <Pagination 
             currentPage={currentPage} 
-            totalPages={Math.ceil((guru?.length || 0) / itemsPerPage)} 
+            totalPages={Math.ceil(filteredGuru.length / itemsPerPage)} 
             onPageChange={setCurrentPage} 
-            totalItems={guru?.length || 0} 
+            totalItems={filteredGuru.length} 
             itemsPerPage={itemsPerPage} 
           />
         </>
@@ -229,6 +312,14 @@ export default function DataGuru() {
         onConfirm={() => deleteAllMutation.mutate()}
         title="Konfirmasi Hapus Semua Guru"
         message="PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA data guru? Aksi ini akan menghapus data guru secara permanen."
+      />
+
+      <ConfirmModal
+        isOpen={isConfirmDeleteOpen}
+        onClose={() => { setIsConfirmDeleteOpen(false); setGuruIdToDelete(null); }}
+        onConfirm={confirmDelete}
+        title="Konfirmasi Hapus Guru"
+        message="Apakah Anda yakin ingin menghapus data guru ini secara permanen?"
       />
     </div>
   );

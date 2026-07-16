@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { Plus, Edit2, Trash2, Loader2, Calendar, Settings, AlertCircle, Trash, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useToast } from '../../contexts/ToastContext';
 
 interface Program {
   id: string;
@@ -47,6 +48,7 @@ export default function KelolaProgramAbsensi() {
     queryKey: ['absensi-programs', page],
     queryFn: async () => {
       const res = await apiClient.get(`/absensi/programs?page=${page}&limit=${limit}`);
+  const { showToast } = useToast();
       return res.data;
     }
   });
@@ -95,7 +97,7 @@ export default function KelolaProgramAbsensi() {
       triggerSuccess('Semua program absensi berhasil dihapus!');
     },
     onError: (err: any) => {
-      alert(`Gagal menghapus semua program: ${err.message}`);
+      showToast('error', `Gagal menghapus semua program: ${err.message}`);
     }
   });
 
@@ -109,7 +111,7 @@ export default function KelolaProgramAbsensi() {
       triggerSuccess(`Berhasil membuat ${res.data.totalGenerated} program absensi secara masal.`);
     },
     onError: (err: any) => {
-      alert(`Gagal membuat program absensi masal: ${err?.response?.data?.message || err.message}`);
+      showToast('error', `Gagal membuat program absensi masal: ${err?.response?.data?.message || err.message}`);
     }
   });
 

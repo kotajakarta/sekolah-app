@@ -6,6 +6,7 @@ import { Plus, Edit2, CheckCircle, XCircle, Loader2, Trash2, Settings } from 'lu
 import Pagination from '../../components/Pagination';
 import ConfirmModal from '../../components/ConfirmModal';
 import KeaktifanMapelModal from './KeaktifanMapelModal';
+import { useToast } from '../../contexts/ToastContext';
 
 interface Mapel {
   id: string;
@@ -26,6 +27,7 @@ export default function ManajemenMapel() {
   const itemsPerPage = 10;
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const isAdmin = user?.scope === 'GLOBAL';
   const isWilayahOrAdmin = user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH';
 
@@ -65,7 +67,7 @@ export default function ManajemenMapel() {
       setIsModalOpen(false);
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.message || 'Gagal menyimpan data');
+      showToast('error', err?.response?.data?.message || 'Gagal menyimpan data');
     }
   });
 
@@ -78,7 +80,7 @@ export default function ManajemenMapel() {
       setIsModalOpen(false);
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.message || 'Gagal mengubah data');
+      showToast('error', err?.response?.data?.message || 'Gagal mengubah data');
     }
   });
 
@@ -90,7 +92,7 @@ export default function ManajemenMapel() {
       queryClient.invalidateQueries({ queryKey: ['mapel'] });
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.message || 'Gagal menghapus data');
+      showToast('error', err?.response?.data?.message || 'Gagal menghapus data');
     }
   });
 

@@ -11,6 +11,8 @@ import { Bell, Search, UserCircle, LogOut, Loader2, Sparkles, LifeBuoy } from 'l
 import { useAuth, AuthProvider } from './hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import Select from 'react-select';
+import { ToastProvider } from './contexts/ToastContext';
+import ToastContainer from './components/ToastContainer';
 
 // Import Pages
 import Dashboard from './pages/Dashboard';
@@ -42,6 +44,7 @@ import FaqPage from './pages/umum/FaqPage';
 import ProfileUser from './pages/core/ProfileUser';
 import KetersediaanGuruMapel from './pages/dashboard/KetersediaanGuruMapel';
 import AbsensiSiswa from './pages/absensi/AbsensiSiswa';
+import RekapitulasiAbsensi from './pages/laporan/RekapitulasiAbsensi';
 import KelolaProgramAbsensi from './pages/absensi/KelolaProgramAbsensi';
 import LembagaMuadalahPage from './pages/formal/LembagaMuadalah';
 import ManajemenRuang from './pages/sarpras/ManajemenRuang';
@@ -114,7 +117,25 @@ const MainLayout = () => {
       <PengumumanPopup />
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-end px-4 lg:px-8 shrink-0 sticky top-0 z-10">
+        <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 shrink-0 sticky top-0 z-10">
+          <div className="flex items-center gap-2">
+            {user?.scope === 'GLOBAL' && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm">
+                Scope: Pusat (Global)
+              </span>
+            )}
+            {user?.scope === 'WILAYAH' && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm">
+                Wilayah: {user.wilayahName || 'Semua Wilayah'}
+              </span>
+            )}
+            {user?.scope === 'CABANG' && (
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
+                Cabang: {user.cabangName || 'Semua Cabang'}
+              </span>
+            )}
+          </div>
+
           <div className="flex items-center gap-5 text-sm font-medium text-gray-600">
             <button onClick={() => navigate('/faq')} className="flex items-center gap-2 hover:text-gray-900 transition-colors">
               <LifeBuoy className="w-4 h-4" />
@@ -167,46 +188,50 @@ const MainLayout = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-            <Route index element={<Dashboard />} />
-            <Route path="profile-cabang" element={<ProfilCabang />} />
-            <Route path="umum/pengumuman" element={<PengumumanUmum />} />
-            <Route path="umum/kalender" element={<KalenderAkademikUmum />} />
-            <Route path="core/siswa" element={<DataSiswa />} />
-            <Route path="core/permintaan-tarik" element={<PermintaanTarikData />} />
-            <Route path="core/pool" element={<PoolSiswa />} />
-            <Route path="core/guru" element={<DataGuru />} />
-            <Route path="core/pool-guru" element={<PoolGuru />} />
-            <Route path="core/cabang" element={<DataCabang />} />
-            <Route path="core/wilayah" element={<DataWilayah />} />
-            <Route path="core/riwayat-perubahan" element={<RiwayatPerubahanData />} />
-            <Route path="faq" element={<FaqPage />} />
-            <Route path="profile" element={<ProfileUser />} />
-            <Route path="formal/siswa" element={<DataSiswaMuadalah />} />
-            <Route path="formal/kelas" element={<ManajemenKelas />} />
-            <Route path="formal/muadalah" element={<LembagaMuadalahPage />} />
-            <Route path="formal/mapel" element={<ManajemenMapel />} />
-            <Route path="formal/penugasan-guru" element={<PenugasanGuru />} />
-            <Route path="formal/rapor" element={<InputRapor />} />
-            <Route path="settings/users" element={<UsersWilayah />} />
-            <Route path="settings/sync" element={<Sinkronisasi />} />
-            <Route path="settings/akademik" element={<PengaturanAkademik />} />
-            <Route path="settings/pengumuman" element={<KelolaPengumuman />} />
-            <Route path="settings/kalender" element={<KelolaKalender />} />
-            <Route path="settings/keaktifan-mapel" element={<KeaktifanMapel />} />
-            <Route path="settings/faq" element={<KelolaFaq />} />
-            <Route path="dashboard/ketersediaan-guru" element={<KetersediaanGuruMapel />} />
-            <Route path="absensi/siswa" element={<AbsensiSiswa />} />
-            <Route path="absensi/programs" element={<KelolaProgramAbsensi />} />
-            <Route path="sarpras/ruang" element={<ManajemenRuang />} />
-            <Route path="sarpras/fasilitas" element={<ManajemenFasilitas />} />
-          </Route>
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+              <Route index element={<Dashboard />} />
+              <Route path="profile-cabang" element={<ProfilCabang />} />
+              <Route path="umum/pengumuman" element={<PengumumanUmum />} />
+              <Route path="umum/kalender" element={<KalenderAkademikUmum />} />
+              <Route path="core/siswa" element={<DataSiswa />} />
+              <Route path="core/permintaan-tarik" element={<PermintaanTarikData />} />
+              <Route path="core/pool" element={<PoolSiswa />} />
+              <Route path="core/guru" element={<DataGuru />} />
+              <Route path="core/pool-guru" element={<PoolGuru />} />
+              <Route path="core/cabang" element={<DataCabang />} />
+              <Route path="core/wilayah" element={<DataWilayah />} />
+              <Route path="core/riwayat-perubahan" element={<RiwayatPerubahanData />} />
+              <Route path="faq" element={<FaqPage />} />
+              <Route path="profile" element={<ProfileUser />} />
+              <Route path="formal/siswa" element={<DataSiswaMuadalah />} />
+              <Route path="formal/kelas" element={<ManajemenKelas />} />
+              <Route path="formal/muadalah" element={<LembagaMuadalahPage />} />
+              <Route path="formal/mapel" element={<ManajemenMapel />} />
+              <Route path="formal/penugasan-guru" element={<PenugasanGuru />} />
+              <Route path="formal/rapor" element={<InputRapor />} />
+              <Route path="settings/users" element={<UsersWilayah />} />
+              <Route path="settings/sync" element={<Sinkronisasi />} />
+              <Route path="settings/akademik" element={<PengaturanAkademik />} />
+              <Route path="settings/pengumuman" element={<KelolaPengumuman />} />
+              <Route path="settings/kalender" element={<KelolaKalender />} />
+              <Route path="settings/keaktifan-mapel" element={<KeaktifanMapel />} />
+              <Route path="settings/faq" element={<KelolaFaq />} />
+              <Route path="dashboard/ketersediaan-guru" element={<KetersediaanGuruMapel />} />
+              <Route path="absensi/siswa" element={<AbsensiSiswa />} />
+              <Route path="absensi/programs" element={<KelolaProgramAbsensi />} />
+              <Route path="laporan/absensi" element={<RekapitulasiAbsensi />} />
+              <Route path="sarpras/ruang" element={<ManajemenRuang />} />
+              <Route path="sarpras/fasilitas" element={<ManajemenFasilitas />} />
+            </Route>
+          </Routes>
+        </Router>
+      </AuthProvider>
+      <ToastContainer />
+    </ToastProvider>
   );
 }

@@ -2,19 +2,23 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useTranslation } from 'react-i18next';
-import { Users, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Loader2, Upload } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import UserModal from './UserModal';
 import ConfirmModal from '../../components/ConfirmModal';
+import ImportUserModal from './ImportUserModal';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function UsersWilayah() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const queryClient = useQueryClient();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<any>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
@@ -33,13 +37,13 @@ export default function UsersWilayah() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-      alert(t('common.delete_success'));
+      showToast('success', t('common.delete_success'));
     },
     onError: (error: any) => {
       if (error.response?.status === 400 || error.response?.data?.code?.startsWith('P2')) {
-        alert(t('common.delete_constraint_failed'));
+        showToast('error', t('common.delete_constraint_failed'));
       } else {
-        alert(error.response?.data?.message || t('common.delete_failed'));
+        showToast('error', error.response?.data?.message || t('common.delete_failed'));
       }
     }
   });
@@ -73,13 +77,22 @@ export default function UsersWilayah() {
           <h1 className="text-2xl font-semibold text-slate-800">{t('admin.users_title') || 'Manajemen User'}</h1>
           <p className="text-sm text-slate-500 mt-1.5">{t('admin.users_subtitle') || 'Kelola hak akses pengguna, wilayah, dan cabang'}</p>
         </div>
-        <button 
-          onClick={handleAdd}
-          className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Tambah User
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setIsImportModalOpen(true)}
+            className="inline-flex items-center justify-center px-4 py-2 border border-slate-200 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Import Excel
+          </button>
+          <button 
+            onClick={handleAdd}
+            className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Tambah User
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -163,6 +176,12 @@ export default function UsersWilayah() {
         title="Konfirmasi Hapus"
         message="Apakah Anda yakin ingin menghapus user ini? Aksi ini tidak dapat dibatalkan."
       />
+
+      {isImportModalOpen && (
+        <ImportUserModal
+          onClose={() => setIsImportModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

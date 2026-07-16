@@ -6,14 +6,25 @@ import { useAuth } from '../../hooks/useAuth';
 import SiswaMuadalahModal from './SiswaMuadalahModal';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
+import { useToast } from '../../contexts/ToastContext';
+import AdvancedFilterBar, { FilterState } from '../../components/AdvancedFilterBar';
 
 export default function DataSiswaMuadalah() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   const { user } = useAuth();
+  const { showToast } = useToast();
   const queryClient = useQueryClient();
   const [studentToEdit, setStudentToEdit] = useState<any>(null);
+  
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
+    wilayahId: user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? user?.wilayahId || '' : '',
+    cabangId: user?.scope === 'CABANG' ? user?.cabangId || '' : '',
+    kelasId: '',
+    lembagaMuadalahId: ''
+  });
+
   const { t } = useTranslation();
 
   const { data: students, isLoading } = useQuery({
@@ -22,6 +33,54 @@ export default function DataSiswaMuadalah() {
       const { data } = await apiClient.get('/formal/siswa');
       return data;
     }
+  });
+
+  const checkCanVerval = (student: any) => {
+    const biodata = student.biodata || {};
+    const tingkat = student.siswaFormal?.kelas?.tingkat || '';
+    
+    const hasNisn = !!student.siswaFormal?.nisn?.trim() || !!biodata.nisn?.trim();
+    const hasNik = !!biodata.nik?.trim();
+    const hasNama = !!biodata.fullName?.trim();
+    const hasTempatLahir = !!biodata.tempatLahir?.trim();
+    const hasTanggalLahir = !!biodata.tanggalLahir;
+    const hasNamaIbu = !!biodata.namaIbu?.trim();
+    const hasJenisKelamin = !!biodata.jenisKelamin?.trim();
+    const hasTingkat = !!tingkat?.trim();
+
+    return hasNisn && hasNik && hasNama && hasTempatLahir && hasTanggalLahir && hasNamaIbu && hasJenisKelamin && hasTingkat;
+  };
+
+  const toggleVervalMutation = useMutation({
+    mutationFn: async ({ studentId, isVerval, student }: { studentId: string; isVerval: boolean; student: any }) => {
+      const payload = {
+        nis: student?.siswaFormal?.nis || student?.biodata?.nisLokal || '',
+        nisn: student?.siswaFormal?.nisn || student?.biodata?.nisn || '',
+        kelasId: student?.siswaFormal?.kelasId || '',
+        isVerval,
+      };
+      return apiClient.put(`/formal/siswa/${studentId}`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['siswa-formal'] });
+    }
+  });
+
+  const handleToggleVerval = (student: any, checked: boolean) => {
+    const canVerval = checkCanVerval(student);
+    if (checked && !canVerval) {
+      showToast('error', 'Tidak dapat memverifikasi siswa. Harap lengkapi semua data wajib: NISN, NIK, Nama, Tempat/Tanggal Lahir, Nama Ibu, Jenis Kelamin, dan Tingkat.');
+      return;
+    }
+    toggleVervalMutation.mutate({ studentId: student.id, isVerval: checked, student });
+  };
+
+  const filteredStudents = (Array.isArray(students) ? students : []).filter((s: any) => {
+    if (advancedFilters.wilayahId && s.wilayahId !== advancedFilters.wilayahId) return false;
+    if (advancedFilters.cabangId && s.cabangId !== advancedFilters.cabangId) return false;
+    if (advancedFilters.kelasId && s.siswaFormal?.kelasId !== advancedFilters.kelasId) return false;
+    if (advancedFilters.lembagaMuadalahId && s.siswaFormal?.kelas?.lembagaMuadalah?.id !== advancedFilters.lembagaMuadalahId) return false;
+    return true;
   });
 
   return (
@@ -33,6 +92,13 @@ export default function DataSiswaMuadalah() {
         </div>
       </div>
       
+      <AdvancedFilterBar 
+        onFilterChange={setAdvancedFilters} 
+        userScope={user?.scope || ''} 
+        userWilayahId={user?.wilayahId} 
+        userCabangId={user?.cabangId} 
+      />
+
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-slate-500">{t('common.loading')}</div>
@@ -44,12 +110,16 @@ export default function DataSiswaMuadalah() {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.name')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">NIS (Lokal)</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Kelas</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Lembaga Muadalah</th>
+                  <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-32">Sudah Verval ?</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {(Array.isArray(students) ? students : [])?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((student: any) => (
+                {filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((student: any) => {
+                  const canVerval = checkCanVerval(student);
+                  return (
                   <tr key={student.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-slate-800">{student.biodata?.fullName}</div>
@@ -60,6 +130,19 @@ export default function DataSiswaMuadalah() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                       {student.siswaFormal?.kelas?.name || 'Belum ada kelas'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                      {student.siswaFormal?.kelas?.lembagaMuadalah?.name || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex items-center justify-center" title={!canVerval ? 'Lengkapi data wajib: NISN, NIK, Nama, Tempat/Tanggal Lahir, Ibu Kandung, Jenis Kelamin, Tingkat' : ''}>
+                        <input
+                          type="checkbox"
+                          checked={student.siswaFormal?.isVerval || false}
+                          onChange={(e) => handleToggleVerval(student, e.target.checked)}
+                          className="h-4.5 w-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                       {student.cabang?.name || '-'}
@@ -74,15 +157,15 @@ export default function DataSiswaMuadalah() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
           <Pagination 
             currentPage={currentPage} 
-            totalPages={Math.ceil((students?.length || 0) / itemsPerPage)} 
+            totalPages={Math.ceil(filteredStudents.length / itemsPerPage)} 
             onPageChange={setCurrentPage} 
-            totalItems={students?.length || 0} 
+            totalItems={filteredStudents.length} 
             itemsPerPage={itemsPerPage} 
           />
         </>

@@ -74,9 +74,19 @@ export interface Student {
   jenisSiswa?: string | null;
   grupDaimi?: string | null;
   siswaFormal?: {
+    isVerval?: boolean;
+    kelasId?: string | null;
     kelas?: {
+      id: string;
       name: string;
-    };
+      tingkat?: string | null;
+      isActive?: boolean;
+      tahunAjaran?: string | null;
+      lembagaMuadalah?: {
+        id: string;
+        name: string;
+      } | null;
+    } | null;
   } | null;
   isActive?: boolean;
 }

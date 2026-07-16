@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { Plus, Edit2, CheckCircle, XCircle, Loader2, Trash2, School, Search, User, FileText, Eye, Upload } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import ConfirmModal from '../../components/ConfirmModal';
+import { useToast } from '../../contexts/ToastContext';
 
 interface LembagaMuadalah {
   id: string;
@@ -36,6 +37,7 @@ export default function LembagaMuadalahPage() {
   const itemsPerPage = 10;
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const isAdmin = user?.scope === 'GLOBAL';
   const isWilayahOrAdmin = user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH';
 
@@ -85,7 +87,7 @@ export default function LembagaMuadalahPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.type !== 'image/png') {
-      alert('Format file harus PNG');
+      showToast('error', 'Format file harus PNG');
       return;
     }
     setIsUploadingTtd(true);
@@ -97,7 +99,7 @@ export default function LembagaMuadalahPage() {
       });
       setFormData(prev => ({ ...prev, ttdKetua: res.data.url }));
     } catch (err: any) {
-      alert('Gagal mengupload file: ' + (err.response?.data?.message || err.message));
+      showToast('error', 'Gagal mengupload file: ' + (err.response?.data?.message || err.message));
     } finally {
       setIsUploadingTtd(false);
     }
@@ -115,7 +117,7 @@ export default function LembagaMuadalahPage() {
       });
       setFormData(prev => ({ ...prev, skSpm: res.data.url }));
     } catch (err: any) {
-      alert('Gagal mengupload file: ' + (err.response?.data?.message || err.message));
+      showToast('error', 'Gagal mengupload file: ' + (err.response?.data?.message || err.message));
     } finally {
       setIsUploadingSk(false);
     }
@@ -130,7 +132,7 @@ export default function LembagaMuadalahPage() {
       setIsModalOpen(false);
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.message || 'Gagal menyimpan data');
+      showToast('error', err?.response?.data?.message || 'Gagal menyimpan data');
     }
   });
 
@@ -143,7 +145,7 @@ export default function LembagaMuadalahPage() {
       setIsModalOpen(false);
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.message || 'Gagal mengubah data');
+      showToast('error', err?.response?.data?.message || 'Gagal mengubah data');
     }
   });
 
@@ -155,7 +157,7 @@ export default function LembagaMuadalahPage() {
       queryClient.invalidateQueries({ queryKey: ['lembaga-muadalah'] });
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.message || 'Gagal mengubah status');
+      showToast('error', err?.response?.data?.message || 'Gagal mengubah status');
     }
   });
 
@@ -167,7 +169,7 @@ export default function LembagaMuadalahPage() {
       queryClient.invalidateQueries({ queryKey: ['lembaga-muadalah'] });
     },
     onError: (err: any) => {
-      alert(err?.response?.data?.message || 'Gagal menghapus data');
+      showToast('error', err?.response?.data?.message || 'Gagal menghapus data');
     }
   });
 

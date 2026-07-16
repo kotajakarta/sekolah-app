@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { Trash2, Loader2, Upload, FileText } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
+import { useToast } from '../../contexts/ToastContext';
 
 interface Kalender {
   id: string;
@@ -23,6 +24,7 @@ export default function KelolaKalender() {
     queryKey: ['kalender'],
     queryFn: async () => {
       const res = await apiClient.get('/pengaturan/kalender');
+  const { showToast } = useToast();
       return res.data;
     }
   });
@@ -41,9 +43,9 @@ export default function KelolaKalender() {
       queryClient.invalidateQueries({ queryKey: ['kalender'] }); 
       setFile(null); 
       setTitle(''); 
-      alert('Kalender berhasil diupload');
+      showToast('success', 'Kalender berhasil diupload');
     },
-    onError: () => alert('Gagal mengupload kalender')
+    onError: () => showToast('error', 'Gagal mengupload kalender')
   });
 
   const deleteMutation = useMutation({

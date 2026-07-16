@@ -127,6 +127,12 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
                     <span className="block text-xs font-medium text-slate-500 mb-1">Kewarganegaraan</span>
                     <span className="text-sm text-slate-900 font-medium">{student.biodata?.kewarganegaraan || '-'}</span>
                   </div>
+                  <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-center">
+                    <span className="block text-xs font-medium text-slate-500 mb-1">Anak Ke- / Jumlah Saudara</span>
+                    <span className="text-sm text-slate-900 font-medium">
+                      {(student.biodata as any)?.anakKe || '-'} / {(student.biodata as any)?.jumlahSaudara || '-'} bersaudara
+                    </span>
+                  </div>
                   <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm md:col-span-2">
                     <span className="block text-xs font-medium text-slate-500 mb-1 flex items-center gap-1.5"><MapPin className="w-3 h-3" /> Alamat Lengkap</span>
                     <span className="text-sm text-slate-900 font-medium">{student.biodata?.address || '-'}</span>
@@ -167,12 +173,34 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
                       <span className="block text-xs text-slate-500">Status</span>
                       <span className="text-sm text-slate-900">{student.biodata?.statusHidupAyah || '-'}</span>
                     </div>
+                    {student.biodata?.statusHidupAyah === 'Masih Hidup' && (
+                      <>
+                        <div>
+                          <span className="block text-xs text-slate-500">NIK Ayah</span>
+                          <span className="text-sm text-slate-900">{(student.biodata as any)?.nikAyah || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="block text-xs text-slate-500">Tempat, Tanggal Lahir</span>
+                          <span className="text-sm text-slate-900">
+                            {(student.biodata as any)?.tempatLahirAyah || '-'}, {(student.biodata as any)?.tanggalLahirAyah ? new Date((student.biodata as any).tanggalLahirAyah).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-xs text-slate-500">Penghasilan rata-rata/bulan</span>
+                          <span className="text-sm text-slate-900">{(student.biodata as any)?.penghasilanAyah || '-'}</span>
+                        </div>
+                      </>
+                    )}
                     <div>
-                      <span className="block text-xs text-slate-500">Pekerjaan</span>
+                      <span className="block text-xs text-slate-500">Pendidikan Terakhir</span>
+                      <span className="text-sm text-slate-900">{student.biodata?.pendidikanAyah || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-xs text-slate-500">Pekerjaan Utama</span>
                       <span className="text-sm text-slate-900">{student.biodata?.pekerjaanAyah || '-'}</span>
                     </div>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-3 border-l border-slate-200 pl-4 md:pl-6">
                     <h5 className="text-sm font-semibold text-slate-800 border-b border-slate-200 pb-2">Data Ibu</h5>
                     <div>
                       <span className="block text-xs text-slate-500">Nama Lengkap</span>
@@ -182,8 +210,30 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
                       <span className="block text-xs text-slate-500">Status</span>
                       <span className="text-sm text-slate-900">{student.biodata?.statusHidupIbu || '-'}</span>
                     </div>
+                    {student.biodata?.statusHidupIbu === 'Masih Hidup' && (
+                      <>
+                        <div>
+                          <span className="block text-xs text-slate-500">NIK Ibu</span>
+                          <span className="text-sm text-slate-900">{(student.biodata as any)?.nikIbu || '-'}</span>
+                        </div>
+                        <div>
+                          <span className="block text-xs text-slate-500">Tempat, Tanggal Lahir</span>
+                          <span className="text-sm text-slate-900">
+                            {(student.biodata as any)?.tempatLahirIbu || '-'}, {(student.biodata as any)?.tanggalLahirIbu ? new Date((student.biodata as any).tanggalLahirIbu).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="block text-xs text-slate-500">Penghasilan rata-rata/bulan</span>
+                          <span className="text-sm text-slate-900">{(student.biodata as any)?.penghasilanIbu || '-'}</span>
+                        </div>
+                      </>
+                    )}
                     <div>
-                      <span className="block text-xs text-slate-500">Pekerjaan</span>
+                      <span className="block text-xs text-slate-500">Pendidikan Terakhir</span>
+                      <span className="text-sm text-slate-900">{student.biodata?.pendidikanIbu || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="block text-xs text-slate-500">Pekerjaan Utama</span>
                       <span className="text-sm text-slate-900">{student.biodata?.pekerjaanIbu || '-'}</span>
                     </div>
                   </div>

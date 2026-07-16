@@ -3,6 +3,7 @@ import { X, Upload, FileText, AlertCircle } from 'lucide-react';
 import Papa from 'papaparse';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface ImportSiswaModalProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface ImportSiswaModalProps {
 
 export default function ImportSiswaModal({ onClose }: ImportSiswaModalProps) {
   const [file, setFile] = useState<File | null>(null);
+  const { showToast } = useToast();
   const [error, setError] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
@@ -25,7 +27,7 @@ export default function ImportSiswaModal({ onClose }: ImportSiswaModalProps) {
       queryClient.invalidateQueries({ queryKey: ['master-data', 'student'] });
       queryClient.invalidateQueries({ queryKey: ['students'] });
       onClose();
-      alert('Berhasil mengimport data siswa!');
+      showToast('success', 'Berhasil mengimport data siswa!');
     },
     onError: (err: any) => {
       setError(err.response?.data?.message || 'Gagal mengimport data');

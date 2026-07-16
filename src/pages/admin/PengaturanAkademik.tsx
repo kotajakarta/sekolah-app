@@ -3,9 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function PengaturanAkademik() {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({ semesterAktif: 'Ganjil', tahunAjaran: '' });
 
@@ -32,7 +34,7 @@ export default function PengaturanAkademik() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pengaturan-akademik'] });
-      alert('Pengaturan berhasil disimpan');
+      showToast('success', 'Pengaturan berhasil disimpan');
     }
   });
 

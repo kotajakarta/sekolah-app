@@ -6,11 +6,13 @@ import { Users, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import UserModal from './UserModal';
 import ConfirmModal from '../../components/ConfirmModal';
+import { useToast } from '../../contexts/ToastContext';
 
 export default function ManajemenUser() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const queryClient = useQueryClient();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,13 +35,13 @@ export default function ManajemenUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-      alert(t('common.delete_success'));
+      showToast('success', t('common.delete_success'));
     },
     onError: (error: any) => {
       if (error.response?.status === 400 || error.response?.data?.code?.startsWith('P2')) {
-        alert(t('common.delete_constraint_failed'));
+        showToast('error', t('common.delete_constraint_failed'));
       } else {
-        alert(error.response?.data?.message || t('common.delete_failed'));
+        showToast('error', error.response?.data?.message || t('common.delete_failed'));
       }
     }
   });

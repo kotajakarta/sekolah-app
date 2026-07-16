@@ -3,6 +3,7 @@ import { X, Upload, FileText, AlertCircle } from 'lucide-react';
 import Papa from 'papaparse';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
+import { useToast } from '../../contexts/ToastContext';
 
 interface ImportKelasModalProps {
   onClose: () => void;
@@ -10,6 +11,7 @@ interface ImportKelasModalProps {
 
 export default function ImportKelasModal({ onClose }: ImportKelasModalProps) {
   const [file, setFile] = useState<File | null>(null);
+  const { showToast } = useToast();
   const [error, setError] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
@@ -24,7 +26,7 @@ export default function ImportKelasModal({ onClose }: ImportKelasModalProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kelas'] });
       onClose();
-      alert('Berhasil mengimport data kelas!');
+      showToast('success', 'Berhasil mengimport data kelas!');
     },
     onError: (err: any) => {
       setError(err.response?.data?.message || 'Gagal mengimport data');

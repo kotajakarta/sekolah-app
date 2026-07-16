@@ -2,7 +2,7 @@
 # Script untuk deploy Frontend App (sekolah-app) menggunakan Podman Quadlet
 set -e
 
-APP_DIR="/data/podman-hosting/apps/esantri"
+APP_DIR="/data/podman-hosting/apps/sekolah-app"
 
 # Pastikan berada di direktori aplikasi
 cd "$APP_DIR" || exit 1

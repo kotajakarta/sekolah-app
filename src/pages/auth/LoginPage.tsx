@@ -41,9 +41,12 @@ export default function LoginPage() {
       // Debug info lengkap agar mudah diagnosa
       const status = err.response?.status;
       const msg = err.response?.data?.message || err.message || 'Unknown error';
-      const url = err.config?.url || err.request?.responseURL || '(URL tidak diketahui)';
-      const baseURL = err.config?.baseURL || '(baseURL tidak diketahui)';
-      setError(`[${status || 'NO_RESPONSE'}] ${msg}\n📡 baseURL: ${baseURL}\n🔗 endpoint: ${url}`);
+      const baseURL = err.config?.baseURL || '(tidak ada - bukan Axios error)';
+      const endpoint = err.config?.url || '(tidak ada)';
+      const errType = err?.constructor?.name || typeof err;
+      const errCode = err?.code || '-';
+      console.error('[Login Debug]', err);
+      setError(`[${status || 'NO_RESPONSE'}] ${msg}\nType: ${errType} | Code: ${errCode}\n📡 baseURL: ${baseURL}\n🔗 endpoint: ${endpoint}`);
     } finally {
       setIsSubmitting(false);
     }

@@ -32,39 +32,13 @@ export default function LoginPage() {
     setError('');
     setIsSubmitting(true);
 
-    // STEP 1: Coba dengan fetch langsung (bukan apiClient) untuk diagnosa
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
-    setError(`⏳ Step 1: fetching ${baseUrl}/auth/login ...`);
     try {
-      const res = await fetch(`${baseUrl}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(`❌ Step 1 GAGAL (HTTP ${res.status}): ${JSON.stringify(data)}`);
-        setIsSubmitting(false);
-        return;
-      }
-
-      setError(`✅ Step 1 BERHASIL. Step 2: memanggil login()...`);
-      const { token, user } = data;
-      
-      try {
-        login(token, { ...user, username });
-        setError(`✅ Step 2 BERHASIL. Step 3: navigate...`);
-        try {
-          navigate('/');
-        } catch (navErr: any) {
-          setError(`❌ navigate() error: ${navErr?.constructor?.name}: ${navErr?.message}`);
-        }
-      } catch (loginErr: any) {
-        setError(`❌ login() error: ${loginErr?.constructor?.name}: ${loginErr?.message}`);
-      }
-    } catch (fetchErr: any) {
-      setError(`❌ Step 1 fetch error: ${fetchErr?.constructor?.name}: ${fetchErr?.message}`);
+      const response = await apiClient.post('/auth/login', { username, password });
+      const { token, user } = response.data;
+      login(token, { ...user, username });
+      navigate('/');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Login gagal. Periksa kembali username dan password Anda.');
     } finally {
       setIsSubmitting(false);
     }

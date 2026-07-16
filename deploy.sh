@@ -27,7 +27,7 @@ cp daimi-app.container ~/.config/containers/systemd/
 echo "=== 5. Reload & Restart Systemd ==="
 systemctl --user daemon-reload
 systemctl --user restart daimi-app.service
-systemctl --user enable daimi-app.service
+
 
 echo "=== Deployment Selesai! ==="
 systemctl --user status daimi-app.service --no-pager

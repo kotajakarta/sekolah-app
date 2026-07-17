@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
-import { Loader2, ArrowRight, CheckCircle, ChevronLeft, Building, Upload, Image as ImageIcon } from 'lucide-react';
+import { Loader2, ArrowRight, CheckCircle, ChevronLeft, Building, Upload, Image as ImageIcon, MapPin, User, FileText, Check } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import { compressImage } from '../../lib/imageCompressor';
 
@@ -10,13 +10,13 @@ const PENDIDIKAN_OPTIONS = ['SD/Sederajat','SMP/Sederajat','SMA/Sederajat','D1',
 const PEKERJAAN_OPTIONS = ['Tidak Bekerja','Pensiunan','PNS','TNI/Polisi','Guru/Dosen','Pegawai Swasta','Wiraswasta','Pengacara/Jaksa/Hakim/Notaris','Seniman/Pelukis/Artis/Sejenis','Dokter/Bidan/Perawat','Pilot/Pramugara','Pedagang','Petani/Peternak','Nelayan','Buruh (Tani/Pabrik/Bangunan)','Sopir/Masinis/Kondektur','Politikus','Lainnya'];
 const PENGHASILAN_OPTIONS = ['dibawah 800.000','800.001 - 1.200.000','1.200.001 - 1.800.000','1.800.001 - 2.500.000','2.500.001 - 3.500.000','3.500.001 - 4.800.000','4.800.001 - 6.500.000','6.500.001 - 10.000.000','10.000.001 - 20.000.000','diatas 20.000.001'];
 
-const inputCls = "block w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 px-3.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all duration-150";
+const inputCls = "block w-full rounded-xl border border-gray-300 bg-white py-3 px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-600/10 transition-all duration-200 shadow-sm";
 const selectCls = inputCls + " appearance-none cursor-pointer";
 
-const InputField = ({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
-  <div>
-    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-      {label}{required && <span className="text-rose-500 ml-0.5">*</span>}
+const InputField = ({ label, required = false, children, colSpan = false }: { label: string; required?: boolean; children: React.ReactNode; colSpan?: boolean }) => (
+  <div className={colSpan ? "col-span-full" : ""}>
+    <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 flex items-center gap-1">
+      {label}{required && <span className="text-rose-500">*</span>}
     </label>
     {children}
   </div>
@@ -27,27 +27,66 @@ const FileCard = ({
 }: { 
   label: string; value: string; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; isCompressing: boolean;
 }) => (
-  <div className="group relative flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
-    <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">{label}</span>
+  <div className="group relative flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50/50 p-5 hover:bg-gray-50 transition-colors">
+    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">{label}</span>
     {value ? (
-      <div className="w-20 h-28 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+      <div className="w-24 h-32 rounded-xl overflow-hidden border border-gray-200 shadow-md ring-4 ring-white">
         <img src={value} alt={label} className="w-full h-full object-cover" />
       </div>
     ) : (
-      <div className="w-20 h-28 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-400">
-        <ImageIcon className="w-7 h-7" />
+      <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-300 bg-white flex items-center justify-center text-gray-400 group-hover:border-indigo-400 group-hover:text-indigo-500 transition-colors">
+        <ImageIcon className="w-8 h-8" />
       </div>
     )}
-    <label className={`w-full cursor-pointer rounded-lg border py-1.5 px-3 text-xs font-semibold text-center ${value ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-600'} ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+    <label className={`w-full cursor-pointer rounded-xl border py-2 px-3 text-xs font-semibold text-center transition-all ${value ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 shadow-sm'} ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
       {isCompressing ? (
-        <span className="flex items-center justify-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> ...</span>
+        <span className="flex items-center justify-center gap-1.5"><Loader2 className="w-4 h-4 animate-spin" /> Proses...</span>
       ) : (
-        <span className="flex items-center justify-center gap-1.5"><Upload className="w-3 h-3" />{value ? 'Ganti' : 'Upload'}</span>
+        <span className="flex items-center justify-center gap-1.5"><Upload className="w-4 h-4" />{value ? 'Ubah File' : 'Pilih File'}</span>
       )}
       <input type="file" accept="image/*" className="hidden" onChange={onUpload} disabled={isCompressing} />
     </label>
   </div>
 );
+
+const StepIndicator = ({ currentStep }: { currentStep: number }) => {
+  const steps = [
+    { id: 1, name: 'Verifikasi', icon: User },
+    { id: 2, name: 'Data Diri', icon: FileText },
+    { id: 3, name: 'Dokumen', icon: MapPin },
+    { id: 4, name: 'Selesai', icon: Check }
+  ];
+
+  return (
+    <div className="w-full max-w-3xl mx-auto mb-10">
+      <div className="flex items-center justify-between relative">
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0"></div>
+        <div 
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-indigo-600 rounded-full z-0 transition-all duration-500"
+          style={{ width: `${((currentStep - 1) / 3) * 100}%` }}
+        ></div>
+        
+        {steps.map((s) => {
+          const isActive = currentStep >= s.id;
+          const isCurrent = currentStep === s.id;
+          const Icon = s.icon;
+          return (
+            <div key={s.id} className="relative z-10 flex flex-col items-center gap-2">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 font-bold ${
+                isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-white border-2 border-gray-300 text-gray-400'
+              } ${isCurrent ? 'ring-4 ring-indigo-100' : ''}`}>
+                <Icon className="w-4 h-4" />
+              </div>
+              <span className={`text-xs font-semibold ${isActive ? 'text-indigo-900' : 'text-gray-400'} hidden sm:block absolute -bottom-6 whitespace-nowrap`}>
+                {s.name}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 export default function DaftarUlang() {
   const navigate = useNavigate();
@@ -212,132 +251,169 @@ export default function DaftarUlang() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-white border-b border-slate-200 py-4 px-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-            <Building className="w-6 h-6 text-white" />
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-900">
+      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200/80 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20">
+              <Building className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="font-bold text-gray-900 text-[15px] leading-tight tracking-tight">Pusdatin Enterprise</h1>
+              <p className="text-[11px] font-medium text-gray-500 uppercase tracking-widest">Portal Akademik</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-slate-900 text-lg leading-tight">SekolahApp</h1>
-            <p className="text-xs text-slate-500">Portal Daftar Ulang</p>
-          </div>
+          <button onClick={() => navigate('/')} className="text-sm font-semibold text-gray-500 hover:text-indigo-600 transition-colors flex items-center gap-1.5 bg-gray-50 hover:bg-indigo-50 px-4 py-2 rounded-lg border border-gray-200 hover:border-indigo-200">
+            <ChevronLeft className="w-4 h-4" /> Batal
+          </button>
         </div>
-        <button onClick={() => navigate('/')} className="text-sm font-medium text-indigo-600 hover:text-indigo-700">
-          Kembali ke Beranda
-        </button>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center p-6 sm:p-12">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12 flex flex-col items-center">
+        
+        {step > 1 && <StepIndicator currentStep={step} />}
+
         {step === 1 && (
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-8 border border-slate-100">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-slate-800">Daftar Ulang Siswa</h2>
-              <p className="text-sm text-slate-500 mt-2">Masukkan NIK dan Kode Daftar Ulang yang diberikan oleh administrator.</p>
+          <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl shadow-indigo-900/5 border border-gray-100 overflow-hidden flex flex-col md:flex-row mt-4">
+            <div className="w-full md:w-5/12 bg-indigo-900 relative overflow-hidden flex flex-col justify-between p-10 text-white">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-violet-900 opacity-90 z-0"></div>
+              <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-500 rounded-full blur-3xl opacity-50 z-0"></div>
+              <div className="absolute top-10 left-10 w-32 h-32 bg-violet-400 rounded-full blur-3xl opacity-30 z-0"></div>
+              
+              <div className="relative z-10">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-white/10">
+                  <User className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-3xl font-bold tracking-tight mb-3">Portal Daftar Ulang</h2>
+                <p className="text-indigo-100/90 text-sm leading-relaxed">
+                  Sistem informasi manajemen siswa terpadu. Silakan verifikasi identitas Anda untuk melanjutkan proses pendaftaran ulang.
+                </p>
+              </div>
+              <div className="relative z-10 mt-12 pt-8 border-t border-white/10">
+                <p className="text-xs font-medium text-indigo-200">Dilindungi oleh enkripsi standar industri</p>
+              </div>
             </div>
             
-            <form onSubmit={(e) => { e.preventDefault(); verifyMutation.mutate(); }} className="space-y-5">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">NIK (Nomor Induk Kependudukan)</label>
-                <input
-                  type="text"
-                  required
-                  value={nik}
-                  onChange={(e) => setNik(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  placeholder="Masukkan NIK 16 digit"
-                  maxLength={16}
-                />
+            <div className="w-full md:w-7/12 p-10 md:p-14 flex items-center bg-white">
+              <div className="w-full max-w-sm mx-auto">
+                <div className="mb-8">
+                  <h3 className="text-2xl font-bold text-gray-900">Verifikasi Identitas</h3>
+                  <p className="text-sm text-gray-500 mt-2">Masukkan NIK dan Kode Daftar Ulang yang valid.</p>
+                </div>
+                
+                <form onSubmit={(e) => { e.preventDefault(); verifyMutation.mutate(); }} className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Nomor Induk Kependudukan</label>
+                    <input
+                      type="text"
+                      required
+                      value={nik}
+                      onChange={(e) => setNik(e.target.value)}
+                      className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 placeholder:font-normal"
+                      placeholder="Masukkan 16 digit NIK"
+                      maxLength={16}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Kode Token / Daftar Ulang</label>
+                    <input
+                      type="text"
+                      required
+                      value={kodeDaftarUlang}
+                      onChange={(e) => setKodeDaftarUlang(e.target.value)}
+                      className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 placeholder:font-normal uppercase"
+                      placeholder="Contoh: DAFTAR2026"
+                    />
+                  </div>
+                  
+                  <button
+                    type="submit"
+                    disabled={verifyMutation.isPending || !nik || !kodeDaftarUlang}
+                    className="w-full mt-2 flex items-center justify-center gap-2 px-5 py-4 bg-gray-900 hover:bg-indigo-600 text-white font-bold rounded-xl transition-all duration-300 disabled:opacity-50 disabled:hover:bg-gray-900 shadow-lg shadow-gray-900/20 hover:shadow-indigo-600/30"
+                  >
+                    {verifyMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Lanjutkan Verifikasi'}
+                  </button>
+                </form>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Kode Daftar Ulang</label>
-                <input
-                  type="text"
-                  required
-                  value={kodeDaftarUlang}
-                  onChange={(e) => setKodeDaftarUlang(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                  placeholder="Contoh: DAFTAR2026"
-                />
-              </div>
-              
-              <button
-                type="submit"
-                disabled={verifyMutation.isPending || !nik || !kodeDaftarUlang}
-                className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all disabled:opacity-70"
-              >
-                {verifyMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Verifikasi Data'}
-              </button>
-            </form>
+            </div>
           </div>
         )}
 
         {step === 2 && (
-          <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-            <div className="bg-indigo-600 px-8 py-6 text-white flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold">Formulir Daftar Ulang</h2>
-                <p className="text-indigo-100 text-sm mt-1">Lengkapi data diri, orang tua, dan alamat dengan benar.</p>
-              </div>
-              <span className="px-3 py-1 bg-white/20 rounded-lg text-sm font-medium">Langkah 1 dari 2</span>
+          <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl shadow-gray-200/60 border border-gray-100 overflow-hidden relative">
+            <div className="h-2 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+            
+            <div className="px-8 pt-8 pb-4 border-b border-gray-100">
+              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Lengkapi Data Diri</h2>
+              <p className="text-gray-500 text-sm mt-1">Pastikan seluruh data yang dimasukkan sesuai dengan dokumen resmi.</p>
             </div>
             
-            <form className="p-8 space-y-8" onSubmit={(e) => { e.preventDefault(); setStep(3); }}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Nama Lengkap" required><input name="fullName" value={formData.fullName} onChange={handleChange} required className={inputCls} /></InputField>
-                <InputField label="NIK" required><input name="nik" value={formData.nik} readOnly className={inputCls + " bg-slate-100 cursor-not-allowed"} /></InputField>
-                <InputField label="NISN"><input name="nisn" value={formData.nisn} onChange={handleChange} className={inputCls} /></InputField>
-                <InputField label="No. Handphone" required><input name="phone" value={formData.phone} onChange={handleChange} required className={inputCls} /></InputField>
-                <InputField label="Tempat Lahir" required><input name="tempatLahir" value={formData.tempatLahir} onChange={handleChange} required className={inputCls} /></InputField>
-                <InputField label="Tanggal Lahir" required><input type="date" name="tanggalLahir" value={formData.tanggalLahir} onChange={handleChange} required className={inputCls} /></InputField>
-                <InputField label="Jenis Kelamin" required>
-                  <select name="jenisKelamin" value={formData.jenisKelamin} onChange={handleChange} className={selectCls}>
-                    <option value="L">Laki-Laki</option>
-                    <option value="P">Perempuan</option>
-                  </select>
-                </InputField>
-              </div>
-
-              <hr className="border-slate-100" />
-              <h3 className="font-bold text-slate-800">Data Orang Tua</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Data Ayah</h4>
-                  <InputField label="Nama Ayah"><input name="namaAyah" value={formData.namaAyah} onChange={handleChange} className={inputCls} /></InputField>
-                  <InputField label="Pekerjaan Ayah">
-                    <select name="pekerjaanAyah" value={formData.pekerjaanAyah} onChange={handleChange} className={selectCls}>
-                      <option value="">Pilih Pekerjaan</option>
-                      {PEKERJAAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </InputField>
-                  <InputField label="Pendidikan Ayah">
-                    <select name="pendidikanAyah" value={formData.pendidikanAyah} onChange={handleChange} className={selectCls}>
-                      <option value="">Pilih Pendidikan</option>
-                      {PENDIDIKAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </InputField>
-                </div>
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Data Ibu</h4>
-                  <InputField label="Nama Ibu"><input name="namaIbu" value={formData.namaIbu} onChange={handleChange} className={inputCls} /></InputField>
-                  <InputField label="Pekerjaan Ibu">
-                    <select name="pekerjaanIbu" value={formData.pekerjaanIbu} onChange={handleChange} className={selectCls}>
-                      <option value="">Pilih Pekerjaan</option>
-                      {PEKERJAAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </InputField>
-                  <InputField label="Pendidikan Ibu">
-                    <select name="pendidikanIbu" value={formData.pendidikanIbu} onChange={handleChange} className={selectCls}>
-                      <option value="">Pilih Pendidikan</option>
-                      {PENDIDIKAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+            <form className="p-8 space-y-10" onSubmit={(e) => { e.preventDefault(); setStep(3); }}>
+              <div>
+                <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-5 flex items-center gap-2">
+                  <User className="w-4 h-4" /> Informasi Pribadi
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                  <InputField label="Nama Lengkap" required><input name="fullName" value={formData.fullName} onChange={handleChange} required className={inputCls} /></InputField>
+                  <InputField label="NIK" required><input name="nik" value={formData.nik} readOnly className={inputCls + " bg-gray-100 text-gray-500 border-dashed"} /></InputField>
+                  <InputField label="NISN"><input name="nisn" value={formData.nisn} onChange={handleChange} className={inputCls} /></InputField>
+                  <InputField label="No. Handphone" required><input name="phone" value={formData.phone} onChange={handleChange} required className={inputCls} /></InputField>
+                  <InputField label="Tempat Lahir" required><input name="tempatLahir" value={formData.tempatLahir} onChange={handleChange} required className={inputCls} /></InputField>
+                  <InputField label="Tanggal Lahir" required><input type="date" name="tanggalLahir" value={formData.tanggalLahir} onChange={handleChange} required className={inputCls} /></InputField>
+                  <InputField label="Jenis Kelamin" required>
+                    <select name="jenisKelamin" value={formData.jenisKelamin} onChange={handleChange} className={selectCls}>
+                      <option value="L">Laki-Laki</option>
+                      <option value="P">Perempuan</option>
                     </select>
                   </InputField>
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4">
-                <button type="submit" className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold flex items-center gap-2">
-                  Lanjutkan <ArrowRight className="w-4 h-4" />
+              <hr className="border-gray-100" />
+              
+              <div>
+                <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-5 flex items-center gap-2">
+                  <Building className="w-4 h-4" /> Data Orang Tua
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="space-y-5 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-800">Biodata Ayah</h4>
+                    <InputField label="Nama Ayah"><input name="namaAyah" value={formData.namaAyah} onChange={handleChange} className={inputCls} /></InputField>
+                    <InputField label="Pekerjaan Ayah">
+                      <select name="pekerjaanAyah" value={formData.pekerjaanAyah} onChange={handleChange} className={selectCls}>
+                        <option value="">Pilih Pekerjaan</option>
+                        {PEKERJAAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </InputField>
+                    <InputField label="Pendidikan Ayah">
+                      <select name="pendidikanAyah" value={formData.pendidikanAyah} onChange={handleChange} className={selectCls}>
+                        <option value="">Pilih Pendidikan</option>
+                        {PENDIDIKAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </InputField>
+                  </div>
+                  <div className="space-y-5 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-800">Biodata Ibu</h4>
+                    <InputField label="Nama Ibu"><input name="namaIbu" value={formData.namaIbu} onChange={handleChange} className={inputCls} /></InputField>
+                    <InputField label="Pekerjaan Ibu">
+                      <select name="pekerjaanIbu" value={formData.pekerjaanIbu} onChange={handleChange} className={selectCls}>
+                        <option value="">Pilih Pekerjaan</option>
+                        {PEKERJAAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </InputField>
+                    <InputField label="Pendidikan Ibu">
+                      <select name="pendidikanIbu" value={formData.pendidikanIbu} onChange={handleChange} className={selectCls}>
+                        <option value="">Pilih Pendidikan</option>
+                        {PENDIDIKAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </InputField>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-6 border-t border-gray-100">
+                <button type="submit" className="px-8 py-3 bg-gray-900 text-white rounded-xl hover:bg-indigo-600 font-bold flex items-center gap-2 transition-all duration-300 shadow-lg shadow-gray-900/20 hover:shadow-indigo-600/30">
+                  Selanjutnya <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </form>
@@ -345,70 +421,77 @@ export default function DaftarUlang() {
         )}
 
         {step === 3 && (
-          <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-            <div className="bg-indigo-600 px-8 py-6 text-white flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold">Alamat & Dokumen</h2>
-                <p className="text-indigo-100 text-sm mt-1">Lengkapi alamat domisili dan unggah dokumen pendukung.</p>
-              </div>
-              <span className="px-3 py-1 bg-white/20 rounded-lg text-sm font-medium">Langkah 2 dari 2</span>
+          <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl shadow-gray-200/60 border border-gray-100 overflow-hidden relative">
+            <div className="h-2 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+            
+            <div className="px-8 pt-8 pb-4 border-b border-gray-100">
+              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Alamat & Dokumen</h2>
+              <p className="text-gray-500 text-sm mt-1">Lengkapi informasi domisili serta unggah dokumen pelengkap.</p>
             </div>
             
-            <form className="p-8 space-y-8" onSubmit={(e) => { e.preventDefault(); submitMutation.mutate(); }}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Provinsi" required>
-                  <select name="alamatProvId" value={formData.alamatProvId} required onChange={(e) => {
-                    setFormData({ ...formData, alamatProvId: e.target.value, alamatProvName: e.target.options[e.target.selectedIndex].text });
-                  }} className={selectCls}>
-                    <option value="">Pilih Provinsi</option>
-                    {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </InputField>
-                <InputField label="Kabupaten/Kota" required>
-                  <select name="alamatKabId" value={formData.alamatKabId} required disabled={!formData.alamatProvId} onChange={(e) => {
-                    setFormData({ ...formData, alamatKabId: e.target.value, alamatKabName: e.target.options[e.target.selectedIndex].text });
-                  }} className={selectCls}>
-                    <option value="">Pilih Kabupaten/Kota</option>
-                    {regencies.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                  </select>
-                </InputField>
-                <InputField label="Kecamatan" required>
-                  <select name="alamatKecId" value={formData.alamatKecId} required disabled={!formData.alamatKabId} onChange={(e) => {
-                    setFormData({ ...formData, alamatKecId: e.target.value, alamatKecName: e.target.options[e.target.selectedIndex].text });
-                  }} className={selectCls}>
-                    <option value="">Pilih Kecamatan</option>
-                    {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                  </select>
-                </InputField>
-                <InputField label="Kelurahan/Desa" required>
-                  <select name="alamatKelId" value={formData.alamatKelId} required disabled={!formData.alamatKecId} onChange={(e) => {
-                    setFormData({ ...formData, alamatKelId: e.target.value, alamatKelName: e.target.options[e.target.selectedIndex].text });
-                  }} className={selectCls}>
-                    <option value="">Pilih Kelurahan/Desa</option>
-                    {villages.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                  </select>
-                </InputField>
-                <div className="col-span-full">
-                  <InputField label="Alamat Lengkap (Jalan, RT/RW)" required>
-                    <input name="alamatJalan" value={formData.alamatJalan} onChange={handleChange} required className={inputCls} />
+            <form className="p-8 space-y-10" onSubmit={(e) => { e.preventDefault(); submitMutation.mutate(); }}>
+              <div>
+                <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-5 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" /> Alamat Domisili
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                  <InputField label="Provinsi" required>
+                    <select name="alamatProvId" value={formData.alamatProvId} required onChange={(e) => {
+                      setFormData({ ...formData, alamatProvId: e.target.value, alamatProvName: e.target.options[e.target.selectedIndex].text });
+                    }} className={selectCls}>
+                      <option value="">Pilih Provinsi</option>
+                      {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </InputField>
+                  <InputField label="Kabupaten/Kota" required>
+                    <select name="alamatKabId" value={formData.alamatKabId} required disabled={!formData.alamatProvId} onChange={(e) => {
+                      setFormData({ ...formData, alamatKabId: e.target.value, alamatKabName: e.target.options[e.target.selectedIndex].text });
+                    }} className={selectCls}>
+                      <option value="">Pilih Kabupaten/Kota</option>
+                      {regencies.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                    </select>
+                  </InputField>
+                  <InputField label="Kecamatan" required>
+                    <select name="alamatKecId" value={formData.alamatKecId} required disabled={!formData.alamatKabId} onChange={(e) => {
+                      setFormData({ ...formData, alamatKecId: e.target.value, alamatKecName: e.target.options[e.target.selectedIndex].text });
+                    }} className={selectCls}>
+                      <option value="">Pilih Kecamatan</option>
+                      {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    </select>
+                  </InputField>
+                  <InputField label="Kelurahan/Desa" required>
+                    <select name="alamatKelId" value={formData.alamatKelId} required disabled={!formData.alamatKecId} onChange={(e) => {
+                      setFormData({ ...formData, alamatKelId: e.target.value, alamatKelName: e.target.options[e.target.selectedIndex].text });
+                    }} className={selectCls}>
+                      <option value="">Pilih Kelurahan/Desa</option>
+                      {villages.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                    </select>
+                  </InputField>
+                  <InputField label="Alamat Lengkap (Jalan, RT/RW)" required colSpan>
+                    <input name="alamatJalan" value={formData.alamatJalan} onChange={handleChange} required className={inputCls} placeholder="Contoh: Jl. Sudirman No. 12, RT 01 / RW 02" />
                   </InputField>
                 </div>
               </div>
 
-              <hr className="border-slate-100" />
-              <h3 className="font-bold text-slate-800">Unggah Dokumen</h3>
-              <div className="flex gap-4">
-                <FileCard label="Pas Foto" value={formData.fotoBase64} onUpload={(e) => handleFileUpload(e, 'fotoBase64')} isCompressing={isCompressing} />
-                <FileCard label="Ijazah" value={formData.ijazahBase64} onUpload={(e) => handleFileUpload(e, 'ijazahBase64')} isCompressing={isCompressing} />
-                <FileCard label="Kartu Keluarga" value={formData.kkBase64} onUpload={(e) => handleFileUpload(e, 'kkBase64')} isCompressing={isCompressing} />
+              <hr className="border-gray-100" />
+              
+              <div>
+                <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-5 flex items-center gap-2">
+                  <FileText className="w-4 h-4" /> Dokumen Pendukung
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <FileCard label="Pas Foto" value={formData.fotoBase64} onUpload={(e) => handleFileUpload(e, 'fotoBase64')} isCompressing={isCompressing} />
+                  <FileCard label="Ijazah" value={formData.ijazahBase64} onUpload={(e) => handleFileUpload(e, 'ijazahBase64')} isCompressing={isCompressing} />
+                  <FileCard label="Kartu Keluarga" value={formData.kkBase64} onUpload={(e) => handleFileUpload(e, 'kkBase64')} isCompressing={isCompressing} />
+                </div>
               </div>
 
-              <div className="flex justify-between pt-4">
-                <button type="button" onClick={() => setStep(2)} className="px-6 py-2.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-semibold flex items-center gap-2">
+              <div className="flex justify-between pt-6 border-t border-gray-100">
+                <button type="button" onClick={() => setStep(2)} className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-bold flex items-center gap-2 transition-colors">
                   <ChevronLeft className="w-4 h-4" /> Kembali
                 </button>
-                <button type="submit" disabled={submitMutation.isPending} className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold flex items-center gap-2">
-                  {submitMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Selesai & Kirim'}
+                <button type="submit" disabled={submitMutation.isPending} className="px-8 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold flex items-center gap-2 transition-all duration-300 shadow-lg shadow-indigo-600/20 disabled:opacity-70">
+                  {submitMutation.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Selesai & Kirim Data'}
                 </button>
               </div>
             </form>
@@ -416,13 +499,18 @@ export default function DaftarUlang() {
         )}
 
         {step === 4 && (
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-10 border border-slate-100 text-center">
-            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-10 h-10" />
+          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl shadow-indigo-900/5 p-12 border border-gray-100 text-center mt-10">
+            <div className="relative w-24 h-24 mx-auto mb-8">
+              <div className="absolute inset-0 bg-emerald-100 rounded-full animate-ping opacity-70"></div>
+              <div className="relative w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white rounded-full flex items-center justify-center shadow-xl shadow-emerald-500/30 mx-auto">
+                <CheckCircle className="w-12 h-12" />
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Pendaftaran Berhasil</h2>
-            <p className="text-slate-600 mb-8">Data pendaftaran ulang Anda telah berhasil disimpan di dalam sistem. Terima kasih.</p>
-            <button onClick={() => navigate('/')} className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors w-full">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">Pendaftaran Berhasil!</h2>
+            <p className="text-gray-600 mb-10 leading-relaxed">
+              Terima kasih, data pendaftaran ulang Anda telah berhasil disimpan di dalam sistem informasi kami.
+            </p>
+            <button onClick={() => navigate('/')} className="px-8 py-4 bg-gray-900 text-white font-bold rounded-xl hover:bg-indigo-600 transition-all duration-300 shadow-xl shadow-gray-900/20 hover:shadow-indigo-600/30 w-full text-lg">
               Kembali ke Beranda
             </button>
           </div>

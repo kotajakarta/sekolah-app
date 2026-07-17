@@ -39,7 +39,16 @@ export default function LoginPage() {
       login(token, { ...user, username });
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Login gagal. Periksa kembali username dan password Anda.');
+      if (err.response) {
+        // Ada response dari server (401, 429, dll)
+        setError(err.response.data?.message || `Error ${err.response.status}`);
+      } else if (err.request) {
+        // Request terkirim tapi tidak ada response → CORS atau network error
+        setError(`❌ Network Error: Request ke ${apiClient.defaults.baseURL} tidak mendapat response.\nKemungkinan penyebab: CORS preflight gagal atau backend tidak dapat dijangkau.\n(err.code: ${err.code || 'unknown'})`);
+      } else {
+        // Error lain (setup request)
+        setError(`❌ Request Error: ${err.message}`);
+      }
     } finally {
       setIsSubmitting(false);
     }

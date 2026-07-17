@@ -272,19 +272,15 @@ export const Sidebar: React.FC = () => {
           </div>
         ) : (
           <div className="h-14 px-5 flex items-center justify-between shrink-0 mb-4 mt-2 gap-2">
-            <svg viewBox="0 0 155 45" className="h-9 w-auto" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M 12 10 H 30" stroke="#106ebe" strokeWidth="3.2" strokeLinecap="round" />
-              <path d="M 12 10 V 35" stroke="#106ebe" strokeWidth="3.2" strokeLinecap="round" />
-              <path d="M 12 35 H 30" stroke="#106ebe" strokeWidth="3.2" strokeLinecap="round" />
-              <path d="M 12 22.5 H 24" stroke="#106ebe" strokeWidth="3.2" strokeLinecap="round" />
-              <path d="M 18 31 V 26 H 27" stroke="#f5a623" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M 52 13 C 52 9, 38 9, 38 15 C 38 21, 52 23, 52 29 C 52 35, 38 35, 38 31" stroke="#106ebe" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M 60 10 V 35" stroke="#106ebe" strokeWidth="3.2" strokeLinecap="round" />
-              <path d="M 82 13 C 82 9, 68 9, 68 15 C 68 21, 82 23, 82 29 C 82 35, 68 35, 68 31" stroke="#106ebe" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M 90 10 L 96 35 L 102 18 L 108 35 L 114 10" stroke="#106ebe" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M 122 35 L 132 10 L 142 35" stroke="#106ebe" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M 126 25 H 138" stroke="#106ebe" strokeWidth="3.2" strokeLinecap="round" />
-            </svg>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-[#0A192F] rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <polyline points="9,22 9,12 15,12 15,22" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <span className="font-bold text-lg tracking-tight text-[#0A192F]">eSantri</span>
+            </div>
             <img src="https://cdn.aithendi.my.id/assets/logoyts-modern2.png" alt="YTS Logo" className="h-8 w-auto object-contain shrink-0" />
           </div>
         )}

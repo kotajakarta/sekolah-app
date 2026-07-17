@@ -27,11 +27,10 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white font-sans text-slate-900 selection:bg-sky-200">
 
       {/* ── NAVIGATION ────────────────────────────────────── */}
-      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-white/90 backdrop-blur-lg border-b border-slate-200 py-3 shadow-sm'
-          : 'bg-transparent py-5'
-      }`}>
+      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled
+        ? 'bg-white/90 backdrop-blur-lg border-b border-slate-200 py-3 shadow-sm'
+        : 'bg-transparent py-5'
+        }`}>
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
@@ -44,7 +43,7 @@ export default function LandingPage() {
           {/* Nav Links — latar terang, teks slate, hover biru tua */}
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#4A5568]">
             <a href="#beranda" className="hover:text-[#0369A1] transition-colors">Beranda</a>
-            <a href="#fitur"   className="hover:text-[#0369A1] transition-colors">Fitur Utama</a>
+            <a href="#fitur" className="hover:text-[#0369A1] transition-colors">Fitur Utama</a>
             <a href="#manfaat" className="hover:text-[#0369A1] transition-colors">Manfaat</a>
           </div>
 
@@ -86,8 +85,8 @@ export default function LandingPage() {
 
           {/* Heading — Navy bold, aksen biru gelap pada light bg */}
           <h1 className="text-5xl md:text-7xl font-extrabold text-[#0A192F] tracking-tight leading-[1.1] max-w-4xl mb-6">
-            Masa Depan Manajemen dengan{' '}
-            <span className="text-[#0369A1]">Teknologi Terkini</span>
+            Manajemen Data Santri Berbasis{' '}
+            <span className="text-[#0369A1]">Web Online</span>
           </h1>
 
           {/* Subtitle — Slate Gray #4A5568 */}
@@ -162,12 +161,12 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: Users,         title: 'Data Santri Terpusat',      desc: 'Kelola seluruh informasi biodata, riwayat pendidikan, dan domisili dalam satu database.' },
-              { icon: GraduationCap, title: 'Manajemen Akademik',         desc: 'Pemetaan rombel, muadalah, dan penilaian raport secara sistematis dan mudah.' },
-              { icon: CheckCircle,   title: 'Absensi Real-time',          desc: 'Monitoring kehadiran santri harian terintegrasi untuk keamanan dan kedisiplinan.' },
-              { icon: ShieldCheck,   title: 'Keamanan Tingkat Tinggi',    desc: 'Infrastruktur cloud aman dengan enkripsi data dan pembatasan akses berlapis.' },
-              { icon: LayoutDashboard, title: 'Dashboard Eksekutif',      desc: 'Visualisasi data statistik untuk pimpinan dalam mengambil keputusan strategis.' },
-              { icon: FileText,      title: 'Portal Daftar Ulang',        desc: 'Fasilitas publik untuk verifikasi identitas santri lama secara mandiri.' },
+              { icon: Users, title: 'Data Santri Terpusat', desc: 'Kelola seluruh informasi biodata, riwayat pendidikan, dan domisili dalam satu database.' },
+              { icon: GraduationCap, title: 'Manajemen Akademik', desc: 'Pemetaan rombel, muadalah, dan penilaian raport secara sistematis dan mudah.' },
+              { icon: CheckCircle, title: 'Absensi Real-time', desc: 'Monitoring kehadiran santri harian terintegrasi untuk keamanan dan kedisiplinan.' },
+              { icon: ShieldCheck, title: 'Keamanan Tingkat Tinggi', desc: 'Infrastruktur cloud aman dengan enkripsi data dan pembatasan akses berlapis.' },
+              { icon: LayoutDashboard, title: 'Dashboard Eksekutif', desc: 'Visualisasi data statistik untuk pimpinan dalam mengambil keputusan strategis.' },
+              { icon: FileText, title: 'Portal Daftar Ulang', desc: 'Fasilitas publik untuk verifikasi identitas santri lama secara mandiri.' },
             ].map((f, i) => (
               <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-colors cursor-pointer group">
                 {/* Ikon #00B4D8 — kontras tinggi di atas bg gelap */}
@@ -238,9 +237,9 @@ export default function LandingPage() {
 
             <div className="space-y-8">
               {[
-                { title: 'Monitoring Identitas Terpusat',   desc: 'Pantau kuantitas dan sebaran santri dari pusat hingga ke cabang secara realtime.' },
-                { title: 'Optimalisasi Proses Akademik',    desc: 'Kurangi beban administratif — dari kalender akademik hingga penerbitan rapor.' },
-                { title: 'Infrastruktur Berbasis Cloud',    desc: 'Akses dari mana saja dengan jaminan ketersediaan data (uptime) 99.9%.' },
+                { title: 'Monitoring Identitas Terpusat', desc: 'Pantau kuantitas dan sebaran santri dari pusat hingga ke cabang secara realtime.' },
+                { title: 'Optimalisasi Proses Akademik', desc: 'Kurangi beban administratif — dari kalender akademik hingga penerbitan rapor.' },
+                { title: 'Infrastruktur Berbasis Cloud', desc: 'Akses dari mana saja dengan jaminan ketersediaan data (uptime) 99.9%.' },
               ].map((b, i) => (
                 <div key={i} className="flex gap-4">
                   {/* Icon wrapper: sky-50 bg, ikon #0369A1 — kontras cukup di atas putih */}
@@ -307,7 +306,7 @@ export default function LandingPage() {
             <h4 className="text-white font-semibold mb-4">Akses Cepat</h4>
             <ul className="space-y-2 text-sm">
               <li><a href="#beranda" className="hover:text-[#00B4D8] transition-colors">Beranda</a></li>
-              <li><a href="#fitur"   className="hover:text-[#00B4D8] transition-colors">Fitur Utama</a></li>
+              <li><a href="#fitur" className="hover:text-[#00B4D8] transition-colors">Fitur Utama</a></li>
               <li><button onClick={() => navigate('/daftar-ulang')} className="hover:text-[#00B4D8] transition-colors text-left">Daftar Ulang Santri</button></li>
             </ul>
           </div>
@@ -324,8 +323,8 @@ export default function LandingPage() {
           <div>
             <h4 className="text-white font-semibold mb-4">Hubungi Kami</h4>
             <ul className="space-y-2 text-sm">
-              <li>Tim IT PP Sulaimaniyah</li>
-              <li>support@esantri.id</li>
+              <li>CS PP Sulaimaniyah</li>
+              <li>info@sulaimaniyah.sch.id / 0813-1415-1420 </li>
             </ul>
           </div>
         </div>

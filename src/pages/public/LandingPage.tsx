@@ -27,14 +27,14 @@ export default function LandingPage() {
           </div>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-            <a href="#beranda" className="hover:text-[#00B4D8] transition-colors">Beranda</a>
-            <a href="#fitur" className="hover:text-[#00B4D8] transition-colors">Fitur Utama</a>
-            <a href="#manfaat" className="hover:text-[#00B4D8] transition-colors">Manfaat</a>
-            <a href="#skala" className="hover:text-[#00B4D8] transition-colors">Skalabilitas</a>
+            <a href="#beranda" className="hover:text-[#0077B6] transition-colors">Beranda</a>
+            <a href="#fitur" className="hover:text-[#0077B6] transition-colors">Fitur Utama</a>
+            <a href="#manfaat" className="hover:text-[#0077B6] transition-colors">Manfaat</a>
+            <a href="#skala" className="hover:text-[#0077B6] transition-colors">Skalabilitas</a>
           </div>
 
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/daftar-ulang')} className="hidden sm:block text-sm font-semibold text-slate-600 hover:text-[#00B4D8] transition-colors">
+            <button onClick={() => navigate('/daftar-ulang')} className="hidden sm:block text-sm font-semibold text-slate-600 hover:text-[#0077B6] transition-colors">
               Daftar Ulang
             </button>
             <button onClick={() => navigate('/login')} className="bg-slate-900 hover:bg-[#0096C7] text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all shadow-lg shadow-slate-900/20 hover:shadow-[#00B4D8]/30 flex items-center gap-2">
@@ -60,7 +60,7 @@ export default function LandingPage() {
           </div>
 
           <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-[1.1] max-w-4xl mb-6">
-            Masa Depan Manajemen dengan <span className="text-[#00B4D8]">Teknologi Terkini</span>
+            Masa Depan Manajemen dengan <span className="text-[#0077B6]">Teknologi Terkini</span>
           </h1>
 
           <p className="text-lg md:text-xl text-slate-600 max-w-2xl mb-10 leading-relaxed">
@@ -79,7 +79,7 @@ export default function LandingPage() {
           {/* Hero Floating Cards */}
           <div className="mt-20 w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-6 relative">
             <div className="bg-white p-6 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col justify-center items-center text-center transform md:-translate-y-4">
-              <div className="w-12 h-12 bg-[#E8F5E9] rounded-2xl flex items-center justify-center mb-4 text-[#00B4D8]">
+              <div className="w-12 h-12 bg-[#E8F5E9] rounded-2xl flex items-center justify-center mb-4 text-[#0077B6]">
                 <Users className="w-6 h-6" />
               </div>
               <h3 className="text-3xl font-extrabold text-slate-900 mb-1">15.000+</h3>
@@ -194,7 +194,7 @@ export default function LandingPage() {
               ].map((b, i) => (
                 <div key={i} className="flex gap-4">
                   <div className="w-10 h-10 rounded-full bg-[#E8F5E9] flex items-center justify-center flex-shrink-0 mt-1">
-                    <CheckCircle className="w-5 h-5 text-[#00B4D8]" />
+                    <CheckCircle className="w-5 h-5 text-[#0077B6]" />
                   </div>
                   <div>
                     <h4 className="text-xl font-bold text-slate-900 mb-2">{b.title}</h4>

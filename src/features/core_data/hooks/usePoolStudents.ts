@@ -64,3 +64,27 @@ export const useLepasSiswa = () => {
     },
   });
 };
+
+export const useLepasMassalSiswa = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({
+      studentIds,
+      statusAkhir,
+      catatan
+    }: {
+      studentIds: string[];
+      statusAkhir: string;
+      catatan?: string;
+    }) => {
+      const response = await apiClient.post('/students/lepas-massal', { studentIds, statusAkhir, catatan });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+      queryClient.invalidateQueries({ queryKey: ['students', 'pool'] });
+    },
+  });
+};
+

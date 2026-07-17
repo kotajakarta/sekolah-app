@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Users, Plus, UserMinus, UserPlus, Edit2, Trash2, Search, User, AlertCircle } from 'lucide-react';
 import { useGetStudents, Student } from '../../features/core_data/hooks/useGetStudents';
 import LepasSiswaModal from '../../features/core_data/components/LepasSiswaModal';
+import LepasSiswaMassalModal from '../../features/core_data/components/LepasSiswaMassalModal';
 import TarikSiswaMassalModal from '../../features/core_data/components/TarikSiswaMassalModal';
 import StudentModal from '../../features/core_data/components/StudentModal';
 import StudentProfileModal from '../../features/core_data/components/StudentProfileModal';
@@ -62,6 +63,7 @@ export default function DataSiswa() {
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const [selectedStudentForKelengkapan, setSelectedStudentForKelengkapan] = useState<Student | null>(null);
   const [isTarikModalOpen, setIsTarikModalOpen] = useState(false);
+  const [isLepasMassalOpen, setIsLepasMassalOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isConfirmDeleteAllOpen, setIsConfirmDeleteAllOpen] = useState(false);
   const [notification, setNotification] = useState<{
@@ -198,6 +200,13 @@ export default function DataSiswa() {
               Tarik Data Siswa
             </button>
           )}
+          <button 
+            onClick={() => setIsLepasMassalOpen(true)}
+            className="inline-flex items-center justify-center px-4 py-2 border border-amber-200 shadow-sm text-sm font-medium rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+          >
+            <UserMinus className="w-4 h-4 mr-2" />
+            Lepas Massal
+          </button>
           <button onClick={handleAdd} className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
             <Plus className="w-4 h-4 mr-2" />
             {t('siswa.add_button')}
@@ -376,6 +385,13 @@ export default function DataSiswa() {
         <LepasSiswaModal
           student={studentToLepas}
           onClose={() => setStudentToLepas(null)}
+        />
+      )}
+
+      {isLepasMassalOpen && (
+        <LepasSiswaMassalModal
+          students={filteredStudents}
+          onClose={() => setIsLepasMassalOpen(false)}
         />
       )}
 

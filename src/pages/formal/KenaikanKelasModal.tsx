@@ -426,6 +426,8 @@ export default function KenaikanKelasModal({ kelasList, onClose }: KenaikanKelas
       onConfirm={confirmSubmit}
       title="Konfirmasi Proses Kenaikan Kelas"
       message={pendingPayload?.type === 'BULK' ? `Apakah Anda yakin ingin memproses kenaikan kelas untuk seluruh siswa di ${filteredKelasAsal.length} kelas ini? Proses ini akan mengubah status mereka secara massal.` : `Apakah Anda yakin ingin memproses ${students.length} siswa ini? Proses ini akan mengubah data kelas aktif dan mencatat riwayat kelas.`}
+      confirmText="Proses Kenaikan"
+      variant="primary"
     />
     </>
   );

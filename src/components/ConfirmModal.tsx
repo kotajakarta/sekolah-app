@@ -9,9 +9,20 @@ interface ConfirmModalProps {
   title: string;
   message: string;
   requireInput?: string;
+  confirmText?: string;
+  variant?: 'danger' | 'primary' | 'success';
 }
 
-export default function ConfirmModal({ isOpen, onClose, onConfirm, title, message, requireInput }: ConfirmModalProps) {
+export default function ConfirmModal({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title, 
+  message, 
+  requireInput,
+  confirmText,
+  variant = 'danger'
+}: ConfirmModalProps) {
   const { t } = useTranslation();
   const [inputValue, setInputValue] = React.useState('');
 
@@ -23,12 +34,24 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
 
   if (!isOpen) return null;
 
+  let iconColor = 'text-red-600';
+  let buttonColor = 'bg-red-600 hover:bg-red-700';
+  if (variant === 'primary') {
+    iconColor = 'text-indigo-600';
+    buttonColor = 'bg-indigo-600 hover:bg-indigo-700';
+  } else if (variant === 'success') {
+    iconColor = 'text-emerald-600';
+    buttonColor = 'bg-emerald-600 hover:bg-emerald-700';
+  }
+
+  const defaultConfirmText = confirmText || (variant === 'danger' ? (t('common.delete') || 'Hapus') : (t('common.confirm') || 'Konfirmasi'));
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-red-600">
-            <AlertTriangle className="w-5 h-5" />
+          <div className="flex items-center gap-2">
+            <AlertTriangle className={`w-5 h-5 ${iconColor}`} />
             <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-500">
@@ -65,9 +88,9 @@ export default function ConfirmModal({ isOpen, onClose, onConfirm, title, messag
               onConfirm();
               onClose();
             }}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`px-4 py-2 text-sm font-medium text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed ${buttonColor}`}
           >
-            {t('common.delete') || 'Hapus'}
+            {defaultConfirmText}
           </button>
         </div>
       </div>

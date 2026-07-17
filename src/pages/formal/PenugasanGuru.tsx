@@ -25,9 +25,13 @@ interface Assignment {
   kelas: {
     id: string;
     name: string;
+    cabangId?: string;
     cabang?: {
+      id: string;
       name: string;
+      wilayahId?: string;
       wilayah?: {
+        id: string;
         name: string;
       };
     };
@@ -51,6 +55,10 @@ export default function PenugasanGuru() {
   const [filterKelas, setFilterKelas] = useState('');
   const [filterWilayah, setFilterWilayah] = useState('');
   const [filterCabang, setFilterCabang] = useState('');
+
+  // Modal Summary Filter States
+  const [summaryWilayah, setSummaryWilayah] = useState('');
+  const [summaryCabang, setSummaryCabang] = useState('');
 
   // Queries
   const { data: assignments = [], isLoading: loadingAssignments } = useQuery<Assignment[]>({
@@ -267,6 +275,36 @@ export default function PenugasanGuru() {
 
     return { wilayahProgress, cabangProgress };
   }, [assignments, mapelList, kelasList, wilayahs, cabangList, user]);
+
+  // Filtered statistics for the summary modal
+  const modalWilayahProgress = useMemo(() => {
+    const { wilayahProgress } = progressStats;
+    if (!summaryWilayah) return wilayahProgress;
+    return wilayahProgress.filter(wp => wp.id === summaryWilayah);
+  }, [progressStats, summaryWilayah]);
+
+  const modalCabangProgress = useMemo(() => {
+    const { cabangProgress } = progressStats;
+    return cabangProgress.filter(cp => {
+      const cabang = cabangList.find(c => c.id === cp.id);
+      const matchWilayah = !summaryWilayah || cabang?.wilayahId === summaryWilayah;
+      const matchCabang = !summaryCabang || cp.id === summaryCabang;
+      return matchWilayah && matchCabang;
+    });
+  }, [progressStats, cabangList, summaryWilayah, summaryCabang]);
+
+  const filteredMapelKurangGuru = useMemo(() => {
+    if (!mapelKurangGuru.length) return [];
+    return mapelKurangGuru.map(({ mapel, missingClasses }) => {
+      const filteredClasses = missingClasses.filter(c => {
+        const cabang = cabangList.find(cb => cb.id === c.cabangId);
+        const matchWilayah = !summaryWilayah || cabang?.wilayahId === summaryWilayah;
+        const matchCabang = !summaryCabang || c.cabangId === summaryCabang;
+        return matchWilayah && matchCabang;
+      });
+      return { mapel, missingClasses: filteredClasses };
+    }).filter(item => item.missingClasses.length > 0);
+  }, [mapelKurangGuru, cabangList, summaryWilayah, summaryCabang]);
 
   return (
     <div className="font-sans text-slate-800 animate-in fade-in duration-500 pb-10">
@@ -595,11 +633,61 @@ export default function PenugasanGuru() {
                 Ringkasan & Progres Penugasan Guru
               </h3>
               <button
-                onClick={() => setIsSummaryModalOpen(false)}
+                onClick={() => {
+                  setIsSummaryModalOpen(false);
+                  setSummaryWilayah('');
+                  setSummaryCabang('');
+                }}
                 className="text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-slate-100 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* Filters */}
+            <div className={`px-6 py-3 bg-slate-50 border-b border-slate-100 grid grid-cols-1 ${
+              user?.scope === 'GLOBAL' ? 'sm:grid-cols-2' : 'grid-cols-1'
+            } gap-4`}>
+              {user?.scope === 'GLOBAL' && (
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Filter Wilayah</label>
+                  <select
+                    value={summaryWilayah}
+                    onChange={(e) => {
+                      setSummaryWilayah(e.target.value);
+                      setSummaryCabang('');
+                    }}
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  >
+                    <option value="">Semua Wilayah</option>
+                    {wilayahs.map(w => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {user?.scope !== 'CABANG' && (
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Filter Cabang</label>
+                  <select
+                    value={summaryCabang}
+                    disabled={user?.scope === 'GLOBAL' && !summaryWilayah}
+                    onChange={(e) => setSummaryCabang(e.target.value)}
+                    className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white disabled:bg-slate-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Semua Cabang</option>
+                    {cabangList
+                      .filter(c => {
+                        if (user?.scope === 'WILAYAH') return c.wilayahId === user.wilayahId;
+                        if (summaryWilayah) return c.wilayahId === summaryWilayah;
+                        return true;
+                      })
+                      .map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Content (Scrollable) */}
@@ -615,9 +703,9 @@ export default function PenugasanGuru() {
                       <MapPin className="w-3.5 h-3.5 text-indigo-500" />
                       Progres Per Wilayah
                     </div>
-                    {progressStats.wilayahProgress.length > 0 ? (
+                    {modalWilayahProgress.length > 0 ? (
                       <div className="space-y-3">
-                        {progressStats.wilayahProgress.map(wp => (
+                        {modalWilayahProgress.map(wp => (
                           <div key={wp.id} className="space-y-1">
                             <div className="flex justify-between text-xs font-medium text-slate-700">
                               <span>{wp.name}</span>
@@ -625,12 +713,12 @@ export default function PenugasanGuru() {
                             </div>
                             <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all duration-500 ${
-                                  wp.percent === 100 ? 'bg-green-500' :
-                                  wp.percent >= 75 ? 'bg-emerald-500' :
-                                  wp.percent >= 50 ? 'bg-amber-500' : 'bg-rose-500'
-                                }`}
-                                style={{ width: `${wp.percent}%` }}
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                      wp.percent === 100 ? 'bg-green-500' :
+                                          wp.percent >= 75 ? 'bg-emerald-500' :
+                                              wp.percent >= 50 ? 'bg-amber-500' : 'bg-rose-500'
+                                  }`}
+                                  style={{ width: `${wp.percent}%` }}
                               />
                             </div>
                           </div>
@@ -647,9 +735,9 @@ export default function PenugasanGuru() {
                       <Building2 className="w-3.5 h-3.5 text-blue-500" />
                       Progres Per Cabang
                     </div>
-                    {progressStats.cabangProgress.length > 0 ? (
+                    {modalCabangProgress.length > 0 ? (
                       <div className="space-y-3 max-h-[180px] overflow-y-auto custom-scrollbar pr-1">
-                        {progressStats.cabangProgress.map(cp => (
+                        {modalCabangProgress.map(cp => (
                           <div key={cp.id} className="space-y-1">
                             <div className="flex justify-between text-xs font-medium text-slate-700">
                               <span>{cp.name}</span>
@@ -657,12 +745,12 @@ export default function PenugasanGuru() {
                             </div>
                             <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                               <div
-                                className={`h-full rounded-full transition-all duration-500 ${
-                                  cp.percent === 100 ? 'bg-green-500' :
-                                  cp.percent >= 75 ? 'bg-emerald-500' :
-                                  cp.percent >= 50 ? 'bg-amber-500' : 'bg-rose-500'
-                                }`}
-                                style={{ width: `${cp.percent}%` }}
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                      cp.percent === 100 ? 'bg-green-500' :
+                                          cp.percent >= 75 ? 'bg-emerald-500' :
+                                              cp.percent >= 50 ? 'bg-amber-500' : 'bg-rose-500'
+                                  }`}
+                                  style={{ width: `${cp.percent}%` }}
                               />
                             </div>
                           </div>
@@ -678,9 +766,9 @@ export default function PenugasanGuru() {
               {/* Section 2: Missing Subjects Details */}
               <div className="space-y-3">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Detail Kekurangan Guru Per Mata Pelajaran</h4>
-                {mapelKurangGuru.length > 0 ? (
+                {filteredMapelKurangGuru.length > 0 ? (
                   <div className="space-y-3">
-                    {mapelKurangGuru.map(({ mapel, missingClasses }) => (
+                    {filteredMapelKurangGuru.map(({ mapel, missingClasses }) => (
                       <div key={mapel.id} className="p-4 rounded-xl border border-rose-100 bg-rose-50/20">
                         <div className="flex justify-between items-center mb-2">
                           <span className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
@@ -712,7 +800,11 @@ export default function PenugasanGuru() {
             {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end">
               <button
-                onClick={() => setIsSummaryModalOpen(false)}
+                onClick={() => {
+                  setIsSummaryModalOpen(false);
+                  setSummaryWilayah('');
+                  setSummaryCabang('');
+                }}
                 className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-all"
               >
                 Tutup

@@ -4,6 +4,7 @@ const apiClient = axios.create({
   // Jika di production, VITE_API_BASE_URL bisa diset misal "https://api.domainku.com/api/v1"
   // Jika di local development, otomatis menggunakan "/api/v1" yang akan ditangkap Vite proxy.
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
+  adapter: 'fetch', // Menggunakan fetch adapter untuk menghindari bug interseptor XHR pada adblocker
   headers: {
     'Content-Type': 'application/json',
   },

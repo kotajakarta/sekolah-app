@@ -39,16 +39,22 @@ export default function LoginPage() {
       login(token, { ...user, username });
       navigate('/');
     } catch (err: any) {
-      if (err.response) {
-        // Ada response dari server (401, 429, dll)
-        setError(err.response.data?.message || `Error ${err.response.status}`);
-      } else if (err.request) {
-        // Request terkirim tapi tidak ada response → CORS atau network error
-        setError(`❌ Network Error: Request ke ${apiClient.defaults.baseURL} tidak mendapat response.\nKemungkinan penyebab: CORS preflight gagal atau backend tidak dapat dijangkau.\n(err.code: ${err.code || 'unknown'})`);
-      } else {
-        // Error lain (setup request)
-        setError(`❌ Request Error: ${err.message}`);
+      let serializedError = '';
+      try {
+        serializedError = JSON.stringify({
+          name: err?.name,
+          message: err?.message,
+          stack: err?.stack,
+          code: err?.code,
+          status: err?.response?.status,
+          responseData: err?.response?.data,
+          keys: Object.keys(err || {})
+        }, null, 2);
+      } catch (e) {
+        serializedError = `Failed to serialize error: ${e}`;
       }
+      
+      setError(`❌ Request Error: ${err.message || err}\n\n🔍 Debug JSON:\n${serializedError}`);
     } finally {
       setIsSubmitting(false);
     }

@@ -20,11 +20,11 @@ const NavLink = ({ to, icon: Icon, badge, children }: { to: string, icon: any, b
         <Link
           to={to}
           className={`flex items-center justify-center p-2 mx-auto w-10 h-10 rounded-lg transition-all duration-200 group ${isActive
-              ? 'bg-[#e2f9e1] text-green-900 font-semibold'
-              : 'text-gray-650 text-gray-600 font-medium hover:bg-gray-100 hover:text-gray-900'
+              ? 'bg-emerald-50 text-emerald-700 font-semibold'
+              : 'text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900'
             }`}
         >
-          <Icon className={`w-[18px] h-[18px] transition-colors ${isActive ? 'text-green-900' : 'text-gray-400 group-hover:text-gray-600'}`} strokeWidth={isActive ? 2.5 : 2} />
+          <Icon className={`w-[18px] h-[18px] transition-colors ${isActive ? 'text-emerald-700' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive ? 2.5 : 2} />
         </Link>
       </li>
     );
@@ -35,12 +35,12 @@ const NavLink = ({ to, icon: Icon, badge, children }: { to: string, icon: any, b
       <Link
         to={to}
         className={`flex items-center justify-between px-3 py-2 text-[13px] rounded-lg transition-all duration-200 group ${isActive
-            ? 'bg-[#e2f9e1] text-green-900 font-semibold'
-            : 'text-gray-650 text-gray-600 font-medium hover:bg-gray-100 hover:text-gray-900'
+            ? 'bg-emerald-50 text-emerald-700 font-semibold'
+            : 'text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900'
           }`}
       >
         <div className="flex items-center">
-          <Icon className={`w-[18px] h-[18px] mr-3 transition-colors ${isActive ? 'text-green-900' : 'text-gray-400 group-hover:text-gray-600'}`} strokeWidth={isActive ? 2.5 : 2} />
+          <Icon className={`w-[18px] h-[18px] mr-3 transition-colors ${isActive ? 'text-emerald-700' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive ? 2.5 : 2} />
           {children}
         </div>
         {badge !== undefined && badge > 0 && (
@@ -60,7 +60,7 @@ const SubNavLink = ({ to, badge, disabled, children }: { to: string, badge?: num
   if (disabled) {
     return (
       <li>
-        <span className="flex items-center pl-[42px] pr-3 py-1.5 text-[12px] text-gray-400 font-medium cursor-not-allowed italic">
+        <span className="flex items-center pl-[42px] pr-3 py-1.5 text-[12px] text-slate-400 font-medium cursor-not-allowed italic">
           {children} (Segera)
         </span>
       </li>
@@ -72,8 +72,8 @@ const SubNavLink = ({ to, badge, disabled, children }: { to: string, badge?: num
       <Link
         to={to}
         className={`flex items-center justify-between pl-[42px] pr-3 py-1.5 text-[12px] rounded-lg transition-all duration-200 group ${isActive
-            ? 'bg-gray-100 text-gray-900 font-semibold'
-            : 'text-gray-550 text-gray-500 font-medium hover:bg-gray-50 hover:text-gray-900'
+            ? 'bg-slate-100 text-slate-900 font-semibold'
+            : 'text-slate-600 font-medium hover:bg-slate-50 hover:text-slate-900'
           }`}
       >
         <span>{children}</span>
@@ -95,9 +95,9 @@ const GroupHeader = ({ label, icon: Icon, isOpen, onClick }: { label: string, ic
       <li title={label}>
         <button
           onClick={onClick}
-          className="w-10 h-10 mx-auto flex items-center justify-center p-2 rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900 group cursor-pointer"
+          className="w-10 h-10 mx-auto flex items-center justify-center p-2 rounded-lg transition-all duration-200 text-slate-700 hover:bg-slate-100 hover:text-slate-900 group cursor-pointer"
         >
-          <Icon className="w-[18px] h-[18px] text-gray-400 group-hover:text-gray-600 transition-colors" strokeWidth={2} />
+          <Icon className="w-[18px] h-[18px] text-slate-400 group-hover:text-slate-600 transition-colors" strokeWidth={2} />
         </button>
       </li>
     );
@@ -107,16 +107,16 @@ const GroupHeader = ({ label, icon: Icon, isOpen, onClick }: { label: string, ic
     <li>
       <button
         onClick={onClick}
-        className="w-full flex items-center justify-between px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-gray-700 font-medium hover:bg-gray-100 hover:text-gray-900 group cursor-pointer"
+        className="w-full flex items-center justify-between px-3 py-2 text-[13px] rounded-lg transition-all duration-200 text-slate-700 font-medium hover:bg-slate-100 hover:text-slate-900 group cursor-pointer"
       >
         <div className="flex items-center">
-          <Icon className="w-[18px] h-[18px] mr-3 text-gray-400 group-hover:text-gray-600 transition-colors" strokeWidth={2} />
+          <Icon className="w-[18px] h-[18px] mr-3 text-slate-400 group-hover:text-slate-600 transition-colors" strokeWidth={2} />
           <span>{label}</span>
         </div>
         {isOpen ? (
-          <ChevronDown className="w-4 h-4 text-gray-400" />
+          <ChevronDown className="w-4 h-4 text-slate-400" />
         ) : (
-          <ChevronRight className="w-4 h-4 text-gray-400" />
+          <ChevronRight className="w-4 h-4 text-slate-400" />
         )}
       </button>
     </li>
@@ -253,11 +253,11 @@ export const Sidebar: React.FC = () => {
 
   return (
     <SidebarContext.Provider value={{ isCollapsed }}>
-      <div className={`h-screen bg-white flex flex-col relative z-20 border-r border-gray-200 transition-all duration-300 ${isCollapsed ? 'w-[70px]' : 'w-[260px]'}`}>
+      <div className={`h-screen bg-white flex flex-col relative z-20 border-r border-slate-200 transition-all duration-300 ${isCollapsed ? 'w-[70px]' : 'w-[260px]'}`}>
         
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute top-4 -right-3 w-6 h-6 bg-white border border-gray-200 rounded-full shadow-md flex items-center justify-center cursor-pointer hover:bg-gray-50 text-green-600 z-50 transition-transform duration-205"
+          className="absolute top-4 -right-3 w-6 h-6 bg-white border border-slate-200 rounded-full shadow-md flex items-center justify-center cursor-pointer hover:bg-slate-50 text-emerald-600 z-50 transition-transform duration-205"
         >
           {isCollapsed ? (
             <ChevronRight className="w-3.5 h-3.5" strokeWidth={3} />
@@ -293,16 +293,16 @@ export const Sidebar: React.FC = () => {
           <div className="flex justify-center mb-4">
             <button
               onClick={() => setIsCollapsed(false)}
-              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-900 cursor-pointer"
+              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 cursor-pointer"
               title="Cari data..."
             >
-              <Search className="w-[18px] h-[18px] text-gray-400" />
+              <Search className="w-[18px] h-[18px] text-slate-400" />
             </button>
           </div>
         ) : (
           <div className="px-3 mb-4">
             <div className="relative flex items-center">
-              <Search className="absolute left-2.5 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-2.5 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Cari data..."
@@ -310,9 +310,9 @@ export const Sidebar: React.FC = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchFocused(true)}
                 onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-md py-1.5 pl-8 pr-8 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                className="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 pl-8 pr-8 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
               />
-              <span className="absolute right-2.5 text-[10px] font-medium text-gray-400 border border-gray-200 rounded px-1">Ctrl K</span>
+              <span className="absolute right-2.5 text-[10px] font-medium text-slate-400 border border-slate-200 rounded px-1">Ctrl K</span>
 
               {isSearchFocused && searchQuery.length >= 2 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto custom-scrollbar">

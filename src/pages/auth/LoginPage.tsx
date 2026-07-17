@@ -23,7 +23,7 @@ export default function LoginPage() {
       const response = await apiClient.post('/auth/login', { username, password });
       const { token, user } = response.data;
       login(token, { ...user, username });
-      navigate('/');
+      navigate('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login gagal. Periksa kembali username dan password Anda.');
     } finally {

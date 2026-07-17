@@ -39,6 +39,7 @@ import KeaktifanMapel from './pages/admin/KeaktifanMapel';
 import PengumumanUmum from './pages/umum/PengumumanUmum';
 import PengumumanPopup from './components/PengumumanPopup';
 import KalenderAkademikUmum from './pages/umum/KalenderAkademikUmum';
+import DaftarUlang from './pages/public/DaftarUlang';
 import RiwayatPerubahanData from './pages/core/RiwayatPerubahanData';
 import FaqPage from './pages/umum/FaqPage';
 import ProfileUser from './pages/core/ProfileUser';
@@ -193,6 +194,7 @@ export default function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/daftar-ulang" element={<DaftarUlang />} />
             <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="profile-cabang" element={<ProfilCabang />} />

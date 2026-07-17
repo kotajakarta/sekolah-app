@@ -9,7 +9,7 @@ export default function PengaturanAkademik() {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
-  const [formData, setFormData] = useState({ semesterAktif: 'Ganjil', tahunAjaran: '' });
+  const [formData, setFormData] = useState({ semesterAktif: 'Ganjil', tahunAjaran: '', kodeDaftarUlang: '' });
 
   const { data: setting, isLoading } = useQuery({
     queryKey: ['pengaturan-akademik'],
@@ -23,7 +23,8 @@ export default function PengaturanAkademik() {
     if (setting) {
       setFormData({
         semesterAktif: setting.semesterAktif || 'Ganjil',
-        tahunAjaran: setting.tahunAjaran || ''
+        tahunAjaran: setting.tahunAjaran || '',
+        kodeDaftarUlang: setting.kodeDaftarUlang || ''
       });
     }
   }, [setting]);
@@ -78,6 +79,17 @@ export default function PengaturanAkademik() {
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
               placeholder="Contoh: 2026/2027"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Kode Daftar Ulang</label>
+            <input
+              type="text"
+              value={formData.kodeDaftarUlang}
+              onChange={(e) => setFormData({ ...formData, kodeDaftarUlang: e.target.value })}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+              placeholder="Contoh: DAFTAR2026 (Kosongkan jika pendaftaran ditutup)"
+            />
+            <p className="text-xs text-slate-500 mt-1">Kode ini digunakan oleh calon santri / wali santri saat daftar ulang.</p>
           </div>
           <div className="pt-4 flex justify-end">
             <button

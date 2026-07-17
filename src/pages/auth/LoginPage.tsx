@@ -122,6 +122,19 @@ export default function LoginPage() {
             </div>
           </form>
 
+          <div className="mt-6 border-t border-slate-100 pt-6 text-center">
+            <span className="text-sm text-slate-500">
+              Calon Santri / Wali Santri?{' '}
+              <button
+                type="button"
+                onClick={() => navigate('/daftar-ulang')}
+                className="font-medium text-indigo-600 hover:text-slate-900 transition-colors"
+              >
+                Daftar Ulang di Sini
+              </button>
+            </span>
+          </div>
+
 
         </div>
       </div>

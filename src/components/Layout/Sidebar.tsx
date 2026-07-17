@@ -188,51 +188,51 @@ export const Sidebar: React.FC = () => {
     user?.scope === 'WILAYAH';
 
   const kelembagaanItems = [
-    { to: '/profile-cabang', label: 'Profil Cabang', show: user?.scope === 'CABANG' },
-    { to: '/formal/muadalah', label: 'Lembaga Muadalah', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
-    { to: '/core/cabang', label: t('sidebar.cabang'), show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
-    { to: '/core/wilayah', label: t('sidebar.wilayah'), show: user?.scope === 'GLOBAL' },
-    { to: '/formal/mapel', label: 'Mata Pelajaran', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
+    { to: '/dashboard/profile-cabang', label: 'Profil Cabang', show: user?.scope === 'CABANG' },
+    { to: '/dashboard/formal/muadalah', label: 'Lembaga Muadalah', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
+    { to: '/dashboard/core/cabang', label: t('sidebar.cabang'), show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
+    { to: '/dashboard/core/wilayah', label: t('sidebar.wilayah'), show: user?.scope === 'GLOBAL' },
+    { to: '/dashboard/formal/mapel', label: 'Mata Pelajaran', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
   ].filter(i => i.show);
 
   const sarprasItems = [
-    { to: '/sarpras/ruang', label: 'Ruang & Bangunan', show: true },
-    { to: '/sarpras/fasilitas', label: 'Fasilitas Utama', show: true },
+    { to: '/dashboard/sarpras/ruang', label: 'Ruang & Bangunan', show: true },
+    { to: '/dashboard/sarpras/fasilitas', label: 'Fasilitas Utama', show: true },
   ];
 
   const santriItems = [
-    { to: '/core/siswa', label: 'Data Semua Santri', show: true },
-    { to: '/formal/siswa', label: 'Santri Muadalah', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
-    { to: '/absensi/siswa', label: 'Absensi Siswa', show: true },
-    { to: '/core/pool', label: 'Pool Santri', show: user?.scope === 'GLOBAL' },
+    { to: '/dashboard/core/siswa', label: 'Data Semua Santri', show: true },
+    { to: '/dashboard/formal/siswa', label: 'Santri Muadalah', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
+    { to: '/dashboard/absensi/siswa', label: 'Absensi Siswa', show: true },
+    { to: '/dashboard/core/pool', label: 'Pool Santri', show: user?.scope === 'GLOBAL' },
   ].filter(i => i.show);
 
   const ustadzItems = [
-    { to: '/core/guru', label: 'Data Guru', show: true },
-    { to: '/formal/penugasan-guru', label: 'Penugasan Guru', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
-    { to: '/core/pool-guru', label: 'Pool Guru', show: user?.scope === 'GLOBAL' },
+    { to: '/dashboard/core/guru', label: 'Data Guru', show: true },
+    { to: '/dashboard/formal/penugasan-guru', label: 'Penugasan Guru', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
+    { to: '/dashboard/core/pool-guru', label: 'Pool Guru', show: user?.scope === 'GLOBAL' },
   ].filter(i => i.show);
 
   const showRombonganBelajar = user?.divisi === 'FORMAL' || user?.divisi === 'ALL';
 
   const layananItems = [
-    { to: '/umum/pengumuman', label: 'Pengumuman', show: true },
-    { to: '/umum/kalender', label: 'Kalender Pendidikan', show: true },
+    { to: '/dashboard/umum/pengumuman', label: 'Pengumuman', show: true },
+    { to: '/dashboard/umum/kalender', label: 'Kalender Pendidikan', show: true },
   ].filter(i => i.show);
 
   const monitoringItems = [
-    { to: '/dashboard/ketersediaan-guru', label: 'Ketersediaan Guru Mapel', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
-    { to: '/absensi/programs', label: 'Kelola Program Absensi', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
-    { to: '/core/riwayat-perubahan', label: 'Riwayat Perubahan Data', show: true },
+    { to: '/dashboard/dashboard/ketersediaan-guru', label: 'Ketersediaan Guru Mapel', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
+    { to: '/dashboard/absensi/programs', label: 'Kelola Program Absensi', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
+    { to: '/dashboard/core/riwayat-perubahan', label: 'Riwayat Perubahan Data', show: true },
   ].filter(i => i.show);
 
   const konfirmasiItems = [
-    { to: '/core/permintaan-tarik', label: 'Status Mutasi & Tarik Data', badge: pendingCount, show: true },
+    { to: '/dashboard/core/permintaan-tarik', label: 'Status Mutasi & Tarik Data', badge: pendingCount, show: true },
   ].filter(i => i.show);
 
   const laporanItems = [
-    { to: '/laporan/absensi', label: 'Rekapitulasi Absensi', show: true },
-    { to: '/laporan/evaluasi', label: 'Laporan Evaluasi', show: true, disabled: true },
+    { to: '/dashboard/laporan/absensi', label: 'Rekapitulasi Absensi', show: true },
+    { to: '/dashboard/laporan/evaluasi', label: 'Laporan Evaluasi', show: true, disabled: true },
   ];
 
   const location = useLocation();
@@ -408,7 +408,7 @@ export const Sidebar: React.FC = () => {
             </>
 
             {showRombonganBelajar && (
-              <NavLink to="/formal/kelas" icon={UserCheck}>Rombongan Belajar</NavLink>
+              <NavLink to="/dashboard/formal/kelas" icon={UserCheck}>Rombongan Belajar</NavLink>
             )}
 
             <>
@@ -507,13 +507,13 @@ export const Sidebar: React.FC = () => {
                 {isSettingsOpen && (
                   <div className="mt-1 pl-4 border-l border-slate-200 ml-5">
                     <ul className="space-y-1">
-                      <NavLink to="/settings/users" icon={Users}>Manage account</NavLink>
-                      <NavLink to="/settings/sync" icon={Database}>Sinkronisasi</NavLink>
-                      <NavLink to="/settings/akademik" icon={Database}>Pengaturan Akademik</NavLink>
-                      <NavLink to="/settings/pengumuman" icon={FileText}>Kelola Pengumuman</NavLink>
-                      <NavLink to="/settings/kalender" icon={FileText}>Kelola Kalender</NavLink>
-                      <NavLink to="/settings/keaktifan-mapel" icon={Database}>Keaktifan Mapel</NavLink>
-                      <NavLink to="/settings/faq" icon={FileText}>Kelola FAQ</NavLink>
+                      <NavLink to="/dashboard/settings/users" icon={Users}>Manage account</NavLink>
+                      <NavLink to="/dashboard/settings/sync" icon={Database}>Sinkronisasi</NavLink>
+                      <NavLink to="/dashboard/settings/akademik" icon={Database}>Pengaturan Akademik</NavLink>
+                      <NavLink to="/dashboard/settings/pengumuman" icon={FileText}>Kelola Pengumuman</NavLink>
+                      <NavLink to="/dashboard/settings/kalender" icon={FileText}>Kelola Kalender</NavLink>
+                      <NavLink to="/dashboard/settings/keaktifan-mapel" icon={Database}>Keaktifan Mapel</NavLink>
+                      <NavLink to="/dashboard/settings/faq" icon={FileText}>Kelola FAQ</NavLink>
                     </ul>
                   </div>
                 )}

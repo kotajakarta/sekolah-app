@@ -343,7 +343,7 @@ export const Sidebar: React.FC = () => {
 
         <nav className="flex-1 overflow-hidden hover:overflow-y-auto px-3 py-2 custom-scrollbar">
           <ul className="space-y-1">
-            <NavLink to="/" icon={Home}>Dashboard</NavLink>
+            <NavLink to="/dashboard" icon={Home}>Dashboard</NavLink>
 
             {showKelembagaan && (
               <>

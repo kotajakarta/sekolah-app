@@ -175,7 +175,7 @@ export default function KetersediaanGuruMapel() {
     <div className="font-sans text-slate-800 pb-12">
       {/* Header */}
       <div className="mb-6">
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 mb-4 transition-colors">
+        <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 mb-4 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard
         </Link>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

@@ -8,20 +8,27 @@ Image=docker.io/library/node:20-alpine
 WorkingDir=/app
 
 # Mengeset nama container agar bisa dipanggil oleh cloudflared tunnel
-ContainerName=daimi-app
+ContainerName=esantri-app
 
 # Menghubungkan container langsung ke jaringan Podman 'global_net'
 Network=global_net
 
 # Mount direktori kode aplikasi (dengan label keamanan SELinux ':Z')
-Volume=/data/podman-hosting/apps/sekolah-app:/app:Z
+Volume=/webku/appsku/esantri/sekolah-app:/app:Z
 
 # Menjalankan frontend app
 Environment=NODE_ENV=production
 Exec=node dist/server.cjs
 
 # Menggunakan berkas environment host RHEL
-EnvironmentFile=/data/podman-hosting/apps/sekolah-app/.env
+EnvironmentFile=/webku/appsku/esantri/sekolah-app/.env
+
+# Konfigurasi Health Check
+HealthCmd=node --input-type=module -e "import http from 'http'; http.get('http://localhost:3000/', (r) => { if (r.statusCode === 200) process.exit(0); else process.exit(1); }).on('error', () => process.exit(1));"
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=10s
 
 [Install]
 WantedBy=default.target

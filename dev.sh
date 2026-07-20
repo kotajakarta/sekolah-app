@@ -14,7 +14,6 @@ git commit -m "$COMMIT_MSG"
 echo "=== 3. Mem-push ke GitHub ==="
 git push origin main
 
-echo "Push Berhasil! Kode terbaru sekolah-app sudah ada di GitHub."
 
 # Script untuk menjalankan sekolah-app secara lokal untuk pengembangan
 echo "=== Menghentikan proses di port 3000 (jika ada) ==="

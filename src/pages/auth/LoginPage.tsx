@@ -20,7 +20,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await apiClient.post('/auth/signin', { username, password });
+      const response = await apiClient.post('/signin', { username, password });
       const { token, user } = response.data;
       login(token, { ...user, username });
       navigate('/dashboard');

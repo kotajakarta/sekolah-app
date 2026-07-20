@@ -30,7 +30,7 @@ apiClient.interceptors.response.use(
       const requestUrl = error.config?.url || '';
       // Jangan redirect jika ini adalah endpoint login itu sendiri
       // (401 di login = salah password, bukan sesi expired)
-      if (!requestUrl.includes('/auth/login') && !requestUrl.includes('/auth/signin')) {
+      if (!requestUrl.includes('/auth/login') && !requestUrl.includes('/auth/signin') && !requestUrl.includes('/signin')) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';

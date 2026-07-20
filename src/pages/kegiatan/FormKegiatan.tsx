@@ -211,7 +211,7 @@ export default function FormKegiatan() {
               required
               value={formData.templateId}
               onChange={handleInputChange}
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm bg-white"
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white"
             >
               <option value="">-- Pilih Template Kegiatan --</option>
               {templates.map(t => (
@@ -274,7 +274,7 @@ export default function FormKegiatan() {
               value={formData.deskripsi}
               onChange={handleInputChange}
               placeholder="Tuliskan berita acara pelaksanaan kegiatan cabang selengkap mungkin (rincian acara, jumlah peserta, kendala, hasil, dll)..."
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm font-sans"
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans"
             />
           </div>
         </div>
@@ -292,7 +292,7 @@ export default function FormKegiatan() {
               required
               value={formData.ketuaPanitiaId}
               onChange={handleInputChange}
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm bg-white"
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white"
             >
               <option value="">-- Pilih Ketua Panitia --</option>
               {filteredUsers.map(u => (
@@ -316,7 +316,7 @@ export default function FormKegiatan() {
               name="asramaId"
               value={formData.asramaId}
               onChange={handleInputChange}
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm bg-white"
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white"
             >
               <option value="">-- Tidak Berhubungan Dengan Asrama --</option>
               {asramaList.map(a => (
@@ -354,11 +354,11 @@ export default function FormKegiatan() {
               className="hidden"
             />
             <label htmlFor="file-input" className="cursor-pointer flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-650">
+              <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
                 <Upload className="w-6 h-6" />
               </div>
               <div>
-                <span className="text-indigo-650 font-semibold text-sm hover:underline">Pilih file</span> atau seret dan letakkan di sini
+                <span className="text-indigo-600 font-semibold text-sm hover:underline">Pilih file</span> atau seret dan letakkan di sini
                 <p className="text-[10px] text-slate-400 mt-1">Mendukung PDF, Word, JPG, PNG (Maks 10MB per file)</p>
               </div>
             </label>
@@ -402,7 +402,7 @@ export default function FormKegiatan() {
           <button
             type="submit"
             disabled={createMutation.isPending || !formData.templateId}
-            className="px-5 py-2 text-sm font-semibold rounded-lg bg-indigo-650 hover:bg-indigo-750 text-white shadow-sm flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
+            className="px-5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
           >
             {createMutation.isPending ? (
               <>

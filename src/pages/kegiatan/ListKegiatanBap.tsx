@@ -104,7 +104,7 @@ export default function ListKegiatanBap() {
         {user?.scope === 'CABANG' && (
           <button
             onClick={() => navigate('/dashboard/kegiatan/buat')}
-            className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-semibold rounded-lg text-white bg-indigo-650 hover:bg-indigo-700 transition-all cursor-pointer"
+            className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4 mr-2" />
             Buat Laporan BAP
@@ -114,7 +114,7 @@ export default function ListKegiatanBap() {
 
       {isLoading ? (
         <div className="bg-white border border-slate-200 rounded-xl p-12 flex justify-center items-center">
-          <Loader2 className="w-8 h-8 text-indigo-650 animate-spin" />
+          <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
         </div>
       ) : isError ? (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-6 text-center flex items-center justify-center gap-2">
@@ -127,7 +127,7 @@ export default function ListKegiatanBap() {
           {user?.scope === 'CABANG' && (
             <button
               onClick={() => navigate('/dashboard/kegiatan/buat')}
-              className="mt-4 px-4 py-2 text-xs font-bold text-indigo-650 border border-indigo-250 bg-white hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
+              className="mt-4 px-4 py-2 text-xs font-bold text-indigo-600 border border-indigo-200 bg-white hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
             >
               Mulai Buat Laporan Pertama
             </button>
@@ -191,7 +191,7 @@ export default function ListKegiatanBap() {
                         Diterima Pusat
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5 text-xs text-indigo-650 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full font-semibold">
+                      <div className="flex items-center gap-1.5 text-xs text-indigo-600 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full font-semibold">
                         <Clock className="w-4 h-4" />
                         Menunggu Verifikasi
                       </div>
@@ -207,8 +207,8 @@ export default function ListKegiatanBap() {
                     {/* Template Instruction Helper */}
                     <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-xl p-4 space-y-3">
                       <div>
-                        <span className="text-[10px] font-bold text-indigo-650 uppercase tracking-wider block">Petunjuk / Juknis Pusat:</span>
-                        <p className="text-xs text-slate-650 whitespace-pre-wrap">{bap.template.deskripsi}</p>
+                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">Petunjuk / Juknis Pusat:</span>
+                        <p className="text-xs text-slate-600 whitespace-pre-wrap">{bap.template.deskripsi}</p>
                       </div>
 
                       {bap.template.dokumen && bap.template.dokumen.length > 0 && (
@@ -288,7 +288,7 @@ export default function ListKegiatanBap() {
                         <button
                           onClick={() => confirmMutation.mutate(bap.id)}
                           disabled={confirmMutation.isPending}
-                          className="px-5 py-2 text-xs font-bold bg-indigo-650 hover:bg-indigo-750 text-white rounded-lg shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all cursor-pointer"
+                          className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all cursor-pointer"
                         >
                           {confirmMutation.isPending ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />

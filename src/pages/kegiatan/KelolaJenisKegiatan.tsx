@@ -114,13 +114,13 @@ export default function KelolaJenisKegiatan() {
                 placeholder="Contoh: HUT RI, Hari Besar Islam, dll"
                 value={newJenis}
                 onChange={(e) => setNewJenis(e.target.value)}
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm"
               />
             </div>
             <button
               type="submit"
               disabled={createMutation.isPending || !newJenis.trim()}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-650 hover:bg-indigo-750 rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
             >
               {createMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -136,7 +136,7 @@ export default function KelolaJenisKegiatan() {
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm md:col-span-2 overflow-hidden">
           {isLoading ? (
             <div className="p-12 flex justify-center items-center">
-              <Loader2 className="w-8 h-8 text-indigo-650 animate-spin" />
+              <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
             </div>
           ) : isError ? (
             <div className="p-6 text-center text-rose-600 flex items-center justify-center gap-2">
@@ -154,7 +154,7 @@ export default function KelolaJenisKegiatan() {
                         type="text"
                         value={editingName}
                         onChange={(e) => setEditingName(e.target.value)}
-                        className="flex-1 px-3 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-indigo-650"
+                        className="flex-1 px-3 py-1 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-indigo-600"
                       />
                       <button
                         onClick={() => handleUpdate(jenis.id)}
@@ -184,7 +184,7 @@ export default function KelolaJenisKegiatan() {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => startEdit(jenis)}
-                          className="p-2 text-slate-500 hover:text-indigo-650 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                          className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
                           title="Edit Kategori"
                         >
                           <Edit className="w-4.5 h-4.5" />

@@ -29,6 +29,7 @@ export default function RekapitulasiKelengkapanData() {
   const [selectedCabang, setSelectedCabang] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
 
   // Initialize locked scope values based on user role
   useEffect(() => {
@@ -40,6 +41,11 @@ export default function RekapitulasiKelengkapanData() {
       if (user?.cabangId) setSelectedCabang(user.cabangId);
     }
   }, [user, isWilayah, isCabang]);
+
+  // Reset current page when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedWilayah, selectedCabang, searchQuery]);
 
   // Load Wilayah list
   const { data: wilayahs = [] } = useQuery({
@@ -152,6 +158,11 @@ export default function RekapitulasiKelengkapanData() {
   const completeCount = processedStudents.filter(s => s.stats.percentage === 100).length;
   const incompleteCount = totalProcessed - completeCount;
 
+  // Pagination calculations
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(processedStudents.length / itemsPerPage);
+  const paginatedStudents = processedStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   // Get all active wilayahs to show in summary table
   const activeWilayahs = (() => {
     if (isGlobal) {
@@ -196,6 +207,37 @@ export default function RekapitulasiKelengkapanData() {
       totalActive: total
     };
   }).filter(w => w.totalActive > 0 || isGlobal);
+
+  const showCabangSummary = !!selectedWilayah || isWilayah || isCabang;
+
+  const cabangSummaries = filteredBranches.map((c: any) => {
+    // Filter students belonging to this cabang
+    const cStudents = students.filter(s => s.statusPool !== 'TERSEDIA' && s.cabangId === c.id);
+    const total = cStudents.length;
+
+    let sumPercentage = 0;
+    let complete = 0;
+    
+    cStudents.forEach(s => {
+      const stats = getCompletenessDetails(s);
+      sumPercentage += stats.percentage;
+      if (stats.percentage === 100) {
+        complete += 1;
+      }
+    });
+
+    const avg = total > 0 ? Math.round(sumPercentage / total) : 0;
+    const incomplete = total - complete;
+
+    return {
+      id: c.id,
+      name: c.name,
+      averageProgress: avg,
+      completeCount: complete,
+      incompleteCount: incomplete,
+      totalActive: total
+    };
+  }).filter(c => c.totalActive > 0 || (isGlobal || isWilayah));
 
   return (
     <div className="space-y-6 p-6">
@@ -324,53 +366,103 @@ export default function RekapitulasiKelengkapanData() {
         </div>
       </div>
 
-      {/* Wilayah Summary Table */}
-      {wilayahSummaries.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 text-sm font-bold text-slate-800">
-            <Activity className="w-4 h-4 text-indigo-500" />
-            Ringkasan Kelengkapan per Wilayah
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200/80 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  <th className="py-3 px-6">Nama Wilayah</th>
-                  <th className="py-3 px-6 text-center">Rata-rata Kelengkapan</th>
-                  <th className="py-3 px-6 text-center">Data Lengkap (100%)</th>
-                  <th className="py-3 px-6 text-center">Belum Lengkap (&lt;100%)</th>
-                  <th className="py-3 px-6 text-center">Total Santri Aktif</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {wilayahSummaries.map((w) => {
-                  let progressColor = 'text-rose-600 bg-rose-50 border-rose-100';
-                  if (w.averageProgress === 100) {
-                    progressColor = 'text-emerald-700 bg-emerald-50 border-emerald-100';
-                  } else if (w.averageProgress >= 75) {
-                    progressColor = 'text-indigo-700 bg-indigo-50 border-indigo-100';
-                  } else if (w.averageProgress >= 50) {
-                    progressColor = 'text-amber-700 bg-amber-50 border-amber-100';
-                  }
+      {/* Summary Table (Wilayah or Cabang) */}
+      {!showCabangSummary ? (
+        wilayahSummaries.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 text-sm font-bold text-slate-800">
+              <Activity className="w-4 h-4 text-indigo-500" />
+              Ringkasan Kelengkapan per Wilayah
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200/80 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="py-3 px-6">Nama Wilayah</th>
+                    <th className="py-3 px-6 text-center">Rata-rata Kelengkapan</th>
+                    <th className="py-3 px-6 text-center">Data Lengkap (100%)</th>
+                    <th className="py-3 px-6 text-center">Belum Lengkap (&lt;100%)</th>
+                    <th className="py-3 px-6 text-center">Total Santri Aktif</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {wilayahSummaries.map((w) => {
+                    let progressColor = 'text-rose-600 bg-rose-50 border-rose-100';
+                    if (w.averageProgress === 100) {
+                      progressColor = 'text-emerald-700 bg-emerald-50 border-emerald-100';
+                    } else if (w.averageProgress >= 75) {
+                      progressColor = 'text-indigo-700 bg-indigo-50 border-indigo-100';
+                    } else if (w.averageProgress >= 50) {
+                      progressColor = 'text-amber-700 bg-amber-50 border-amber-100';
+                    }
 
-                  return (
-                    <tr key={w.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-4 px-6 font-semibold text-slate-850 text-sm">{w.name}</td>
-                      <td className="py-4 px-6 text-center">
-                        <span className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full border ${progressColor}`}>
-                          {w.averageProgress}%
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-center text-sm font-medium text-slate-700">{w.completeCount}</td>
-                      <td className="py-4 px-6 text-center text-sm font-medium text-slate-700">{w.incompleteCount}</td>
-                      <td className="py-4 px-6 text-center text-sm font-bold text-slate-850">{w.totalActive}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    return (
+                      <tr key={w.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-4 px-6 font-semibold text-slate-850 text-sm">{w.name}</td>
+                        <td className="py-4 px-6 text-center">
+                          <span className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full border ${progressColor}`}>
+                            {w.averageProgress}%
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center text-sm font-medium text-slate-700">{w.completeCount}</td>
+                        <td className="py-4 px-6 text-center text-sm font-medium text-slate-700">{w.incompleteCount}</td>
+                        <td className="py-4 px-6 text-center text-sm font-bold text-slate-850">{w.totalActive}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )
+      ) : (
+        cabangSummaries.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 text-sm font-bold text-slate-800">
+              <Activity className="w-4 h-4 text-indigo-500" />
+              Ringkasan Kelengkapan per Cabang
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200/80 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="py-3 px-6">Nama Cabang</th>
+                    <th className="py-3 px-6 text-center">Rata-rata Kelengkapan</th>
+                    <th className="py-3 px-6 text-center">Data Lengkap (100%)</th>
+                    <th className="py-3 px-6 text-center">Belum Lengkap (&lt;100%)</th>
+                    <th className="py-3 px-6 text-center">Total Santri Aktif</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {cabangSummaries.map((c) => {
+                    let progressColor = 'text-rose-600 bg-rose-50 border-rose-100';
+                    if (c.averageProgress === 100) {
+                      progressColor = 'text-emerald-700 bg-emerald-50 border-emerald-100';
+                    } else if (c.averageProgress >= 75) {
+                      progressColor = 'text-indigo-700 bg-indigo-50 border-indigo-100';
+                    } else if (c.averageProgress >= 50) {
+                      progressColor = 'text-amber-700 bg-amber-50 border-amber-100';
+                    }
+
+                    return (
+                      <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-4 px-6 font-semibold text-slate-850 text-sm">{c.name}</td>
+                        <td className="py-4 px-6 text-center">
+                          <span className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full border ${progressColor}`}>
+                            {c.averageProgress}%
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-center text-sm font-medium text-slate-700">{c.completeCount}</td>
+                        <td className="py-4 px-6 text-center text-sm font-medium text-slate-700">{c.incompleteCount}</td>
+                        <td className="py-4 px-6 text-center text-sm font-bold text-slate-850">{c.totalActive}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       )}
 
       {/* Main Table Section */}
@@ -381,7 +473,8 @@ export default function RekapitulasiKelengkapanData() {
             <span className="text-sm font-semibold">Memuat data kelengkapan...</span>
           </div>
         ) : processedStudents.length > 0 ? (
-          <div className="overflow-x-auto">
+          <>
+            <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-55 border-b border-slate-200/80 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -394,7 +487,7 @@ export default function RekapitulasiKelengkapanData() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {processedStudents.map((s, idx) => {
+                {paginatedStudents.map((s, idx) => {
                   const percent = s.stats.percentage;
                   let barColor = 'bg-rose-500';
                   let textColor = 'text-rose-600 bg-rose-50 border-rose-100';
@@ -418,7 +511,7 @@ export default function RekapitulasiKelengkapanData() {
 
                   return (
                     <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-4 px-6 text-center text-sm font-semibold text-slate-500">{idx + 1}</td>
+                      <td className="py-4 px-6 text-center text-sm font-semibold text-slate-500">{((currentPage - 1) * itemsPerPage) + idx + 1}</td>
                       <td className="py-4 px-6">
                         <div className="font-semibold text-slate-800 text-sm">{b?.fullName}</div>
                         <div className="text-xs text-slate-400 font-medium mt-0.5">NIK: {b?.nik || '-'} • NISN: {b?.nisn || '-'}</div>
@@ -460,6 +553,53 @@ export default function RekapitulasiKelengkapanData() {
               </tbody>
             </table>
           </div>
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="bg-slate-50 border-t border-slate-200/80 px-6 py-4 flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500">
+                Menampilkan {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, processedStudents.length)} dari {processedStudents.length} santri
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                  className="inline-flex items-center justify-center px-3 py-1.5 bg-white border border-slate-200 shadow-sm text-xs font-semibold rounded-lg text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                >
+                  Sebelumnya
+                </button>
+                {[...Array(totalPages)].map((_, i) => {
+                  const page = i + 1;
+                  if (totalPages > 6 && Math.abs(page - currentPage) > 2 && page !== 1 && page !== totalPages) {
+                    if (page === 2 || page === totalPages - 1) {
+                      return <span key={page} className="text-slate-400 text-xs px-1">...</span>;
+                    }
+                    return null;
+                  }
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`inline-flex items-center justify-center w-8 h-8 text-xs font-bold rounded-lg border transition-colors ${
+                        currentPage === page
+                          ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  className="inline-flex items-center justify-center px-3 py-1.5 bg-white border border-slate-200 shadow-sm text-xs font-semibold rounded-lg text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                >
+                  Selanjutnya
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-2">
             <XCircle className="w-12 h-12 text-slate-300" />

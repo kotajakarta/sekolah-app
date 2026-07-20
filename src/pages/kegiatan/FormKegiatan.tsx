@@ -4,21 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
-import { Calendar, Upload, Users, Home, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag, Download } from 'lucide-react';
+import { Calendar, Upload, Users, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag, Download, Image as ImageIcon } from 'lucide-react';
 
-interface User {
+interface Guru {
   id: string;
-  username: string;
-  operatorName: string | null;
-  cabangId: string | null;
-}
-
-interface Ruang {
-  id: string;
-  nama: string;
-  tipe: string;
-  cabangId: string;
-  cabang?: { name: string };
+  name: string;
+  position: string;
+  cabangId?: string | null;
 }
 
 interface TemplateKegiatan {
@@ -40,11 +32,13 @@ export default function FormKegiatan() {
     templateId: '',
     deskripsi: '',
     ketuaPanitiaId: '',
-    asramaId: '',
   });
 
-  const [files, setFiles] = useState<File[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
+  const [docFiles, setDocFiles] = useState<File[]>([]);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+
+  const [isDraggingDoc, setIsDraggingDoc] = useState(false);
+  const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
 
   // Fetch list of templates
   const { data: templates = [], isLoading: isLoadingTemplates } = useQuery<TemplateKegiatan[]>({
@@ -55,39 +49,21 @@ export default function FormKegiatan() {
     }
   });
 
-  // Fetch Users for Ketua Panitia list
-  const { data: users = [] } = useQuery<User[]>({
-    queryKey: ['admin', 'users'],
+  // Fetch Gurus/Staff list for Ketua Panitia selection
+  const { data: gurus = [], isLoading: isLoadingGurus } = useQuery<Guru[]>({
+    queryKey: ['master-data', 'guru'],
     queryFn: async () => {
-      const res = await apiClient.get('/admin/users');
+      const res = await apiClient.get('/master-data/guru');
       return res.data;
     }
   });
 
-  // Filter users to only show users in the same branch
-  const filteredUsers = users.filter(u => {
+  // Filter gurus to only show teachers in the same branch
+  const filteredGurus = gurus.filter(g => {
     if (user?.scope === 'CABANG') {
-      return u.cabangId === user.cabangId;
+      return g.cabangId === user.cabangId;
     }
     return true;
-  });
-
-  // Fetch Rooms to display as target Asrama
-  const { data: rooms = [] } = useQuery<Ruang[]>({
-    queryKey: ['ruang'],
-    queryFn: async () => {
-      const res = await apiClient.get('/sarpras/ruang');
-      return res.data;
-    }
-  });
-
-  // Filter rooms to only show Asrama in the same branch
-  const asramaList = rooms.filter(r => {
-    const isAsrama = r.tipe === 'ASRAMA';
-    if (user?.scope === 'CABANG') {
-      return isAsrama && r.cabangId === user.cabangId;
-    }
-    return isAsrama;
   });
 
   // Get current selected template info
@@ -128,34 +104,74 @@ export default function FormKegiatan() {
     document.body.removeChild(link);
   };
 
-  // Drag and drop handlers
-  const handleDragOver = (e: React.DragEvent) => {
+  // Drag and drop handlers for Documents
+  const handleDragOverDoc = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
+    setIsDraggingDoc(true);
   };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
+  const handleDragLeaveDoc = () => {
+    setIsDraggingDoc(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDropDoc = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
+    setIsDraggingDoc(false);
     if (e.dataTransfer.files) {
-      const newFiles = Array.from(e.dataTransfer.files);
-      setFiles(prev => [...prev, ...newFiles]);
+      const newFiles = Array.from(e.dataTransfer.files).filter(file => 
+        file.name.endsWith('.pdf') || file.name.endsWith('.doc') || file.name.endsWith('.docx')
+      );
+      if (newFiles.length === 0) {
+        showToast('error', 'Hanya menerima file dokumen (PDF, DOC, DOCX)');
+      }
+      setDocFiles(prev => [...prev, ...newFiles]);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDocFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
-      setFiles(prev => [...prev, ...newFiles]);
+      setDocFiles(prev => [...prev, ...newFiles]);
     }
   };
 
-  const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
+  const removeDocFile = (index: number) => {
+    setDocFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Drag and drop handlers for Photos
+  const handleDragOverPhoto = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingPhoto(true);
+  };
+
+  const handleDragLeavePhoto = () => {
+    setIsDraggingPhoto(false);
+  };
+
+  const handleDropPhoto = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingPhoto(false);
+    if (e.dataTransfer.files) {
+      const newFiles = Array.from(e.dataTransfer.files).filter(file => 
+        file.type.startsWith('image/')
+      );
+      if (newFiles.length === 0) {
+        showToast('error', 'Hanya menerima file gambar/foto');
+      }
+      setPhotoFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setPhotoFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removePhotoFile = (index: number) => {
+    setPhotoFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -165,29 +181,31 @@ export default function FormKegiatan() {
       return;
     }
 
+    if (docFiles.length === 0) {
+      showToast('error', 'Silakan unggah minimal satu dokumen laporan BAP.');
+      return;
+    }
+
     const payload = new FormData();
     payload.append('templateId', formData.templateId);
     payload.append('deskripsi', formData.deskripsi);
     payload.append('ketuaPanitiaId', formData.ketuaPanitiaId);
     
-    if (formData.asramaId) {
-      payload.append('asramaId', formData.asramaId);
-    }
-    
     if (user?.scope === 'CABANG' && user.cabangId) {
       payload.append('cabangId', user.cabangId);
     }
 
-    files.forEach(file => {
-      payload.append('files', file);
-    });
+    // Combine doc files and photo files
+    docFiles.forEach(file => payload.append('files', file));
+    photoFiles.forEach(file => payload.append('files', file));
 
     createMutation.mutate(payload);
   };
 
   return (
-    <div className="max-w-4xl mx-auto pb-12 animate-in fade-in duration-300">
-      <div className="flex items-center gap-4 mb-6">
+    <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-300">
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
         <button
           onClick={() => navigate('/dashboard/kegiatan')}
           className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
@@ -262,11 +280,11 @@ export default function FormKegiatan() {
           )}
         </div>
 
-        {/* Input Details */}
+        {/* Laporan Deskripsi */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-          <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3">Laporan Pelaksanaan Cabang</h2>
+          <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3">Pelaksanaan Kegiatan</h2>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Deskripsi Pelaksanaan / BAP Cabang <span className="text-rose-500">*</span></label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Laporan Pelaksanaan Kegiatan <span className="text-rose-500">*</span></label>
             <textarea
               name="deskripsi"
               rows={6}
@@ -286,107 +304,159 @@ export default function FormKegiatan() {
             Penanggung Jawab / Ketua Panitia
           </h2>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ketua Panitia Cabang <span className="text-rose-500">*</span></label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ketua Panitia Cabang (Guru) <span className="text-rose-500">*</span></label>
             <select
               name="ketuaPanitiaId"
               required
               value={formData.ketuaPanitiaId}
               onChange={handleInputChange}
+              disabled={isLoadingGurus}
               className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white"
             >
-              <option value="">-- Pilih Ketua Panitia --</option>
-              {filteredUsers.map(u => (
-                <option key={u.id} value={u.id}>
-                  {u.operatorName ? `${u.operatorName} (${u.username})` : u.username}
+              <option value="">{isLoadingGurus ? 'Memuat guru...' : '-- Pilih Guru Cabang --'}</option>
+              {filteredGurus.map(g => (
+                <option key={g.id} value={g.id}>
+                  {g.name} ({g.position})
                 </option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Target Asrama (Optional) */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-          <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
-            <Home className="w-5 h-5 text-indigo-500" />
-            Asrama Terkait (Opsional)
-          </h2>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Pilih Asrama</label>
-            <select
-              name="asramaId"
-              value={formData.asramaId}
-              onChange={handleInputChange}
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white"
-            >
-              <option value="">-- Tidak Berhubungan Dengan Asrama --</option>
-              {asramaList.map(a => (
-                <option key={a.id} value={a.id}>
-                  {a.nama} {a.cabang ? `(${a.cabang.name})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* File Upload (Drag and Drop) */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-          <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
-            <Upload className="w-5 h-5 text-indigo-500" />
-            Dokumen BAP & Foto Pendukung
-          </h2>
-          <p className="text-xs text-slate-500">Unggah berkas BAP (PDF, Word) dan dokumentasi foto kegiatan cabang.</p>
-
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
-              isDragging
-                ? 'border-indigo-600 bg-indigo-50/10'
-                : 'border-slate-300 bg-slate-50/30 hover:bg-slate-50/50'
-            }`}
-          >
-            <input
-              type="file"
-              multiple
-              id="file-input"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            <label htmlFor="file-input" className="cursor-pointer flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <Upload className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-indigo-600 font-semibold text-sm hover:underline">Pilih file</span> atau seret dan letakkan di sini
-                <p className="text-[10px] text-slate-400 mt-1">Mendukung PDF, Word, JPG, PNG (Maks 10MB per file)</p>
-              </div>
-            </label>
-          </div>
-
-          {files.length > 0 && (
-            <div className="space-y-2">
-              <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">File terpilih ({files.length}):</span>
-              <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-white">
-                {files.map((file, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 text-xs">
-                    <div className="flex items-center gap-2 truncate">
-                      <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
-                      <span className="font-semibold text-slate-700 truncate">{file.name}</span>
-                      <span className="text-[10px] text-slate-400 font-mono shrink-0">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeFile(idx)}
-                      className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+        {/* Upload Cards: Split into Documents and Photos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Card 1: Dokumen BAP */}
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4 flex flex-col justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-indigo-500" />
+                Dokumen Laporan BAP <span className="text-rose-500">*</span>
+              </h3>
+              <p className="text-xs text-slate-500 mb-3">Unggah berkas berita acara (PDF, Word). Wajib melampirkan berkas laporan ini.</p>
+              
+              {/* Template Download Prompt */}
+              {selectedTemplate && selectedTemplate.dokumen && selectedTemplate.dokumen.length > 0 ? (
+                <div className="mb-4 bg-indigo-50/50 border border-indigo-100 rounded-lg p-3 text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-indigo-900 truncate mr-2">
+                    <Info className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">Unduh template: {selectedTemplate.dokumen[0].fileName}</span>
                   </div>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => handleDownload(selectedTemplate.dokumen[0].filePath, selectedTemplate.dokumen[0].fileName)}
+                    className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1 shrink-0"
+                  >
+                    <Download className="w-3 h-3" /> Unduh
+                  </button>
+                </div>
+              ) : null}
+
+              {/* Uploader */}
+              <div
+                onDragOver={handleDragOverDoc}
+                onDragLeave={handleDragLeaveDoc}
+                onDrop={handleDropDoc}
+                className={`border border-dashed rounded-lg p-5 text-center cursor-pointer transition-colors ${
+                  isDraggingDoc ? 'border-indigo-500 bg-indigo-50/10' : 'border-slate-300 hover:bg-slate-50/50'
+                }`}
+              >
+                <input
+                  type="file"
+                  multiple
+                  id="doc-file-input"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleDocFileChange}
+                  className="hidden"
+                />
+                <label htmlFor="doc-file-input" className="cursor-pointer flex flex-col items-center gap-2">
+                  <Upload className="w-6 h-6 text-indigo-500" />
+                  <span className="text-xs text-slate-600">
+                    <span className="text-indigo-600 font-semibold hover:underline">Pilih berkas</span> atau seret kemari
+                  </span>
+                  <span className="text-[10px] text-slate-400">PDF, DOC, DOCX (Maks 10MB)</span>
+                </label>
               </div>
             </div>
-          )}
+
+            {docFiles.length > 0 && (
+              <div className="mt-3 space-y-1">
+                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Berkas diunggah:</span>
+                <div className="border border-slate-200 rounded-lg overflow-hidden bg-white divide-y divide-slate-100">
+                  {docFiles.map((file, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2 text-xs">
+                      <span className="font-medium text-slate-700 truncate flex-1 mr-2">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeDocFile(idx)}
+                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Card 2: Foto Kegiatan */}
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4 flex flex-col justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-indigo-500" />
+                Foto Kegiatan
+              </h3>
+              <p className="text-xs text-slate-500 mb-3">Unggah foto-foto dokumentasi saat pelaksanaan kegiatan berlangsung.</p>
+
+              {/* Uploader */}
+              <div
+                onDragOver={handleDragOverPhoto}
+                onDragLeave={handleDragLeavePhoto}
+                onDrop={handleDropPhoto}
+                className={`border border-dashed rounded-lg p-5 text-center cursor-pointer transition-colors ${
+                  isDraggingPhoto ? 'border-indigo-500 bg-indigo-50/10' : 'border-slate-300 hover:bg-slate-50/50'
+                }`}
+              >
+                <input
+                  type="file"
+                  multiple
+                  id="photo-file-input"
+                  accept="image/*"
+                  onChange={handlePhotoFileChange}
+                  className="hidden"
+                />
+                <label htmlFor="photo-file-input" className="cursor-pointer flex flex-col items-center gap-2">
+                  <Upload className="w-6 h-6 text-indigo-500" />
+                  <span className="text-xs text-slate-600">
+                    <span className="text-indigo-600 font-semibold hover:underline">Pilih foto</span> atau seret kemari
+                  </span>
+                  <span className="text-[10px] text-slate-400">Format Gambar JPG, PNG (Maks 10MB)</span>
+                </label>
+              </div>
+            </div>
+
+            {photoFiles.length > 0 && (
+              <div className="mt-3 space-y-1">
+                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Foto diunggah:</span>
+                <div className="border border-slate-200 rounded-lg overflow-hidden bg-white divide-y divide-slate-100">
+                  {photoFiles.map((file, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2 text-xs">
+                      <span className="font-medium text-slate-700 truncate flex-1 mr-2">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removePhotoFile(idx)}
+                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
 
         {/* Submit Actions */}

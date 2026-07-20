@@ -279,7 +279,7 @@ export default function KelolaTemplateKegiatan() {
 
             {/* Document Uploader for Template */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Unggah Lampiran Juknis / Foto Acuan</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Unggah Template Dokumen BAP (Format DOCX)</label>
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -293,11 +293,12 @@ export default function KelolaTemplateKegiatan() {
                   multiple
                   id="template-file-input"
                   onChange={handleFileChange}
+                  accept=".docx"
                   className="hidden"
                 />
                 <label htmlFor="template-file-input" className="cursor-pointer flex flex-col items-center gap-1">
-                  <Upload className="w-5 h-5 text-indigo-500" />
-                  <span className="text-xs text-slate-600"><span className="text-indigo-600 font-semibold hover:underline">Pilih file</span> atau seret kemari</span>
+                  <Upload className="w-5 h-5 text-indigo-600" />
+                  <span className="text-xs text-slate-600"><span className="text-indigo-600 font-semibold hover:underline">Pilih file DOCX</span> atau seret kemari</span>
                 </label>
               </div>
 

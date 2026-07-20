@@ -2,9 +2,17 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
+import helmet from "helmet";
 
 async function startServer() {
   const server = express();
+  
+  // Set security headers using helmet
+  server.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }));
+
   const PORT = 3000;
 
   // In development, Vite handles all frontend serving + proxy to backend API

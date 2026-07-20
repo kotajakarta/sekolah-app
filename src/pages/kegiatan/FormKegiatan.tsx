@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
-import { Calendar, Upload, Users, Home, AlertCircle, FileText, X, Check, ArrowLeft, Loader2 } from 'lucide-react';
+import { Calendar, Upload, Users, Home, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag } from 'lucide-react';
 
 interface User {
   id: string;
@@ -21,6 +21,14 @@ interface Ruang {
   cabang?: { name: string };
 }
 
+interface TemplateKegiatan {
+  id: string;
+  judul: string;
+  deskripsi: string;
+  deadline: string;
+  jenis: { nama: string };
+}
+
 export default function FormKegiatan() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -28,17 +36,23 @@ export default function FormKegiatan() {
   const queryClient = useQueryClient();
 
   const [formData, setFormData] = useState({
-    judul: '',
+    templateId: '',
     deskripsi: '',
-    ringkasan: '',
-    jenis: 'LAINNYA',
-    deadline: '',
     ketuaPanitiaId: '',
     asramaId: '',
   });
 
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Fetch list of templates
+  const { data: templates = [], isLoading: isLoadingTemplates } = useQuery<TemplateKegiatan[]>({
+    queryKey: ['template-kegiatan'],
+    queryFn: async () => {
+      const res = await apiClient.get('/kegiatan/templates');
+      return res.data;
+    }
+  });
 
   // Fetch Users for Ketua Panitia list
   const { data: users = [] } = useQuery<User[]>({
@@ -49,7 +63,7 @@ export default function FormKegiatan() {
     }
   });
 
-  // Filter users to only show users in the same branch (for CABANG scope)
+  // Filter users to only show users in the same branch
   const filteredUsers = users.filter(u => {
     if (user?.scope === 'CABANG') {
       return u.cabangId === user.cabangId;
@@ -74,6 +88,9 @@ export default function FormKegiatan() {
     }
     return isAsrama;
   });
+
+  // Get current selected template info
+  const selectedTemplate = templates.find(t => t.id === formData.templateId);
 
   // Mutation to create Kegiatan BAP
   const createMutation = useMutation<any, Error, FormData>({
@@ -131,17 +148,14 @@ export default function FormKegiatan() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.judul || !formData.deskripsi || !formData.deadline || !formData.ketuaPanitiaId) {
+    if (!formData.templateId || !formData.deskripsi || !formData.ketuaPanitiaId) {
       showToast('error', 'Silakan lengkapi form yang wajib diisi.');
       return;
     }
 
     const payload = new FormData();
-    payload.append('judul', formData.judul);
+    payload.append('templateId', formData.templateId);
     payload.append('deskripsi', formData.deskripsi);
-    payload.append('ringkasan', formData.ringkasan);
-    payload.append('jenis', formData.jenis);
-    payload.append('deadline', formData.deadline);
     payload.append('ketuaPanitiaId', formData.ketuaPanitiaId);
     
     if (formData.asramaId) {
@@ -170,83 +184,66 @@ export default function FormKegiatan() {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Buat Laporan BAP Kegiatan</h1>
-          <p className="text-sm text-slate-500">Laporkan Berita Acara Pelaksanaan kegiatan baru cabang Anda kepada Pusat.</p>
+          <p className="text-sm text-slate-500">Laporkan Berita Acara Pelaksanaan kegiatan baru cabang Anda berdasarkan template dari Pusat.</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Main Details */}
+        {/* Select Template */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-          <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3">Informasi Kegiatan BAP</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Judul Kegiatan <span className="text-rose-500">*</span></label>
-              <input
-                type="text"
-                name="judul"
-                required
-                value={formData.judul}
-                onChange={handleInputChange}
-                placeholder="Contoh: Laporan BAP Milad Cabang 1"
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm"
-              />
-            </div>
+          <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3">Pilih Kegiatan</h2>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Pilih Template Kegiatan <span className="text-rose-500">*</span></label>
+            <select
+              name="templateId"
+              required
+              value={formData.templateId}
+              onChange={handleInputChange}
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm bg-white"
+            >
+              <option value="">-- Pilih Template Kegiatan --</option>
+              {templates.map(t => (
+                <option key={t.id} value={t.id}>{t.judul} ({t.jenis.nama})</option>
+              ))}
+            </select>
+          </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Jenis Kegiatan <span className="text-rose-500">*</span></label>
-              <select
-                name="jenis"
-                value={formData.jenis}
-                onChange={handleInputChange}
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm bg-white"
-              >
-                <option value="HUT">HUT / Milad</option>
-                <option value="RAMADHAN">Kegiatan Ramadhan</option>
-                <option value="PIKNIK">Piknik / Rihlah</option>
-                <option value="LAINNYA">Lainnya</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tanggal Pelaksanaan / Deadline <span className="text-rose-500">*</span></label>
-              <div className="relative">
-                <input
-                  type="datetime-local"
-                  name="deadline"
-                  required
-                  value={formData.deadline}
-                  onChange={handleInputChange}
-                  className="w-full px-3.5 py-2 pl-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm"
-                />
-                <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          {selectedTemplate && (
+            <div className="bg-indigo-50/40 border border-indigo-100 rounded-xl p-5 mt-4 space-y-3">
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-100/50 border border-indigo-200 text-indigo-700">
+                    <Tag className="w-3 h-3" />
+                    Kategori: {selectedTemplate.jenis.nama}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 border border-rose-100 text-rose-700">
+                    <Calendar className="w-3 h-3" />
+                    Deadline Laporan: {new Date(selectedTemplate.deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Juknis & Petunjuk Pusat:</span>
+                <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{selectedTemplate.deskripsi}</p>
               </div>
             </div>
+          )}
+        </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ringkasan Singkat</label>
-              <input
-                type="text"
-                name="ringkasan"
-                value={formData.ringkasan}
-                onChange={handleInputChange}
-                placeholder="Ringkasan 1 kalimat juknis..."
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Deskripsi Lengkap / Laporan <span className="text-rose-500">*</span></label>
-              <textarea
-                name="deskripsi"
-                rows={4}
-                required
-                value={formData.deskripsi}
-                onChange={handleInputChange}
-                placeholder="Tuliskan berita acara pelaksanaan kegiatan selengkap mungkin..."
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm font-sans"
-              />
-            </div>
+        {/* Input Details */}
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+          <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3">Laporan Pelaksanaan Cabang</h2>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Deskripsi Pelaksanaan / BAP Cabang <span className="text-rose-500">*</span></label>
+            <textarea
+              name="deskripsi"
+              rows={6}
+              required
+              value={formData.deskripsi}
+              onChange={handleInputChange}
+              placeholder="Tuliskan berita acara pelaksanaan kegiatan cabang selengkap mungkin (rincian acara, jumlah peserta, kendala, hasil, dll)..."
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm font-sans"
+            />
           </div>
         </div>
 
@@ -257,7 +254,7 @@ export default function FormKegiatan() {
             Penanggung Jawab / Ketua Panitia
           </h2>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ketua Panitia <span className="text-rose-500">*</span></label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ketua Panitia Cabang <span className="text-rose-500">*</span></label>
             <select
               name="ketuaPanitiaId"
               required
@@ -305,7 +302,7 @@ export default function FormKegiatan() {
             <Upload className="w-5 h-5 text-indigo-500" />
             Dokumen BAP & Foto Pendukung
           </h2>
-          <p className="text-xs text-slate-500">Unggah berkas BAP (PDF, Word) dan dokumentasi kegiatan lainnya.</p>
+          <p className="text-xs text-slate-500">Unggah berkas BAP (PDF, Word) dan dokumentasi foto kegiatan cabang.</p>
 
           <div
             onDragOver={handleDragOver}
@@ -372,7 +369,7 @@ export default function FormKegiatan() {
           </button>
           <button
             type="submit"
-            disabled={createMutation.isPending}
+            disabled={createMutation.isPending || !formData.templateId}
             className="px-5 py-2 text-sm font-semibold rounded-lg bg-indigo-650 hover:bg-indigo-750 text-white shadow-sm flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
           >
             {createMutation.isPending ? (

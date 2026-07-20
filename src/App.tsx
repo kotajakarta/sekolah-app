@@ -56,6 +56,8 @@ import ManajemenFasilitas from './pages/sarpras/ManajemenFasilitas';
 import KelolaFaq from './pages/settings/KelolaFaq';
 import FormKegiatan from './pages/kegiatan/FormKegiatan';
 import ListKegiatanBap from './pages/kegiatan/ListKegiatanBap';
+import KelolaJenisKegiatan from './pages/kegiatan/KelolaJenisKegiatan';
+import KelolaTemplateKegiatan from './pages/kegiatan/KelolaTemplateKegiatan';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
@@ -239,6 +241,8 @@ export default function App() {
               <Route path="sarpras/fasilitas" element={<ManajemenFasilitas />} />
               <Route path="kegiatan/buat" element={<FormKegiatan />} />
               <Route path="kegiatan" element={<ListKegiatanBap />} />
+              <Route path="kegiatan/jenis" element={<KelolaJenisKegiatan />} />
+              <Route path="kegiatan/templates" element={<KelolaTemplateKegiatan />} />
             </Route>
           </Routes>
         </Router>

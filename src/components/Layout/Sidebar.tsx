@@ -221,8 +221,10 @@ export const Sidebar: React.FC = () => {
   ].filter(i => i.show);
 
   const bapItems = [
-    { to: '/dashboard/kegiatan', label: 'Daftar BAP Kegiatan', show: true },
-    { to: '/dashboard/kegiatan/buat', label: 'Buat Laporan BAP', show: user?.scope === 'CABANG' || user?.scope === 'GLOBAL' },
+    { to: '/dashboard/kegiatan', label: 'Daftar BAP Laporan', show: true },
+    { to: '/dashboard/kegiatan/buat', label: 'Buat Laporan BAP', show: user?.scope === 'CABANG' },
+    { to: '/dashboard/kegiatan/templates', label: 'Kelola Template Kegiatan', show: user?.scope === 'GLOBAL' },
+    { to: '/dashboard/kegiatan/jenis', label: 'Kelola Jenis Kegiatan', show: user?.scope === 'GLOBAL' },
   ].filter(i => i.show);
 
   const monitoringItems = [

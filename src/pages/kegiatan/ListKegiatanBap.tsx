@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
-import { Calendar, FileText, Download, CheckCircle2, AlertCircle, Info, Building, Clock, ChevronDown, ChevronUp, Sparkles, Loader2, Plus } from 'lucide-react';
+import { Calendar, FileText, Download, CheckCircle2, AlertCircle, Info, Building, Clock, ChevronDown, ChevronUp, Sparkles, Loader2, Plus, Tag } from 'lucide-react';
 
 interface Panitia {
   user: {
@@ -23,12 +23,7 @@ interface Dokumen {
 
 interface Kegiatan {
   id: string;
-  judul: string;
   deskripsi: string;
-  ringkasan: string;
-  jenis: string;
-  deadline: string;
-  status: string;
   isConfirmed: boolean;
   confirmedAt: string | null;
   confirmedByUser: { operatorName: string | null; username: string } | null;
@@ -37,6 +32,12 @@ interface Kegiatan {
   panitia: Panitia[];
   dokumen: Dokumen[];
   createdAt: string;
+  template: {
+    judul: string;
+    deskripsi: string;
+    deadline: string;
+    jenis: { nama: string };
+  };
 }
 
 export default function ListKegiatanBap() {
@@ -46,7 +47,7 @@ export default function ListKegiatanBap() {
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Fetch all Kegiatan BAPs
+  // Fetch all BAPs
   const { data: BAPs = [], isLoading, isError } = useQuery<Kegiatan[]>({
     queryKey: ['kegiatan'],
     queryFn: async () => {
@@ -134,7 +135,7 @@ export default function ListKegiatanBap() {
       ) : (
         <div className="space-y-4">
           {BAPs.map(bap => {
-            const isExpired = new Date(bap.deadline) < new Date();
+            const isExpired = new Date(bap.template.deadline) < new Date();
             const isOpen = expandedId === bap.id;
             const ketua = bap.panitia.find(p => p.jabatan === 'KETUA')?.user;
             const ketuaName = ketua?.operatorName || ketua?.username || 'Belum ditunjuk';
@@ -155,29 +156,21 @@ export default function ListKegiatanBap() {
                 >
                   <div className="space-y-1.5 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                        bap.jenis === 'HUT'
-                          ? 'bg-rose-50 text-rose-700 border-rose-150'
-                          : bap.jenis === 'RAMADHAN'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-150'
-                            : bap.jenis === 'PIKNIK'
-                              ? 'bg-amber-50 text-amber-700 border-amber-150'
-                              : 'bg-slate-50 text-slate-700 border-slate-150'
-                      }`}>
-                        {bap.jenis}
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border bg-indigo-50 text-indigo-700 border-indigo-150">
+                        {bap.template.jenis.nama}
                       </span>
                       <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        Tenggat: {new Date(bap.deadline).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
+                        Tenggat: {new Date(bap.template.deadline).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
                       </span>
                       {isExpired && (
                         <span className="bg-rose-100 text-rose-800 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">CLOSED</span>
                       )}
                     </div>
-                    <h3 className="text-base font-bold text-slate-800 truncate">{bap.judul}</h3>
-                    <p className="text-xs text-slate-500 line-clamp-1">{bap.ringkasan || bap.deskripsi}</p>
+                    <h3 className="text-base font-bold text-slate-800 truncate">{bap.template.judul}</h3>
+                    <p className="text-xs text-slate-500 line-clamp-1">Dilaporkan oleh: {bap.cabang.name}</p>
                     <div className="flex items-center gap-4 text-[11px] text-slate-400 mt-1">
-                      <span className="font-semibold text-slate-650 bg-slate-100 px-2 py-0.5 rounded">
+                      <span className="font-semibold text-slate-655 bg-slate-100 px-2 py-0.5 rounded">
                         Cabang: {bap.cabang.name}
                       </span>
                       {bap.asrama && (
@@ -185,7 +178,7 @@ export default function ListKegiatanBap() {
                           Asrama: {bap.asrama.nama}
                         </span>
                       )}
-                      <span>Ketua: {ketuaName}</span>
+                      <span>Ketua Panitia: {ketuaName}</span>
                     </div>
                   </div>
 
@@ -210,9 +203,15 @@ export default function ListKegiatanBap() {
                 {/* Expanded Details */}
                 {isOpen && (
                   <div className="border-t border-slate-100 bg-[#fbfbfb] p-6 space-y-6">
+                    {/* Template Instruction Helper */}
+                    <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-xl p-4 space-y-1">
+                      <span className="text-[10px] font-bold text-indigo-650 uppercase tracking-wider block">Petunjuk / Juknis Pusat:</span>
+                      <p className="text-xs text-slate-650 whitespace-pre-wrap">{bap.template.deskripsi}</p>
+                    </div>
+
                     {/* Description */}
                     <div className="space-y-2">
-                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Detail Pelaksanaan / Laporan BAP:</span>
+                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Laporan Pelaksanaan Cabang:</span>
                       <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed bg-white border border-slate-150 rounded-lg p-4 shadow-none">
                         {bap.deskripsi}
                       </p>
@@ -221,7 +220,7 @@ export default function ListKegiatanBap() {
                     {/* Files & Media */}
                     {bap.dokumen.length > 0 && (
                       <div className="space-y-2">
-                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Lampiran Dokumen & Foto:</span>
+                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Lampiran Dokumen & Foto Cabang:</span>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {bap.dokumen.map(doc => (
                             <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white">
@@ -256,7 +255,7 @@ export default function ListKegiatanBap() {
                           <p className="text-xs text-slate-500 flex items-center gap-1">
                             <Info className="w-4 h-4 text-indigo-500 shrink-0" />
                             {user?.scope === 'GLOBAL' 
-                              ? 'Periksa dokumen di atas sebelum menandai tanda terima BAP.'
+                              ? 'Periksa kesesuaian laporan dengan petunjuk pusat sebelum menandai tanda terima BAP.'
                               : 'Menunggu konfirmasi penerimaan BAP oleh Administrator Pusat.'}
                           </p>
                         )}

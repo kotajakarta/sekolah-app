@@ -319,7 +319,10 @@ export const Sidebar: React.FC = () => {
                       {searchResults.map((res: any) => (
                         <li key={`${res.type}-${res.id}`}>
                           <button
-                            onClick={() => navigate(res.link)}
+                            onClick={() => {
+                              const targetLink = res.link.startsWith('/dashboard') ? res.link : `/dashboard${res.link}`;
+                              navigate(targetLink);
+                            }}
                             className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex flex-col"
                           >
                             <span className="text-sm font-medium text-slate-800">{res.name}</span>

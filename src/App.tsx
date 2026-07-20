@@ -47,6 +47,7 @@ import ProfileUser from './pages/core/ProfileUser';
 import KetersediaanGuruMapel from './pages/dashboard/KetersediaanGuruMapel';
 import AbsensiSiswa from './pages/absensi/AbsensiSiswa';
 import RekapitulasiAbsensi from './pages/laporan/RekapitulasiAbsensi';
+import RekapitulasiKelengkapanData from './pages/laporan/RekapitulasiKelengkapanData';
 import KelolaProgramAbsensi from './pages/absensi/KelolaProgramAbsensi';
 import LembagaMuadalahPage from './pages/formal/LembagaMuadalah';
 import ManajemenRuang from './pages/sarpras/ManajemenRuang';
@@ -229,6 +230,7 @@ export default function App() {
               <Route path="absensi/siswa" element={<AbsensiSiswa />} />
               <Route path="absensi/programs" element={<KelolaProgramAbsensi />} />
               <Route path="laporan/absensi" element={<RekapitulasiAbsensi />} />
+              <Route path="laporan/kelengkapan-data" element={<RekapitulasiKelengkapanData />} />
               <Route path="sarpras/ruang" element={<ManajemenRuang />} />
               <Route path="sarpras/fasilitas" element={<ManajemenFasilitas />} />
             </Route>

@@ -232,6 +232,7 @@ export const Sidebar: React.FC = () => {
 
   const laporanItems = [
     { to: '/dashboard/laporan/absensi', label: 'Rekapitulasi Absensi', show: true },
+    { to: '/dashboard/laporan/kelengkapan-data', label: 'Rekap Kelengkapan Data Santri', show: true },
     { to: '/dashboard/laporan/evaluasi', label: 'Laporan Evaluasi', show: true, disabled: true },
   ];
 

@@ -179,6 +179,9 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
 
   const [formData, setFormData] = useState({
     nik: '',
+    noKk: '',
+    anakKe: '',
+    jumlahSaudara: '',
     nisn: '',
     nisLokal: '',
     noGlodemy: '',
@@ -253,6 +256,9 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     if (student) {
       setFormData({
         nik: student.biodata?.nik || '',
+        noKk: (student.biodata as any)?.noKk || '',
+        anakKe: (student.biodata as any)?.anakKe || '',
+        jumlahSaudara: (student.biodata as any)?.jumlahSaudara || '',
         nisn: student.biodata?.nisn || '',
         nisLokal: student.biodata?.nisLokal || '',
         noGlodemy: student.biodata?.noGlodemy || '',
@@ -549,6 +555,15 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                             }),
                           }}
                         />
+                      </InputField>
+                      <InputField label="Nomor KK">
+                        <input type="text" value={formData.noKk} onChange={(e) => setFormData({ ...formData, noKk: e.target.value })} className={inputCls} placeholder="16 digit Nomor KK" />
+                      </InputField>
+                      <InputField label="Anak Ke-">
+                        <input type="number" min={1} value={formData.anakKe} onChange={(e) => setFormData({ ...formData, anakKe: e.target.value })} className={inputCls} />
+                      </InputField>
+                      <InputField label="Jumlah Saudara">
+                        <input type="number" min={0} value={formData.jumlahSaudara} onChange={(e) => setFormData({ ...formData, jumlahSaudara: e.target.value })} className={inputCls} />
                       </InputField>
                     </div>
                   </div>

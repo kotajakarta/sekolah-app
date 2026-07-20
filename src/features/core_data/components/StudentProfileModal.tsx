@@ -133,6 +133,10 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
                       {(student.biodata as any)?.anakKe || '-'} / {(student.biodata as any)?.jumlahSaudara || '-'} bersaudara
                     </span>
                   </div>
+                  <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col justify-center">
+                    <span className="block text-xs font-medium text-slate-500 mb-1">Nomor KK</span>
+                    <span className="text-sm text-slate-900 font-medium">{(student.biodata as any)?.noKk || '-'}</span>
+                  </div>
                   <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm md:col-span-2">
                     <span className="block text-xs font-medium text-slate-500 mb-1 flex items-center gap-1.5"><MapPin className="w-3 h-3" /> Alamat Lengkap</span>
                     <span className="text-sm text-slate-900 font-medium">{student.biodata?.address || '-'}</span>

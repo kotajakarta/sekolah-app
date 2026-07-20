@@ -98,6 +98,9 @@ export default function DaftarUlang() {
 
   const [formData, setFormData] = useState({
     nik: '',
+    noKk: '',
+    anakKe: '',
+    jumlahSaudara: '',
     nisn: '',
     fullName: '',
     tempatLahir: '',
@@ -105,10 +108,18 @@ export default function DaftarUlang() {
     jenisKelamin: 'L',
     kewarganegaraan: 'WNI',
     namaAyah: '',
+    statusHidupAyah: 'Masih Hidup',
+    nikAyah: '',
+    tempatLahirAyah: '',
+    tanggalLahirAyah: '',
     pekerjaanAyah: '',
     pendidikanAyah: '',
     penghasilanAyah: '',
     namaIbu: '',
+    statusHidupIbu: 'Masih Hidup',
+    nikIbu: '',
+    tempatLahirIbu: '',
+    tanggalLahirIbu: '',
     pekerjaanIbu: '',
     pendidikanIbu: '',
     penghasilanIbu: '',
@@ -174,6 +185,9 @@ export default function DaftarUlang() {
         setFormData(prev => ({
           ...prev,
           nik: b.nik || nik,
+          noKk: b.noKk || '',
+          anakKe: b.anakKe || '',
+          jumlahSaudara: b.jumlahSaudara || '',
           nisn: b.nisn || '',
           fullName: b.fullName || '',
           tempatLahir: b.tempatLahir || '',
@@ -181,10 +195,18 @@ export default function DaftarUlang() {
           jenisKelamin: b.jenisKelamin || 'L',
           kewarganegaraan: b.kewarganegaraan || 'WNI',
           namaAyah: b.namaAyah || '',
+          statusHidupAyah: b.statusHidupAyah || 'Masih Hidup',
+          nikAyah: b.nikAyah || '',
+          tempatLahirAyah: b.tempatLahirAyah || '',
+          tanggalLahirAyah: b.tanggalLahirAyah ? new Date(b.tanggalLahirAyah).toISOString().split('T')[0] : '',
           pekerjaanAyah: b.pekerjaanAyah || '',
           pendidikanAyah: b.pendidikanAyah || '',
           penghasilanAyah: b.penghasilanAyah || '',
           namaIbu: b.namaIbu || '',
+          statusHidupIbu: b.statusHidupIbu || 'Masih Hidup',
+          nikIbu: b.nikIbu || '',
+          tempatLahirIbu: b.tempatLahirIbu || '',
+          tanggalLahirIbu: b.tanggalLahirIbu ? new Date(b.tanggalLahirIbu).toISOString().split('T')[0] : '',
           pekerjaanIbu: b.pekerjaanIbu || '',
           pendidikanIbu: b.pendidikanIbu || '',
           penghasilanIbu: b.penghasilanIbu || '',
@@ -356,6 +378,9 @@ export default function DaftarUlang() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                   <InputField label="Nama Lengkap" required><input name="fullName" value={formData.fullName} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="NIK" required><input name="nik" value={formData.nik} readOnly className={inputCls + " bg-gray-100 text-gray-500 border-dashed"} /></InputField>
+                  <InputField label="Nomor KK" required><input name="noKk" value={formData.noKk} onChange={handleChange} required maxLength={16} placeholder="Masukkan 16 digit Nomor KK" className={inputCls} /></InputField>
+                  <InputField label="Anak Ke-" required><input type="number" name="anakKe" value={formData.anakKe} onChange={handleChange} required min={1} className={inputCls} /></InputField>
+                  <InputField label="Jumlah Saudara" required><input type="number" name="jumlahSaudara" value={formData.jumlahSaudara} onChange={handleChange} required min={0} className={inputCls} /></InputField>
                   <InputField label="NISN"><input name="nisn" value={formData.nisn} onChange={handleChange} className={inputCls} /></InputField>
                   <InputField label="No. Handphone" required><input name="phone" value={formData.phone} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="Tempat Lahir" required><input name="tempatLahir" value={formData.tempatLahir} onChange={handleChange} required className={inputCls} /></InputField>
@@ -379,6 +404,15 @@ export default function DaftarUlang() {
                   <div className="space-y-5 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
                     <h4 className="text-sm font-bold text-gray-800">Biodata Ayah</h4>
                     <InputField label="Nama Ayah"><input name="namaAyah" value={formData.namaAyah} onChange={handleChange} className={inputCls} /></InputField>
+                    <InputField label="Status Hidup Ayah">
+                      <select name="statusHidupAyah" value={formData.statusHidupAyah} onChange={handleChange} className={selectCls}>
+                        <option value="Masih Hidup">Masih Hidup</option>
+                        <option value="Wafat">Wafat</option>
+                      </select>
+                    </InputField>
+                    <InputField label="NIK Ayah"><input name="nikAyah" value={formData.nikAyah} onChange={handleChange} maxLength={16} placeholder="Masukkan 16 digit NIK Ayah" className={inputCls} /></InputField>
+                    <InputField label="Tempat Lahir Ayah"><input name="tempatLahirAyah" value={formData.tempatLahirAyah} onChange={handleChange} className={inputCls} /></InputField>
+                    <InputField label="Tanggal Lahir Ayah"><input type="date" name="tanggalLahirAyah" value={formData.tanggalLahirAyah} onChange={handleChange} className={inputCls} /></InputField>
                     <InputField label="Pekerjaan Ayah">
                       <select name="pekerjaanAyah" value={formData.pekerjaanAyah} onChange={handleChange} className={selectCls}>
                         <option value="">Pilih Pekerjaan</option>
@@ -395,6 +429,15 @@ export default function DaftarUlang() {
                   <div className="space-y-5 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
                     <h4 className="text-sm font-bold text-gray-800">Biodata Ibu</h4>
                     <InputField label="Nama Ibu"><input name="namaIbu" value={formData.namaIbu} onChange={handleChange} className={inputCls} /></InputField>
+                    <InputField label="Status Hidup Ibu">
+                      <select name="statusHidupIbu" value={formData.statusHidupIbu} onChange={handleChange} className={selectCls}>
+                        <option value="Masih Hidup">Masih Hidup</option>
+                        <option value="Wafat">Wafat</option>
+                      </select>
+                    </InputField>
+                    <InputField label="NIK Ibu"><input name="nikIbu" value={formData.nikIbu} onChange={handleChange} maxLength={16} placeholder="Masukkan 16 digit NIK Ibu" className={inputCls} /></InputField>
+                    <InputField label="Tempat Lahir Ibu"><input name="tempatLahirIbu" value={formData.tempatLahirIbu} onChange={handleChange} className={inputCls} /></InputField>
+                    <InputField label="Tanggal Lahir Ibu"><input type="date" name="tanggalLahirIbu" value={formData.tanggalLahirIbu} onChange={handleChange} className={inputCls} /></InputField>
                     <InputField label="Pekerjaan Ibu">
                       <select name="pekerjaanIbu" value={formData.pekerjaanIbu} onChange={handleChange} className={selectCls}>
                         <option value="">Pilih Pekerjaan</option>

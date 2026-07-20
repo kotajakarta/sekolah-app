@@ -152,6 +152,51 @@ export default function RekapitulasiKelengkapanData() {
   const completeCount = processedStudents.filter(s => s.stats.percentage === 100).length;
   const incompleteCount = totalProcessed - completeCount;
 
+  // Get all active wilayahs to show in summary table
+  const activeWilayahs = (() => {
+    if (isGlobal) {
+      const wMap = new Map();
+      wilayahs.forEach((w: any) => wMap.set(w.id, w.name));
+      students.forEach((s) => {
+        if (s.wilayah?.id && !wMap.has(s.wilayah.id)) {
+          wMap.set(s.wilayah.id, s.wilayah.name);
+        }
+      });
+      return Array.from(wMap.entries()).map(([id, name]) => ({ id, name }));
+    } else {
+      return user?.wilayahId ? [{ id: user.wilayahId, name: user.wilayahName }] : [];
+    }
+  })();
+
+  const wilayahSummaries = activeWilayahs.map((w: any) => {
+    // Filter students belonging to this wilayah
+    const wStudents = students.filter(s => s.statusPool !== 'TERSEDIA' && s.wilayahId === w.id);
+    const total = wStudents.length;
+
+    let sumPercentage = 0;
+    let complete = 0;
+    
+    wStudents.forEach(s => {
+      const stats = getCompletenessDetails(s);
+      sumPercentage += stats.percentage;
+      if (stats.percentage === 100) {
+        complete += 1;
+      }
+    });
+
+    const avg = total > 0 ? Math.round(sumPercentage / total) : 0;
+    const incomplete = total - complete;
+
+    return {
+      id: w.id,
+      name: w.name,
+      averageProgress: avg,
+      completeCount: complete,
+      incompleteCount: incomplete,
+      totalActive: total
+    };
+  }).filter(w => w.totalActive > 0 || isGlobal);
+
   return (
     <div className="space-y-6 p-6">
       {/* Title Header */}
@@ -278,6 +323,55 @@ export default function RekapitulasiKelengkapanData() {
           </div>
         </div>
       </div>
+
+      {/* Wilayah Summary Table */}
+      {wilayahSummaries.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 text-sm font-bold text-slate-800">
+            <Activity className="w-4 h-4 text-indigo-500" />
+            Ringkasan Kelengkapan per Wilayah
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200/80 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="py-3 px-6">Nama Wilayah</th>
+                  <th className="py-3 px-6 text-center">Rata-rata Kelengkapan</th>
+                  <th className="py-3 px-6 text-center">Data Lengkap (100%)</th>
+                  <th className="py-3 px-6 text-center">Belum Lengkap (&lt;100%)</th>
+                  <th className="py-3 px-6 text-center">Total Santri Aktif</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {wilayahSummaries.map((w) => {
+                  let progressColor = 'text-rose-600 bg-rose-50 border-rose-100';
+                  if (w.averageProgress === 100) {
+                    progressColor = 'text-emerald-700 bg-emerald-50 border-emerald-100';
+                  } else if (w.averageProgress >= 75) {
+                    progressColor = 'text-indigo-700 bg-indigo-50 border-indigo-100';
+                  } else if (w.averageProgress >= 50) {
+                    progressColor = 'text-amber-700 bg-amber-50 border-amber-100';
+                  }
+
+                  return (
+                    <tr key={w.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-4 px-6 font-semibold text-slate-850 text-sm">{w.name}</td>
+                      <td className="py-4 px-6 text-center">
+                        <span className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full border ${progressColor}`}>
+                          {w.averageProgress}%
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-center text-sm font-medium text-slate-700">{w.completeCount}</td>
+                      <td className="py-4 px-6 text-center text-sm font-medium text-slate-700">{w.incompleteCount}</td>
+                      <td className="py-4 px-6 text-center text-sm font-bold text-slate-850">{w.totalActive}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Main Table Section */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">

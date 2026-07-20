@@ -50,11 +50,14 @@ export default function RekapitulasiAbsensi() {
   const [selectedWilayah, setSelectedWilayah] = useState<string>('');
   const [selectedCabang, setSelectedCabang] = useState<string>('');
   const [selectedKelas, setSelectedKelas] = useState<string>('');
-  const [filterMode, setFilterMode] = useState<'date' | 'semester'>('date');
+  const [filterMode, setFilterMode] = useState<'date' | 'semester' | 'month'>('date');
 
   // Date Range State
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+
+  // Month State
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
 
   // Semester State
   const [selectedSemester, setSelectedSemester] = useState<string>('GANJIL');
@@ -127,15 +130,19 @@ export default function RekapitulasiAbsensi() {
       const res = await apiClient.get('/formal/kelas');
       if (selectedCabang) {
         return res.data.filter((c: any) => c.cabangId === selectedCabang && c.isActive);
+      } else if (selectedWilayah) {
+        const branchIds = filteredBranches.map((b: any) => b.id);
+        return res.data.filter((c: any) => branchIds.includes(c.cabangId) && c.isActive);
       }
-      return [];
+      return res.data.filter((c: any) => c.isActive);
     },
-    enabled: !!selectedCabang
+    // always load classes, we can filter them by cabang or wilayah
   });
 
-  const isFilterReady = !!selectedKelas && (
+  const isFilterReady = (
     (filterMode === 'date' && !!startDate && !!endDate) ||
-    (filterMode === 'semester' && !!selectedTahunAjaran && !!selectedSemester)
+    (filterMode === 'semester' && !!selectedTahunAjaran && !!selectedSemester) ||
+    (filterMode === 'month' && !!selectedMonth)
   );
 
   const handleWilayahChange = (wilayahId: string) => {
@@ -153,19 +160,28 @@ export default function RekapitulasiAbsensi() {
   const { data: recapData, isLoading: loadingRecap, isError, refetch } = useQuery<RecapResponse>({
     queryKey: [
       'absensi-rekap',
+      selectedWilayah,
+      selectedCabang,
       selectedKelas,
       filterMode,
       startDate,
       endDate,
       selectedSemester,
-      selectedTahunAjaran
+      selectedTahunAjaran,
+      selectedMonth
     ],
     queryFn: async () => {
-      let url = `/absensi/rekap?kelasId=${selectedKelas}&cabangId=${selectedCabang}`;
+      let url = `/absensi/rekap?`;
+      if (selectedWilayah) url += `wilayahId=${selectedWilayah}&`;
+      if (selectedCabang) url += `cabangId=${selectedCabang}&`;
+      if (selectedKelas) url += `kelasId=${selectedKelas}&`;
+      
       if (filterMode === 'date') {
-        url += `&startDate=${startDate}&endDate=${endDate}`;
-      } else {
-        url += `&semester=${selectedSemester}&tahunAjaran=${selectedTahunAjaran}`;
+        url += `startDate=${startDate}&endDate=${endDate}`;
+      } else if (filterMode === 'semester') {
+        url += `semester=${selectedSemester}&tahunAjaran=${selectedTahunAjaran}`;
+      } else if (filterMode === 'month') {
+        url += `month=${selectedMonth}`;
       }
       const res = await apiClient.get(url);
       return res.data;
@@ -177,7 +193,7 @@ export default function RekapitulasiAbsensi() {
   const handleExportCSV = () => {
     if (!recapData || recapData.recap.length === 0) return;
 
-    const selectedKelasName = classes.find(c => c.id === selectedKelas)?.name || 'Kelas';
+    const selectedKelasName = selectedKelas ? classes.find(c => c.id === selectedKelas)?.name || 'Kelas' : 'Semua_Kelas';
 
     // Headers
     const headers = [
@@ -251,7 +267,7 @@ export default function RekapitulasiAbsensi() {
             >
               {isGlobal ? (
                 <>
-                  <option value="">-- Pilih Wilayah --</option>
+                  <option value="">-- Semua Wilayah --</option>
                   {wilayahs.map((w: any) => (
                     <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
@@ -267,14 +283,14 @@ export default function RekapitulasiAbsensi() {
             <select
               value={selectedCabang}
               onChange={e => handleCabangChange(e.target.value)}
-              disabled={isCabang || (!isGlobal && !selectedWilayah)}
+              disabled={isCabang}
               className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
             >
               {isCabang ? (
                 <option value={selectedCabang}>{user?.cabangName || 'Cabang Terkunci'}</option>
               ) : (
                 <>
-                  <option value="">-- Pilih Cabang --</option>
+                  <option value="">-- Semua Cabang --</option>
                   {filteredBranches.map((b: any) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
@@ -288,10 +304,9 @@ export default function RekapitulasiAbsensi() {
             <select
               value={selectedKelas}
               onChange={e => setSelectedKelas(e.target.value)}
-              disabled={!selectedCabang}
               className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
             >
-              <option value="">-- Pilih Kelas --</option>
+              <option value="">-- Semua Kelas --</option>
               {classes.map(c => (
                 <option key={c.id} value={c.id}>{c.name} (Tingkat {c.tingkat || '-'})</option>
               ))}
@@ -318,13 +333,24 @@ export default function RekapitulasiAbsensi() {
               <button
                 type="button"
                 onClick={() => setFilterMode('semester')}
-                className={`flex-1 text-center py-1.5 text-xs font-semibold transition-all ${
+                className={`flex-1 text-center py-1.5 text-xs font-semibold transition-all border-l border-slate-200 ${
                   filterMode === 'semester'
                     ? 'bg-indigo-600 text-white'
                     : 'bg-[#fbfbfb] text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 Per Semester
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode('month')}
+                className={`flex-1 text-center py-1.5 text-xs font-semibold transition-all border-l border-slate-200 ${
+                  filterMode === 'month'
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-[#fbfbfb] text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                Bulan
               </button>
             </div>
           </div>
@@ -350,7 +376,7 @@ export default function RekapitulasiAbsensi() {
                 />
               </div>
             </div>
-          ) : (
+          ) : filterMode === 'semester' ? (
             <div className="flex-1 grid grid-cols-2 gap-3 w-full">
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tahun Ajaran</label>
@@ -377,6 +403,16 @@ export default function RekapitulasiAbsensi() {
                 </select>
               </div>
             </div>
+          ) : (
+            <div className="flex-1 w-full">
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Pilih Bulan</label>
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={e => setSelectedMonth(e.target.value)}
+                className="w-full md:w-64 px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
+              />
+            </div>
           )}
 
           {isFilterReady && (
@@ -397,7 +433,7 @@ export default function RekapitulasiAbsensi() {
       {!isFilterReady ? (
         <div className="bg-slate-50 border border-dashed border-slate-300/80 rounded p-12 text-center text-slate-400 flex flex-col items-center justify-center print:hidden">
           <Info className="w-8 h-8 mb-2 text-slate-300" />
-          <p className="font-medium text-slate-600">Silakan lengkapi pemilihan Wilayah, Cabang, Kelas, dan filter tanggal/semester untuk memuat rekapitulasi absensi.</p>
+          <p className="font-medium text-slate-600">Silakan lengkapi pemilihan Wilayah, Cabang, Kelas, dan filter tanggal/semester/bulan untuk memuat rekapitulasi absensi.</p>
         </div>
       ) : loadingRecap ? (
         <div className="bg-white border border-slate-200 rounded p-12 flex justify-center items-center print:hidden">
@@ -409,7 +445,7 @@ export default function RekapitulasiAbsensi() {
         </div>
       ) : !recapData || recapData.recap.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded p-12 text-center text-slate-400 shadow-none print:hidden">
-          Tidak ada data absensi untuk rentang tanggal/semester yang dipilih pada kelas ini.
+          Tidak ada data absensi untuk filter yang dipilih.
         </div>
       ) : (
         <div className="space-y-4">
@@ -442,16 +478,18 @@ export default function RekapitulasiAbsensi() {
             <h1 className="text-xl font-bold text-center uppercase tracking-wide">Laporan Rekapitulasi Absensi Siswa</h1>
             <div className="grid grid-cols-2 text-xs mt-3">
               <div>
-                <p><span className="font-semibold">Wilayah:</span> {branches.find(b => b.id === selectedCabang)?.wilayah?.name || user?.wilayahName || '-'}</p>
-                <p><span className="font-semibold">Cabang:</span> {branches.find(b => b.id === selectedCabang)?.name || user?.cabangName || '-'}</p>
+                <p><span className="font-semibold">Wilayah:</span> {selectedWilayah ? wilayahs.find((w: any) => w.id === selectedWilayah)?.name : 'Semua Wilayah'}</p>
+                <p><span className="font-semibold">Cabang:</span> {selectedCabang ? branches.find((b: any) => b.id === selectedCabang)?.name : 'Semua Cabang'}</p>
               </div>
               <div className="text-right">
-                <p><span className="font-semibold">Kelas:</span> {classes.find(c => c.id === selectedKelas)?.name || '-'}</p>
+                <p><span className="font-semibold">Kelas:</span> {selectedKelas ? classes.find(c => c.id === selectedKelas)?.name : 'Semua Kelas'}</p>
                 <p>
                   <span className="font-semibold">Periode:</span>{' '}
                   {filterMode === 'date'
                     ? `${new Date(startDate).toLocaleDateString('id-ID')} s.d ${new Date(endDate).toLocaleDateString('id-ID')}`
-                    : `${selectedSemester} (TA ${selectedTahunAjaran})`}
+                    : filterMode === 'semester'
+                      ? `${selectedSemester} (TA ${selectedTahunAjaran})`
+                      : new Date(`${selectedMonth}-01`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
                 </p>
               </div>
             </div>

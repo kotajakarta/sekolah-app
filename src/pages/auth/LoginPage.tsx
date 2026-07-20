@@ -35,7 +35,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <img src="https://cdn.aithendi.my.id/assets/logoyts-modern2.png" alt="eSiswa Logo" className="h-16 w-auto object-contain" />
+          <img src="https://cdn.aithendi.my.id/assets/logoyts-modern.png" alt="eSiswa Logo" className="h-16 w-auto object-contain" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-display font-bold text-slate-800 tracking-tight">
           eSiswa
@@ -49,7 +49,7 @@ export default function LoginPage() {
         <div className="bg-white py-8 px-4 shadow-sm sm:rounded-2xl sm:px-10 border border-slate-200/70">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-xs" style={{whiteSpace:'pre-wrap',wordBreak:'break-all'}}>
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-xs" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                 {error}
               </div>
             )}

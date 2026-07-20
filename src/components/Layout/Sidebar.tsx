@@ -20,8 +20,8 @@ const NavLink = ({ to, icon: Icon, badge, children }: { to: string, icon: any, b
         <Link
           to={to}
           className={`flex items-center justify-center p-2 mx-auto w-10 h-10 rounded-lg transition-all duration-200 group ${isActive
-              ? 'bg-emerald-50 text-emerald-700 font-semibold'
-              : 'text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900'
+            ? 'bg-emerald-50 text-emerald-700 font-semibold'
+            : 'text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900'
             }`}
         >
           <Icon className={`w-[18px] h-[18px] transition-colors ${isActive ? 'text-emerald-700' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive ? 2.5 : 2} />
@@ -35,8 +35,8 @@ const NavLink = ({ to, icon: Icon, badge, children }: { to: string, icon: any, b
       <Link
         to={to}
         className={`flex items-center justify-between px-3 py-2 text-[13px] rounded-lg transition-all duration-200 group ${isActive
-            ? 'bg-emerald-50 text-emerald-700 font-semibold'
-            : 'text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900'
+          ? 'bg-emerald-50 text-emerald-700 font-semibold'
+          : 'text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900'
           }`}
       >
         <div className="flex items-center">
@@ -72,8 +72,8 @@ const SubNavLink = ({ to, badge, disabled, children }: { to: string, badge?: num
       <Link
         to={to}
         className={`flex items-center justify-between pl-[42px] pr-3 py-1.5 text-[12px] rounded-lg transition-all duration-200 group ${isActive
-            ? 'bg-slate-100 text-slate-900 font-semibold'
-            : 'text-slate-600 font-medium hover:bg-slate-50 hover:text-slate-900'
+          ? 'bg-slate-100 text-slate-900 font-semibold'
+          : 'text-slate-600 font-medium hover:bg-slate-50 hover:text-slate-900'
           }`}
       >
         <span>{children}</span>
@@ -256,7 +256,7 @@ export const Sidebar: React.FC = () => {
   return (
     <SidebarContext.Provider value={{ isCollapsed }}>
       <div className={`h-screen bg-white flex flex-col relative z-20 border-r border-slate-200 transition-all duration-300 ${isCollapsed ? 'w-[70px]' : 'w-[260px]'}`}>
-        
+
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="absolute top-4 -right-3 w-6 h-6 bg-white border border-slate-200 rounded-full shadow-md flex items-center justify-center cursor-pointer hover:bg-slate-50 text-emerald-600 z-50 transition-transform duration-205"
@@ -270,20 +270,20 @@ export const Sidebar: React.FC = () => {
 
         {isCollapsed ? (
           <div className="h-14 flex items-center justify-center shrink-0 mb-4 mt-2">
-            <img src="https://cdn.aithendi.my.id/assets/logoyts-modern2.png" alt="YTS Logo" className="h-8 w-auto object-contain shrink-0" />
+            <img src="https://cdn.aithendi.my.id/assets/logoyts-modern.png" alt="YTS Logo" className="h-8 w-auto object-contain shrink-0" />
           </div>
         ) : (
           <div className="h-14 px-5 flex items-center justify-between shrink-0 mb-4 mt-2 gap-2">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 bg-[#0A192F] rounded-lg flex items-center justify-center flex-shrink-0">
                 <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <polyline points="9,22 9,12 15,12 15,22" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <polyline points="9,22 9,12 15,12 15,22" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <span className="font-bold text-lg tracking-tight text-[#0A192F]">eSantri</span>
             </div>
-            <img src="https://cdn.aithendi.my.id/assets/logoyts-modern2.png" alt="YTS Logo" className="h-8 w-auto object-contain shrink-0" />
+            <img src="https://cdn.aithendi.my.id/assets/logoyts-modern.png" alt="YTS Logo" className="h-8 w-auto object-contain shrink-0" />
           </div>
         )}
 

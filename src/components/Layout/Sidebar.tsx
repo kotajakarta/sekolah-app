@@ -218,6 +218,8 @@ export const Sidebar: React.FC = () => {
   const layananItems = [
     { to: '/dashboard/umum/pengumuman', label: 'Pengumuman', show: true },
     { to: '/dashboard/umum/kalender', label: 'Kalender Pendidikan', show: true },
+    { to: '/dashboard/kegiatan/buat', label: 'Buat Kegiatan (BAP)', show: user?.scope === 'GLOBAL' },
+    { to: '/dashboard/kegiatan/asrama', label: 'BAP Asrama', show: true },
   ].filter(i => i.show);
 
   const monitoringItems = [

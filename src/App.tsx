@@ -55,7 +55,7 @@ import ManajemenRuang from './pages/sarpras/ManajemenRuang';
 import ManajemenFasilitas from './pages/sarpras/ManajemenFasilitas';
 import KelolaFaq from './pages/settings/KelolaFaq';
 import FormKegiatan from './pages/kegiatan/FormKegiatan';
-import DashboardAsrama from './pages/kegiatan/DashboardAsrama';
+import ListKegiatanBap from './pages/kegiatan/ListKegiatanBap';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
@@ -238,7 +238,7 @@ export default function App() {
               <Route path="sarpras/ruang" element={<ManajemenRuang />} />
               <Route path="sarpras/fasilitas" element={<ManajemenFasilitas />} />
               <Route path="kegiatan/buat" element={<FormKegiatan />} />
-              <Route path="kegiatan/asrama" element={<DashboardAsrama />} />
+              <Route path="kegiatan" element={<ListKegiatanBap />} />
             </Route>
           </Routes>
         </Router>

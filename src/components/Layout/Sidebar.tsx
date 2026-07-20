@@ -218,8 +218,11 @@ export const Sidebar: React.FC = () => {
   const layananItems = [
     { to: '/dashboard/umum/pengumuman', label: 'Pengumuman', show: true },
     { to: '/dashboard/umum/kalender', label: 'Kalender Pendidikan', show: true },
-    { to: '/dashboard/kegiatan/buat', label: 'Buat Kegiatan (BAP)', show: user?.scope === 'GLOBAL' },
-    { to: '/dashboard/kegiatan/asrama', label: 'BAP Asrama', show: true },
+  ].filter(i => i.show);
+
+  const bapItems = [
+    { to: '/dashboard/kegiatan', label: 'Daftar BAP Kegiatan', show: true },
+    { to: '/dashboard/kegiatan/buat', label: 'Buat Laporan BAP', show: user?.scope === 'CABANG' || user?.scope === 'GLOBAL' },
   ].filter(i => i.show);
 
   const monitoringItems = [
@@ -251,6 +254,7 @@ export const Sidebar: React.FC = () => {
     if (monitoringItems.some(i => i.to === location.pathname)) preOpen.monitoring = true;
     if (konfirmasiItems.some(i => i.to === location.pathname)) preOpen.konfirmasi = true;
     if (laporanItems.some(i => i.to === location.pathname)) preOpen.laporan = true;
+    if (bapItems.some(i => i.to === location.pathname)) preOpen.bap = true;
 
     setOpenGroups(prev => ({ ...prev, ...preOpen }));
   }, [location.pathname]);
@@ -428,6 +432,22 @@ export const Sidebar: React.FC = () => {
               {!isCollapsed && openGroups.layanan && (
                 <ul className="mt-1 space-y-1">
                   {layananItems.map(item => (
+                    <SubNavLink key={item.to} to={item.to}>{item.label}</SubNavLink>
+                  ))}
+                </ul>
+              )}
+            </>
+
+            <>
+              <GroupHeader
+                label="Berita Acara (BAP)"
+                icon={FileText}
+                isOpen={!!openGroups.bap}
+                onClick={() => handleGroupClick('bap')}
+              />
+              {!isCollapsed && openGroups.bap && (
+                <ul className="mt-1 space-y-1">
+                  {bapItems.map(item => (
                     <SubNavLink key={item.to} to={item.to}>{item.label}</SubNavLink>
                   ))}
                 </ul>

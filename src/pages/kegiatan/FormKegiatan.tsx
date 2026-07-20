@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
+import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
 import { Calendar, Upload, Users, Home, AlertCircle, FileText, X, Check, ArrowLeft, Loader2 } from 'lucide-react';
 
@@ -9,16 +10,19 @@ interface User {
   id: string;
   username: string;
   operatorName: string | null;
+  cabangId: string | null;
 }
 
 interface Ruang {
   id: string;
   nama: string;
   tipe: string;
+  cabangId: string;
   cabang?: { name: string };
 }
 
 export default function FormKegiatan() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -30,9 +34,9 @@ export default function FormKegiatan() {
     jenis: 'LAINNYA',
     deadline: '',
     ketuaPanitiaId: '',
+    asramaId: '',
   });
 
-  const [selectedAsramas, setSelectedAsramas] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -45,6 +49,14 @@ export default function FormKegiatan() {
     }
   });
 
+  // Filter users to only show users in the same branch (for CABANG scope)
+  const filteredUsers = users.filter(u => {
+    if (user?.scope === 'CABANG') {
+      return u.cabangId === user.cabangId;
+    }
+    return true;
+  });
+
   // Fetch Rooms to display as target Asrama
   const { data: rooms = [] } = useQuery<Ruang[]>({
     queryKey: ['ruang'],
@@ -54,10 +66,17 @@ export default function FormKegiatan() {
     }
   });
 
-  const asramaList = rooms.filter(r => r.tipe === 'ASRAMA');
+  // Filter rooms to only show Asrama in the same branch
+  const asramaList = rooms.filter(r => {
+    const isAsrama = r.tipe === 'ASRAMA';
+    if (user?.scope === 'CABANG') {
+      return isAsrama && r.cabangId === user.cabangId;
+    }
+    return isAsrama;
+  });
 
-  // Mutation to create Kegiatan
-  const createMutation = useMutation({
+  // Mutation to create Kegiatan BAP
+  const createMutation = useMutation<any, Error, FormData>({
     mutationFn: async (data: FormData) => {
       return apiClient.post('/kegiatan', data, {
         headers: {
@@ -66,24 +85,18 @@ export default function FormKegiatan() {
       });
     },
     onSuccess: () => {
-      showToast('success', 'Kegiatan berhasil dibuat dan di-broadcast!');
+      showToast('success', 'Laporan BAP berhasil dibuat dan dikirim ke Pusat!');
       queryClient.invalidateQueries({ queryKey: ['kegiatan'] });
-      navigate('/dashboard'); // or redirect to kegiatan list
+      navigate('/dashboard/kegiatan');
     },
     onError: (error: any) => {
-      showToast('error', error.response?.data?.message || 'Gagal membuat kegiatan.');
+      showToast('error', error.response?.data?.message || 'Gagal membuat laporan BAP.');
     }
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleAsramaToggle = (id: string) => {
-    setSelectedAsramas(prev => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
   };
 
   // Drag and drop handlers
@@ -131,8 +144,12 @@ export default function FormKegiatan() {
     payload.append('deadline', formData.deadline);
     payload.append('ketuaPanitiaId', formData.ketuaPanitiaId);
     
-    if (selectedAsramas.length > 0) {
-      payload.append('asramaIds', selectedAsramas.join(','));
+    if (formData.asramaId) {
+      payload.append('asramaId', formData.asramaId);
+    }
+    
+    if (user?.scope === 'CABANG' && user.cabangId) {
+      payload.append('cabangId', user.cabangId);
     }
 
     files.forEach(file => {
@@ -146,21 +163,21 @@ export default function FormKegiatan() {
     <div className="max-w-4xl mx-auto pb-12 animate-in fade-in duration-300">
       <div className="flex items-center gap-4 mb-6">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/dashboard/kegiatan')}
           className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Buat Kegiatan & BAP</h1>
-          <p className="text-sm text-slate-500">Buat Berita Acara Pelaksanaan kegiatan baru dan kirim notifikasi ke asrama terkait.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Buat Laporan BAP Kegiatan</h1>
+          <p className="text-sm text-slate-500">Laporkan Berita Acara Pelaksanaan kegiatan baru cabang Anda kepada Pusat.</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Main Details */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-          <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3">Informasi Kegiatan</h2>
+          <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3">Informasi Kegiatan BAP</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
@@ -171,7 +188,7 @@ export default function FormKegiatan() {
                 required
                 value={formData.judul}
                 onChange={handleInputChange}
-                placeholder="Contoh: Kegiatan Ramadhan Berkah 1447H"
+                placeholder="Contoh: Laporan BAP Milad Cabang 1"
                 className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm"
               />
             </div>
@@ -192,7 +209,7 @@ export default function FormKegiatan() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Batas Waktu / Deadline <span className="text-rose-500">*</span></label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tanggal Pelaksanaan / Deadline <span className="text-rose-500">*</span></label>
               <div className="relative">
                 <input
                   type="datetime-local"
@@ -213,20 +230,20 @@ export default function FormKegiatan() {
                 name="ringkasan"
                 value={formData.ringkasan}
                 onChange={handleInputChange}
-                placeholder="Ringkasan 1 kalimat untuk ditampilkan di dashboard..."
+                placeholder="Ringkasan 1 kalimat juknis..."
                 className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm"
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Deskripsi Lengkap <span className="text-rose-500">*</span></label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Deskripsi Lengkap / Laporan <span className="text-rose-500">*</span></label>
               <textarea
                 name="deskripsi"
                 rows={4}
                 required
                 value={formData.deskripsi}
                 onChange={handleInputChange}
-                placeholder="Tuliskan petunjuk teknis pelaksanaan kegiatan dan poin-poin penting..."
+                placeholder="Tuliskan berita acara pelaksanaan kegiatan selengkap mungkin..."
                 className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm font-sans"
               />
             </div>
@@ -237,7 +254,7 @@ export default function FormKegiatan() {
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
           <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
             <Users className="w-5 h-5 text-indigo-500" />
-            Penunjukan Panitia
+            Penanggung Jawab / Ketua Panitia
           </h2>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ketua Panitia <span className="text-rose-500">*</span></label>
@@ -249,7 +266,7 @@ export default function FormKegiatan() {
               className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm bg-white"
             >
               <option value="">-- Pilih Ketua Panitia --</option>
-              {users.map(u => (
+              {filteredUsers.map(u => (
                 <option key={u.id} value={u.id}>
                   {u.operatorName ? `${u.operatorName} (${u.username})` : u.username}
                 </option>
@@ -258,53 +275,37 @@ export default function FormKegiatan() {
           </div>
         </div>
 
-        {/* Target Asrama Broadcast */}
+        {/* Target Asrama (Optional) */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
           <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
             <Home className="w-5 h-5 text-indigo-500" />
-            Target Broadcast Asrama
+            Asrama Terkait (Opsional)
           </h2>
-          <p className="text-xs text-slate-500">Pilih asrama-asrama yang wajib menerima sosialisasi dan mengkonfirmasi berita acara ini.</p>
-          
-          {asramaList.length === 0 ? (
-            <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              Tidak ditemukan data Asrama pada master data Ruang. Pastikan ada Ruang dengan tipe "ASRAMA".
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Pilih Asrama</label>
+            <select
+              name="asramaId"
+              value={formData.asramaId}
+              onChange={handleInputChange}
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-650 focus:outline-none text-sm bg-white"
+            >
+              <option value="">-- Tidak Berhubungan Dengan Asrama --</option>
               {asramaList.map(a => (
-                <label
-                  key={a.id}
-                  className={`flex items-start gap-2.5 p-3 rounded-lg border text-xs font-medium cursor-pointer transition-all ${
-                    selectedAsramas.includes(a.id)
-                      ? 'border-indigo-650 bg-indigo-50/20 text-indigo-900'
-                      : 'border-slate-200 hover:bg-slate-50 text-slate-650'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedAsramas.includes(a.id)}
-                    onChange={() => handleAsramaToggle(a.id)}
-                    className="mt-0.5 rounded text-indigo-650 focus:ring-indigo-500/20 w-4 h-4"
-                  />
-                  <div>
-                    <p className="font-semibold">{a.nama}</p>
-                    {a.cabang && <p className="text-[10px] text-slate-400 font-normal">{a.cabang.name}</p>}
-                  </div>
-                </label>
+                <option key={a.id} value={a.id}>
+                  {a.nama} {a.cabang ? `(${a.cabang.name})` : ''}
+                </option>
               ))}
-            </div>
-          )}
+            </select>
+          </div>
         </div>
 
         {/* File Upload (Drag and Drop) */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
           <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
             <Upload className="w-5 h-5 text-indigo-500" />
-            Dokumen & Foto Kegiatan
+            Dokumen BAP & Foto Pendukung
           </h2>
-          <p className="text-xs text-slate-500">Unggah berkas panduan/BAP (PDF, Word) dan dokumen pendukung lainnya.</p>
+          <p className="text-xs text-slate-500">Unggah berkas BAP (PDF, Word) dan dokumentasi kegiatan lainnya.</p>
 
           <div
             onDragOver={handleDragOver}
@@ -363,7 +364,7 @@ export default function FormKegiatan() {
         <div className="flex justify-end gap-3 pt-2">
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/dashboard/kegiatan')}
             disabled={createMutation.isPending}
             className="px-5 py-2 text-sm font-semibold rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 transition-all cursor-pointer"
           >
@@ -372,17 +373,17 @@ export default function FormKegiatan() {
           <button
             type="submit"
             disabled={createMutation.isPending}
-            className="px-5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
+            className="px-5 py-2 text-sm font-semibold rounded-lg bg-indigo-650 hover:bg-indigo-750 text-white shadow-sm flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
           >
             {createMutation.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Menyimpan...
+                Mengirim BAP...
               </>
             ) : (
               <>
                 <Check className="w-4 h-4" />
-                Publish & Broadcast
+                Kirim Laporan BAP
               </>
             )}
           </button>

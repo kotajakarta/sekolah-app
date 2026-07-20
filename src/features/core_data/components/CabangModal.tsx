@@ -296,6 +296,8 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
                       <option value="WAKAF">Wakaf</option>
                       <option value="KERJASAMA">Kerjasama</option>
                       <option value="SEWA">Sewa</option>
+                      <option value="MILIK_SENDIRI">Milik Sendiri</option>
+                      <option value="PINJAM_PAKAI">Pinjam Pakai</option>
                     </select>
                   </div>
                   <div>
@@ -305,6 +307,8 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
                       <option value="WAKAF">Wakaf</option>
                       <option value="KERJASAMA">Kerjasama</option>
                       <option value="SEWA">Sewa</option>
+                      <option value="MILIK_SENDIRI">Milik Sendiri</option>
+                      <option value="PINJAM_PAKAI">Pinjam Pakai</option>
                     </select>
                   </div>
                 </div>

@@ -2,11 +2,18 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useToast } from '../../contexts/ToastContext';
-import { FileText, Plus, Trash2, Edit, Save, X, Loader2, AlertCircle, Calendar, Tag, Info } from 'lucide-react';
+import { FileText, Plus, Trash2, Edit, Save, X, Loader2, AlertCircle, Calendar, Tag, Info, Upload, Download } from 'lucide-react';
 
 interface JenisKegiatan {
   id: string;
   nama: string;
+}
+
+interface DokumenTemplate {
+  id: string;
+  filePath: string;
+  fileName: string;
+  fileType: string;
 }
 
 interface TemplateKegiatan {
@@ -16,6 +23,7 @@ interface TemplateKegiatan {
   deadline: string;
   jenisId: string;
   jenis: JenisKegiatan;
+  dokumen: DokumenTemplate[];
   createdAt: string;
 }
 
@@ -30,6 +38,8 @@ export default function KelolaTemplateKegiatan() {
     jenisId: '',
   });
 
+  const [files, setFiles] = useState<File[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Fetch list of templates
@@ -51,13 +61,18 @@ export default function KelolaTemplateKegiatan() {
   });
 
   // Mutation to create template
-  const createMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      return apiClient.post('/kegiatan/templates', data);
+  const createMutation = useMutation<any, Error, FormData>({
+    mutationFn: async (data: FormData) => {
+      return apiClient.post('/kegiatan/templates', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
     },
     onSuccess: () => {
       showToast('success', 'Template kegiatan berhasil dibuat!');
       setFormData({ judul: '', deskripsi: '', deadline: '', jenisId: '' });
+      setFiles([]);
       queryClient.invalidateQueries({ queryKey: ['template-kegiatan'] });
     },
     onError: (error: any) => {
@@ -66,13 +81,19 @@ export default function KelolaTemplateKegiatan() {
   });
 
   // Mutation to update template
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<typeof formData> }) => {
-      return apiClient.put(`/kegiatan/templates/${id}`, data);
+  const updateMutation = useMutation<any, Error, { id: string; data: FormData }>({
+    mutationFn: async ({ id, data }) => {
+      return apiClient.put(`/kegiatan/templates/${id}`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
     },
     onSuccess: () => {
       showToast('success', 'Template kegiatan berhasil diperbarui!');
       setEditingId(null);
+      setFiles([]);
+      setFormData({ judul: '', deskripsi: '', deadline: '', jenisId: '' });
       queryClient.invalidateQueries({ queryKey: ['template-kegiatan'] });
     },
     onError: (error: any) => {
@@ -99,13 +120,56 @@ export default function KelolaTemplateKegiatan() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files) {
+      const newFiles = Array.from(e.dataTransfer.files);
+      setFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.judul || !formData.deskripsi || !formData.deadline || !formData.jenisId) {
       showToast('error', 'Lengkapi seluruh field wajib untuk membuat template.');
       return;
     }
-    createMutation.mutate(formData);
+
+    const payload = new FormData();
+    payload.append('judul', formData.judul);
+    payload.append('deskripsi', formData.deskripsi);
+    payload.append('deadline', formData.deadline);
+    payload.append('jenisId', formData.jenisId);
+    files.forEach(file => {
+      payload.append('files', file);
+    });
+
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, data: payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   };
 
   const startEdit = (template: TemplateKegiatan) => {
@@ -113,19 +177,15 @@ export default function KelolaTemplateKegiatan() {
     setFormData({
       judul: template.judul,
       deskripsi: template.deskripsi,
-      // Format deadline for datetime-local: YYYY-MM-DDThh:mm
       deadline: new Date(template.deadline).toISOString().slice(0, 16),
       jenisId: template.jenisId,
     });
-  };
-
-  const handleUpdate = () => {
-    if (!editingId) return;
-    updateMutation.mutate({ id: editingId, data: formData });
+    setFiles([]);
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
+    setFiles([]);
     setFormData({ judul: '', deskripsi: '', deadline: '', jenisId: '' });
   };
 
@@ -135,6 +195,17 @@ export default function KelolaTemplateKegiatan() {
     }
   };
 
+  const handleDownload = (filePath: string, fileName: string) => {
+    const url = `${apiClient.defaults.baseURL || ''}${filePath}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div>
@@ -142,13 +213,13 @@ export default function KelolaTemplateKegiatan() {
           <FileText className="w-6 h-6 text-indigo-500" />
           Kelola Template Kegiatan Sekolah
         </h1>
-        <p className="text-sm text-slate-500 mt-1">Buat template pelaporan kegiatan yang wajib dilaporkan oleh Cabang ke Pusat.</p>
+        <p className="text-sm text-slate-500 mt-1">Buat template pelaporan kegiatan lengkap dengan dokumen pedoman yang wajib dilaporkan Cabang.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form Add / Edit */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm h-fit">
-          <h3 className="text-base font-semibold text-slate-800 mb-4">
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm h-fit space-y-4">
+          <h3 className="text-base font-semibold text-slate-800 border-b border-slate-100 pb-2">
             {editingId ? 'Edit Template Kegiatan' : 'Buat Template Kegiatan'}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -206,6 +277,48 @@ export default function KelolaTemplateKegiatan() {
               />
             </div>
 
+            {/* Document Uploader for Template */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Unggah Lampiran Juknis / Foto Acuan</label>
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`border border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                  isDragging ? 'border-indigo-500 bg-indigo-50/10' : 'border-slate-300 hover:bg-slate-50/50'
+                }`}
+              >
+                <input
+                  type="file"
+                  multiple
+                  id="template-file-input"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <label htmlFor="template-file-input" className="cursor-pointer flex flex-col items-center gap-1">
+                  <Upload className="w-5 h-5 text-indigo-500" />
+                  <span className="text-xs text-slate-600"><span className="text-indigo-600 font-semibold hover:underline">Pilih file</span> atau seret kemari</span>
+                </label>
+              </div>
+
+              {files.length > 0 && (
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-white">
+                  {files.map((file, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2 text-[11px]">
+                      <span className="text-slate-700 font-medium truncate flex-1 mr-2">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(idx)}
+                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-2 pt-2">
               {editingId ? (
                 <>
@@ -217,9 +330,8 @@ export default function KelolaTemplateKegiatan() {
                     Batal
                   </button>
                   <button
-                    type="button"
-                    onClick={handleUpdate}
-                    disabled={updateMutation.isPending || !formData.judul || !formData.deskripsi || !formData.deadline || !formData.jenisId}
+                    type="submit"
+                    disabled={updateMutation.isPending}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-indigo-650 hover:bg-indigo-750 rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
                   >
                     {updateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -244,7 +356,7 @@ export default function KelolaTemplateKegiatan() {
           </form>
         </div>
 
-        {/* List Cards / List Table */}
+        {/* List Cards */}
         <div className="lg:col-span-2 space-y-4">
           {isLoading ? (
             <div className="bg-white border border-slate-200 rounded-xl p-12 flex justify-center items-center">
@@ -256,13 +368,13 @@ export default function KelolaTemplateKegiatan() {
             </div>
           ) : templates.length === 0 ? (
             <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-12 text-center text-slate-400 flex flex-col items-center justify-center">
-              <Info className="w-8 h-8 mb-2 text-slate-350" />
+              <Info className="w-8 h-8 mb-2 text-slate-355" />
               <p className="font-medium text-slate-500">Belum ada template kegiatan yang terdaftar.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">
               {templates.map(tmpl => (
-                <div key={tmpl.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3 relative">
+                <div key={tmpl.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4 relative">
                   <div className="flex justify-between items-start gap-4">
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -297,9 +409,31 @@ export default function KelolaTemplateKegiatan() {
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-650 bg-slate-50 border border-slate-100 rounded-lg p-3 whitespace-pre-wrap">
-                    {tmpl.deskripsi}
-                  </p>
+                  <div className="space-y-2">
+                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Juknis Pusat:</span>
+                    <p className="text-xs text-slate-650 bg-slate-50 border border-slate-100 rounded-lg p-3 whitespace-pre-wrap leading-relaxed">
+                      {tmpl.deskripsi}
+                    </p>
+                  </div>
+
+                  {tmpl.dokumen && tmpl.dokumen.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lampiran Pusat ({tmpl.dokumen.length}):</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {tmpl.dokumen.map(doc => (
+                          <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50/50">
+                            <span className="text-[11px] text-slate-700 truncate font-medium flex-1 mr-2">{doc.fileName}</span>
+                            <button
+                              onClick={() => handleDownload(doc.filePath, doc.fileName)}
+                              className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-slate-800 shrink-0"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

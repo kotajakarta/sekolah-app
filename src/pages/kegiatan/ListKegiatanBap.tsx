@@ -37,6 +37,7 @@ interface Kegiatan {
     deskripsi: string;
     deadline: string;
     jenis: { nama: string };
+    dokumen?: Dokumen[];
   };
 }
 
@@ -204,9 +205,31 @@ export default function ListKegiatanBap() {
                 {isOpen && (
                   <div className="border-t border-slate-100 bg-[#fbfbfb] p-6 space-y-6">
                     {/* Template Instruction Helper */}
-                    <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-xl p-4 space-y-1">
-                      <span className="text-[10px] font-bold text-indigo-650 uppercase tracking-wider block">Petunjuk / Juknis Pusat:</span>
-                      <p className="text-xs text-slate-650 whitespace-pre-wrap">{bap.template.deskripsi}</p>
+                    <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-xl p-4 space-y-3">
+                      <div>
+                        <span className="text-[10px] font-bold text-indigo-650 uppercase tracking-wider block">Petunjuk / Juknis Pusat:</span>
+                        <p className="text-xs text-slate-650 whitespace-pre-wrap">{bap.template.deskripsi}</p>
+                      </div>
+
+                      {bap.template.dokumen && bap.template.dokumen.length > 0 && (
+                        <div className="space-y-1.5 pt-2 border-t border-indigo-100/30">
+                          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lampiran Pusat ({bap.template.dokumen.length}):</span>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {bap.template.dokumen.map(doc => (
+                              <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-200 bg-white">
+                                <span className="text-[11px] text-slate-700 truncate font-medium flex-1 mr-2">{doc.fileName}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownload(doc.filePath, doc.fileName)}
+                                  className="p-1 hover:bg-slate-100 rounded text-slate-500 shrink-0"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Description */}

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
-import { Calendar, Upload, Users, Home, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag } from 'lucide-react';
+import { Calendar, Upload, Users, Home, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag, Download } from 'lucide-react';
 
 interface User {
   id: string;
@@ -27,6 +27,7 @@ interface TemplateKegiatan {
   deskripsi: string;
   deadline: string;
   jenis: { nama: string };
+  dokumen: { id: string; filePath: string; fileName: string; fileType: string }[];
 }
 
 export default function FormKegiatan() {
@@ -114,6 +115,17 @@ export default function FormKegiatan() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleDownload = (filePath: string, fileName: string) => {
+    const url = `${apiClient.defaults.baseURL || ''}${filePath}`;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Drag and drop handlers
@@ -226,6 +238,26 @@ export default function FormKegiatan() {
                 <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Juknis & Petunjuk Pusat:</span>
                 <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{selectedTemplate.deskripsi}</p>
               </div>
+
+              {selectedTemplate.dokumen && selectedTemplate.dokumen.length > 0 && (
+                <div className="space-y-1.5 pt-2 border-t border-indigo-100/50">
+                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Lampiran Petunjuk dari Pusat:</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {selectedTemplate.dokumen.map(doc => (
+                      <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg border border-indigo-100/50 bg-white">
+                        <span className="text-xs text-slate-700 truncate font-medium flex-1 mr-2">{doc.fileName}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDownload(doc.filePath, doc.fileName)}
+                          className="p-1 hover:bg-slate-100 rounded text-slate-500 shrink-0"
+                        >
+                          <Download className="w-4 h-4 text-indigo-500" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

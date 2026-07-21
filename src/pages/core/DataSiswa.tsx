@@ -251,6 +251,7 @@ export default function DataSiswa() {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.name')} & NIK</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('wilayah.region_name')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Akademik</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Kelengkapan</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Status</th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
@@ -278,6 +279,25 @@ export default function DataSiswa() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                         {student.cabang?.name || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-700">
+                        <div className="font-semibold text-slate-800">
+                          {student.siswaFormal?.kelas ? (
+                            <span>
+                              {student.siswaFormal.kelas.tingkat && student.siswaFormal.kelas.tingkat !== 'Non Muadalah' ? `${student.siswaFormal.kelas.tingkat} - ` : ''}
+                              {student.siswaFormal.kelas.name}
+                            </span>
+                          ) : (
+                            <span className="text-slate-450 font-normal">Belum ada kelas</span>
+                          )}
+                        </div>
+                        {student.grupDaimi && (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                              Daimi: {student.grupDaimi}
+                            </span>
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">

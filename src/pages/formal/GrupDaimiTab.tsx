@@ -5,6 +5,7 @@ import { useGetStudents, Student } from '../../features/core_data/hooks/useGetSt
 import { Plus, Edit2, Trash2, Loader2, Eye, User, Settings, UserPlus, UserMinus, Search, X, Check } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Staff {
   id: string;
@@ -42,6 +43,8 @@ const JENIS_DAIMI_OPTIONS = [
 export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const canManage = user?.scope === 'GLOBAL' || user?.scope === 'CABANG';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGrup, setEditingGrup] = useState<GrupDaimi | null>(null);
@@ -247,7 +250,8 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
   // Student filtering for Add Student
   const studentCandidates = allStudents.filter(s => {
     const isNotInThisGrup = !studentsInGrup.some(ex => ex.id === s.id);
-    return isNotInThisGrup && s.isActive;
+    const isSameCabang = user?.scope !== 'CABANG' || s.cabangId === user.cabangId;
+    return isNotInThisGrup && s.isActive && isSameCabang;
   });
 
   const filteredCandidates = studentCandidates.filter(s => {
@@ -271,7 +275,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
           <h2 className="text-lg font-medium text-slate-800">Manajemen Grup Daimi</h2>
           <p className="text-sm text-slate-500">Kelola master data Grup Daimi yang digunakan pada penempatan santri dan mapel.</p>
         </div>
-        {isAdmin && (
+        {canManage && (
           <button 
             onClick={openAddModal}
             className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
@@ -327,7 +331,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                       <Eye className="w-3.5 h-3.5 mr-1" />
                       Detail
                     </button>
-                    {isAdmin && (
+                    {canManage && (
                       <>
                         <button
                           onClick={() => openEditModal(grup)}
@@ -468,7 +472,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                       placeholder="Masukkan nama grup..."
-                      disabled={!isAdmin}
+                      disabled={!canManage}
                     />
                   </div>
 
@@ -478,7 +482,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                       value={formData.jenis}
                       onChange={(e) => setFormData({ ...formData, jenis: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white disabled:bg-slate-50"
-                      disabled={!isAdmin}
+                      disabled={!canManage}
                     >
                       <option value="">-- Pilih Jenis --</option>
                       {JENIS_DAIMI_OPTIONS.map(opt => (
@@ -493,7 +497,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                       value={formData.ketuaId}
                       onChange={(e) => setFormData({ ...formData, ketuaId: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white disabled:bg-slate-50"
-                      disabled={!isAdmin}
+                      disabled={!canManage}
                     >
                       <option value="">-- Pilih Ketua Grup --</option>
                       {staffList.map(staff => (
@@ -502,7 +506,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                     </select>
                   </div>
 
-                  {isAdmin && (
+                  {canManage && (
                     <button
                       type="submit"
                       disabled={updateMutation.isPending}

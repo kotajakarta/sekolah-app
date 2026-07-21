@@ -136,17 +136,11 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
 
   useEffect(() => {
     let mounted = true;
-    fetch(
-      'https://api.restcountries.com/countries/v5?q=indonesia',
-      { headers: { 'Authorization': 'Bearer rc_live_a9e86719eb5a4f1598832ea9db912de1' } }
-    )
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch countries');
-        return res.json();
-      })
-      .then((resJson: any) => {
+    apiClient.get('/master-data/countries')
+      .then((response) => {
+        const resJson = response.data;
         if (!mounted) return;
-        const objects = resJson.data?.objects || [];
+        const objects = resJson?.data?.objects || [];
         const formatted = objects.map((c: any) => ({
           value: c.names?.common || '',
           label: c.names?.common || ''

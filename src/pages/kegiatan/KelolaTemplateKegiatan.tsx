@@ -41,6 +41,28 @@ export default function KelolaTemplateKegiatan() {
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [existingDocs, setExistingDocs] = useState<{ id: string; fileName: string; filePath: string }[]>([]);
+
+  // Mutation to delete template document
+  const deleteDocMutation = useMutation({
+    mutationFn: async (docId: string) => {
+      return apiClient.delete(`/kegiatan/templates/dokumen/${docId}`);
+    },
+    onSuccess: (_, docId) => {
+      showToast('success', 'Lampiran template dokumen berhasil dihapus!');
+      setExistingDocs(prev => prev.filter(d => d.id !== docId));
+      queryClient.invalidateQueries({ queryKey: ['template-kegiatan'] });
+    },
+    onError: (err: any) => {
+      showToast('error', err.response?.data?.message || 'Gagal menghapus lampiran dokumen.');
+    }
+  });
+
+  const handleDeleteDoc = (docId: string) => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus dokumen template ini?')) {
+      deleteDocMutation.mutate(docId);
+    }
+  };
 
   // Fetch list of templates
   const { data: templates = [], isLoading, isError } = useQuery<TemplateKegiatan[]>({
@@ -93,6 +115,7 @@ export default function KelolaTemplateKegiatan() {
       showToast('success', 'Template kegiatan berhasil diperbarui!');
       setEditingId(null);
       setFiles([]);
+      setExistingDocs([]);
       setFormData({ judul: '', deskripsi: '', deadline: '', jenisId: '' });
       queryClient.invalidateQueries({ queryKey: ['template-kegiatan'] });
     },
@@ -181,11 +204,13 @@ export default function KelolaTemplateKegiatan() {
       jenisId: template.jenisId,
     });
     setFiles([]);
+    setExistingDocs(template.dokumen || []);
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
     setFiles([]);
+    setExistingDocs([]);
     setFormData({ judul: '', deskripsi: '', deadline: '', jenisId: '' });
   };
 
@@ -316,6 +341,37 @@ export default function KelolaTemplateKegiatan() {
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {editingId && existingDocs.length > 0 && (
+                <div className="space-y-1 pt-1">
+                  <span className="block text-[10px] font-bold text-slate-450 uppercase tracking-wider">Berkas Saat Ini:</span>
+                  <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-white">
+                    {existingDocs.map(doc => (
+                      <div key={doc.id} className="flex items-center justify-between p-2 text-[11px] bg-slate-50/20">
+                        <span className="text-slate-700 font-medium truncate flex-1 mr-2">{doc.fileName}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleDownload(doc.filePath, doc.fileName)}
+                            className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-slate-800"
+                            title="Unduh berkas"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDoc(doc.id)}
+                            className="p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-600"
+                            title="Hapus berkas dari template"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

@@ -287,14 +287,20 @@ export default function DataSiswa() {
                         {student.cabang?.name || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-700">
-                        <div className="font-semibold text-slate-800">
+                        <div className="flex flex-wrap gap-1 items-center">
                           {student.siswaFormal?.kelas ? (
-                            <span>
-                              {student.siswaFormal.kelas.tingkat && student.siswaFormal.kelas.tingkat !== 'Non Muadalah' ? `${student.siswaFormal.kelas.tingkat} - ` : ''}
-                              {student.siswaFormal.kelas.name}
-                            </span>
+                            <>
+                              {student.siswaFormal.kelas.tingkat && student.siswaFormal.kelas.tingkat !== 'Non Muadalah' && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 border border-green-200">
+                                  {student.siswaFormal.kelas.tingkat}
+                                </span>
+                              )}
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
+                                {student.siswaFormal.kelas.name}
+                              </span>
+                            </>
                           ) : (
-                            <span className="text-slate-450 font-normal">Belum ada kelas</span>
+                            <span className="text-slate-400 font-normal">Belum ada kelas</span>
                           )}
                         </div>
                         {student.dataDaimi?.grup?.jenis ? (

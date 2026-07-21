@@ -50,7 +50,9 @@ export default function DataSiswa() {
     wilayahId: user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? user?.wilayahId || '' : '',
     cabangId: user?.scope === 'CABANG' ? user?.cabangId || '' : '',
     kelasId: '',
-    lembagaMuadalahId: ''
+    lembagaMuadalahId: '',
+    jenisDaimi: '',
+    tingkat: ''
   });
 
   const isAdmin = user?.scope === 'GLOBAL';
@@ -103,6 +105,8 @@ export default function DataSiswa() {
     if (advancedFilters.cabangId && s.cabangId !== advancedFilters.cabangId) return false;
     if (advancedFilters.kelasId && s.siswaFormal?.kelasId !== advancedFilters.kelasId) return false;
     if (advancedFilters.lembagaMuadalahId && s.siswaFormal?.kelas?.lembagaMuadalah?.id !== advancedFilters.lembagaMuadalahId) return false;
+    if (advancedFilters.jenisDaimi && s.dataDaimi?.grup?.jenis !== advancedFilters.jenisDaimi) return false;
+    if (advancedFilters.tingkat && s.siswaFormal?.kelas?.tingkat !== advancedFilters.tingkat) return false;
 
     // Search query
     const q = searchQuery.toLowerCase();
@@ -218,7 +222,9 @@ export default function DataSiswa() {
         onFilterChange={setAdvancedFilters} 
         userScope={user?.scope || ''} 
         userWilayahId={user?.wilayahId} 
-        userCabangId={user?.cabangId} 
+        userCabangId={user?.cabangId}
+        showDaimiFilter={true}
+        showTingkatFilter={true}
       />
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">

@@ -10,6 +10,8 @@ export interface FilterState {
   cabangId: string;
   kelasId: string;
   lembagaMuadalahId: string;
+  jenisDaimi?: string;
+  tingkat?: string;
 }
 
 interface AdvancedFilterBarProps {
@@ -17,16 +19,27 @@ interface AdvancedFilterBarProps {
   userScope: string;
   userWilayahId?: string;
   userCabangId?: string;
+  showDaimiFilter?: boolean;
+  showTingkatFilter?: boolean;
 }
 
-export default function AdvancedFilterBar({ onFilterChange, userScope, userWilayahId, userCabangId }: AdvancedFilterBarProps) {
+export default function AdvancedFilterBar({ 
+  onFilterChange, 
+  userScope, 
+  userWilayahId, 
+  userCabangId,
+  showDaimiFilter = false,
+  showTingkatFilter = false
+}: AdvancedFilterBarProps) {
   const { t } = useTranslation();
   
   const [filters, setFilters] = useState<FilterState>({
     wilayahId: userScope === 'WILAYAH' || userScope === 'CABANG' ? userWilayahId || '' : '',
     cabangId: userScope === 'CABANG' ? userCabangId || '' : '',
     kelasId: '',
-    lembagaMuadalahId: ''
+    lembagaMuadalahId: '',
+    jenisDaimi: '',
+    tingkat: ''
   });
 
   const { data: wilayahs = [] } = useGetWilayah();
@@ -36,14 +49,13 @@ export default function AdvancedFilterBar({ onFilterChange, userScope, userWilay
     queryKey: ['kelas', filters.cabangId],
     queryFn: async () => {
       const res = await apiClient.get('/formal/kelas');
-      // Limit to active classes and filter by cabangId if selected
       let filtered = res.data.filter((k: any) => k.isActive);
       if (filters.cabangId) {
         filtered = filtered.filter((k: any) => k.cabangId === filters.cabangId);
       }
       return filtered;
     },
-    enabled: true // Always fetch, then filter locally
+    enabled: true
   });
 
   const { data: muadalahs = [] } = useQuery({
@@ -57,7 +69,6 @@ export default function AdvancedFilterBar({ onFilterChange, userScope, userWilay
   const handleChange = (key: keyof FilterState, value: string) => {
     setFilters(prev => {
       const next = { ...prev, [key]: value };
-      // Cascading logic
       if (key === 'wilayahId') {
         next.cabangId = '';
         next.kelasId = '';
@@ -86,7 +97,9 @@ export default function AdvancedFilterBar({ onFilterChange, userScope, userWilay
       wilayahId: userScope === 'WILAYAH' || userScope === 'CABANG' ? userWilayahId || '' : '',
       cabangId: userScope === 'CABANG' ? userCabangId || '' : '',
       kelasId: '',
-      lembagaMuadalahId: ''
+      lembagaMuadalahId: '',
+      jenisDaimi: '',
+      tingkat: ''
     });
   };
 
@@ -96,7 +109,7 @@ export default function AdvancedFilterBar({ onFilterChange, userScope, userWilay
         <Filter className="w-4 h-4 text-indigo-500" />
         <span>Filter Lanjutan</span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <div>
           <label className="block text-xs font-medium text-slate-500 mb-1">Wilayah</label>
           <select
@@ -154,6 +167,49 @@ export default function AdvancedFilterBar({ onFilterChange, userScope, userWilay
             ))}
           </select>
         </div>
+
+        {showTingkatFilter && (
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Tingkat</label>
+            <select
+              value={filters.tingkat || ''}
+              onChange={(e) => handleChange('tingkat', e.target.value)}
+              className="w-full text-sm rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="">Semua Tingkat</option>
+              <option value="Non Muadalah">Non Muadalah</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+              <option value="11">11</option>
+              <option value="12">12</option>
+            </select>
+          </div>
+        )}
+
+        {showDaimiFilter && (
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Jenis Grup Daimi</label>
+            <select
+              value={filters.jenisDaimi || ''}
+              onChange={(e) => handleChange('jenisDaimi', e.target.value)}
+              className="w-full text-sm rounded-lg border border-slate-300 bg-slate-50 py-2 px-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="">Semua Jenis Daimi</option>
+              <option value="1. YIL LİSE">1. YIL LİSE</option>
+              <option value="1. YIL ORTAOKUL">1. YIL ORTAOKUL</option>
+              <option value="HAFIZLIK">HAFIZLIK</option>
+              <option value="HAZIRLIK LİSE">HAZIRLIK LİSE</option>
+              <option value="HAZIRLIK ORTAOKUL">HAZIRLIK ORTAOKUL</option>
+              <option value="İBTİDAİ">İBTİDAİ</option>
+              <option value="İHZARİ">İHZARİ</option>
+              <option value="PRA TEDRİS">PRA TEDRİS</option>
+              <option value="TEKAMÜL">TEKAMÜL</option>
+              <option value="TEKAMÜLALTI">TEKAMÜLALTI</option>
+            </select>
+          </div>
+        )}
       </div>
       
       <div className="mt-4 flex justify-end">

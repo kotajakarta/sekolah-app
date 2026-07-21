@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
-import { Calendar, Upload, Users, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag, Download, Image as ImageIcon, Edit, CheckCircle, Clock } from 'lucide-react';
+import { Calendar, Upload, Users, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag, Download, Image as ImageIcon, Edit, CheckCircle, Clock, Eye, ZoomIn, ZoomOut, RotateCw, File } from 'lucide-react';
 
 interface Guru {
   id: string;
@@ -34,6 +34,7 @@ export default function FormKegiatan() {
   const [activeView, setActiveView] = useState<'LIST' | 'CREATE' | 'EDIT'>('LIST');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateKegiatan | null>(null);
   const [editingBap, setEditingBap] = useState<any | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<{ filePath: string; fileName: string; fileType: string } | null>(null);
 
   const [formData, setFormData] = useState({
     templateId: '',
@@ -602,7 +603,6 @@ export default function FormKegiatan() {
 
         {/* Upload Cards: Split into Documents and Photos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
 
           {/* Section: Dokumen Laporan BAP */}
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
@@ -619,15 +619,21 @@ export default function FormKegiatan() {
               <div className="bg-indigo-50/50 border border-indigo-100 rounded-lg p-3 text-xs flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-indigo-900 truncate mr-2">
                   <Info className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Unduh template: {selectedTemplate.dokumen[0].fileName}</span>
+                  <span className="truncate">Template tersedia dari Pusat</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleDownload(selectedTemplate.dokumen[0].filePath, selectedTemplate.dokumen[0].fileName)}
-                  className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1 shrink-0"
-                >
-                  <Download className="w-3 h-3" /> Unduh
-                </button>
+                <div className="flex items-center gap-2">
+                  {selectedTemplate.dokumen.map((tmplDoc, idx) => (
+                    <button
+                      key={tmplDoc.id}
+                      type="button"
+                      onClick={() => handleDownload(tmplDoc.filePath, tmplDoc.fileName)}
+                      title={`Unduh: ${tmplDoc.fileName}`}
+                      className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1 shrink-0"
+                    >
+                      <Download className="w-3 h-3" /> Unduh {selectedTemplate.dokumen.length > 1 ? `(${idx+1})` : ''}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -636,9 +642,9 @@ export default function FormKegiatan() {
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-slate-700">Surat Pengantar</label>
-                  <p className="text-xs text-slate-400 mt-0.5">Unggah surat pengantar kegiatan (PDF, DOC, DOCX)</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Surat pengantar kegiatan (PDF, DOC, DOCX)</p>
                 </div>
-                <div className="shrink-0">
+                <div className="shrink-0 flex items-center gap-2">
                   <input
                     type="file"
                     id="surat-pengantar-input"
@@ -648,13 +654,35 @@ export default function FormKegiatan() {
                   />
                   <label
                     htmlFor="surat-pengantar-input"
-                    className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                    className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     Pilih Berkas
                   </label>
                 </div>
               </div>
+
+              {/* Existing uploaded surat pengantar in EDIT mode */}
+              {activeView === 'EDIT' && editingBap?.dokumen?.filter((d: any) => !(/\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image'))).slice(0, 1).map((doc: any) => (
+                <div key={`exist-sp-${doc.id}`} className="border border-emerald-200 bg-emerald-50/30 rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 text-xs">
+                    <div className="flex items-center gap-1.5 truncate flex-1 mr-2">
+                      <FileText className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span className="font-medium text-slate-700 truncate">{doc.fileName}</span>
+                      <span className="text-[9px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded shrink-0">Tersimpan</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button type="button" onClick={() => setViewingDoc(doc)} className="p-1 hover:bg-emerald-100 text-emerald-500 rounded cursor-pointer" title="Lihat">
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button type="button" onClick={() => handleDownload(doc.filePath, doc.fileName)} className="p-1 hover:bg-slate-100 text-slate-400 rounded cursor-pointer" title="Unduh">
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
               {suratPengantarFiles.length > 0 && (
                 <div className="border border-slate-200 rounded-lg overflow-hidden bg-white divide-y divide-slate-100">
                   {suratPengantarFiles.map((file, idx) => (
@@ -663,7 +691,7 @@ export default function FormKegiatan() {
                       <button
                         type="button"
                         onClick={() => removeSuratPengantarFile(idx)}
-                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded"
+                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -680,7 +708,7 @@ export default function FormKegiatan() {
                   <label className="block text-sm font-medium text-slate-700">
                     Dokumen BAP {activeView === 'CREATE' && <span className="text-rose-500">*</span>}
                   </label>
-                  <p className="text-xs text-slate-400 mt-0.5">Unggah berkas berita acara (PDF, DOC, DOCX)</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Berkas berita acara (PDF, DOC, DOCX)</p>
                 </div>
                 <div className="shrink-0">
                   <input
@@ -693,13 +721,35 @@ export default function FormKegiatan() {
                   />
                   <label
                     htmlFor="doc-file-input"
-                    className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                    className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     Pilih Berkas
                   </label>
                 </div>
               </div>
+
+              {/* Existing uploaded BAP docs in EDIT mode */}
+              {activeView === 'EDIT' && editingBap?.dokumen?.filter((d: any) => !(/\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image'))).slice(1).map((doc: any) => (
+                <div key={`exist-bap-${doc.id}`} className="border border-emerald-200 bg-emerald-50/30 rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 text-xs">
+                    <div className="flex items-center gap-1.5 truncate flex-1 mr-2">
+                      <FileText className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span className="font-medium text-slate-700 truncate">{doc.fileName}</span>
+                      <span className="text-[9px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded shrink-0">Tersimpan</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button type="button" onClick={() => setViewingDoc(doc)} className="p-1 hover:bg-emerald-100 text-emerald-500 rounded cursor-pointer" title="Lihat">
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button type="button" onClick={() => handleDownload(doc.filePath, doc.fileName)} className="p-1 hover:bg-slate-100 text-slate-400 rounded cursor-pointer" title="Unduh">
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
               {docFiles.length > 0 && (
                 <div className="border border-slate-200 rounded-lg overflow-hidden bg-white divide-y divide-slate-100">
                   {docFiles.map((file, idx) => (
@@ -708,7 +758,7 @@ export default function FormKegiatan() {
                       <button
                         type="button"
                         onClick={() => removeDocFile(idx)}
-                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded"
+                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -727,6 +777,31 @@ export default function FormKegiatan() {
                 Foto Kegiatan
               </h3>
               <p className="text-xs text-slate-500 mb-3">Unggah foto-foto dokumentasi saat pelaksanaan kegiatan berlangsung.</p>
+
+              {/* Existing uploaded photos in EDIT mode */}
+              {activeView === 'EDIT' && editingBap?.dokumen?.filter((d: any) => /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image')).length > 0 && (
+                <div className="mb-3 space-y-1.5">
+                  <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Foto Tersimpan:</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {editingBap.dokumen.filter((d: any) => /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image')).map((photo: any) => {
+                      const photoUrl = `${apiClient.defaults.baseURL || ''}${photo.filePath}`;
+                      return (
+                        <div
+                          key={photo.id}
+                          className="relative group aspect-square rounded-lg overflow-hidden border border-emerald-200 cursor-pointer"
+                          onClick={() => setViewingDoc(photo)}
+                        >
+                          <img src={photoUrl} alt={photo.fileName} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200" />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                            <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                          <span className="absolute top-1 right-1 bg-emerald-500 text-white text-[8px] font-bold px-1 py-0.5 rounded">Ada</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Uploader */}
               <div
@@ -757,26 +832,101 @@ export default function FormKegiatan() {
 
             {photoFiles.length > 0 && (
               <div className="mt-3 space-y-1">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Foto diunggah:</span>
-                <div className="border border-slate-200 rounded-lg overflow-hidden bg-white divide-y divide-slate-100">
-                  {photoFiles.map((file, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 text-xs">
-                      <span className="font-medium text-slate-700 truncate flex-1 mr-2">{file.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => removePhotoFile(idx)}
-                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Foto baru diunggah:</span>
+                <div className="grid grid-cols-3 gap-2">
+                  {photoFiles.map((file, idx) => {
+                    const previewUrl = URL.createObjectURL(file);
+                    return (
+                      <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200">
+                        <img src={previewUrl} alt={file.name} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removePhotoFile(idx)}
+                          className="absolute top-1 right-1 p-0.5 bg-black/50 hover:bg-rose-600 text-white rounded-full transition-colors cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 py-1">
+                          <p className="text-[9px] text-white truncate">{file.name}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
           </div>
 
         </div>
+
+        {/* File Viewer Modal */}
+        {viewingDoc && (
+          <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={() => setViewingDoc(null)}
+          >
+            <div
+              className="relative bg-white rounded-2xl shadow-2xl flex flex-col"
+              style={{ width: '90vw', maxWidth: 900, maxHeight: '90vh' }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <span className="text-sm font-semibold text-slate-800 truncate">{viewingDoc.fileName}</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-3">
+                  <button
+                    onClick={() => handleDownload(viewingDoc.filePath, viewingDoc.fileName)}
+                    title="Unduh"
+                    className="p-1.5 hover:bg-indigo-50 rounded-lg text-indigo-500 transition-colors cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewingDoc(null)}
+                    title="Tutup"
+                    className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              {/* Body */}
+              <div className="flex-1 overflow-auto flex items-center justify-center bg-slate-50 rounded-b-2xl" style={{ minHeight: 300 }}>
+                {(/\.(jpe?g|png|gif|webp|bmp)$/i.test(viewingDoc.fileName) || viewingDoc.fileType?.startsWith('image')) ? (
+                  <img
+                    src={`${apiClient.defaults.baseURL || ''}${viewingDoc.filePath}`}
+                    alt={viewingDoc.fileName}
+                    style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }}
+                  />
+                ) : /\.pdf$/i.test(viewingDoc.fileName) ? (
+                  <iframe
+                    src={`${apiClient.defaults.baseURL || ''}${viewingDoc.filePath}`}
+                    title={viewingDoc.fileName}
+                    className="w-full rounded-b-2xl border-0"
+                    style={{ height: '70vh' }}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-4 p-12 text-center">
+                    <FileText className="w-16 h-16 text-slate-300" />
+                    <div>
+                      <p className="text-sm font-semibold text-slate-700">Preview tidak tersedia</p>
+                      <p className="text-xs text-slate-400 mt-1">Gunakan tombol unduh untuk membuka berkas ini.</p>
+                    </div>
+                    <button
+                      onClick={() => handleDownload(viewingDoc.filePath, viewingDoc.fileName)}
+                      className="mt-2 px-5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" /> Unduh Berkas
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Submit Actions */}
         <div className="flex justify-end gap-3 pt-2">

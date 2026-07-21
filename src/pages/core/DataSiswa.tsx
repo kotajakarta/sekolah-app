@@ -254,6 +254,7 @@ export default function DataSiswa() {
               <thead className="bg-slate-50/80 border-b border-slate-200">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
+                  <th scope="col" className="px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">Foto</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.name')} & NIK</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('wilayah.region_name')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
@@ -272,6 +273,26 @@ export default function DataSiswa() {
                     <tr key={student.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
                         {(currentPage - 1) * itemsPerPage + idx + 1}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-center">
+                        {student.biodata?.fotoBase64 ? (
+                          <div className="relative inline-block">
+                            <img
+                              src={student.biodata.fotoBase64}
+                              alt="Foto Siswa"
+                              className={`w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 ${
+                                student.biodata?.jenisKelamin === 'PEREMPUAN' ? 'blur-sm' : ''
+                              }`}
+                            />
+                            {student.biodata?.jenisKelamin === 'PEREMPUAN' && (
+                              <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white drop-shadow-sm pointer-events-none">🔒</span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
+                            <User className="w-5 h-5 text-slate-400" />
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-slate-800">{student.biodata?.fullName}</div>

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
-import { Calendar, Upload, Users, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag, Download, Image as ImageIcon } from 'lucide-react';
+import { Calendar, Upload, Users, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag, Download, Image as ImageIcon, Edit, CheckCircle, Clock } from 'lucide-react';
 
 interface Guru {
   id: string;
@@ -28,6 +28,10 @@ export default function FormKegiatan() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
+  const [activeView, setActiveView] = useState<'LIST' | 'CREATE' | 'EDIT'>('LIST');
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateKegiatan | null>(null);
+  const [editingBap, setEditingBap] = useState<any | null>(null);
+
   const [formData, setFormData] = useState({
     templateId: '',
     deskripsi: '',
@@ -40,11 +44,20 @@ export default function FormKegiatan() {
   const [isDraggingDoc, setIsDraggingDoc] = useState(false);
   const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
 
-  // Fetch list of templates
+  // Fetch list of templates from Pusat
   const { data: templates = [], isLoading: isLoadingTemplates } = useQuery<TemplateKegiatan[]>({
     queryKey: ['template-kegiatan'],
     queryFn: async () => {
       const res = await apiClient.get('/kegiatan/templates');
+      return res.data;
+    }
+  });
+
+  // Fetch BAPs submitted by this branch
+  const { data: baps = [], isLoading: isLoadingBaps } = useQuery<any[]>({
+    queryKey: ['kegiatan', 'branch-list'],
+    queryFn: async () => {
+      const res = await apiClient.get('/kegiatan');
       return res.data;
     }
   });
@@ -66,9 +79,6 @@ export default function FormKegiatan() {
     return true;
   });
 
-  // Get current selected template info
-  const selectedTemplate = templates.find(t => t.id === formData.templateId);
-
   // Mutation to create Kegiatan BAP
   const createMutation = useMutation<any, Error, FormData>({
     mutationFn: async (data: FormData) => {
@@ -81,10 +91,31 @@ export default function FormKegiatan() {
     onSuccess: () => {
       showToast('success', 'Laporan BAP berhasil dibuat dan dikirim ke Pusat!');
       queryClient.invalidateQueries({ queryKey: ['kegiatan'] });
-      navigate('/dashboard/kegiatan');
+      queryClient.invalidateQueries({ queryKey: ['kegiatan', 'branch-list'] });
+      setActiveView('LIST');
     },
     onError: (error: any) => {
       showToast('error', error.response?.data?.message || 'Gagal membuat laporan BAP.');
+    }
+  });
+
+  // Mutation to update Kegiatan BAP
+  const updateMutation = useMutation<any, Error, { id: string; data: FormData }>({
+    mutationFn: async ({ id, data }) => {
+      return apiClient.put(`/kegiatan/${id}`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    },
+    onSuccess: () => {
+      showToast('success', 'Laporan BAP berhasil diperbarui!');
+      queryClient.invalidateQueries({ queryKey: ['kegiatan'] });
+      queryClient.invalidateQueries({ queryKey: ['kegiatan', 'branch-list'] });
+      setActiveView('LIST');
+    },
+    onError: (error: any) => {
+      showToast('error', error.response?.data?.message || 'Gagal memperbarui laporan BAP.');
     }
   });
 
@@ -174,15 +205,36 @@ export default function FormKegiatan() {
     setPhotoFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const startCreate = (tmpl: TemplateKegiatan) => {
+    setSelectedTemplate(tmpl);
+    setEditingBap(null);
+    setFormData({
+      templateId: tmpl.id,
+      deskripsi: '',
+      ketuaPanitiaId: '',
+    });
+    setDocFiles([]);
+    setPhotoFiles([]);
+    setActiveView('CREATE');
+  };
+
+  const startEdit = (tmpl: TemplateKegiatan, bap: any) => {
+    setSelectedTemplate(tmpl);
+    setEditingBap(bap);
+    setFormData({
+      templateId: tmpl.id,
+      deskripsi: bap.deskripsi,
+      ketuaPanitiaId: bap.panitia[0]?.staffId || '',
+    });
+    setDocFiles([]);
+    setPhotoFiles([]);
+    setActiveView('EDIT');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.templateId || !formData.deskripsi || !formData.ketuaPanitiaId) {
       showToast('error', 'Silakan lengkapi form yang wajib diisi.');
-      return;
-    }
-
-    if (docFiles.length === 0) {
-      showToast('error', 'Silakan unggah minimal satu dokumen laporan BAP.');
       return;
     }
 
@@ -195,90 +247,178 @@ export default function FormKegiatan() {
       payload.append('cabangId', user.cabangId);
     }
 
-    // Combine doc files and photo files
     docFiles.forEach(file => payload.append('files', file));
     photoFiles.forEach(file => payload.append('files', file));
 
-    createMutation.mutate(payload);
+    if (activeView === 'EDIT' && editingBap) {
+      updateMutation.mutate({ id: editingBap.id, data: payload });
+    } else {
+      if (docFiles.length === 0) {
+        showToast('error', 'Silakan unggah minimal satu dokumen laporan BAP.');
+        return;
+      }
+      createMutation.mutate(payload);
+    }
   };
 
+  if (activeView === 'LIST') {
+    return (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-indigo-500" />
+            Tugas Pelaporan BAP Kegiatan
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">Daftar kegiatan yang dirilis oleh Pusat dan status penyelesaian pelaporan cabang Anda.</p>
+        </div>
+
+        {isLoadingTemplates || isLoadingBaps ? (
+          <div className="bg-white border border-slate-200 rounded-xl p-12 flex justify-center items-center">
+            <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+          </div>
+        ) : templates.length === 0 ? (
+          <div className="bg-slate-50 border border-dashed border-slate-350 rounded-xl p-12 text-center text-slate-400 flex flex-col items-center justify-center">
+            <Info className="w-8 h-8 mb-2 text-slate-350" />
+            <p className="font-semibold text-slate-600">Belum ada template kegiatan dirilis oleh Pusat.</p>
+          </div>
+        ) : (
+          <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
+              <thead className="bg-slate-55/70 font-semibold text-slate-700">
+                <tr>
+                  <th className="px-6 py-4">Kategori & Nama Kegiatan</th>
+                  <th className="px-6 py-4">Batas Waktu (Deadline)</th>
+                  <th className="px-6 py-4 text-center">Status</th>
+                  <th className="px-6 py-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {templates.map(tmpl => {
+                  const associatedBap = baps.find(b => b.templateId === tmpl.id);
+                  const isDone = !!associatedBap;
+                  
+                  return (
+                    <tr key={tmpl.id} className="hover:bg-slate-50/40 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 border border-indigo-100 text-indigo-650">
+                            {tmpl.jenis.nama}
+                          </span>
+                        </div>
+                        <span className="font-bold text-slate-800 block text-sm">{tmpl.judul}</span>
+                      </td>
+                      <td className="px-6 py-4 text-slate-500 text-xs font-mono">
+                        {new Date(tmpl.deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {isDone ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 border border-emerald-250 text-emerald-700">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Sudah Dilaporkan
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 border border-amber-250 text-amber-700">
+                            <Clock className="w-3.5 h-3.5" />
+                            Belum Dilaporkan
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {isDone ? (
+                          <button
+                            onClick={() => startEdit(tmpl, associatedBap)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                            Edit BAP
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => startCreate(tmpl)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-755 transition-colors cursor-pointer"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            Buat BAP
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // CREATE or EDIT View
   return (
     <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-slate-200 pb-4">
         <button
-          onClick={() => navigate('/dashboard/kegiatan')}
+          type="button"
+          onClick={() => setActiveView('LIST')}
           className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Buat Laporan BAP Kegiatan</h1>
-          <p className="text-sm text-slate-500">Laporkan Berita Acara Pelaksanaan kegiatan baru cabang Anda berdasarkan template dari Pusat.</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {activeView === 'EDIT' ? 'Edit Laporan BAP Kegiatan' : 'Buat Laporan BAP Kegiatan'}
+          </h1>
+          <p className="text-sm text-slate-500">
+            {activeView === 'EDIT' ? 'Ubah data pelaporan berita acara pelaksanaan cabang Anda.' : 'Laporkan berita acara pelaksanaan berdasarkan pedoman Pusat.'}
+          </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Select Template */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-          <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3">Pilih Kegiatan</h2>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Pilih Template Kegiatan <span className="text-rose-500">*</span></label>
-            <select
-              name="templateId"
-              required
-              value={formData.templateId}
-              onChange={handleInputChange}
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white"
-            >
-              <option value="">-- Pilih Template Kegiatan --</option>
-              {templates.map(t => (
-                <option key={t.id} value={t.id}>{t.judul} ({t.jenis.nama})</option>
-              ))}
-            </select>
-          </div>
-
-          {selectedTemplate && (
-            <div className="bg-indigo-50/40 border border-indigo-100 rounded-xl p-5 mt-4 space-y-3">
-              <div className="flex justify-between items-start gap-4">
-                <div className="flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-100/50 border border-indigo-200 text-indigo-700">
-                    <Tag className="w-3 h-3" />
-                    Kategori: {selectedTemplate.jenis.nama}
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 border border-rose-100 text-rose-700">
-                    <Calendar className="w-3 h-3" />
-                    Deadline Laporan: {new Date(selectedTemplate.deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
-                  </span>
-                </div>
+        {/* Template Detail Box */}
+        {selectedTemplate && (
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+            <div className="border-b border-slate-100 pb-3 flex flex-wrap gap-2 items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-800">{selectedTemplate.judul}</h2>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 border border-indigo-150 text-indigo-750">
+                  <Tag className="w-3 h-3" />
+                  Kategori: {selectedTemplate.jenis.nama}
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-semibold bg-rose-50 border border-rose-150 text-rose-700 font-mono">
+                  <Calendar className="w-3 h-3" />
+                  Batas: {new Date(selectedTemplate.deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                </span>
               </div>
-              <div className="space-y-1">
-                <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Juknis & Petunjuk Pusat:</span>
-                <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{selectedTemplate.deskripsi}</p>
-              </div>
-
-              {selectedTemplate.dokumen && selectedTemplate.dokumen.length > 0 && (
-                <div className="space-y-1.5 pt-2 border-t border-indigo-100/50">
-                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Lampiran Petunjuk dari Pusat:</span>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {selectedTemplate.dokumen.map(doc => (
-                      <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg border border-indigo-100/50 bg-white">
-                        <span className="text-xs text-slate-700 truncate font-medium flex-1 mr-2">{doc.fileName}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleDownload(doc.filePath, doc.fileName)}
-                          className="p-1 hover:bg-slate-100 rounded text-slate-500 shrink-0"
-                        >
-                          <Download className="w-4 h-4 text-indigo-500" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
-          )}
-        </div>
+            
+            <div className="space-y-1">
+              <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Juknis & Petunjuk Pusat:</span>
+              <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{selectedTemplate.deskripsi}</p>
+            </div>
+
+            {selectedTemplate.dokumen && selectedTemplate.dokumen.length > 0 && (
+              <div className="space-y-1.5 pt-3 border-t border-slate-100">
+                <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Lampiran Petunjuk dari Pusat:</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {selectedTemplate.dokumen.map(doc => (
+                    <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-200 bg-slate-50/50">
+                      <span className="text-xs text-slate-700 truncate font-medium flex-1 mr-2">{doc.fileName}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(doc.filePath, doc.fileName)}
+                        className="p-1 hover:bg-slate-100 rounded text-slate-500 shrink-0"
+                      >
+                        <Download className="w-4 h-4 text-indigo-500" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Laporan Deskripsi */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
@@ -331,9 +471,9 @@ export default function FormKegiatan() {
             <div>
               <h3 className="text-base font-semibold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-500" />
-                Dokumen Laporan BAP <span className="text-rose-500">*</span>
+                Dokumen Laporan BAP {activeView === 'CREATE' && <span className="text-rose-500">*</span>}
               </h3>
-              <p className="text-xs text-slate-500 mb-3">Unggah berkas berita acara (PDF, Word). Wajib melampirkan berkas laporan ini.</p>
+              <p className="text-xs text-slate-500 mb-3">Unggah berkas berita acara (PDF, Word). {activeView === 'EDIT' ? 'Kosongkan jika tidak ingin menambah file baru.' : 'Wajib melampirkan berkas laporan ini.'}</p>
               
               {/* Template Download Prompt */}
               {selectedTemplate && selectedTemplate.dokumen && selectedTemplate.dokumen.length > 0 ? (
@@ -463,18 +603,18 @@ export default function FormKegiatan() {
         <div className="flex justify-end gap-3 pt-2">
           <button
             type="button"
-            onClick={() => navigate('/dashboard/kegiatan')}
-            disabled={createMutation.isPending}
+            onClick={() => setActiveView('LIST')}
+            disabled={createMutation.isPending || updateMutation.isPending}
             className="px-5 py-2 text-sm font-semibold rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 transition-all cursor-pointer"
           >
             Batal
           </button>
           <button
             type="submit"
-            disabled={createMutation.isPending || !formData.templateId}
+            disabled={createMutation.isPending || updateMutation.isPending || !formData.templateId}
             className="px-5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
           >
-            {createMutation.isPending ? (
+            {createMutation.isPending || updateMutation.isPending ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Mengirim BAP...
@@ -482,7 +622,7 @@ export default function FormKegiatan() {
             ) : (
               <>
                 <Check className="w-4 h-4" />
-                Kirim Laporan BAP
+                {activeView === 'EDIT' ? 'Perbarui Laporan BAP' : 'Kirim Laporan BAP'}
               </>
             )}
           </button>

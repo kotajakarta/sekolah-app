@@ -373,68 +373,38 @@ export default function KelolaTemplateKegiatan() {
               <p className="font-medium text-slate-500">Belum ada template kegiatan yang terdaftar.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3">
               {templates.map(tmpl => (
-                <div key={tmpl.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4 relative">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 border border-indigo-150 text-indigo-700">
-                          <Tag className="w-3 h-3" />
-                          {tmpl.jenis.nama}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5" />
-                          Batas: {new Date(tmpl.deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
-                        </span>
-                      </div>
-                      <h4 className="text-base font-bold text-slate-800">{tmpl.judul}</h4>
+                <div key={tmpl.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex items-center justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-indigo-50 border border-indigo-100 text-indigo-600">
+                        {tmpl.jenis.nama}
+                      </span>
+                      <h4 className="text-sm font-bold text-slate-800 truncate">{tmpl.judul}</h4>
                     </div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => startEdit(tmpl)}
-                        disabled={editingId === tmpl.id}
-                        className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-indigo-600 transition-colors disabled:opacity-30 cursor-pointer"
-                        title="Edit Template"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(tmpl.id)}
-                        className="p-1.5 hover:bg-rose-50 rounded text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
-                        title="Hapus Template"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <span className="text-[11px] text-slate-405 font-mono mt-1 block">
+                      Batas Waktu: {new Date(tmpl.deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </span>
                   </div>
 
-                  <div className="space-y-2">
-                    <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Juknis Pusat:</span>
-                    <p className="text-xs text-slate-650 bg-slate-50 border border-slate-100 rounded-lg p-3 whitespace-pre-wrap leading-relaxed">
-                      {tmpl.deskripsi}
-                    </p>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => startEdit(tmpl)}
+                      disabled={editingId === tmpl.id}
+                      className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-indigo-600 transition-colors disabled:opacity-30 cursor-pointer"
+                      title="Edit Template"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(tmpl.id)}
+                      className="p-1.5 hover:bg-rose-50 rounded text-slate-500 hover:text-rose-600 transition-colors cursor-pointer"
+                      title="Hapus Template"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-
-                  {tmpl.dokumen && tmpl.dokumen.length > 0 && (
-                    <div className="space-y-1.5">
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lampiran Pusat ({tmpl.dokumen.length}):</span>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {tmpl.dokumen.map(doc => (
-                          <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50/50">
-                            <span className="text-[11px] text-slate-700 truncate font-medium flex-1 mr-2">{doc.fileName}</span>
-                            <button
-                              onClick={() => handleDownload(doc.filePath, doc.fileName)}
-                              className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-slate-800 shrink-0"
-                            >
-                              <Download className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>

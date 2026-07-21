@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
-import { Calendar, FileText, Download, CheckCircle2, AlertCircle, Info, Building, Clock, ChevronDown, ChevronUp, Sparkles, Loader2, Plus, Tag } from 'lucide-react';
+import { Calendar, FileText, Download, CheckCircle2, AlertCircle, Info, Building, Clock, ChevronDown, ChevronUp, Sparkles, Loader2, Plus, Tag, Eye, X, Image as ImageIcon, File, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 
 interface Panitia {
   user: {
@@ -41,12 +41,118 @@ interface Kegiatan {
   };
 }
 
+// ─── File Viewer Modal ─────────────────────────────────────────────────────────
+interface FileViewerProps {
+  doc: Dokumen;
+  onClose: () => void;
+}
+
+function FileViewer({ doc, onClose }: FileViewerProps) {
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+
+  const fileUrl = `${apiClient.defaults.baseURL || ''}${doc.filePath}`;
+  const isImage = /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(doc.fileName) || doc.fileType?.startsWith('image');
+  const isPdf = /\.pdf$/i.test(doc.fileName) || doc.fileType === 'application/pdf';
+
+  const handleDownload = () => {
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = doc.fileName;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl flex flex-col"
+        style={{ width: '90vw', maxWidth: 900, maxHeight: '90vh' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            {isImage ? <ImageIcon className="w-4 h-4 text-indigo-500 shrink-0" /> : <FileText className="w-4 h-4 text-indigo-500 shrink-0" />}
+            <span className="text-sm font-semibold text-slate-800 truncate">{doc.fileName}</span>
+            <span className="text-[10px] font-bold uppercase text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{doc.fileType || 'file'}</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 ml-3">
+            {isImage && (
+              <>
+                <button onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} title="Perkecil" className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors cursor-pointer">
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+                <span className="text-xs font-semibold text-slate-600 w-10 text-center">{Math.round(zoom * 100)}%</span>
+                <button onClick={() => setZoom(z => Math.min(3, z + 0.25))} title="Perbesar" className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors cursor-pointer">
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+                <button onClick={() => setRotation(r => (r + 90) % 360)} title="Putar" className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors cursor-pointer">
+                  <RotateCw className="w-4 h-4" />
+                </button>
+                <div className="w-px h-5 bg-slate-200" />
+              </>
+            )}
+            <button onClick={handleDownload} title="Unduh" className="p-1.5 hover:bg-indigo-50 rounded-lg text-indigo-500 transition-colors cursor-pointer">
+              <Download className="w-4 h-4" />
+            </button>
+            <button onClick={onClose} title="Tutup" className="p-1.5 hover:bg-rose-50 rounded-lg text-slate-500 hover:text-rose-600 transition-colors cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-auto flex items-center justify-center bg-slate-50 rounded-b-2xl" style={{ minHeight: 300 }}>
+          {isImage ? (
+            <div className="overflow-auto flex items-center justify-center w-full h-full p-4">
+              <img
+                src={fileUrl}
+                alt={doc.fileName}
+                style={{ transform: `scale(${zoom}) rotate(${rotation}deg)`, transition: 'transform 0.2s', maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }}
+              />
+            </div>
+          ) : isPdf ? (
+            <iframe
+              src={fileUrl}
+              title={doc.fileName}
+              className="w-full rounded-b-2xl border-0"
+              style={{ height: '70vh' }}
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-4 p-12 text-center">
+              <File className="w-16 h-16 text-slate-300" />
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Preview tidak tersedia</p>
+                <p className="text-xs text-slate-400 mt-1">Format {doc.fileType || doc.fileName.split('.').pop()?.toUpperCase()} tidak dapat ditampilkan secara langsung.</p>
+              </div>
+              <button
+                onClick={handleDownload}
+                className="mt-2 px-5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 transition-colors cursor-pointer"
+              >
+                <Download className="w-4 h-4" /> Unduh Berkas
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ────────────────────────────────────────────────────────────
 export default function ListKegiatanBap() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<Dokumen | null>(null);
 
   // Fetch all BAPs
   const { data: BAPs = [], isLoading, isError } = useQuery<Kegiatan[]>({
@@ -88,6 +194,9 @@ export default function ListKegiatanBap() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {/* File Viewer Modal */}
+      {viewingDoc && <FileViewer doc={viewingDoc} onClose={() => setViewingDoc(null)} />}
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
@@ -140,6 +249,10 @@ export default function ListKegiatanBap() {
             const isOpen = expandedId === bap.id;
             const ketua = bap.panitia.find(p => p.jabatan === 'KETUA')?.user;
             const ketuaName = ketua?.operatorName || ketua?.username || 'Belum ditunjuk';
+
+            // Categorize dokumen
+            const docFiles = bap.dokumen.filter(d => !(/\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image')));
+            const photoFiles = bap.dokumen.filter(d => /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image'));
 
             return (
               <div
@@ -218,13 +331,24 @@ export default function ListKegiatanBap() {
                             {bap.template.dokumen.map(doc => (
                               <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-200 bg-white">
                                 <span className="text-[11px] text-slate-700 truncate font-medium flex-1 mr-2">{doc.fileName}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDownload(doc.filePath, doc.fileName)}
-                                  className="p-1 hover:bg-slate-100 rounded text-slate-500 shrink-0"
-                                >
-                                  <Download className="w-3.5 h-3.5" />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewingDoc(doc)}
+                                    title="Lihat"
+                                    className="p-1.5 hover:bg-indigo-50 rounded text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownload(doc.filePath, doc.fileName)}
+                                    title="Unduh"
+                                    className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -240,12 +364,12 @@ export default function ListKegiatanBap() {
                       </p>
                     </div>
 
-                    {/* Files & Media */}
-                    {bap.dokumen.length > 0 && (
+                    {/* Dokumen Files */}
+                    {docFiles.length > 0 && (
                       <div className="space-y-2">
-                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Lampiran Dokumen & Foto Cabang:</span>
+                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Dokumen Lampiran ({docFiles.length}):</span>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {bap.dokumen.map(doc => (
+                          {docFiles.map(doc => (
                             <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white">
                               <div className="flex items-center gap-2 truncate">
                                 <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
@@ -254,14 +378,55 @@ export default function ListKegiatanBap() {
                                   <p className="text-[9px] text-slate-400 uppercase font-bold">{doc.fileType}</p>
                                 </div>
                               </div>
-                              <button
-                                onClick={() => handleDownload(doc.filePath, doc.fileName)}
-                                className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-800 transition-colors"
-                              >
-                                <Download className="w-4 h-4" />
-                              </button>
+                              <div className="flex items-center gap-1 ml-2 shrink-0">
+                                <button
+                                  onClick={() => setViewingDoc(doc)}
+                                  title="Lihat"
+                                  className="p-1.5 hover:bg-indigo-50 rounded text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDownload(doc.filePath, doc.fileName)}
+                                  title="Unduh"
+                                  className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Photo Gallery */}
+                    {photoFiles.length > 0 && (
+                      <div className="space-y-2">
+                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Foto Kegiatan ({photoFiles.length}):</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                          {photoFiles.map(doc => {
+                            const photoUrl = `${apiClient.defaults.baseURL || ''}${doc.filePath}`;
+                            return (
+                              <div
+                                key={doc.id}
+                                className="relative group rounded-lg overflow-hidden border border-slate-200 bg-slate-100 aspect-square cursor-pointer"
+                                onClick={() => setViewingDoc(doc)}
+                              >
+                                <img
+                                  src={photoUrl}
+                                  alt={doc.fileName}
+                                  className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                                  <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1 translate-y-full group-hover:translate-y-0 transition-transform">
+                                  <p className="text-[10px] text-white truncate">{doc.fileName}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

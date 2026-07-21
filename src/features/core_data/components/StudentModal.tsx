@@ -136,17 +136,25 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
 
   useEffect(() => {
     let mounted = true;
-    fetch('https://restcountries.com/v3.1/all?fields=name')
+    fetch(
+      'https://api.restcountries.com/countries/v5?q=indonesia',
+      { headers: { 'Authorization': 'Bearer rc_live_a9e86719eb5a4f1598832ea9db912de1' } }
+    )
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch countries');
         return res.json();
       })
-      .then((data: any[]) => {
+      .then((resJson: any) => {
         if (!mounted) return;
-        const formatted = data.map(c => ({ value: c.name.common, label: c.name.common }));
-        formatted.sort((a, b) => a.label.localeCompare(b.label));
-        const idn = formatted.find(c => c.value === 'Indonesia');
-        const rest = formatted.filter(c => c.value !== 'Indonesia');
+        const objects = resJson.data?.objects || [];
+        const formatted = objects.map((c: any) => ({
+          value: c.names?.common || '',
+          label: c.names?.common || ''
+        })).filter((c: any) => c.value);
+
+        formatted.sort((a: any, b: any) => a.label.localeCompare(b.label));
+        const idn = formatted.find((c: any) => c.value === 'Indonesia');
+        const rest = formatted.filter((c: any) => c.value !== 'Indonesia');
         setCountries(idn ? [idn, ...rest] : formatted);
       })
       .catch(() => {

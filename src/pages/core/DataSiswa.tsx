@@ -353,40 +353,40 @@ export default function DataSiswa() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => setStudentToView(student)}
-                        className="inline-flex items-center px-3 py-1.5 border border-slate-200 shadow-sm text-xs font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors mr-2"
-                      >
-                        <User className="h-3.5 w-3.5 mr-1" />
-                        Profil
-                      </button>
-                      <button
-                        onClick={() => handleEdit(student)}
-                        className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-xs font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors mr-2"
-                      >
-                        <Edit2 className="h-3.5 w-3.5 mr-1" />
-                        {t('common.edit')}
-                      </button>
-                      {student.statusPool === 'AKTIF_CABANG' && (
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-1.5">
                         <button
-                          onClick={() => setStudentToLepas(student)}
-                          className="inline-flex items-center px-3 py-1.5 border border-amber-200 shadow-sm text-xs font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors mr-2"
+                          onClick={() => setStudentToView(student)}
+                          className="inline-flex items-center justify-center p-1.5 border border-slate-200 shadow-sm rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors"
+                          title="Profil Siswa"
                         >
-                          <UserMinus className="h-3.5 w-3.5 mr-1" />
-                          Lepas
+                          <User className="h-3.5 w-3.5" />
                         </button>
-                      )}
-                      {isAdmin && (
                         <button
-                          onClick={() => setStudentToDelete(student)}
-                          className="inline-flex items-center px-3 py-1.5 border border-red-200 shadow-sm text-xs font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                          onClick={() => handleEdit(student)}
+                          className="inline-flex items-center justify-center p-1.5 border border-indigo-200 shadow-sm rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                          title={t('common.edit') || "Edit"}
                         >
-                          <Trash2 className="h-3.5 w-3.5 mr-1" />
-                          Hapus
+                          <Edit2 className="h-3.5 w-3.5" />
                         </button>
-                      )}
-                    </td>
+                        {student.statusPool === 'AKTIF_CABANG' && (
+                          <button
+                            onClick={() => setStudentToLepas(student)}
+                            className="inline-flex items-center justify-center p-1.5 border border-amber-200 shadow-sm rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors"
+                            title="Lepas Siswa"
+                          >
+                            <UserMinus className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button
+                            onClick={() => setStudentToDelete(student)}
+                            className="inline-flex items-center justify-center p-1.5 border border-red-200 shadow-sm rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                            title="Hapus Siswa"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </td>
                   </tr>
                 )})}
               </tbody>

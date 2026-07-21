@@ -12,12 +12,23 @@ interface Staff {
   name: string;
 }
 
+interface Cabang {
+  id: string;
+  name: string;
+  wilayahId?: string;
+  wilayah?: {
+    name: string;
+  };
+}
+
 interface GrupDaimi {
   id: string;
   name: string;
   jenis?: string;
   ketuaId?: string;
   ketua?: Staff;
+  cabangId?: string;
+  cabang?: Cabang;
   dataDaimi?: {
     studentId: string;
   }[];
@@ -46,6 +57,11 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
   const { user } = useAuth();
   const canManage = user?.scope === 'GLOBAL' || user?.scope === 'CABANG';
 
+  // Filters State
+  const [filterWilayah, setFilterWilayah] = useState(user?.scope === 'WILAYAH' && user?.wilayahId ? user.wilayahId : '');
+  const [filterCabang, setFilterCabang] = useState(user?.scope === 'CABANG' && user?.cabangId ? user.cabangId : '');
+  const [filterJenis, setFilterJenis] = useState('');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGrup, setEditingGrup] = useState<GrupDaimi | null>(null);
   
@@ -53,7 +69,8 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
   const [formData, setFormData] = useState({ 
     name: '',
     jenis: '',
-    ketuaId: ''
+    ketuaId: '',
+    cabangId: ''
   });
 
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -80,6 +97,24 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
       const res = await apiClient.get('/master-data/guru');
       return res.data;
     }
+  });
+
+  const { data: wilayahList = [] } = useQuery<any[]>({
+    queryKey: ['wilayah'],
+    queryFn: async () => {
+      const res = await apiClient.get('/master-data/wilayah');
+      return res.data;
+    },
+    enabled: user?.scope === 'GLOBAL'
+  });
+
+  const { data: cabangList = [] } = useQuery<Cabang[]>({
+    queryKey: ['cabang'],
+    queryFn: async () => {
+      const res = await apiClient.get('/master-data/cabang');
+      return res.data;
+    },
+    enabled: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH'
   });
 
   const { data: allStudents = [], refetch: refetchAllStudents } = useGetStudents();
@@ -114,7 +149,8 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
       await apiClient.put(`/pesantren/grup-daimi/${data.id}`, {
         name: data.name,
         jenis: data.jenis,
-        ketuaId: data.ketuaId
+        ketuaId: data.ketuaId,
+        cabangId: data.cabangId
       });
     },
     onSuccess: () => {
@@ -127,7 +163,9 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
           name: formData.name, 
           jenis: formData.jenis, 
           ketuaId: formData.ketuaId,
-          ketua: staffList.find(s => s.id === formData.ketuaId)
+          cabangId: formData.cabangId,
+          ketua: staffList.find(s => s.id === formData.ketuaId),
+          cabang: cabangList.find(c => c.id === formData.cabangId)
         } : null);
       }
       
@@ -204,7 +242,12 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
 
   const openAddModal = () => {
     setEditingGrup(null);
-    setFormData({ name: '', jenis: '', ketuaId: '' });
+    setFormData({ 
+      name: '', 
+      jenis: '', 
+      ketuaId: '', 
+      cabangId: user?.scope === 'CABANG' && user?.cabangId ? user.cabangId : '' 
+    });
     setIsModalOpen(true);
   };
 
@@ -213,7 +256,8 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
     setFormData({ 
       name: grup.name, 
       jenis: grup.jenis || '', 
-      ketuaId: grup.ketuaId || '' 
+      ketuaId: grup.ketuaId || '',
+      cabangId: grup.cabangId || ''
     });
     setIsModalOpen(true);
   };
@@ -223,7 +267,8 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
     setFormData({
       name: grup.name,
       jenis: grup.jenis || '',
-      ketuaId: grup.ketuaId || ''
+      ketuaId: grup.ketuaId || '',
+      cabangId: grup.cabangId || ''
     });
   };
 
@@ -268,6 +313,25 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
     );
   };
 
+  // Apply filters client-side
+  const filteredGrupList = React.useMemo(() => {
+    return (grupList || []).filter((grup) => {
+      // 1. Filter Wilayah
+      if (filterWilayah && grup.cabang?.wilayahId !== filterWilayah) {
+        return false;
+      }
+      // 2. Filter Cabang
+      if (filterCabang && grup.cabangId !== filterCabang) {
+        return false;
+      }
+      // 3. Filter Jenis
+      if (filterJenis && grup.jenis !== filterJenis) {
+        return false;
+      }
+      return true;
+    });
+  }, [grupList, filterWilayah, filterCabang, filterJenis]);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -286,6 +350,60 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
         )}
       </div>
 
+      {/* Filter Toolbar */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-end">
+        {user?.scope === 'GLOBAL' && (
+          <div className="w-full sm:w-48">
+            <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Filter Wilayah</label>
+            <select
+              value={filterWilayah}
+              onChange={(e) => {
+                setFilterWilayah(e.target.value);
+                setFilterCabang(''); // reset cabang filter
+              }}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">Semua Wilayah</option>
+              {wilayahList.map((w: any) => (
+                <option key={w.id} value={w.id}>{w.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {(user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH') && (
+          <div className="w-full sm:w-48">
+            <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Filter Cabang</label>
+            <select
+              value={filterCabang}
+              onChange={(e) => setFilterCabang(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">Semua Cabang</option>
+              {cabangList
+                .filter((c: any) => !filterWilayah || c.wilayahId === filterWilayah)
+                .map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+            </select>
+          </div>
+        )}
+
+        <div className="w-full sm:w-48">
+          <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Filter Jenis</label>
+          <select
+            value={filterJenis}
+            onChange={(e) => setFilterJenis(e.target.value)}
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">Semua Jenis</option>
+            {JENIS_DAIMI_OPTIONS.map((j) => (
+              <option key={j} value={j}>{j}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="flex justify-center p-8">
@@ -297,13 +415,14 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Nama Grup Daimi</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Jenis</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Cabang - Wilayah</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Ketua Grup</th>
                 <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest">Jumlah Siswa</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">Aksi</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-200">
-              {(grupList || []).map((grup) => (
+              {filteredGrupList.map((grup) => (
                 <tr key={grup.id} className="hover:bg-slate-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-800">
                     {grup.name}
@@ -312,6 +431,18 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                     {grup.jenis ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100">
                         {grup.jenis}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                    {grup.cabang ? (
+                      <span>
+                        {grup.cabang.name}{' '}
+                        {grup.cabang.wilayah?.name && (
+                          <span className="text-slate-400 text-xs">({grup.cabang.wilayah.name})</span>
+                        )}
                       </span>
                     ) : (
                       <span className="text-slate-400">—</span>
@@ -352,9 +483,9 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                   </td>
                 </tr>
               ))}
-              {grupList?.length === 0 && (
+              {filteredGrupList.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                     Belum ada data Grup Daimi
                   </td>
                 </tr>
@@ -400,6 +531,22 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                     ))}
                   </select>
                 </div>
+
+                {user?.scope !== 'CABANG' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Cabang</label>
+                    <select
+                      value={formData.cabangId}
+                      onChange={(e) => setFormData({ ...formData, cabangId: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white"
+                    >
+                      <option value="">-- Pilih Cabang --</option>
+                      {cabangList.map(cab => (
+                        <option key={cab.id} value={cab.id}>{cab.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Ketua Grup</label>
@@ -490,6 +637,23 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                       ))}
                     </select>
                   </div>
+
+                  {user?.scope !== 'CABANG' && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Cabang</label>
+                      <select
+                        value={formData.cabangId}
+                        onChange={(e) => setFormData({ ...formData, cabangId: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white disabled:bg-slate-50"
+                        disabled={!canManage}
+                      >
+                        <option value="">-- Pilih Cabang --</option>
+                        {cabangList.map(cab => (
+                          <option key={cab.id} value={cab.id}>{cab.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Ketua Grup (Guru/Ustadz)</label>

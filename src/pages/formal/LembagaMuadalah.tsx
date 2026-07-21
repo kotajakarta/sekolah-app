@@ -546,7 +546,7 @@ export default function LembagaMuadalahPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-            <form onSubmit={handleSubmit} className="flex flex-col h-full">
+            <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
               <div className="px-6 py-4 border-b border-slate-100">
                 <h3 className="text-lg font-semibold text-slate-800">
                   {editingMuadalah ? 'Edit Lembaga Muadalah' : 'Tambah Lembaga Muadalah'}

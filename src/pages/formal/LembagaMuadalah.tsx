@@ -17,6 +17,13 @@ interface LembagaMuadalah {
   ttdKetua?: string;
   skSpm?: string;
   isActive: boolean;
+  namaLain?: string;
+  jenjang?: string;
+  provinsi?: string;
+  kabupaten?: string;
+  kecamatan?: string;
+  kelurahan?: string;
+  alamatDetail?: string;
   kelas?: { 
     id: string; 
     name: string; 
@@ -51,7 +58,14 @@ export default function LembagaMuadalahPage() {
     namaKetua: '', 
     ttdKetua: '', 
     skSpm: '', 
-    isActive: true 
+    isActive: true,
+    namaLain: '',
+    jenjang: '',
+    provinsi: '',
+    kabupaten: '',
+    kecamatan: '',
+    kelurahan: '',
+    alamatDetail: '',
   });
   
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -68,6 +82,61 @@ export default function LembagaMuadalahPage() {
   // Filter states
   const [filterName, setFilterName] = useState('');
   const [filterTingkat, setFilterTingkat] = useState('');
+
+  // Address API States
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [regencies, setRegencies] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]);
+  const [villages, setVillages] = useState<any[]>([]);
+
+  const [alamatProvId, setAlamatProvId] = useState('');
+  const [alamatKabId, setAlamatKabId] = useState('');
+  const [alamatKecId, setAlamatKecId] = useState('');
+  const [alamatKelId, setAlamatKelId] = useState('');
+
+  // Fetch provinces on load
+  React.useEffect(() => {
+    fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
+      .then((r) => r.json())
+      .then((data) => setProvinces(data))
+      .catch((e) => console.error('Gagal mengambil data provinsi', e));
+  }, []);
+
+  // Fetch regencies when province changes
+  React.useEffect(() => {
+    if (alamatProvId) {
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${alamatProvId}.json`)
+        .then((r) => r.json())
+        .then((data) => setRegencies(data))
+        .catch((e) => console.error('Gagal mengambil data kabupaten', e));
+    } else {
+      setRegencies([]);
+    }
+  }, [alamatProvId]);
+
+  // Fetch districts when regency changes
+  React.useEffect(() => {
+    if (alamatKabId) {
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${alamatKabId}.json`)
+        .then((r) => r.json())
+        .then((data) => setDistricts(data))
+        .catch((e) => console.error('Gagal mengambil data kecamatan', e));
+    } else {
+      setDistricts([]);
+    }
+  }, [alamatKabId]);
+
+  // Fetch villages when district changes
+  React.useEffect(() => {
+    if (alamatKecId) {
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${alamatKecId}.json`)
+        .then((r) => r.json())
+        .then((data) => setVillages(data))
+        .catch((e) => console.error('Gagal mengambil data kelurahan', e));
+    } else {
+      setVillages([]);
+    }
+  }, [alamatKecId]);
 
   const { data: list = [], isLoading } = useQuery<LembagaMuadalah[]>({
     queryKey: ['lembaga-muadalah'],
@@ -184,7 +253,14 @@ export default function LembagaMuadalahPage() {
         nspp: formData.nspp,
         namaKetua: formData.namaKetua,
         ttdKetua: formData.ttdKetua,
-        skSpm: formData.skSpm
+        skSpm: formData.skSpm,
+        namaLain: formData.namaLain,
+        jenjang: formData.jenjang,
+        provinsi: formData.provinsi,
+        kabupaten: formData.kabupaten,
+        kecamatan: formData.kecamatan,
+        kelurahan: formData.kelurahan,
+        alamatDetail: formData.alamatDetail,
       });
     } else {
       createMutation.mutate(formData);
@@ -201,12 +277,26 @@ export default function LembagaMuadalahPage() {
       namaKetua: '', 
       ttdKetua: '', 
       skSpm: '', 
-      isActive: true 
+      isActive: true,
+      namaLain: '',
+      jenjang: '',
+      provinsi: '',
+      kabupaten: '',
+      kecamatan: '',
+      kelurahan: '',
+      alamatDetail: '',
     });
+    setAlamatProvId('');
+    setAlamatKabId('');
+    setAlamatKecId('');
+    setAlamatKelId('');
+    setRegencies([]);
+    setDistricts([]);
+    setVillages([]);
     setIsModalOpen(true);
   };
 
-  const openEditModal = (item: LembagaMuadalah) => {
+  const openEditModal = async (item: LembagaMuadalah) => {
     setEditingMuadalah(item);
     setFormData({ 
       name: item.name, 
@@ -216,8 +306,66 @@ export default function LembagaMuadalahPage() {
       namaKetua: item.namaKetua || '', 
       ttdKetua: item.ttdKetua || '', 
       skSpm: item.skSpm || '', 
-      isActive: item.isActive 
+      isActive: item.isActive,
+      namaLain: item.namaLain || '',
+      jenjang: item.jenjang || '',
+      provinsi: item.provinsi || '',
+      kabupaten: item.kabupaten || '',
+      kecamatan: item.kecamatan || '',
+      kelurahan: item.kelurahan || '',
+      alamatDetail: item.alamatDetail || '',
     });
+
+    // Reset address IDs first
+    setAlamatProvId('');
+    setAlamatKabId('');
+    setAlamatKecId('');
+    setAlamatKelId('');
+
+    // Prepopulate Address API dropdowns
+    if (item.provinsi) {
+      const pMatch = provinces.find(p => p.name.toUpperCase() === item.provinsi?.toUpperCase());
+      if (pMatch) {
+        setAlamatProvId(pMatch.id);
+        try {
+          const regRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${pMatch.id}.json`);
+          const regData = await regRes.json();
+          setRegencies(regData);
+          
+          if (item.kabupaten) {
+            const kMatch = regData.find((r: any) => r.name.toUpperCase() === item.kabupaten?.toUpperCase());
+            if (kMatch) {
+              setAlamatKabId(kMatch.id);
+              
+              const distRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${kMatch.id}.json`);
+              const distData = await distRes.json();
+              setDistricts(distData);
+              
+              if (item.kecamatan) {
+                const kecMatch = distData.find((d: any) => d.name.toUpperCase() === item.kecamatan?.toUpperCase());
+                if (kecMatch) {
+                  setAlamatKecId(kecMatch.id);
+                  
+                  const vilRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${kecMatch.id}.json`);
+                  const vilData = await vilRes.json();
+                  setVillages(vilData);
+                  
+                  if (item.kelurahan) {
+                    const kelMatch = vilData.find((v: any) => v.name.toUpperCase() === item.kelurahan?.toUpperCase());
+                    if (kelMatch) {
+                      setAlamatKelId(kelMatch.id);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Gagal memuat detail wilayah saat edit', e);
+        }
+      }
+    }
+
     setIsModalOpen(true);
   };
 
@@ -427,6 +575,155 @@ export default function LembagaMuadalahPage() {
                     placeholder="Contoh: Pondok Modern Darussalam Gontor"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lain Lembaga</label>
+                  <input
+                    type="text"
+                    value={formData.namaLain}
+                    onChange={(e) => setFormData({ ...formData, namaLain: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none text-sm"
+                    placeholder="Masukkan nama lain / singkatan..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Jenjang Lembaga *</label>
+                  <select
+                    required
+                    value={formData.jenjang}
+                    onChange={(e) => setFormData({ ...formData, jenjang: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none text-sm bg-white"
+                  >
+                    <option value="">-- Pilih Jenjang --</option>
+                    <option value="ULA">ULA</option>
+                    <option value="WUSTHA">WUSTHA</option>
+                    <option value="ULYA">ULYA</option>
+                  </select>
+                </div>
+
+                {/* Alamat Section (Emsifa API) */}
+                <div className="border-t border-slate-100 pt-3 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Alamat Lembaga</h4>
+                  
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Provinsi *</label>
+                    <select 
+                      required
+                      value={alamatProvId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        const name = provinces.find((p) => p.id === id)?.name || '';
+                        setAlamatProvId(id);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          provinsi: name, 
+                          kabupaten: '', 
+                          kecamatan: '', 
+                          kelurahan: '' 
+                        }));
+                        setAlamatKabId('');
+                        setAlamatKecId('');
+                        setAlamatKelId('');
+                      }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-sans"
+                    >
+                      <option value="">-- Pilih Provinsi --</option>
+                      {provinces.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Kabupaten / Kota *</label>
+                    <select 
+                      required
+                      value={alamatKabId}
+                      disabled={!alamatProvId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        const name = regencies.find((r) => r.id === id)?.name || '';
+                        setAlamatKabId(id);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          kabupaten: name, 
+                          kecamatan: '', 
+                          kelurahan: '' 
+                        }));
+                        setAlamatKecId('');
+                        setAlamatKelId('');
+                      }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white disabled:bg-slate-50 disabled:text-slate-400 font-sans"
+                    >
+                      <option value="">-- Pilih Kabupaten / Kota --</option>
+                      {regencies.map((r) => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Kecamatan *</label>
+                    <select 
+                      required
+                      value={alamatKecId}
+                      disabled={!alamatKabId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        const name = districts.find((d) => d.id === id)?.name || '';
+                        setAlamatKecId(id);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          kecamatan: name, 
+                          kelurahan: '' 
+                        }));
+                        setAlamatKelId('');
+                      }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white disabled:bg-slate-50 disabled:text-slate-400 font-sans"
+                    >
+                      <option value="">-- Pilih Kecamatan --</option>
+                      {districts.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Kelurahan / Desa *</label>
+                    <select 
+                      required
+                      value={alamatKelId}
+                      disabled={!alamatKecId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        const name = villages.find((v) => v.id === id)?.name || '';
+                        setAlamatKelId(id);
+                        setFormData(prev => ({ ...prev, kelurahan: name }));
+                      }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white disabled:bg-slate-50 disabled:text-slate-400 font-sans"
+                    >
+                      <option value="">-- Pilih Kelurahan / Desa --</option>
+                      {villages.map((v) => (
+                        <option key={v.id} value={v.id}>{v.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-655 mb-1">Jalan / Kampung / Gang *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.alamatDetail}
+                      onChange={(e) => setFormData({ ...formData, alamatDetail: e.target.value })}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                      placeholder="Nama jalan, RT/RW, nomor rumah atau gedung..."
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-100 pt-3" />
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">NPSN</label>
                   <input
@@ -591,8 +888,13 @@ export default function LembagaMuadalahPage() {
                       {selectedProfileMuadalah.code.substring(0,2).toUpperCase()}
                     </div>
                     <div>
-                      <h4 className="font-semibold text-slate-800 text-base">{selectedProfileMuadalah.name}</h4>
-                      <p className="text-xs text-slate-500 font-medium">Kode: {selectedProfileMuadalah.code}</p>
+                      <h4 className="font-semibold text-slate-800 text-base">
+                        {selectedProfileMuadalah.name}
+                        {selectedProfileMuadalah.namaLain && (
+                          <span className="text-sm font-medium text-slate-500 ml-1.5 font-sans">({selectedProfileMuadalah.namaLain})</span>
+                        )}
+                      </h4>
+                      <p className="text-xs text-slate-500 font-medium">Kode: {selectedProfileMuadalah.code} | Jenjang: <span className="font-bold text-indigo-600">{selectedProfileMuadalah.jenjang || 'ULA'}</span></p>
                     </div>
                   </div>
 
@@ -611,6 +913,19 @@ export default function LembagaMuadalahPage() {
                         {selectedProfileMuadalah.isActive ? 'Aktif' : 'Tidak Aktif'}
                       </span>
                     </div>
+                  </div>
+
+                  {/* Alamat Detail */}
+                  <div className="border-t border-slate-100 pt-4 space-y-1">
+                    <span className="block text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Alamat Lengkap</span>
+                    <span className="text-xs text-slate-700 leading-relaxed block font-medium">
+                      {selectedProfileMuadalah.alamatDetail && `${selectedProfileMuadalah.alamatDetail}, `}
+                      {selectedProfileMuadalah.kelurahan && `${selectedProfileMuadalah.kelurahan}, `}
+                      {selectedProfileMuadalah.kecamatan && `${selectedProfileMuadalah.kecamatan}, `}
+                      {selectedProfileMuadalah.kabupaten && `${selectedProfileMuadalah.kabupaten}, `}
+                      {selectedProfileMuadalah.provinsi && `${selectedProfileMuadalah.provinsi}`}
+                      {!selectedProfileMuadalah.provinsi && 'Alamat belum diatur'}
+                    </span>
                   </div>
 
                   <div className="border-t border-slate-100 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">

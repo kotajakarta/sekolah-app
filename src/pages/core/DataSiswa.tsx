@@ -291,13 +291,19 @@ export default function DataSiswa() {
                             <span className="text-slate-450 font-normal">Belum ada kelas</span>
                           )}
                         </div>
-                        {student.grupDaimi && (
+                        {student.dataDaimi?.grup?.jenis ? (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                              Daimi: {student.dataDaimi.grup.jenis}
+                            </span>
+                          </div>
+                        ) : student.grupDaimi ? (
                           <div className="mt-1">
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
                               Daimi: {student.grupDaimi}
                             </span>
                           </div>
-                        )}
+                        ) : null}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">

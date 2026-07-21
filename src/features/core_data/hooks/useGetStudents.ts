@@ -73,6 +73,15 @@ export interface Student {
   riwayatPendidikan?: RiwayatPendidikan[];
   jenisSiswa?: string | null;
   grupDaimi?: string | null;
+  dataDaimi?: {
+    id: string;
+    grupId?: string | null;
+    grup?: {
+      id: string;
+      name: string;
+      jenis?: string | null;
+    } | null;
+  } | null;
   siswaFormal?: {
     isVerval?: boolean;
     kelasId?: string | null;

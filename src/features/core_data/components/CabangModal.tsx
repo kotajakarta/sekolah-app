@@ -50,7 +50,7 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
   // Load API Wilayah
   useEffect(() => {
     if (isOpen) {
-      fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
+      fetch('https://emsifa.github.io/api-wilayah-indonesia/api/provinces.json')
         .then((r) => r.json())
         .then((data) => setProvinces(data))
         .catch((e) => console.error('Error fetching provinces', e));
@@ -59,7 +59,7 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
 
   useEffect(() => {
     if (formData.alamatProvId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${formData.alamatProvId}.json`)
+      fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/regencies/${formData.alamatProvId}.json`)
         .then((r) => r.json())
         .then((data) => setRegencies(data))
         .catch(console.error);
@@ -70,7 +70,7 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
 
   useEffect(() => {
     if (formData.alamatKabId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${formData.alamatKabId}.json`)
+      fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/districts/${formData.alamatKabId}.json`)
         .then((r) => r.json())
         .then((data) => setDistricts(data))
         .catch(console.error);
@@ -81,7 +81,7 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
 
   useEffect(() => {
     if (formData.alamatKecId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${formData.alamatKecId}.json`)
+      fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/villages/${formData.alamatKecId}.json`)
         .then((r) => r.json())
         .then((data) => setVillages(data))
         .catch(console.error);
@@ -123,13 +123,13 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
 
           // Preload sub-regions
           if (data.alamatProvId) {
-            fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${data.alamatProvId}.json`).then((r) => r.json()).then(setRegencies).catch(console.error);
+            fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/regencies/${data.alamatProvId}.json`).then((r) => r.json()).then(setRegencies).catch(console.error);
           }
           if (data.alamatKabId) {
-            fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${data.alamatKabId}.json`).then((r) => r.json()).then(setDistricts).catch(console.error);
+            fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/districts/${data.alamatKabId}.json`).then((r) => r.json()).then(setDistricts).catch(console.error);
           }
           if (data.alamatKecId) {
-            fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${data.alamatKecId}.json`).then((r) => r.json()).then(setVillages).catch(console.error);
+            fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/villages/${data.alamatKecId}.json`).then((r) => r.json()).then(setVillages).catch(console.error);
           }
         });
       } else {

@@ -96,7 +96,7 @@ export default function LembagaMuadalahPage() {
 
   // Fetch provinces on load
   React.useEffect(() => {
-    fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
+    fetch('https://emsifa.github.io/api-wilayah-indonesia/api/provinces.json')
       .then((r) => r.json())
       .then((data) => setProvinces(data))
       .catch((e) => console.error('Gagal mengambil data provinsi', e));
@@ -105,7 +105,7 @@ export default function LembagaMuadalahPage() {
   // Fetch regencies when province changes
   React.useEffect(() => {
     if (alamatProvId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${alamatProvId}.json`)
+      fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/regencies/${alamatProvId}.json`)
         .then((r) => r.json())
         .then((data) => setRegencies(data))
         .catch((e) => console.error('Gagal mengambil data kabupaten', e));
@@ -117,7 +117,7 @@ export default function LembagaMuadalahPage() {
   // Fetch districts when regency changes
   React.useEffect(() => {
     if (alamatKabId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${alamatKabId}.json`)
+      fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/districts/${alamatKabId}.json`)
         .then((r) => r.json())
         .then((data) => setDistricts(data))
         .catch((e) => console.error('Gagal mengambil data kecamatan', e));
@@ -129,7 +129,7 @@ export default function LembagaMuadalahPage() {
   // Fetch villages when district changes
   React.useEffect(() => {
     if (alamatKecId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${alamatKecId}.json`)
+      fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/villages/${alamatKecId}.json`)
         .then((r) => r.json())
         .then((data) => setVillages(data))
         .catch((e) => console.error('Gagal mengambil data kelurahan', e));
@@ -328,7 +328,7 @@ export default function LembagaMuadalahPage() {
       if (pMatch) {
         setAlamatProvId(pMatch.id);
         try {
-          const regRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${pMatch.id}.json`);
+          const regRes = await fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/regencies/${pMatch.id}.json`);
           const regData = await regRes.json();
           setRegencies(regData);
           
@@ -337,7 +337,7 @@ export default function LembagaMuadalahPage() {
             if (kMatch) {
               setAlamatKabId(kMatch.id);
               
-              const distRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${kMatch.id}.json`);
+              const distRes = await fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/districts/${kMatch.id}.json`);
               const distData = await distRes.json();
               setDistricts(distData);
               
@@ -346,7 +346,7 @@ export default function LembagaMuadalahPage() {
                 if (kecMatch) {
                   setAlamatKecId(kecMatch.id);
                   
-                  const vilRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${kecMatch.id}.json`);
+                  const vilRes = await fetch(`https://emsifa.github.io/api-wilayah-indonesia/api/villages/${kecMatch.id}.json`);
                   const vilData = await vilRes.json();
                   setVillages(vilData);
                   

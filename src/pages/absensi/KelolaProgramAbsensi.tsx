@@ -22,6 +22,7 @@ interface ProgramResponse {
 
 export default function KelolaProgramAbsensi() {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -48,7 +49,6 @@ export default function KelolaProgramAbsensi() {
     queryKey: ['absensi-programs', page],
     queryFn: async () => {
       const res = await apiClient.get(`/absensi/programs?page=${page}&limit=${limit}`);
-  const { showToast } = useToast();
       return res.data;
     }
   });

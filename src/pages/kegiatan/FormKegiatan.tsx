@@ -52,6 +52,9 @@ export default function FormKegiatan() {
   const [suratPengantarFiles, setSuratPengantarFiles] = useState<File[]>([]);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
 
+  // Track existing docs pending deletion in EDIT mode
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
+
   const [isDraggingDoc, setIsDraggingDoc] = useState(false);
   const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
 
@@ -89,6 +92,30 @@ export default function FormKegiatan() {
     }
     return true;
   });
+
+  // Mutation to delete an existing BAP dokumen
+  const deleteDokumenMutation = useMutation({
+    mutationFn: async (id: string) => {
+      setDeletingDocId(id);
+      return apiClient.delete(`/kegiatan/dokumen/${id}`);
+    },
+    onSuccess: () => {
+      showToast('success', 'Berkas berhasil dihapus.');
+      // Update editingBap local state to remove the deleted doc
+      setEditingBap((prev: any) => prev ? { ...prev, dokumen: prev.dokumen.filter((d: any) => d.id !== deletingDocId) } : prev);
+      queryClient.invalidateQueries({ queryKey: ['kegiatan'] });
+      queryClient.invalidateQueries({ queryKey: ['kegiatan', 'branch-list'] });
+    },
+    onError: (error: any) => {
+      showToast('error', error.response?.data?.message || 'Gagal menghapus berkas.');
+    },
+    onSettled: () => setDeletingDocId(null)
+  });
+
+  const handleDeleteExistingDoc = (id: string) => {
+    if (!window.confirm('Hapus berkas ini dari laporan BAP? Tindakan ini tidak dapat dibatalkan.')) return;
+    deleteDokumenMutation.mutate(id);
+  };
 
   // Mutation to create Kegiatan BAP
   const createMutation = useMutation<any, Error, FormData>({
@@ -614,25 +641,12 @@ export default function FormKegiatan() {
               {activeView === 'EDIT' ? 'Kosongkan jika tidak ingin menambah file baru.' : 'Wajib melampirkan dokumen laporan kegiatan.'}
             </p>
 
-            {/* Template Download */}
+            {/* Template Download – split per field below each row label */}
             {selectedTemplate && selectedTemplate.dokumen && selectedTemplate.dokumen.length > 0 && (
               <div className="bg-indigo-50/50 border border-indigo-100 rounded-lg p-3 text-xs flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-indigo-900 truncate mr-2">
                   <Info className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Template tersedia dari Pusat</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {selectedTemplate.dokumen.map((tmplDoc, idx) => (
-                    <button
-                      key={tmplDoc.id}
-                      type="button"
-                      onClick={() => handleDownload(tmplDoc.filePath, tmplDoc.fileName)}
-                      title={`Unduh: ${tmplDoc.fileName}`}
-                      className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1 shrink-0"
-                    >
-                      <Download className="w-3 h-3" /> Unduh {selectedTemplate.dokumen.length > 1 ? `(${idx+1})` : ''}
-                    </button>
-                  ))}
+                  <span className="truncate">Template tersedia dari Pusat ({selectedTemplate.dokumen.length} berkas)</span>
                 </div>
               </div>
             )}
@@ -645,6 +659,17 @@ export default function FormKegiatan() {
                   <p className="text-xs text-slate-400 mt-0.5">Surat pengantar kegiatan (PDF, DOC, DOCX)</p>
                 </div>
                 <div className="shrink-0 flex items-center gap-2">
+                  {/* Template download for Surat Pengantar (first template doc) */}
+                  {selectedTemplate?.dokumen?.[0] && (
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(selectedTemplate.dokumen[0].filePath, selectedTemplate.dokumen[0].fileName)}
+                      title={`Unduh template: ${selectedTemplate.dokumen[0].fileName}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                    >
+                      <Download className="w-3 h-3" /> Template
+                    </button>
+                  )}
                   <input
                     type="file"
                     id="surat-pengantar-input"
@@ -678,6 +703,15 @@ export default function FormKegiatan() {
                       <button type="button" onClick={() => handleDownload(doc.filePath, doc.fileName)} className="p-1 hover:bg-slate-100 text-slate-400 rounded cursor-pointer" title="Unduh">
                         <Download className="w-3.5 h-3.5" />
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteExistingDoc(doc.id)}
+                        disabled={deletingDocId === doc.id}
+                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded cursor-pointer disabled:opacity-50"
+                        title="Hapus berkas ini"
+                      >
+                        {deletingDocId === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -710,7 +744,18 @@ export default function FormKegiatan() {
                   </label>
                   <p className="text-xs text-slate-400 mt-0.5">Berkas berita acara (PDF, DOC, DOCX)</p>
                 </div>
-                <div className="shrink-0">
+                <div className="shrink-0 flex items-center gap-2">
+                  {/* Template download for Dokumen BAP (second template doc) */}
+                  {selectedTemplate?.dokumen?.[1] && (
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(selectedTemplate.dokumen[1].filePath, selectedTemplate.dokumen[1].fileName)}
+                      title={`Unduh template: ${selectedTemplate.dokumen[1].fileName}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                    >
+                      <Download className="w-3 h-3" /> Template
+                    </button>
+                  )}
                   <input
                     type="file"
                     multiple
@@ -744,6 +789,15 @@ export default function FormKegiatan() {
                       </button>
                       <button type="button" onClick={() => handleDownload(doc.filePath, doc.fileName)} className="p-1 hover:bg-slate-100 text-slate-400 rounded cursor-pointer" title="Unduh">
                         <Download className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteExistingDoc(doc.id)}
+                        disabled={deletingDocId === doc.id}
+                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded cursor-pointer disabled:opacity-50"
+                        title="Hapus berkas ini"
+                      >
+                        {deletingDocId === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>
@@ -788,14 +842,30 @@ export default function FormKegiatan() {
                       return (
                         <div
                           key={photo.id}
-                          className="relative group aspect-square rounded-lg overflow-hidden border border-emerald-200 cursor-pointer"
-                          onClick={() => setViewingDoc(photo)}
+                          className="relative group aspect-square rounded-lg overflow-hidden border border-emerald-200"
                         >
-                          <img src={photoUrl} alt={photo.fileName} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200" />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                          <img
+                            src={photoUrl}
+                            alt={photo.fileName}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200 cursor-pointer"
+                            onClick={() => setViewingDoc(photo)}
+                          />
+                          <div
+                            className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center cursor-pointer"
+                            onClick={() => setViewingDoc(photo)}
+                          >
                             <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
-                          <span className="absolute top-1 right-1 bg-emerald-500 text-white text-[8px] font-bold px-1 py-0.5 rounded">Ada</span>
+                          {/* Delete button overlay */}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteExistingDoc(photo.id); }}
+                            disabled={deletingDocId === photo.id}
+                            className="absolute top-1 right-1 p-0.5 bg-black/60 hover:bg-rose-600 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50 z-10"
+                            title="Hapus foto"
+                          >
+                            {deletingDocId === photo.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                          </button>
                         </div>
                       );
                     })}

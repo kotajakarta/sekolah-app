@@ -20,6 +20,9 @@ interface TemplateKegiatan {
   deadline: string;
   jenis: { nama: string };
   dokumen: { id: string; filePath: string; fileName: string; fileType: string }[];
+  tanggalKegiatan?: string;
+  waktuKegiatan?: string;
+  tujuanKegiatan?: string;
 }
 
 export default function FormKegiatan() {
@@ -36,6 +39,12 @@ export default function FormKegiatan() {
     templateId: '',
     deskripsi: '',
     ketuaPanitiaId: '',
+    tanggalKegiatan: '',
+    waktuKegiatan: '',
+    tempatKegiatan: '',
+    jumlahPeserta: '',
+    ringkasanKegiatan: '',
+    kesimpulan: '',
   });
 
   const [docFiles, setDocFiles] = useState<File[]>([]);
@@ -212,6 +221,12 @@ export default function FormKegiatan() {
       templateId: tmpl.id,
       deskripsi: '',
       ketuaPanitiaId: '',
+      tanggalKegiatan: tmpl.tanggalKegiatan ? new Date(tmpl.tanggalKegiatan).toISOString().split('T')[0] : '',
+      waktuKegiatan: tmpl.waktuKegiatan || '',
+      tempatKegiatan: '',
+      jumlahPeserta: '',
+      ringkasanKegiatan: '',
+      kesimpulan: '',
     });
     setDocFiles([]);
     setPhotoFiles([]);
@@ -223,8 +238,14 @@ export default function FormKegiatan() {
     setEditingBap(bap);
     setFormData({
       templateId: tmpl.id,
-      deskripsi: bap.deskripsi,
+      deskripsi: bap.deskripsi || '',
       ketuaPanitiaId: bap.panitia[0]?.staffId || '',
+      tanggalKegiatan: bap.tanggalKegiatan ? new Date(bap.tanggalKegiatan).toISOString().split('T')[0] : '',
+      waktuKegiatan: bap.waktuKegiatan || '',
+      tempatKegiatan: bap.tempatKegiatan || '',
+      jumlahPeserta: bap.jumlahPeserta ? String(bap.jumlahPeserta) : '',
+      ringkasanKegiatan: bap.ringkasanKegiatan || bap.deskripsi || '',
+      kesimpulan: bap.kesimpulan || '',
     });
     setDocFiles([]);
     setPhotoFiles([]);
@@ -233,15 +254,25 @@ export default function FormKegiatan() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.templateId || !formData.deskripsi || !formData.ketuaPanitiaId) {
-      showToast('error', 'Silakan lengkapi form yang wajib diisi.');
+    if (!formData.templateId || !formData.tempatKegiatan || !formData.jumlahPeserta || !formData.ringkasanKegiatan || !formData.kesimpulan || !formData.ketuaPanitiaId) {
+      showToast('error', 'Silakan lengkapi seluruh field wajib pelaporan.');
       return;
     }
 
     const payload = new FormData();
     payload.append('templateId', formData.templateId);
-    payload.append('deskripsi', formData.deskripsi);
+    payload.append('deskripsi', formData.ringkasanKegiatan); // Maps to required 'deskripsi' field in DB
     payload.append('ketuaPanitiaId', formData.ketuaPanitiaId);
+    if (formData.tanggalKegiatan) {
+      payload.append('tanggalKegiatan', formData.tanggalKegiatan);
+    }
+    if (formData.waktuKegiatan) {
+      payload.append('waktuKegiatan', formData.waktuKegiatan);
+    }
+    payload.append('tempatKegiatan', formData.tempatKegiatan);
+    payload.append('jumlahPeserta', formData.jumlahPeserta);
+    payload.append('ringkasanKegiatan', formData.ringkasanKegiatan);
+    payload.append('kesimpulan', formData.kesimpulan);
     
     if (user?.scope === 'CABANG' && user.cabangId) {
       payload.append('cabangId', user.cabangId);
@@ -420,18 +451,109 @@ export default function FormKegiatan() {
           </div>
         )}
 
-        {/* Laporan Deskripsi */}
-        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
-          <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3">Pelaksanaan Kegiatan</h2>
+        {/* Laporan Pelaksanaan BAP */}
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-5">
+          <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3">Detail Pelaksanaan Kegiatan</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">Nama Kegiatan</label>
+              <input
+                type="text"
+                disabled
+                value={selectedTemplate?.judul || ''}
+                className="w-full px-3.5 py-2 border border-slate-250 bg-slate-50 rounded-lg text-sm text-slate-600 focus:outline-none cursor-not-allowed font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">Tujuan Kegiatan</label>
+              <textarea
+                disabled
+                rows={1}
+                value={selectedTemplate?.tujuanKegiatan || 'Tidak ditentukan oleh Pusat'}
+                className="w-full px-3.5 py-2 border border-slate-250 bg-slate-50 rounded-lg text-sm text-slate-600 focus:outline-none cursor-not-allowed font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tanggal Kegiatan <span className="text-rose-500">*</span></label>
+              <input
+                type="date"
+                name="tanggalKegiatan"
+                required
+                value={formData.tanggalKegiatan}
+                onChange={handleInputChange}
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Waktu Kegiatan <span className="text-rose-500">*</span></label>
+              <input
+                type="text"
+                name="waktuKegiatan"
+                required
+                value={formData.waktuKegiatan}
+                onChange={handleInputChange}
+                placeholder="Contoh: 09:00 - 12:00"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tempat Kegiatan <span className="text-rose-500">*</span></label>
+              <input
+                type="text"
+                name="tempatKegiatan"
+                required
+                value={formData.tempatKegiatan}
+                onChange={handleInputChange}
+                placeholder="Contoh: Aula Utama Asrama Cabang"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Jumlah Peserta <span className="text-rose-500">*</span></label>
+              <input
+                type="number"
+                name="jumlahPeserta"
+                required
+                value={formData.jumlahPeserta}
+                onChange={handleInputChange}
+                placeholder="Contoh: 150"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm"
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Laporan Pelaksanaan Kegiatan <span className="text-rose-500">*</span></label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ringkasan Kegiatan <span className="text-rose-500">*</span></label>
             <textarea
-              name="deskripsi"
-              rows={6}
+              name="ringkasanKegiatan"
+              rows={4}
               required
-              value={formData.deskripsi}
+              value={formData.ringkasanKegiatan}
               onChange={handleInputChange}
-              placeholder="Tuliskan berita acara pelaksanaan kegiatan cabang selengkap mungkin (rincian acara, jumlah peserta, kendala, hasil, dll)..."
+              placeholder="Tuliskan ringkasan jalan/pelaksanaan kegiatan cabang..."
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Kesimpulan <span className="text-rose-500">*</span></label>
+            <textarea
+              name="kesimpulan"
+              rows={3}
+              required
+              value={formData.kesimpulan}
+              onChange={handleInputChange}
+              placeholder="Tuliskan hasil evaluasi atau kesimpulan akhir dari kegiatan..."
               className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans"
             />
           </div>

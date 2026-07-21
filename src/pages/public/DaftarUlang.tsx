@@ -425,6 +425,12 @@ export default function DaftarUlang() {
                         {PENDIDIKAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </InputField>
+                    <InputField label="Rata-rata Penghasilan Ayah">
+                      <select name="penghasilanAyah" value={formData.penghasilanAyah} onChange={handleChange} className={selectCls}>
+                        <option value="">Pilih Penghasilan</option>
+                        {PENGHASILAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </InputField>
                   </div>
                   <div className="space-y-5 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
                     <h4 className="text-sm font-bold text-gray-800">Biodata Ibu</h4>
@@ -448,6 +454,12 @@ export default function DaftarUlang() {
                       <select name="pendidikanIbu" value={formData.pendidikanIbu} onChange={handleChange} className={selectCls}>
                         <option value="">Pilih Pendidikan</option>
                         {PENDIDIKAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </InputField>
+                    <InputField label="Rata-rata Penghasilan Ibu">
+                      <select name="penghasilanIbu" value={formData.penghasilanIbu} onChange={handleChange} className={selectCls}>
+                        <option value="">Pilih Penghasilan</option>
+                        {PENGHASILAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </InputField>
                   </div>

@@ -48,6 +48,7 @@ export default function FormKegiatan() {
   });
 
   const [docFiles, setDocFiles] = useState<File[]>([]);
+  const [suratPengantarFiles, setSuratPengantarFiles] = useState<File[]>([]);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
 
   const [isDraggingDoc, setIsDraggingDoc] = useState(false);
@@ -179,6 +180,17 @@ export default function FormKegiatan() {
     setDocFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleSuratPengantarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setSuratPengantarFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeSuratPengantarFile = (index: number) => {
+    setSuratPengantarFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   // Drag and drop handlers for Photos
   const handleDragOverPhoto = (e: React.DragEvent) => {
     e.preventDefault();
@@ -229,6 +241,7 @@ export default function FormKegiatan() {
       kesimpulan: '',
     });
     setDocFiles([]);
+    setSuratPengantarFiles([]);
     setPhotoFiles([]);
     setActiveView('CREATE');
   };
@@ -248,6 +261,7 @@ export default function FormKegiatan() {
       kesimpulan: bap.kesimpulan || '',
     });
     setDocFiles([]);
+    setSuratPengantarFiles([]);
     setPhotoFiles([]);
     setActiveView('EDIT');
   };
@@ -279,6 +293,7 @@ export default function FormKegiatan() {
     }
 
     docFiles.forEach(file => payload.append('files', file));
+    suratPengantarFiles.forEach(file => payload.append('files', file));
     photoFiles.forEach(file => payload.append('files', file));
 
     if (activeView === 'EDIT' && editingBap) {
@@ -588,65 +603,107 @@ export default function FormKegiatan() {
         {/* Upload Cards: Split into Documents and Photos */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
-          {/* Card 1: Dokumen BAP */}
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4 flex flex-col justify-between">
-            <div>
-              <h3 className="text-base font-semibold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-indigo-500" />
-                Dokumen Laporan BAP {activeView === 'CREATE' && <span className="text-rose-500">*</span>}
-              </h3>
-              <p className="text-xs text-slate-500 mb-3">Unggah berkas berita acara (PDF, Word). {activeView === 'EDIT' ? 'Kosongkan jika tidak ingin menambah file baru.' : 'Wajib melampirkan berkas laporan ini.'}</p>
-              
-              {/* Template Download Prompt */}
-              {selectedTemplate && selectedTemplate.dokumen && selectedTemplate.dokumen.length > 0 ? (
-                <div className="mb-4 bg-indigo-50/50 border border-indigo-100 rounded-lg p-3 text-xs flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-indigo-900 truncate mr-2">
-                    <Info className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">Unduh template: {selectedTemplate.dokumen[0].fileName}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDownload(selectedTemplate.dokumen[0].filePath, selectedTemplate.dokumen[0].fileName)}
-                    className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1 shrink-0"
-                  >
-                    <Download className="w-3 h-3" /> Unduh
-                  </button>
-                </div>
-              ) : null}
 
-              {/* Uploader */}
-              <div
-                onDragOver={handleDragOverDoc}
-                onDragLeave={handleDragLeaveDoc}
-                onDrop={handleDropDoc}
-                className={`border border-dashed rounded-lg p-5 text-center cursor-pointer transition-colors ${
-                  isDraggingDoc ? 'border-indigo-500 bg-indigo-50/10' : 'border-slate-300 hover:bg-slate-50/50'
-                }`}
-              >
-                <input
-                  type="file"
-                  multiple
-                  id="doc-file-input"
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleDocFileChange}
-                  className="hidden"
-                />
-                <label htmlFor="doc-file-input" className="cursor-pointer flex flex-col items-center gap-2">
-                  <Upload className="w-6 h-6 text-indigo-500" />
-                  <span className="text-xs text-slate-600">
-                    <span className="text-indigo-600 font-semibold hover:underline">Pilih berkas</span> atau seret kemari
-                  </span>
-                  <span className="text-[10px] text-slate-400">PDF, DOC, DOCX (Maks 10MB)</span>
-                </label>
+          {/* Section: Dokumen Laporan BAP */}
+          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
+            <h3 className="text-base font-semibold text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-indigo-500" />
+              Dokumen Laporan BAP {activeView === 'CREATE' && <span className="text-rose-500">*</span>}
+            </h3>
+            <p className="text-xs text-slate-500 -mt-1">
+              {activeView === 'EDIT' ? 'Kosongkan jika tidak ingin menambah file baru.' : 'Wajib melampirkan dokumen laporan kegiatan.'}
+            </p>
+
+            {/* Template Download */}
+            {selectedTemplate && selectedTemplate.dokumen && selectedTemplate.dokumen.length > 0 && (
+              <div className="bg-indigo-50/50 border border-indigo-100 rounded-lg p-3 text-xs flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-indigo-900 truncate mr-2">
+                  <Info className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">Unduh template: {selectedTemplate.dokumen[0].fileName}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDownload(selectedTemplate.dokumen[0].filePath, selectedTemplate.dokumen[0].fileName)}
+                  className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1 shrink-0"
+                >
+                  <Download className="w-3 h-3" /> Unduh
+                </button>
               </div>
+            )}
+
+            {/* Surat Pengantar Row */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700">Surat Pengantar</label>
+                  <p className="text-xs text-slate-400 mt-0.5">Unggah surat pengantar kegiatan (PDF, DOC, DOCX)</p>
+                </div>
+                <div className="shrink-0">
+                  <input
+                    type="file"
+                    id="surat-pengantar-input"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleSuratPengantarFileChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="surat-pengantar-input"
+                    className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Pilih Berkas
+                  </label>
+                </div>
+              </div>
+              {suratPengantarFiles.length > 0 && (
+                <div className="border border-slate-200 rounded-lg overflow-hidden bg-white divide-y divide-slate-100">
+                  {suratPengantarFiles.map((file, idx) => (
+                    <div key={idx} className="flex items-center justify-between px-3 py-2 text-xs">
+                      <span className="font-medium text-slate-700 truncate flex-1 mr-2">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeSuratPengantarFile(idx)}
+                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            {docFiles.length > 0 && (
-              <div className="mt-3 space-y-1">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Berkas diunggah:</span>
+            {/* Dokumen BAP Row */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700">
+                    Dokumen BAP {activeView === 'CREATE' && <span className="text-rose-500">*</span>}
+                  </label>
+                  <p className="text-xs text-slate-400 mt-0.5">Unggah berkas berita acara (PDF, DOC, DOCX)</p>
+                </div>
+                <div className="shrink-0">
+                  <input
+                    type="file"
+                    multiple
+                    id="doc-file-input"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleDocFileChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="doc-file-input"
+                    className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Pilih Berkas
+                  </label>
+                </div>
+              </div>
+              {docFiles.length > 0 && (
                 <div className="border border-slate-200 rounded-lg overflow-hidden bg-white divide-y divide-slate-100">
                   {docFiles.map((file, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-2 text-xs">
+                    <div key={idx} className="flex items-center justify-between px-3 py-2 text-xs">
                       <span className="font-medium text-slate-700 truncate flex-1 mr-2">{file.name}</span>
                       <button
                         type="button"
@@ -658,8 +715,8 @@ export default function FormKegiatan() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Card 2: Foto Kegiatan */}

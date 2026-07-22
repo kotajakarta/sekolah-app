@@ -15,6 +15,11 @@ apiClient.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+      if (typeof document !== 'undefined' && !document.cookie.includes(`token=${token}`)) {
+        document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax`;
+      }
+    } else if (!token && typeof document !== 'undefined' && document.cookie.includes('token=')) {
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     }
     return config;
   },
@@ -33,6 +38,9 @@ apiClient.interceptors.response.use(
       if (!requestUrl.includes('/auth/login') && !requestUrl.includes('/auth/signin') && !requestUrl.includes('/signin')) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        if (typeof document !== 'undefined') {
+          document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        }
         window.location.href = '/login';
       }
     }

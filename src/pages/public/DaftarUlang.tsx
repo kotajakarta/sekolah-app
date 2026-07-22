@@ -30,13 +30,20 @@ const FileCard = ({
   isCompressing: boolean; setIsCompressing: (v: boolean) => void;
   accept?: string;
 }) => {
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  useEffect(() => {
+    if (!value) setLocalPreview(null);
+  }, [value]);
+
   const isImage = value && /\.(png|jpe?g|webp)$/i.test(value);
   const isPdf = value && /\.pdf$/i.test(value);
   const previewUrl = value ? (value.startsWith('http') ? value : `/api/v1${value.startsWith('/') ? '' : '/'}${value}`) : null;
+  const displayUrl = localPreview || previewUrl;
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setLocalPreview(URL.createObjectURL(file));
     setIsCompressing(true);
     try {
       const fd = new FormData();
@@ -57,15 +64,15 @@ const FileCard = ({
   return (
     <div className="group relative flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50/50 p-5 hover:bg-gray-50 transition-colors">
       <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">{label}</span>
-      {previewUrl ? (
+      {displayUrl ? (
         <div className="w-24 h-32 rounded-xl overflow-hidden border border-gray-200 shadow-md ring-4 ring-white">
-          {isImage || previewUrl.startsWith('data:') ? (
-            <img src={previewUrl} alt={label} className="w-full h-full object-cover" />
+          {isImage || displayUrl.startsWith('blob:') || displayUrl.startsWith('data:') ? (
+            <img src={displayUrl} alt={label} className="w-full h-full object-cover" />
           ) : isPdf ? (
             <div className="w-full h-full bg-red-50 flex flex-col items-center justify-center gap-1">
               <FileText className="w-7 h-7 text-red-500" />
               <span className="text-[10px] text-red-600 font-medium">PDF</span>
-              <a href={previewUrl} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-600 underline">Lihat</a>
+              <a href={displayUrl} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-600 underline">Lihat</a>
             </div>
           ) : <ImageIcon className="w-8 h-8" />}
         </div>

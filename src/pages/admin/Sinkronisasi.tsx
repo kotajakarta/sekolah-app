@@ -144,9 +144,9 @@ export default function Sinkronisasi() {
         telepon: item.biodata?.phone || '',
         wilayah: item.wilayah?.name || '',
         cabang: item.cabang?.name || '',
-        ada_foto: item.biodata?.fotoBase64 ? 'Ya' : 'Tidak',
-        ada_ijazah: item.biodata?.ijazahBase64 ? 'Ya' : 'Tidak',
-        ada_kk: item.biodata?.kkBase64 ? 'Ya' : 'Tidak',
+        ada_foto: item.biodata?.fotoUrl ? 'Ya' : 'Tidak',
+        ada_ijazah: item.biodata?.ijazahUrl ? 'Ya' : 'Tidak',
+        ada_kk: item.biodata?.kkUrl ? 'Ya' : 'Tidak',
         
         // --- DATA KELUARGA (CORE) ---
         nama_ayah: item.biodata?.namaAyah || '',

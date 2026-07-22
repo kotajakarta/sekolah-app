@@ -98,9 +98,9 @@ export default function RekapitulasiKelengkapanData() {
       { key: 'namaAyah', label: 'Nama Ayah', value: b?.namaAyah },
       { key: 'phone', label: 'No. Telepon', value: b?.phone },
       { key: 'address', label: 'Alamat', value: b?.address || b?.alamatJalan },
-      { key: 'fotoBase64', label: 'Foto', value: b?.fotoBase64, isFile: true },
-      { key: 'ijazahBase64', label: 'Ijazah', value: b?.ijazahBase64, isFile: true },
-      { key: 'kkBase64', label: 'Kartu Keluarga (KK) File', value: b?.kkBase64, isFile: true },
+      { key: 'fotoUrl', label: 'Foto', value: b?.fotoUrl, isFile: true },
+      { key: 'ijazahUrl', label: 'Ijazah', value: b?.ijazahUrl, isFile: true },
+      { key: 'kkUrl', label: 'Kartu Keluarga (KK) File', value: b?.kkUrl, isFile: true },
     ];
 
     const completed = fields.filter(
@@ -504,9 +504,9 @@ export default function RekapitulasiKelengkapanData() {
                   }
 
                   const b = s.biodata;
-                  const hasFoto = !!b?.fotoBase64;
-                  const hasIjazah = !!b?.ijazahBase64;
-                  const hasKK = !!b?.kkBase64;
+                  const hasFoto = !!b?.fotoUrl;
+                  const hasIjazah = !!b?.ijazahUrl;
+                  const hasKK = !!b?.kkUrl;
                   const hasParent = !!b?.namaAyah && !!b?.namaIbu;
 
                   return (

@@ -32,9 +32,9 @@ const calculateProgress = (student: any) => {
     biodata.namaAyah,
     biodata.phone,
     biodata.address || biodata.alamatJalan,
-    biodata.fotoBase64,
-    biodata.ijazahBase64,
-    biodata.kkBase64
+    biodata.fotoUrl,
+    biodata.ijazahUrl,
+    biodata.kkUrl
   ];
   const filled = fields.filter(val => val !== null && val !== undefined && val !== '').length;
   return Math.round((filled / fields.length) * 100);
@@ -363,10 +363,10 @@ export default function DataSiswa() {
                         {(currentPage - 1) * itemsPerPage + idx + 1}
                       </td>
                       <td className="px-3 py-3 whitespace-nowrap text-center">
-                        {student.biodata?.fotoBase64 ? (
+                        {student.biodata?.fotoUrl ? (
                           <div className="relative inline-block">
                             <img
-                              src={student.biodata.fotoBase64}
+                              src={student.biodata.fotoUrl.startsWith('/') ? `/api/v1${student.biodata.fotoUrl}` : student.biodata.fotoUrl}
                               alt="Foto Siswa"
                               className={`w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 ${
                                 student.biodata?.jenisKelamin === 'PEREMPUAN' ? 'blur-sm' : ''

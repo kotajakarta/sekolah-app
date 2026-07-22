@@ -29,6 +29,9 @@ async function startServer() {
 
     // SPA fallback — serve index.html for all non-API routes
     server.use(async (req, res, next) => {
+      if (req.originalUrl.startsWith('/api')) {
+        return next();
+      }
       try {
         const url = req.originalUrl;
         let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
@@ -45,6 +48,9 @@ async function startServer() {
     const distPath = path.join(process.cwd(), "dist");
     server.use(express.static(distPath));
     server.get("*all", (req, res, next) => {
+      if (req.originalUrl.startsWith('/api')) {
+        return next();
+      }
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
@@ -55,4 +61,6 @@ async function startServer() {
   });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error("Failed to start server:", err);
+});

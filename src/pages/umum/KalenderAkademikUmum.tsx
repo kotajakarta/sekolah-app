@@ -21,7 +21,11 @@ export default function KalenderAkademikUmum() {
 
   const getFullUrl = (url: string) => {
     if (!url) return '';
-    return url.startsWith('/pengaturan') ? `/api/v1${url}` : `/api/v1/pengaturan${url}`;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/api/v1')) return url;
+    if (url.startsWith('/pengaturan/uploads')) return `/api/v1${url}`;
+    if (url.startsWith('/uploads')) return `/api/v1/pengaturan${url}`;
+    return `/api/v1/pengaturan/uploads/${url.replace(/^\/+/, '')}`;
   };
 
   return (
@@ -66,7 +70,7 @@ export default function KalenderAkademikUmum() {
                       rel="noreferrer"
                       className="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors shadow-sm"
                     >
-                      <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Buka Tab Baru
+                      <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Buka di Tab Baru
                     </a>
                     <a 
                       href={fileUrl} 
@@ -80,7 +84,7 @@ export default function KalenderAkademikUmum() {
                   </div>
                 </div>
 
-                <div className="p-0 bg-slate-100 flex justify-center items-center min-h-[600px]">
+                <div className="p-0 bg-slate-100 min-h-[650px] flex flex-col justify-center items-center">
                   {isImage ? (
                     <img 
                       src={fileUrl} 
@@ -88,30 +92,11 @@ export default function KalenderAkademikUmum() {
                       className="w-full max-h-[850px] object-contain p-4 bg-slate-900/5" 
                     />
                   ) : (
-                    <object 
-                      data={`${fileUrl}#toolbar=1&navpanes=0`} 
-                      type="application/pdf" 
-                      className="w-full h-[750px]"
-                    >
-                      <iframe 
-                        src={`${fileUrl}#toolbar=1`} 
-                        className="w-full h-[750px]" 
-                        title={item.title}
-                      >
-                        <div className="p-12 text-center text-slate-500 bg-slate-50 h-full flex flex-col items-center justify-center">
-                          <FileText className="w-12 h-12 text-slate-300 mb-3" />
-                          <p className="font-medium text-slate-700">Preview PDF tidak dapat ditampilkan langsung di browser ini.</p>
-                          <a 
-                            href={fileUrl} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="mt-4 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg text-sm hover:bg-indigo-700 transition-colors"
-                          >
-                            Buka / Download PDF
-                          </a>
-                        </div>
-                      </iframe>
-                    </object>
+                    <iframe 
+                      src={fileUrl} 
+                      className="w-full h-[750px] border-0" 
+                      title={item.title}
+                    />
                   )}
                 </div>
               </div>

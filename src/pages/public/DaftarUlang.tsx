@@ -39,6 +39,7 @@ const FileCard = ({
   const isPdf = value && /\.pdf$/i.test(value);
   const previewUrl = value ? (value.startsWith('http') ? value : `/api/v1${value.startsWith('/') ? '' : '/'}${value}`) : null;
   const displayUrl = localPreview || previewUrl;
+  const isLocal = localPreview !== null || (displayUrl && (displayUrl.startsWith('blob:') || displayUrl.startsWith('data:')));
 
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,15 +69,17 @@ const FileCard = ({
       <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">{label}</span>
       {displayUrl ? (
         <div className="w-24 h-32 rounded-xl overflow-hidden border border-gray-200 shadow-md ring-4 ring-white">
-          {isImage || displayUrl.startsWith('blob:') || displayUrl.startsWith('data:') ? (
+          {isLocal ? (
             <img src={displayUrl} alt={label} className="w-full h-full object-cover" />
-          ) : isPdf ? (
-            <div className="w-full h-full bg-red-50 flex flex-col items-center justify-center gap-1">
-              <FileText className="w-7 h-7 text-red-500" />
-              <span className="text-[10px] text-red-600 font-medium">PDF</span>
-              <a href={displayUrl} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-600 underline">Lihat</a>
+          ) : (
+            <div className="w-full h-full bg-emerald-50 flex flex-col items-center justify-center p-2 text-center gap-1.5 border border-emerald-200">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                <Check className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] text-emerald-800 font-bold leading-tight">Berkas Ada</span>
+              <span className="text-[8px] text-emerald-600 font-semibold leading-tight">Terproteksi</span>
             </div>
-          ) : <ImageIcon className="w-8 h-8" />}
+          )}
         </div>
       ) : (
         <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-300 bg-white flex items-center justify-center text-gray-400 group-hover:border-indigo-400 group-hover:text-indigo-500 transition-colors">
@@ -141,6 +144,7 @@ export default function DaftarUlang() {
   const [kodeDaftarUlang, setKodeDaftarUlang] = useState('');
   const [nik, setNik] = useState('');
   const [studentId, setStudentId] = useState<string | null>(null);
+  const [biodataId, setBiodataId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     nik: '',
@@ -228,6 +232,7 @@ export default function DaftarUlang() {
       if (data.exists && data.student) {
         setStudentId(data.student.id);
         const b = data.student.biodata;
+        setBiodataId(b?.id || null);
         setFormData(prev => ({
           ...prev,
           nik: b.nik || nik,
@@ -274,6 +279,7 @@ export default function DaftarUlang() {
         showToast('success', 'Data siswa ditemukan, silakan lengkapi data yang kurang.');
       } else {
         setStudentId(null);
+        setBiodataId(null);
         setFormData(prev => ({ ...prev, nik }));
         showToast('success', 'Silakan lengkapi formulir pendaftaran baru.');
       }
@@ -569,7 +575,7 @@ export default function DaftarUlang() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <FileCard 
                     label="Pas Foto" value={formData.fotoUrl}
-                    biodataId={studentId || undefined}
+                    biodataId={biodataId || undefined}
                     jenis="passfoto"
                     onUploaded={(url) => setFormData(prev => ({ ...prev, fotoUrl: url }))}
                     isCompressing={isCompressing} setIsCompressing={setIsCompressing}
@@ -577,7 +583,7 @@ export default function DaftarUlang() {
                   />
                   <FileCard 
                     label="Ijazah" value={formData.ijazahUrl}
-                    biodataId={studentId || undefined}
+                    biodataId={biodataId || undefined}
                     jenis="ijazah"
                     onUploaded={(url) => setFormData(prev => ({ ...prev, ijazahUrl: url }))}
                     isCompressing={isCompressing} setIsCompressing={setIsCompressing}
@@ -585,7 +591,7 @@ export default function DaftarUlang() {
                   />
                   <FileCard 
                     label="Kartu Keluarga" value={formData.kkUrl}
-                    biodataId={studentId || undefined}
+                    biodataId={biodataId || undefined}
                     jenis="kk"
                     onUploaded={(url) => setFormData(prev => ({ ...prev, kkUrl: url }))}
                     isCompressing={isCompressing} setIsCompressing={setIsCompressing}

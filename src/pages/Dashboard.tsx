@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Users, BookOpen, LayoutDashboard, Award, Loader2,
   Calendar, MoreHorizontal, Plus, ChevronRight, Activity,
-  CheckCircle2, Copy, AlertCircle, FileText, Settings
+  CheckCircle2, Copy, AlertCircle, FileText, Settings, Filter
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Link } from 'react-router-dom';
 import apiClient from '../lib/apiClient';
+import Pagination from '../components/Pagination';
 
 interface DashboardStats {
   totalSantri: number;
@@ -32,6 +33,12 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Ketersediaan Guru Mapel Umum filter & pagination states
+  const [selectedWilayahFilter, setSelectedWilayahFilter] = useState('');
+  const [selectedCabangFilter, setSelectedCabangFilter] = useState('');
+  const [kgPage, setKgPage] = useState(1);
+  const kgLimit = 10;
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -46,6 +53,43 @@ export default function Dashboard() {
     };
     fetchStats();
   }, [t]);
+
+  // Extract unique Wilayah options
+  const wilayahOptions = useMemo(() => {
+    if (!statsData?.ketersediaanGuru) return [];
+    const set = new Set(statsData.ketersediaanGuru.map(k => k.wilayahName));
+    return Array.from(set).sort();
+  }, [statsData]);
+
+  // Extract unique Cabang options (filtered by selectedWilayahFilter if any)
+  const cabangOptions = useMemo(() => {
+    if (!statsData?.ketersediaanGuru) return [];
+    const items = selectedWilayahFilter
+      ? statsData.ketersediaanGuru.filter(k => k.wilayahName === selectedWilayahFilter)
+      : statsData.ketersediaanGuru;
+    const set = new Set(items.map(k => k.cabangName));
+    return Array.from(set).sort();
+  }, [statsData, selectedWilayahFilter]);
+
+  // Filtered ketersediaanGuru
+  const filteredKetersediaanGuru = useMemo(() => {
+    if (!statsData?.ketersediaanGuru) return [];
+    return statsData.ketersediaanGuru.filter(cabang => {
+      if (selectedWilayahFilter && cabang.wilayahName !== selectedWilayahFilter) return false;
+      if (selectedCabangFilter && cabang.cabangName !== selectedCabangFilter) return false;
+      return true;
+    });
+  }, [statsData, selectedWilayahFilter, selectedCabangFilter]);
+
+  const totalKgPages = Math.ceil(filteredKetersediaanGuru.length / kgLimit) || 1;
+  const paginatedKetersediaanGuru = useMemo(() => {
+    return filteredKetersediaanGuru.slice((kgPage - 1) * kgLimit, kgPage * kgLimit);
+  }, [filteredKetersediaanGuru, kgPage]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setKgPage(1);
+  }, [selectedWilayahFilter, selectedCabangFilter]);
 
   if (isLoading) {
     return (
@@ -290,6 +334,36 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* Compact Filter Bar */}
+            <div className="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-slate-600 flex items-center gap-1">
+                  <Filter className="w-3.5 h-3.5 text-slate-400" /> Filter:
+                </span>
+                <select
+                  value={selectedWilayahFilter}
+                  onChange={e => { setSelectedWilayahFilter(e.target.value); setSelectedCabangFilter(''); }}
+                  className="px-2.5 py-1 bg-white border border-slate-300 rounded text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 font-sans"
+                >
+                  <option value="">-- Semua Wilayah --</option>
+                  {wilayahOptions.map(w => <option key={w} value={w}>{w}</option>)}
+                </select>
+
+                <select
+                  value={selectedCabangFilter}
+                  onChange={e => setSelectedCabangFilter(e.target.value)}
+                  className="px-2.5 py-1 bg-white border border-slate-300 rounded text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 font-sans"
+                >
+                  <option value="">-- Semua Cabang --</option>
+                  {cabangOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              <span className="text-[11px] font-mono text-slate-500">
+                Menampilkan {filteredKetersediaanGuru.length} cabang
+              </span>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse font-mono">
                 <thead>
@@ -302,8 +376,8 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-150 text-xs font-mono bg-white">
-                  {statsData.ketersediaanGuru && statsData.ketersediaanGuru.length > 0 ? (
-                    statsData.ketersediaanGuru.map((cabang) => (
+                  {paginatedKetersediaanGuru.length > 0 ? (
+                    paginatedKetersediaanGuru.map((cabang) => (
                       <tr key={cabang.cabangId} className="hover:bg-slate-50/50 transition-colors">
                         <td className="px-4 py-3.5 text-center">
                           <div className="flex justify-center items-center">
@@ -324,11 +398,11 @@ export default function Dashboard() {
                         </td>
                         <td className="px-4 py-3.5">
                           {cabang.status === 'hijau' ? (
-                            <span className="text-emerald-700 text-xs">All 5 compulsory subjects covered</span>
+                            <span className="text-emerald-700 text-xs font-sans font-medium">Semua 5 Mapel Terisi</span>
                           ) : (
-                            <div className="flex flex-wrap gap-1.5">
+                            <div className="flex flex-wrap gap-1.5 font-sans">
                               {cabang.missingSubjects.map(sub => (
-                                <span key={sub} className="inline-flex items-center px-2 py-0.5 rounded text-[11px] bg-rose-50 text-rose-700 border border-rose-150 capitalize">
+                                <span key={sub} className="inline-flex items-center px-2 py-0.5 rounded text-[11px] bg-rose-50 text-rose-700 border border-rose-150 capitalize font-medium">
                                   {sub}
                                 </span>
                               ))}
@@ -339,7 +413,7 @@ export default function Dashboard() {
                           <Link
                             to="/formal/penugasan-guru"
                             className="inline-flex items-center justify-center p-1.5 rounded hover:bg-slate-100 text-[#0051c3] hover:text-[#00409c] transition-colors"
-                            title="Manage Assignments"
+                            title="Kelola Penugasan"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -351,13 +425,26 @@ export default function Dashboard() {
                   ) : (
                     <tr>
                       <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
-                        No branch data available.
+                        Tidak ada data cabang yang sesuai filter.
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {filteredKetersediaanGuru.length > 0 && (
+              <div className="p-3 border-t border-slate-200 bg-slate-50/50">
+                <Pagination
+                  currentPage={kgPage}
+                  totalPages={totalKgPages}
+                  onPageChange={setKgPage}
+                  totalItems={filteredKetersediaanGuru.length}
+                  itemsPerPage={kgLimit}
+                />
+              </div>
+            )}
           </div>
 
           {/* Left Column: Aktivitas Terbaru */}

@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
+import Pagination from '../../components/Pagination';
+
 const MAPEL_LABELS: Record<string, string> = {
   'matematika': 'Matematika',
   'bahasa indonesia': 'B. Indonesia',
@@ -56,9 +58,14 @@ const statusConfig = {
 export default function KetersediaanGuruMapel() {
   const [searchCabang, setSearchCabang] = useState('');
   const [filterWilayah, setFilterWilayah] = useState('');
+  const [filterCabang, setFilterCabang] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterMapel, setFilterMapel] = useState('');
   const [expandedCabang, setExpandedCabang] = useState<Set<string>>(new Set());
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
   // Summary Modal States
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
@@ -78,10 +85,17 @@ export default function KetersediaanGuruMapel() {
     return Array.from(set).sort();
   }, [data]);
 
+  const cabangOptions = useMemo(() => {
+    const items = filterWilayah ? data.filter(d => d.wilayahName === filterWilayah) : data;
+    const set = new Set(items.map(d => d.cabangName));
+    return Array.from(set).sort();
+  }, [data, filterWilayah]);
+
   const filtered = useMemo(() => {
     return data.filter(cabang => {
       if (searchCabang && !cabang.cabangName.toLowerCase().includes(searchCabang.toLowerCase())) return false;
       if (filterWilayah && cabang.wilayahName !== filterWilayah) return false;
+      if (filterCabang && cabang.cabangName !== filterCabang) return false;
       if (filterStatus && cabang.status !== filterStatus) return false;
       if (filterMapel) {
         const hasMissingMapel = cabang.kelas.some(k =>
@@ -91,7 +105,16 @@ export default function KetersediaanGuruMapel() {
       }
       return true;
     });
-  }, [data, searchCabang, filterWilayah, filterStatus, filterMapel]);
+  }, [data, searchCabang, filterWilayah, filterCabang, filterStatus, filterMapel]);
+
+  const totalPages = Math.ceil(filtered.length / limit) || 1;
+  const paginatedRows = useMemo(() => {
+    return filtered.slice((page - 1) * limit, page * limit);
+  }, [filtered, page]);
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [searchCabang, filterWilayah, filterCabang, filterStatus, filterMapel]);
 
   const summaryFiltered = useMemo(() => {
     return data.filter(cabang => {
@@ -234,7 +257,7 @@ export default function KetersediaanGuruMapel() {
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
           <Filter className="w-3.5 h-3.5" /> Filter
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Cari Cabang</label>
             <div className="relative">
@@ -252,11 +275,22 @@ export default function KetersediaanGuruMapel() {
             <label className="block text-xs font-medium text-slate-600 mb-1">Wilayah</label>
             <select
               value={filterWilayah}
-              onChange={e => setFilterWilayah(e.target.value)}
+              onChange={e => { setFilterWilayah(e.target.value); setFilterCabang(''); }}
               className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
             >
               <option value="">Semua Wilayah</option>
               {wilayahOptions.map(w => <option key={w} value={w}>{w}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Cabang</label>
+            <select
+              value={filterCabang}
+              onChange={e => setFilterCabang(e.target.value)}
+              className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="">Semua Cabang</option>
+              {cabangOptions.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
@@ -311,98 +345,98 @@ export default function KetersediaanGuruMapel() {
           Tidak ada data yang cocok dengan filter.
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map(cabang => {
-            const isExpanded = expandedCabang.has(cabang.cabangId);
-            const cfg = statusConfig[cabang.status];
-            return (
-              <div key={cabang.cabangId} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-                <button
-                  onClick={() => toggleCabang(cabang.cabangId)}
-                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50/60 transition-colors text-left"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${cfg.dot}`} />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-slate-900 text-[14px]">{cabang.cabangName}</span>
-                        <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full border ${cfg.color}`}>{cfg.label}</span>
+        <div className="space-y-4">
+          <div className="space-y-3">
+            {paginatedRows.map(cabang => {
+              const isExpanded = expandedCabang.has(cabang.cabangId);
+              const cfg = statusConfig[cabang.status];
+              return (
+                <div key={cabang.cabangId} className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+                  <button
+                    onClick={() => toggleCabang(cabang.cabangId)}
+                    className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50/60 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${cfg.dot}`} />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-slate-900 text-[14px]">{cabang.cabangName}</span>
+                          <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full border ${cfg.color}`}>{cfg.label}</span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {cabang.wilayahName} &bull; {cabang.totalKelas} kelas &bull; {cabang.totalMissingSlots} slot kosong
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {cabang.wilayahName} &bull; {cabang.totalKelas} kelas &bull; {cabang.totalMissingSlots} slot kosong
-                      </p>
                     </div>
-                  </div>
-                  {isExpanded
-                    ? <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
-                    : <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
-                  }
-                </button>
+                    {isExpanded
+                      ? <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
+                      : <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+                    }
+                  </button>
 
-                {isExpanded && (
-                  <div className="border-t border-slate-100">
-                    {cabang.kelas.length === 0 ? (
-                      <p className="px-6 py-4 text-sm text-slate-400 italic">Belum ada kelas terdaftar di cabang ini.</p>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm">
-                          <thead>
-                            <tr className="bg-slate-50 border-b border-slate-100">
-                              <th className="px-5 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Kelas</th>
-                              {MAPEL_LIST.map(m => (
-                                <th key={m} className="px-3 py-2.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                                  {MAPEL_LABELS[m]}
-                                </th>
-                              ))}
-                              <th className="px-5 py-2.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {cabang.kelas.map(kelas => {
-                              const kelasCfg = statusConfig[kelas.status];
-                              return (
-                                <tr key={kelas.kelasId} className="hover:bg-slate-50/40 transition-colors">
-                                  <td className="px-5 py-3 font-medium text-slate-800 whitespace-nowrap">
+                  {isExpanded && (
+                    <div className="border-t border-slate-100">
+                      {cabang.kelas.length === 0 ? (
+                        <p className="px-6 py-4 text-sm text-slate-400 italic">Belum ada kelas terdaftar di cabang ini.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-sm">
+                            <thead>
+                              <tr className="bg-slate-50 border-b border-slate-100">
+                                <th className="px-6 py-3 text-left font-semibold text-slate-700">Kelas</th>
+                                <th className="px-6 py-3 text-left font-semibold text-slate-700">Status Guru Mapel</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                              {cabang.kelas.map(kelas => (
+                                <tr key={kelas.kelasId} className="hover:bg-slate-50/30">
+                                  <td className="px-6 py-3.5 font-medium text-slate-800">
                                     {kelas.kelasName}
-                                    {kelas.tingkat && <span className="ml-1.5 text-xs text-slate-400">Tk.{kelas.tingkat}</span>}
+                                    {kelas.tingkat && <span className="text-xs text-slate-400 ml-1.5">(Tk. {kelas.tingkat})</span>}
                                   </td>
-                                  {MAPEL_LIST.map(m => {
-                                    const cov = kelas.subjectCoverage.find(s => s.mapel === m);
-                                    return (
-                                      <td key={m} className="px-3 py-3 text-center">
-                                        {cov?.hasGuru ? (
-                                          <div className="flex flex-col items-center gap-0.5">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                            <span className="text-[10px] text-slate-400 leading-tight max-w-[72px] truncate" title={cov.guruName || ''}>
-                                              {cov.guruName || ''}
-                                            </span>
-                                          </div>
-                                        ) : (
-                                          <div className="flex flex-col items-center gap-0.5">
-                                            <AlertCircle className="w-4 h-4 text-rose-400" />
-                                            <span className="text-[10px] text-rose-400">Kosong</span>
-                                          </div>
-                                        )}
-                                      </td>
-                                    );
-                                  })}
-                                  <td className="px-5 py-3 text-center">
-                                    <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full ${kelasCfg.color}`}>
-                                      {kelasCfg.label}
-                                    </span>
+                                  <td className="px-6 py-3.5">
+                                    <div className="flex flex-wrap gap-2">
+                                      {kelas.subjectCoverage.map(cov => (
+                                        <div
+                                          key={cov.mapel}
+                                          className={`px-2.5 py-1 rounded-lg text-xs flex items-center gap-1.5 border ${
+                                            cov.hasGuru
+                                              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                                              : 'bg-rose-50 border-rose-200 text-rose-800 font-semibold'
+                                          }`}
+                                        >
+                                          {cov.hasGuru ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <AlertCircle className="w-3.5 h-3.5 text-rose-600" />}
+                                          <span>{MAPEL_LABELS[cov.mapel] || cov.mapel}:</span>
+                                          <span className="font-medium">{cov.hasGuru ? (cov.guruName || 'Ada Guru') : 'Kosong'}</span>
+                                        </div>
+                                      ))}
+                                    </div>
                                   </td>
                                 </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Pagination Controls */}
+          {filtered.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                totalItems={filtered.length}
+                itemsPerPage={limit}
+              />
+            </div>
+          )}
         </div>
       )}
 

@@ -39,7 +39,8 @@ export default function AbsensiSiswa() {
   const [selectedCabang, setSelectedCabang] = useState<string>('');
   const [selectedKelas, setSelectedKelas] = useState<string>('');
 
-  // Pagination states
+  // Search & Pagination states
+  const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -112,17 +113,19 @@ export default function AbsensiSiswa() {
     return true;
   });
 
-  // 4. Get Kelas options filtered by selected Cabang
+  // 4. Get Kelas options filtered by selected Cabang/Wilayah
   const { data: classes = [], isLoading: loadingClasses } = useQuery<Kelas[]>({
-    queryKey: ['absensi-classes', selectedCabang],
+    queryKey: ['absensi-classes', selectedWilayah, selectedCabang],
     queryFn: async () => {
       const res = await apiClient.get('/formal/kelas');
       if (selectedCabang) {
         return res.data.filter((c: any) => c.cabangId === selectedCabang && c.isActive);
+      } else if (selectedWilayah) {
+        const branchIds = filteredBranches.map((b: any) => b.id);
+        return res.data.filter((c: any) => branchIds.includes(c.cabangId) && c.isActive);
       }
-      return [];
-    },
-    enabled: !!selectedCabang
+      return res.data.filter((c: any) => c.isActive);
+    }
   });
 
   // Automatically select the first active program when loaded
@@ -134,14 +137,14 @@ export default function AbsensiSiswa() {
 
   // 5. Load attendance list of students when filters change
   const { data: fetchedKehadiran, isLoading: loadingKehadiran, refetch, isError } = useQuery<KehadiranRow[]>({
-    queryKey: ['absensi-kehadiran-list', selectedProgram, selectedKelas, selectedCabang],
+    queryKey: ['absensi-kehadiran-list', selectedProgram, selectedWilayah, selectedCabang, selectedKelas],
     queryFn: async () => {
       const res = await apiClient.get(
-        `/absensi/kehadiran?programId=${selectedProgram}&kelasId=${selectedKelas}&cabangId=${selectedCabang}`
+        `/absensi/kehadiran?programId=${selectedProgram}&wilayahId=${selectedWilayah}&cabangId=${selectedCabang}&kelasId=${selectedKelas}`
       );
       return res.data;
     },
-    enabled: !!selectedProgram && !!selectedKelas && !!selectedCabang
+    enabled: !!selectedProgram
   });
 
   // Sync fetched logs to local state
@@ -183,20 +186,33 @@ export default function AbsensiSiswa() {
     setIsSavedSuccessfully(false);
   };
 
-  const markAll = (status: 'HADIR' | 'SAKIT' | 'IZIN' | 'ALPA') => {
+  const handleSetAllStatus = (status: 'HADIR' | 'SAKIT' | 'IZIN' | 'ALPA') => {
     setRows(prev => prev.map(r => ({ ...r, status })));
     setIsSavedSuccessfully(false);
   };
+  const markAll = handleSetAllStatus;
 
-  // Local pagination helper
-  const totalPages = Math.ceil(rows.length / limit);
-  const paginatedRows = rows.slice((page - 1) * limit, page * limit);
+  // Filtered & Paginated Rows
+  const filteredRows = rows.filter(r =>
+    r.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (r.nisLokal && r.nisLokal.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const totalPages = Math.ceil(filteredRows.length / limit) || 1;
+  const paginatedRows = filteredRows.slice((page - 1) * limit, page * limit);
+
+  // Status Summary Counts
+  const hadirCount = rows.filter(r => r.status === 'HADIR').length;
+  const sakitCount = rows.filter(r => r.status === 'SAKIT').length;
+  const izinCount = rows.filter(r => r.status === 'IZIN').length;
+  const alpaCount = rows.filter(r => r.status === 'ALPA').length;
 
   return (
-    <div className="font-sans text-slate-800 animate-in fade-in duration-300 pb-10">
+    <div className="font-sans text-[#1d1d1f] animate-in fade-in duration-300 pb-12">
+      {/* Title Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <Activity className="w-6 h-6 text-indigo-500" />
+          <Activity className="w-6 h-6 text-indigo-600" />
           Absensi Kehadiran Siswa
         </h1>
         <p className="text-sm text-slate-500 mt-1">
@@ -234,7 +250,7 @@ export default function AbsensiSiswa() {
           >
             {isGlobal ? (
               <>
-                <option value="">-- Pilih Wilayah --</option>
+                <option value="">-- Semua Wilayah --</option>
                 {wilayahs.map((w: any) => (
                   <option key={w.id} value={w.id}>{w.name}</option>
                 ))}
@@ -250,14 +266,14 @@ export default function AbsensiSiswa() {
           <select
             value={selectedCabang}
             onChange={e => handleCabangChange(e.target.value)}
-            disabled={isCabang || (!isGlobal && !selectedWilayah)}
+            disabled={isCabang}
             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-70"
           >
             {isCabang ? (
               <option value={selectedCabang}>{user?.cabangName || 'Cabang Terkunci'}</option>
             ) : (
               <>
-                <option value="">-- Pilih Cabang --</option>
+                <option value="">-- Semua Cabang --</option>
                 {filteredBranches.map((b: any) => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
@@ -271,10 +287,9 @@ export default function AbsensiSiswa() {
           <select
             value={selectedKelas}
             onChange={e => setSelectedKelas(e.target.value)}
-            disabled={!selectedCabang}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-70"
+            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
           >
-            <option value="">-- Pilih Kelas --</option>
+            <option value="">-- Semua Kelas --</option>
             {classes.map(c => (
               <option key={c.id} value={c.id}>{c.name} (Tingkat {c.tingkat || '-'})</option>
             ))}
@@ -283,10 +298,10 @@ export default function AbsensiSiswa() {
       </div>
 
       {/* Main Student Attendance Grid */}
-      {!selectedProgram || !selectedKelas || !selectedCabang ? (
+      {!selectedProgram ? (
         <div className="bg-slate-50 border border-dashed border-slate-300/80 rounded-xl p-12 text-center text-slate-400 flex flex-col items-center justify-center">
           <Info className="w-8 h-8 mb-2 text-slate-300" />
-          <p className="font-medium text-slate-600">Silakan lengkapi pemilihan Wilayah, Cabang, Program Absensi, dan Kelas untuk memuat data siswa.</p>
+          <p className="font-medium text-slate-600">Silakan pilih Program Absensi untuk memuat data siswa.</p>
         </div>
       ) : loadingKehadiran ? (
         <div className="bg-white border border-slate-200 rounded-xl p-12 flex justify-center items-center shadow-sm">

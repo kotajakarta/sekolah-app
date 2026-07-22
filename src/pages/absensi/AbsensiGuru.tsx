@@ -113,14 +113,14 @@ export default function AbsensiGuru() {
 
   // 4. Load teacher attendance list when filters change
   const { data: fetchedKehadiran, isLoading: loadingKehadiran, refetch, isError } = useQuery<KehadiranGuruRow[]>({
-    queryKey: ['absensi-kehadiran-guru-list', selectedProgram, selectedCabang],
+    queryKey: ['absensi-kehadiran-guru-list', selectedProgram, selectedWilayah, selectedCabang],
     queryFn: async () => {
       const res = await apiClient.get(
-        `/absensi/kehadiran-guru?programId=${selectedProgram}&cabangId=${selectedCabang}`
+        `/absensi/kehadiran-guru?programId=${selectedProgram}&wilayahId=${selectedWilayah}&cabangId=${selectedCabang}`
       );
       return res.data;
     },
-    enabled: !!selectedProgram && !!selectedCabang
+    enabled: !!selectedProgram
   });
 
   // Sync fetched logs to local state
@@ -210,7 +210,7 @@ export default function AbsensiGuru() {
             >
               {isGlobal ? (
                 <>
-                  <option value="">-- Pilih Wilayah --</option>
+                  <option value="">-- Semua Wilayah --</option>
                   {wilayahs.map((w: any) => (
                     <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
@@ -228,14 +228,14 @@ export default function AbsensiGuru() {
             <select
               value={selectedCabang}
               onChange={e => handleCabangChange(e.target.value)}
-              disabled={isCabang || (!selectedWilayah && isGlobal)}
+              disabled={isCabang}
               className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
             >
               {isCabang ? (
                 <option value={selectedCabang}>{user?.cabangName || 'Cabang Terkunci'}</option>
               ) : (
                 <>
-                  <option value="">-- Pilih Cabang --</option>
+                  <option value="">-- Semua Cabang --</option>
                   {filteredBranches.map((b: any) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
@@ -266,10 +266,10 @@ export default function AbsensiGuru() {
       </div>
 
       {/* Main Content Area */}
-      {!selectedCabang || !selectedProgram ? (
+      {!selectedProgram ? (
         <div className="bg-slate-50 border border-dashed border-slate-300/80 rounded p-12 text-center text-slate-400 flex flex-col items-center justify-center">
           <Info className="w-8 h-8 mb-2 text-slate-300" />
-          <p className="font-medium text-slate-600">Silakan pilih Wilayah, Cabang, dan Program Absensi untuk memuat data guru.</p>
+          <p className="font-medium text-slate-600">Silakan pilih Program Absensi untuk memuat data guru.</p>
         </div>
       ) : loadingKehadiran ? (
         <div className="bg-white border border-slate-200 rounded p-12 flex justify-center items-center">

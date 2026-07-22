@@ -48,6 +48,7 @@ import FaqPage from './pages/umum/FaqPage';
 import ProfileUser from './pages/core/ProfileUser';
 import KetersediaanGuruMapel from './pages/dashboard/KetersediaanGuruMapel';
 import AbsensiSiswa from './pages/absensi/AbsensiSiswa';
+import AbsensiGuru from './pages/absensi/AbsensiGuru';
 import RekapitulasiAbsensi from './pages/laporan/RekapitulasiAbsensi';
 import RekapitulasiKelengkapanData from './pages/laporan/RekapitulasiKelengkapanData';
 import RekapitulasiKelengkapanGuru from './pages/laporan/RekapitulasiKelengkapanGuru';
@@ -350,6 +351,7 @@ export default function App() {
               <Route path="settings/faq" element={<KelolaFaq />} />
               <Route path="dashboard/ketersediaan-guru" element={<KetersediaanGuruMapel />} />
               <Route path="absensi/siswa" element={<AbsensiSiswa />} />
+              <Route path="absensi/guru" element={<AbsensiGuru />} />
               <Route path="absensi/programs" element={<KelolaProgramAbsensi />} />
               <Route path="laporan/absensi" element={<RekapitulasiAbsensi />} />
               <Route path="laporan/kelengkapan-data" element={<RekapitulasiKelengkapanData />} />

@@ -13,6 +13,8 @@ import {
   Info
 } from 'lucide-react';
 
+import Pagination from '../../components/Pagination';
+
 interface Program {
   id: string;
   name: string;
@@ -51,6 +53,10 @@ export default function RekapitulasiAbsensi() {
   const [selectedCabang, setSelectedCabang] = useState<string>('');
   const [selectedKelas, setSelectedKelas] = useState<string>('');
   const [filterMode, setFilterMode] = useState<'date' | 'semester' | 'month'>('date');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 10;
 
   // Date Range State
   const [startDate, setStartDate] = useState<string>('');
@@ -521,9 +527,9 @@ export default function RekapitulasiAbsensi() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-150 text-xs bg-white">
-                  {recapData.recap.map((row, index) => (
+                  {recapData.recap.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((row, index) => (
                     <tr key={row.studentId} className="hover:bg-slate-50/40 transition-colors">
-                      <td className="px-4 py-3 text-center text-slate-400 font-medium">{index + 1}</td>
+                      <td className="px-4 py-3 text-center text-slate-400 font-medium">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                       <td className="px-4 py-3 text-slate-650 font-medium font-mono">{row.nisLokal || '-'}</td>
                       <td className="px-4 py-3 font-semibold text-slate-800">{row.fullName}</td>
 
@@ -565,6 +571,17 @@ export default function RekapitulasiAbsensi() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="p-3 border-t border-slate-200 print:hidden bg-slate-50/50">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(recapData.recap.length / itemsPerPage)}
+                onPageChange={setCurrentPage}
+                totalItems={recapData.recap.length}
+                itemsPerPage={itemsPerPage}
+              />
             </div>
           </div>
           

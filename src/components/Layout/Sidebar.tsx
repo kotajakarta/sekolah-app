@@ -212,9 +212,9 @@ export const Sidebar: React.FC = () => {
     { to: '/dashboard/core/pool-guru', label: 'Pool Guru', show: user?.scope === 'GLOBAL' },
   ].filter(i => i.show);
 
-  const absensiItems = [
+  const absensiItems: Array<{ to: string; label: string; show: boolean; disabled?: boolean }> = [
     { to: '/dashboard/absensi/siswa', label: 'Absensi Siswa', show: true },
-    { to: '/dashboard/absensi/guru', label: 'Absensi Guru', show: true, disabled: true },
+    { to: '/dashboard/absensi/guru', label: 'Absensi Guru', show: true },
     { to: '/dashboard/absensi/programs', label: 'Kelola Program Absensi', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
   ].filter(i => i.show);
 
@@ -233,7 +233,7 @@ export const Sidebar: React.FC = () => {
   ].filter(i => i.show);
 
   const monitoringItems = [
-    { to: '/dashboard/dashboard/ketersediaan-guru', label: 'Ketersediaan Guru Mapel', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
+    { to: '/dashboard/dashboard/ketersediaan-guru', label: 'Rekap Ketersediaan Guru Mapel', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
     { to: '/dashboard/laporan/absensi', label: 'Rekapitulasi Absensi', show: true },
     { to: '/dashboard/laporan/kelengkapan-data', label: 'Rekap Kelengkapan Data Santri', show: true },
     { to: '/dashboard/laporan/kelengkapan-guru', label: 'Rekap Kelengkapan Data Guru', show: true },

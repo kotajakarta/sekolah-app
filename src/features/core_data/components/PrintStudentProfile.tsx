@@ -38,9 +38,9 @@ export default function PrintStudentProfile({ student }: PrintStudentProfileProp
 
           {/* Right Top Decor and Photo */}
           <div className="absolute top-0 right-8 w-44 h-56 bg-white border-x-4 border-b-4 border-[#1e293b] rounded-b-[2.5rem] z-0 flex items-center justify-center pt-2 shadow-sm">
-            {student.biodata?.fotoBase64 ? (
+            {student.biodata?.fotoUrl ? (
               <img
-                src={student.biodata.fotoBase64}
+                src={`/api/v1${student.biodata.fotoUrl}`}
                 alt="Profile"
                 className="w-32 h-32 rounded-full object-cover border-4 border-[#1e293b] z-10 bg-white"
               />

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
 import { Student } from '../hooks/useGetStudents';
-import { compressImage } from '../../../lib/imageCompressor';
 import { 
   X, Loader2, Image as ImageIcon, Eye, User, Users, MapPin, BookOpen, 
   Upload, CheckCircle, AlertCircle, ChevronRight, Camera, FileText, Home
@@ -39,51 +38,85 @@ const InputField = ({ label, required = false, children }: { label: string; requ
 const inputCls = "block w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 px-3.5 text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all duration-150";
 const selectCls = inputCls + " appearance-none cursor-pointer";
 
-// File Upload Card
+// File Upload Card — upload via API, tampilkan via URL
 const FileCard = ({ 
-  label, icon, value, onView, onUpload, isCompressing, aspect = 'portrait' 
+  label, icon, value, studentId, jenis, onUploaded, isCompressing, setIsCompressing, accept
 }: { 
   label: string; icon: React.ReactNode; value: string; 
-  onView: () => void; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; 
-  isCompressing: boolean; aspect?: 'portrait' | 'landscape'
-}) => (
-  <div className="group relative flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 hover:border-indigo-300 hover:shadow-md transition-all duration-200">
-    <div className="flex items-center gap-2 self-start">
-      <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
-        {icon}
-      </div>
-      <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">{label}</span>
-    </div>
-    {value ? (
-      <div 
-        className={`relative ${aspect === 'portrait' ? 'w-20 h-28' : 'w-28 h-20'} rounded-lg overflow-hidden border border-slate-200 shadow-sm cursor-pointer`}
-        onClick={onView}
-      >
-        <img src={value} alt={label} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-indigo-900/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <Eye className="w-5 h-5 text-white" />
+  studentId?: string; jenis: string;
+  onUploaded: (url: string) => void;
+  isCompressing: boolean; setIsCompressing: (v: boolean) => void;
+  accept?: string;
+}) => {
+  const isImage = value && /\.(png|jpe?g|webp)$/i.test(value);
+  const isPdf = value && /\.pdf$/i.test(value);
+  const previewUrl = value ? (value.startsWith('http') ? value : `/api/v1${value.startsWith('/') ? '' : '/'}${value}`) : null;
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsCompressing(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const url = studentId 
+        ? `/students/${studentId}/upload/${jenis}`
+        : `/students/upload-temp/${jenis}`;
+      const res = await apiClient.post(url, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      onUploaded(res.data.url);
+    } catch {
+      // handled by caller
+    } finally {
+      setIsCompressing(false);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <div className="group relative flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-4 hover:border-indigo-300 hover:shadow-md transition-all duration-200">
+      <div className="flex items-center gap-2 self-start">
+        <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 flex-shrink-0">
+          {icon}
         </div>
+        <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">{label}</span>
       </div>
-    ) : (
-      <div className={`${aspect === 'portrait' ? 'w-20 h-28' : 'w-28 h-20'} rounded-lg border-2 border-dashed border-slate-300 bg-slate-100 flex items-center justify-center text-slate-400`}>
-        <ImageIcon className="w-7 h-7" />
-      </div>
-    )}
-    <label className={`w-full cursor-pointer rounded-lg border py-1.5 px-3 text-xs font-semibold text-center transition-all duration-150 ${value ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'} ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
-      {isCompressing ? (
-        <span className="flex items-center justify-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Memproses...</span>
+      {previewUrl ? (
+        <div className="relative w-24 h-28 rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+          {isImage ? (
+            <img src={previewUrl} alt={label} className="w-full h-full object-cover" />
+          ) : isPdf ? (
+            <div className="w-full h-full bg-red-50 flex flex-col items-center justify-center gap-1">
+              <FileText className="w-7 h-7 text-red-500" />
+              <span className="text-[10px] text-red-600 font-medium">PDF</span>
+              <a href={previewUrl} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-600 underline">Lihat</a>
+            </div>
+          ) : (
+            <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+              <Eye className="w-6 h-6 text-slate-400" />
+            </div>
+          )}
+        </div>
       ) : (
-        <span className="flex items-center justify-center gap-1.5"><Upload className="w-3 h-3" />{value ? 'Ganti' : 'Upload'}</span>
+        <div className="w-24 h-28 rounded-lg border-2 border-dashed border-slate-300 bg-slate-100 flex items-center justify-center text-slate-400">
+          <ImageIcon className="w-7 h-7" />
+        </div>
       )}
-      <input type="file" accept="image/*" className="hidden" onChange={onUpload} disabled={isCompressing} />
-    </label>
-    {value && (
-      <div className="absolute top-3 right-3">
-        <CheckCircle className="w-4 h-4 text-emerald-500" />
-      </div>
-    )}
-  </div>
-);
+      <label className={`w-full cursor-pointer rounded-lg border py-1.5 px-3 text-xs font-semibold text-center transition-all duration-150 ${value ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'} ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+        {isCompressing ? (
+          <span className="flex items-center justify-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Mengupload...</span>
+        ) : (
+          <span className="flex items-center justify-center gap-1.5"><Upload className="w-3 h-3" />{value ? 'Ganti' : 'Upload'}</span>
+        )}
+        <input type="file" accept={accept || 'image/*,application/pdf'} className="hidden" onChange={handleChange} disabled={isCompressing} />
+      </label>
+      {value && (
+        <div className="absolute top-3 right-3">
+          <CheckCircle className="w-4 h-4 text-emerald-500" />
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Section Divider
 const SectionDivider = ({ title }: { title: string }) => (
@@ -161,23 +194,6 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
   const [viewImage, setViewImage] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'fotoBase64' | 'ijazahBase64' | 'kkBase64') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      showToast('error', 'File harus berupa gambar');
-      return;
-    }
-    setIsCompressing(true);
-    try {
-      const compressed = await compressImage(file, 800);
-      setFormData(prev => ({ ...prev, [field]: compressed }));
-    } catch {
-      showToast('error', 'Gagal memproses gambar');
-    } finally {
-      setIsCompressing(false);
-    }
-  };
 
   const [formData, setFormData] = useState({
     nik: '',
@@ -213,9 +229,9 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     kontakDaruratNama: '',
     kontakDaruratTelp: '',
     kontakDaruratHubungan: '',
-    fotoBase64: '',
-    ijazahBase64: '',
-    kkBase64: '',
+    fotoUrl: '',
+    ijazahUrl: '',
+    kkUrl: '',
     wilayahId: user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? user.wilayahId || '' : '',
     cabangId: user?.scope === 'CABANG' ? user.cabangId || '' : '',
     jenisSiswa: '',
@@ -290,9 +306,9 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
         kontakDaruratNama: student.biodata?.kontakDaruratNama || '',
         kontakDaruratTelp: student.biodata?.kontakDaruratTelp || '',
         kontakDaruratHubungan: student.biodata?.kontakDaruratHubungan || '',
-        fotoBase64: student.biodata?.fotoBase64 || '',
-        ijazahBase64: student.biodata?.ijazahBase64 || '',
-        kkBase64: student.biodata?.kkBase64 || '',
+        fotoUrl: student.biodata?.fotoUrl || '',
+        ijazahUrl: student.biodata?.ijazahUrl || '',
+        kkUrl: student.biodata?.kkUrl || '',
         wilayahId: student.wilayahId || '',
         cabangId: student.cabangId || '',
         jenisSiswa: student.jenisSiswa || '',
@@ -434,9 +450,9 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
             <div className="mt-auto pt-3 border-t border-slate-200 px-1">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Dokumen</p>
               {[
-                { label: 'Foto', value: formData.fotoBase64 },
-                { label: 'Ijazah', value: formData.ijazahBase64 },
-                { label: 'KK', value: formData.kkBase64 },
+                { label: 'Foto', value: formData.fotoUrl },
+                { label: 'Ijazah', value: formData.ijazahUrl },
+                { label: 'KK', value: formData.kkUrl },
               ].map(doc => (
                 <div key={doc.label} className="flex items-center justify-between py-1">
                   <span className="text-[11px] text-slate-500">{doc.label}</span>
@@ -464,29 +480,35 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                       <FileCard 
                         label="Foto" 
                         icon={<Camera className="w-3.5 h-3.5" />} 
-                        value={formData.fotoBase64}
-                        onView={() => setViewImage(formData.fotoBase64)}
-                        onUpload={(e) => handleFileUpload(e, 'fotoBase64')}
+                        value={formData.fotoUrl}
+                        studentId={student?.id}
+                        jenis="passfoto"
+                        onUploaded={(url) => { setFormData(prev => ({ ...prev, fotoUrl: url })); showToast('success', 'Foto berhasil diupload'); }}
                         isCompressing={isCompressing}
-                        aspect="portrait"
+                        setIsCompressing={setIsCompressing}
+                        accept="image/*"
                       />
                       <FileCard 
                         label="Ijazah" 
                         icon={<FileText className="w-3.5 h-3.5" />} 
-                        value={formData.ijazahBase64}
-                        onView={() => setViewImage(formData.ijazahBase64)}
-                        onUpload={(e) => handleFileUpload(e, 'ijazahBase64')}
+                        value={formData.ijazahUrl}
+                        studentId={student?.id}
+                        jenis="ijazah"
+                        onUploaded={(url) => { setFormData(prev => ({ ...prev, ijazahUrl: url })); showToast('success', 'Ijazah berhasil diupload'); }}
                         isCompressing={isCompressing}
-                        aspect="landscape"
+                        setIsCompressing={setIsCompressing}
+                        accept="image/*,application/pdf"
                       />
                       <FileCard 
                         label="Kartu Keluarga" 
                         icon={<Home className="w-3.5 h-3.5" />} 
-                        value={formData.kkBase64}
-                        onView={() => setViewImage(formData.kkBase64)}
-                        onUpload={(e) => handleFileUpload(e, 'kkBase64')}
+                        value={formData.kkUrl}
+                        studentId={student?.id}
+                        jenis="kk"
+                        onUploaded={(url) => { setFormData(prev => ({ ...prev, kkUrl: url })); showToast('success', 'KK berhasil diupload'); }}
                         isCompressing={isCompressing}
-                        aspect="landscape"
+                        setIsCompressing={setIsCompressing}
+                        accept="image/*,application/pdf"
                       />
                     </div>
                   </div>

@@ -4,7 +4,6 @@ import { useMutation } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { Loader2, ArrowRight, CheckCircle, ChevronLeft, Building, Upload, Image as ImageIcon, MapPin, User, FileText, Check } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
-import { compressImage } from '../../lib/imageCompressor';
 
 const PENDIDIKAN_OPTIONS = ['SD/Sederajat','SMP/Sederajat','SMA/Sederajat','D1','D2','D3','D4/S1','S2','S3','Tidak Bersekolah','Lainnya'];
 const PEKERJAAN_OPTIONS = ['Tidak Bekerja','Pensiunan','PNS','TNI/Polisi','Guru/Dosen','Pegawai Swasta','Wiraswasta','Pengacara/Jaksa/Hakim/Notaris','Seniman/Pelukis/Artis/Sejenis','Dokter/Bidan/Perawat','Pilot/Pramugara','Pedagang','Petani/Peternak','Nelayan','Buruh (Tani/Pabrik/Bangunan)','Sopir/Masinis/Kondektur','Politikus','Lainnya'];
@@ -22,32 +21,70 @@ const InputField = ({ label, required = false, children, colSpan = false }: { la
   </div>
 );
 
+// File card untuk daftar ulang (upload via API publik, tidak perlu login)
 const FileCard = ({ 
-  label, value, onUpload, isCompressing 
+  label, value, biodataId, jenis, onUploaded, isCompressing, setIsCompressing, accept
 }: { 
-  label: string; value: string; onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void; isCompressing: boolean;
-}) => (
-  <div className="group relative flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50/50 p-5 hover:bg-gray-50 transition-colors">
-    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">{label}</span>
-    {value ? (
-      <div className="w-24 h-32 rounded-xl overflow-hidden border border-gray-200 shadow-md ring-4 ring-white">
-        <img src={value} alt={label} className="w-full h-full object-cover" />
-      </div>
-    ) : (
-      <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-300 bg-white flex items-center justify-center text-gray-400 group-hover:border-indigo-400 group-hover:text-indigo-500 transition-colors">
-        <ImageIcon className="w-8 h-8" />
-      </div>
-    )}
-    <label className={`w-full cursor-pointer rounded-xl border py-2 px-3 text-xs font-semibold text-center transition-all ${value ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 shadow-sm'} ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
-      {isCompressing ? (
-        <span className="flex items-center justify-center gap-1.5"><Loader2 className="w-4 h-4 animate-spin" /> Proses...</span>
+  label: string; value: string; biodataId?: string; jenis: string;
+  onUploaded: (url: string) => void;
+  isCompressing: boolean; setIsCompressing: (v: boolean) => void;
+  accept?: string;
+}) => {
+  const isImage = value && /\.(png|jpe?g|webp)$/i.test(value);
+  const isPdf = value && /\.pdf$/i.test(value);
+  const previewUrl = value ? (value.startsWith('http') ? value : `/api/v1${value.startsWith('/') ? '' : '/'}${value}`) : null;
+
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsCompressing(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const url = biodataId
+        ? `/students/daftar-ulang/upload/${biodataId}/${jenis}`
+        : `/students/daftar-ulang/upload-temp/${jenis}`;
+      const res = await apiClient.post(url, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      onUploaded(res.data.url);
+    } catch {
+      // error diabaikan
+    } finally {
+      setIsCompressing(false);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <div className="group relative flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50/50 p-5 hover:bg-gray-50 transition-colors">
+      <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">{label}</span>
+      {previewUrl ? (
+        <div className="w-24 h-32 rounded-xl overflow-hidden border border-gray-200 shadow-md ring-4 ring-white">
+          {isImage || previewUrl.startsWith('data:') ? (
+            <img src={previewUrl} alt={label} className="w-full h-full object-cover" />
+          ) : isPdf ? (
+            <div className="w-full h-full bg-red-50 flex flex-col items-center justify-center gap-1">
+              <FileText className="w-7 h-7 text-red-500" />
+              <span className="text-[10px] text-red-600 font-medium">PDF</span>
+              <a href={previewUrl} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-600 underline">Lihat</a>
+            </div>
+          ) : <ImageIcon className="w-8 h-8" />}
+        </div>
       ) : (
-        <span className="flex items-center justify-center gap-1.5"><Upload className="w-4 h-4" />{value ? 'Ubah File' : 'Pilih File'}</span>
+        <div className="w-24 h-32 rounded-xl border-2 border-dashed border-gray-300 bg-white flex items-center justify-center text-gray-400 group-hover:border-indigo-400 group-hover:text-indigo-500 transition-colors">
+          <ImageIcon className="w-8 h-8" />
+        </div>
       )}
-      <input type="file" accept="image/*" className="hidden" onChange={onUpload} disabled={isCompressing} />
-    </label>
-  </div>
-);
+      <label className={`w-full cursor-pointer rounded-xl border py-2 px-3 text-xs font-semibold text-center transition-all ${value ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 shadow-sm'} ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+        {isCompressing ? (
+          <span className="flex items-center justify-center gap-1.5"><Loader2 className="w-4 h-4 animate-spin" /> Mengupload...</span>
+        ) : (
+          <span className="flex items-center justify-center gap-1.5"><Upload className="w-4 h-4" />{value ? 'Ubah File' : 'Pilih File'}</span>
+        )}
+        <input type="file" accept={accept || 'image/*,application/pdf'} className="hidden" onChange={handleChange} disabled={isCompressing} />
+      </label>
+    </div>
+  );
+};
 
 const StepIndicator = ({ currentStep }: { currentStep: number }) => {
   const steps = [
@@ -125,9 +162,9 @@ export default function DaftarUlang() {
     penghasilanIbu: '',
     address: '',
     phone: '',
-    fotoBase64: '',
-    ijazahBase64: '',
-    kkBase64: '',
+    fotoUrl: '',
+    ijazahUrl: '',
+    kkUrl: '',
     alamatProvId: '',
     alamatProvName: '',
     alamatKabId: '',
@@ -212,9 +249,9 @@ export default function DaftarUlang() {
           penghasilanIbu: b.penghasilanIbu || '',
           address: b.address || '',
           phone: b.phone || '',
-          fotoBase64: b.fotoBase64 || '',
-          ijazahBase64: b.ijazahBase64 || '',
-          kkBase64: b.kkBase64 || '',
+          fotoUrl: b.fotoUrl || '',
+          ijazahUrl: b.ijazahUrl || '',
+          kkUrl: b.kkUrl || '',
           alamatProvId: b.alamatProvId || '',
           alamatProvName: b.alamatProvName || '',
           alamatKabId: b.alamatKabId || '',
@@ -253,20 +290,6 @@ export default function DaftarUlang() {
       showToast('error', err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
     }
   });
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'fotoBase64' | 'ijazahBase64' | 'kkBase64') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsCompressing(true);
-    try {
-      const compressed = await compressImage(file, 800);
-      setFormData(prev => ({ ...prev, [field]: compressed }));
-    } catch {
-      showToast('error', 'Gagal memproses gambar');
-    } finally {
-      setIsCompressing(false);
-    }
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -535,9 +558,30 @@ export default function DaftarUlang() {
                   <FileText className="w-4 h-4" /> Dokumen Pendukung
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  <FileCard label="Pas Foto" value={formData.fotoBase64} onUpload={(e) => handleFileUpload(e, 'fotoBase64')} isCompressing={isCompressing} />
-                  <FileCard label="Ijazah" value={formData.ijazahBase64} onUpload={(e) => handleFileUpload(e, 'ijazahBase64')} isCompressing={isCompressing} />
-                  <FileCard label="Kartu Keluarga" value={formData.kkBase64} onUpload={(e) => handleFileUpload(e, 'kkBase64')} isCompressing={isCompressing} />
+                  <FileCard 
+                    label="Pas Foto" value={formData.fotoUrl}
+                    biodataId={studentId || undefined}
+                    jenis="passfoto"
+                    onUploaded={(url) => setFormData(prev => ({ ...prev, fotoUrl: url }))}
+                    isCompressing={isCompressing} setIsCompressing={setIsCompressing}
+                    accept="image/*"
+                  />
+                  <FileCard 
+                    label="Ijazah" value={formData.ijazahUrl}
+                    biodataId={studentId || undefined}
+                    jenis="ijazah"
+                    onUploaded={(url) => setFormData(prev => ({ ...prev, ijazahUrl: url }))}
+                    isCompressing={isCompressing} setIsCompressing={setIsCompressing}
+                    accept="image/*,application/pdf"
+                  />
+                  <FileCard 
+                    label="Kartu Keluarga" value={formData.kkUrl}
+                    biodataId={studentId || undefined}
+                    jenis="kk"
+                    onUploaded={(url) => setFormData(prev => ({ ...prev, kkUrl: url }))}
+                    isCompressing={isCompressing} setIsCompressing={setIsCompressing}
+                    accept="image/*,application/pdf"
+                  />
                 </div>
               </div>
 

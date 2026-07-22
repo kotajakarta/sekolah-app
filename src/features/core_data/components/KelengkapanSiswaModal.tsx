@@ -21,9 +21,9 @@ export default function KelengkapanSiswaModal({ student, onClose }: KelengkapanS
     { key: 'namaAyah', label: 'Nama Ayah', value: biodata?.namaAyah },
     { key: 'phone', label: 'No. Telepon', value: biodata?.phone },
     { key: 'address', label: 'Alamat', value: biodata?.address || biodata?.alamatJalan },
-    { key: 'fotoBase64', label: 'Upload Foto', value: biodata?.fotoBase64, isFile: true },
-    { key: 'ijazahBase64', label: 'Upload Ijazah', value: biodata?.ijazahBase64, isFile: true },
-    { key: 'kkBase64', label: 'Upload Kartu Keluarga (KK)', value: biodata?.kkBase64, isFile: true },
+    { key: 'fotoUrl', label: 'Upload Foto', value: biodata?.fotoUrl, isFile: true },
+    { key: 'ijazahUrl', label: 'Upload Ijazah', value: biodata?.ijazahUrl, isFile: true },
+    { key: 'kkUrl', label: 'Upload Kartu Keluarga (KK)', value: biodata?.kkUrl, isFile: true },
   ];
 
   const missingFields = fieldsToCheck.filter(

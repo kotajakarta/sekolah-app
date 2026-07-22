@@ -67,9 +67,9 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
             {/* Top Section: Photo & Basic Info */}
             <div className="p-6 bg-slate-50/50 flex flex-col md:flex-row gap-6 items-start border-b border-slate-100">
               <div className="shrink-0">
-                {student.biodata?.fotoBase64 ? (
+                {student.biodata?.fotoUrl ? (
                   <img 
-                    src={student.biodata.fotoBase64} 
+                    src={`/api/v1${student.biodata.fotoUrl}`} 
                     alt={student.biodata.fullName} 
                     className="w-32 h-32 rounded-xl object-cover border-4 border-white shadow-md"
                   />

@@ -62,10 +62,10 @@ const FileCard = ({
       const url = studentId 
         ? `/students/${studentId}/upload/${jenis}`
         : `/students/upload-temp/${jenis}`;
-      const res = await apiClient.post(url, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await apiClient.post(url, fd);
       onUploaded(res.data.url);
-    } catch {
-      // handled by caller
+    } catch (err: any) {
+      console.error('Upload error:', err.response?.data?.message || err.message);
     } finally {
       setIsCompressing(false);
       e.target.value = '';

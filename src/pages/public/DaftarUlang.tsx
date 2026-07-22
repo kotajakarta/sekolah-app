@@ -51,10 +51,12 @@ const FileCard = ({
       const url = biodataId
         ? `/students/daftar-ulang/upload/${biodataId}/${jenis}`
         : `/students/daftar-ulang/upload-temp/${jenis}`;
-      const res = await apiClient.post(url, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await apiClient.post(url, fd);
       onUploaded(res.data.url);
-    } catch {
-      // error diabaikan
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Gagal mengupload file dokumen. Pastikan ukuran file di bawah 10MB.';
+      console.error('Upload error:', msg);
+      alert(msg);
     } finally {
       setIsCompressing(false);
       e.target.value = '';

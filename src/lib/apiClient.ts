@@ -12,6 +12,13 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
+    // Jika data yang dikirim adalah FormData, hapus manual header Content-Type
+    // agar peramban otomatis menyertakan boundary=----WebKitFormBoundary...
+    if (config.data instanceof FormData && config.headers) {
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+    }
+
     const token = localStorage.getItem('token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;

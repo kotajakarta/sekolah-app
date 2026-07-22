@@ -14,10 +14,12 @@ export interface Biodata {
   jenisKelamin?: string | null;
   kewarganegaraan?: string | null;
   namaAyah?: string | null;
+  nikAyah?: string | null;
   statusHidupAyah?: string | null;
   pekerjaanAyah?: string | null;
   pendidikanAyah?: string | null;
   namaIbu?: string | null;
+  nikIbu?: string | null;
   statusHidupIbu?: string | null;
   pekerjaanIbu?: string | null;
   pendidikanIbu?: string | null;

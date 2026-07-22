@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Users, Plus, UserMinus, UserPlus, Edit2, Trash2, Search, User, AlertCircle } from 'lucide-react';
+import { Users, Plus, UserMinus, UserPlus, Edit2, Trash2, Search, User, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { useGetStudents, Student } from '../../features/core_data/hooks/useGetStudents';
 import LepasSiswaModal from '../../features/core_data/components/LepasSiswaModal';
 import LepasSiswaMassalModal from '../../features/core_data/components/LepasSiswaMassalModal';
@@ -100,6 +101,10 @@ export default function DataSiswa() {
   }, [students, location.search, navigate]);
 
   const filteredStudents = (Array.isArray(students) ? students : []).filter((s: Student) => {
+    // RBAC Divisi scoping
+    if (user?.divisi === 'FORMAL' && !s.siswaFormal) return false;
+    if (user?.divisi === 'PESANTREN' && !s.dataDaimi && !s.grupDaimi) return false;
+
     // Advanced filters
     if (advancedFilters.wilayahId && s.wilayahId !== advancedFilters.wilayahId) return false;
     if (advancedFilters.cabangId && s.cabangId !== advancedFilters.cabangId) return false;
@@ -117,6 +122,81 @@ export default function DataSiswa() {
     }
     return true;
   });
+
+  const handleExportXLSX = () => {
+    if (!filteredStudents || filteredStudents.length === 0) return;
+
+    const exportData = filteredStudents.map((student: Student, index: number) => {
+      const progress = calculateProgress(student);
+      const kelasInfo = student.siswaFormal?.kelas?.name || '-';
+      const tingkatInfo = student.siswaFormal?.kelas?.tingkat || '-';
+      const daimiInfo = student.dataDaimi?.grup?.jenis || student.grupDaimi || '-';
+
+      return {
+        'No': index + 1,
+        'Nama Lengkap': student.biodata?.fullName || '-',
+        'NIK': student.biodata?.nik || '-',
+        'NISN': student.biodata?.nisn || '-',
+        'NIS Lokal': student.biodata?.nisLokal || '-',
+        'No Glodemy': student.biodata?.noGlodemy || '-',
+        'Jenis Kelamin': student.biodata?.jenisKelamin || '-',
+        'Tempat Lahir': student.biodata?.tempatLahir || '-',
+        'Tanggal Lahir': student.biodata?.tanggalLahir ? new Date(student.biodata.tanggalLahir).toLocaleDateString('id-ID') : '-',
+        'Wilayah': student.wilayah?.name || '-',
+        'Cabang': student.cabang?.name || '-',
+        'Tingkat': tingkatInfo,
+        'Kelas Formal': kelasInfo,
+        'Grup Daimi': daimiInfo,
+        'Status Pool': student.statusPool ? student.statusPool.replace('_', ' ') : '-',
+        'Status Aktif': student.isActive ? 'Aktif' : 'Tidak Aktif',
+        'Kelengkapan Data (%)': `${progress}%`,
+        'Nama Ayah': student.biodata?.namaAyah || '-',
+        'NIK Ayah': student.biodata?.nikAyah || '-',
+        'Pekerjaan Ayah': student.biodata?.pekerjaanAyah || '-',
+        'Nama Ibu': student.biodata?.namaIbu || '-',
+        'NIK Ibu': student.biodata?.nikIbu || '-',
+        'Pekerjaan Ibu': student.biodata?.pekerjaanIbu || '-',
+        'No Telepon': student.biodata?.phone || '-',
+        'Alamat': student.biodata?.address || student.biodata?.alamatJalan || '-',
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Santri');
+
+    const colWidths = [
+      { wch: 6 },  // No
+      { wch: 25 }, // Nama
+      { wch: 18 }, // NIK
+      { wch: 15 }, // NISN
+      { wch: 15 }, // NIS Lokal
+      { wch: 15 }, // No Glodemy
+      { wch: 14 }, // JK
+      { wch: 16 }, // Tempat Lahir
+      { wch: 14 }, // Tanggal Lahir
+      { wch: 20 }, // Wilayah
+      { wch: 20 }, // Cabang
+      { wch: 12 }, // Tingkat
+      { wch: 16 }, // Kelas
+      { wch: 16 }, // Daimi
+      { wch: 15 }, // Status Pool
+      { wch: 12 }, // Status Aktif
+      { wch: 16 }, // Progress
+      { wch: 22 }, // Nama Ayah
+      { wch: 18 }, // NIK Ayah
+      { wch: 18 }, // Pekerjaan Ayah
+      { wch: 22 }, // Nama Ibu
+      { wch: 18 }, // NIK Ibu
+      { wch: 18 }, // Pekerjaan Ibu
+      { wch: 16 }, // Phone
+      { wch: 30 }, // Alamat
+    ];
+    worksheet['!cols'] = colWidths;
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `Data_Siswa_${dateStr}.xlsx`);
+  };
 
   const deleteAllMutation = useMutation({
     mutationFn: async () => {
@@ -186,6 +266,14 @@ export default function DataSiswa() {
           <p className="text-sm text-slate-500 mt-1.5">{t('siswa.subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handleExportXLSX}
+            disabled={!filteredStudents || filteredStudents.length === 0}
+            className="inline-flex items-center justify-center px-4 py-2 border border-emerald-200 shadow-sm text-sm font-medium rounded-xl text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            Export XLSX
+          </button>
           {isAdmin && students && students.length > 0 && (
             <button 
               onClick={() => setIsConfirmDeleteAllOpen(true)}
@@ -195,7 +283,7 @@ export default function DataSiswa() {
               Hapus Semua
             </button>
           )}
-          {(user?.scope === 'CABANG' || user?.scope === 'WILAYAH') && (
+          {(user?.scope === 'CABANG' || user?.scope === 'WILAYAH' || user?.scope === 'GLOBAL') && (
             <button 
               onClick={() => setIsTarikModalOpen(true)}
               className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"

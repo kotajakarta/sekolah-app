@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
-import { Calendar, Upload, Users, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag, Download, Image as ImageIcon, Edit, CheckCircle, Clock, Eye, ZoomIn, ZoomOut, RotateCw, File } from 'lucide-react';
+import { Calendar, Upload, Users, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag, Download, Image as ImageIcon, Edit, CheckCircle, Clock, Eye, ZoomIn, ZoomOut, RotateCw, File, Lock } from 'lucide-react';
 
 interface Guru {
   id: string;
@@ -370,6 +370,8 @@ export default function FormKegiatan() {
                 {templates.map(tmpl => {
                   const associatedBap = baps.find(b => b.templateId === tmpl.id);
                   const isDone = !!associatedBap;
+                  const isConfirmed = associatedBap?.isConfirmed === true;
+                  const isLockedForCabang = isConfirmed && user?.scope === 'CABANG';
                   
                   return (
                     <tr key={tmpl.id} className="hover:bg-slate-50/40 transition-colors">
@@ -386,10 +388,17 @@ export default function FormKegiatan() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         {isDone ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 border border-emerald-250 text-emerald-700">
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            Sudah Dilaporkan
-                          </span>
+                          isConfirmed ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 border border-emerald-300 text-emerald-800">
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                              Diterima Pusat
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 border border-blue-200 text-blue-700">
+                              <CheckCircle className="w-3.5 h-3.5 text-blue-500" />
+                              Sudah Dilaporkan
+                            </span>
+                          )
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 border border-amber-250 text-amber-700">
                             <Clock className="w-3.5 h-3.5" />
@@ -399,13 +408,24 @@ export default function FormKegiatan() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         {isDone ? (
-                          <button
-                            onClick={() => startEdit(tmpl, associatedBap)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                            Edit BAP
-                          </button>
+                          isLockedForCabang ? (
+                            <button
+                              onClick={() => startEdit(tmpl, associatedBap)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 border border-slate-250 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+                              title="Laporan BAP sudah diterima Pusat (Mode Lihat)"
+                            >
+                              <Lock className="w-3.5 h-3.5 text-slate-500" />
+                              Lihat BAP (Dikunci)
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => startEdit(tmpl, associatedBap)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                              Edit BAP
+                            </button>
+                          )
                         ) : (
                           <button
                             onClick={() => startCreate(tmpl)}
@@ -428,6 +448,8 @@ export default function FormKegiatan() {
   }
 
   // CREATE or EDIT View
+  const isLockedForCabang = activeView === 'EDIT' && editingBap?.isConfirmed === true && user?.scope === 'CABANG';
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-300">
       {/* Header */}
@@ -441,13 +463,27 @@ export default function FormKegiatan() {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-slate-900">
-            {activeView === 'EDIT' ? 'Edit Laporan BAP Kegiatan' : 'Buat Laporan BAP Kegiatan'}
+            {activeView === 'EDIT' ? (isLockedForCabang ? 'Detail Laporan BAP Kegiatan (Dikunci)' : 'Edit Laporan BAP Kegiatan') : 'Buat Laporan BAP Kegiatan'}
           </h1>
           <p className="text-sm text-slate-500">
-            {activeView === 'EDIT' ? 'Ubah data pelaporan berita acara pelaksanaan cabang Anda.' : 'Laporkan berita acara pelaksanaan berdasarkan pedoman Pusat.'}
+            {activeView === 'EDIT' ? (isLockedForCabang ? 'Laporan BAP telah disetujui Pusat dan hanya dapat dilihat (Mode Baca).' : 'Ubah data pelaporan berita acara pelaksanaan cabang Anda.') : 'Laporkan berita acara pelaksanaan berdasarkan pedoman Pusat.'}
           </p>
         </div>
       </div>
+
+      {isLockedForCabang && (
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 text-amber-900 text-sm shadow-sm">
+          <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold text-amber-900">Laporan BAP Dikunci (Sudah Diterima Pusat)</p>
+            <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+              Laporan Berita Acara Pelaksanaan (BAP) ini telah diterima dan disetujui oleh Administrator Pusat pada{' '}
+              <span className="font-semibold">{editingBap?.confirmedAt ? new Date(editingBap.confirmedAt).toLocaleString('id-ID') : 'Pusat'}</span>.
+              Cabang Anda tidak dapat lagi mengubah data atau menghapus berkas laporan ini.
+            </p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Template Detail Box */}
@@ -522,82 +558,88 @@ export default function FormKegiatan() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tanggal Kegiatan <span className="text-rose-500">*</span></label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tanggal Kegiatan {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
               <input
                 type="date"
                 name="tanggalKegiatan"
-                required
+                required={!isLockedForCabang}
+                disabled={isLockedForCabang}
                 value={formData.tanggalKegiatan}
                 onChange={handleInputChange}
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Waktu Kegiatan <span className="text-rose-500">*</span></label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Waktu Kegiatan {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
               <input
                 type="text"
                 name="waktuKegiatan"
-                required
+                required={!isLockedForCabang}
+                disabled={isLockedForCabang}
                 value={formData.waktuKegiatan}
                 onChange={handleInputChange}
                 placeholder="Contoh: 09:00 - 12:00"
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tempat Kegiatan <span className="text-rose-500">*</span></label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tempat Kegiatan {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
               <input
                 type="text"
                 name="tempatKegiatan"
-                required
+                required={!isLockedForCabang}
+                disabled={isLockedForCabang}
                 value={formData.tempatKegiatan}
                 onChange={handleInputChange}
                 placeholder="Contoh: Aula Utama Asrama Cabang"
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Jumlah Peserta <span className="text-rose-500">*</span></label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Jumlah Peserta {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
               <input
                 type="number"
                 name="jumlahPeserta"
-                required
+                required={!isLockedForCabang}
+                disabled={isLockedForCabang}
                 value={formData.jumlahPeserta}
                 onChange={handleInputChange}
                 placeholder="Contoh: 150"
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm"
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ringkasan Kegiatan <span className="text-rose-500">*</span></label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ringkasan Kegiatan {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
             <textarea
               name="ringkasanKegiatan"
               rows={4}
-              required
+              required={!isLockedForCabang}
+              disabled={isLockedForCabang}
               value={formData.ringkasanKegiatan}
               onChange={handleInputChange}
               placeholder="Tuliskan ringkasan jalan/pelaksanaan kegiatan cabang..."
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans"
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Kesimpulan <span className="text-rose-500">*</span></label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Kesimpulan {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
             <textarea
               name="kesimpulan"
               rows={3}
-              required
+              required={!isLockedForCabang}
+              disabled={isLockedForCabang}
               value={formData.kesimpulan}
               onChange={handleInputChange}
               placeholder="Tuliskan hasil evaluasi atau kesimpulan akhir dari kegiatan..."
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans"
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
             />
           </div>
         </div>
@@ -609,14 +651,14 @@ export default function FormKegiatan() {
             Penanggung Jawab / Ketua Panitia
           </h2>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ketua Panitia Cabang (Guru) <span className="text-rose-500">*</span></label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ketua Panitia Cabang (Guru) {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
             <select
               name="ketuaPanitiaId"
-              required
+              required={!isLockedForCabang}
               value={formData.ketuaPanitiaId}
               onChange={handleInputChange}
-              disabled={isLoadingGurus}
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white"
+              disabled={isLoadingGurus || isLockedForCabang}
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
             >
               <option value="">{isLoadingGurus ? 'Memuat guru...' : '-- Pilih Guru Cabang --'}</option>
               {filteredGurus.map(g => (
@@ -638,7 +680,7 @@ export default function FormKegiatan() {
               Dokumen Laporan BAP {activeView === 'CREATE' && <span className="text-rose-500">*</span>}
             </h3>
             <p className="text-xs text-slate-500 -mt-1">
-              {activeView === 'EDIT' ? 'Kosongkan jika tidak ingin menambah file baru.' : 'Wajib melampirkan dokumen laporan kegiatan.'}
+              {isLockedForCabang ? 'Berkas dokumen terlampir pada laporan ini.' : activeView === 'EDIT' ? 'Kosongkan jika tidak ingin menambah file baru.' : 'Wajib melampirkan dokumen laporan kegiatan.'}
             </p>
 
             {/* Template Download – split per field below each row label */}
@@ -658,33 +700,34 @@ export default function FormKegiatan() {
                   <label className="block text-sm font-medium text-slate-700">Surat Pengantar</label>
                   <p className="text-xs text-slate-400 mt-0.5">Surat pengantar kegiatan (PDF, DOC, DOCX)</p>
                 </div>
-                <div className="shrink-0 flex items-center gap-2">
-                  {/* Template download for Surat Pengantar (first template doc) */}
-                  {selectedTemplate?.dokumen?.[0] && (
-                    <button
-                      type="button"
-                      onClick={() => handleDownload(selectedTemplate.dokumen[0].filePath, selectedTemplate.dokumen[0].fileName)}
-                      title={`Unduh template: ${selectedTemplate.dokumen[0].fileName}`}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                {!isLockedForCabang && (
+                  <div className="shrink-0 flex items-center gap-2">
+                    {selectedTemplate?.dokumen?.[0] && (
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(selectedTemplate.dokumen[0].filePath, selectedTemplate.dokumen[0].fileName)}
+                        title={`Unduh template: ${selectedTemplate.dokumen[0].fileName}`}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                      >
+                        <Download className="w-3 h-3" /> Template
+                      </button>
+                    )}
+                    <input
+                      type="file"
+                      id="surat-pengantar-input"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleSuratPengantarFileChange}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="surat-pengantar-input"
+                      className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                     >
-                      <Download className="w-3 h-3" /> Template
-                    </button>
-                  )}
-                  <input
-                    type="file"
-                    id="surat-pengantar-input"
-                    accept=".pdf,.doc,.docx"
-                    onChange={handleSuratPengantarFileChange}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="surat-pengantar-input"
-                    className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    Pilih Berkas
-                  </label>
-                </div>
+                      <Upload className="w-3.5 h-3.5" />
+                      Pilih Berkas
+                    </label>
+                  </div>
+                )}
               </div>
 
               {/* Existing uploaded surat pengantar in EDIT mode */}
@@ -703,15 +746,17 @@ export default function FormKegiatan() {
                       <button type="button" onClick={() => handleDownload(doc.filePath, doc.fileName)} className="p-1 hover:bg-slate-100 text-slate-400 rounded cursor-pointer" title="Unduh">
                         <Download className="w-3.5 h-3.5" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteExistingDoc(doc.id)}
-                        disabled={deletingDocId === doc.id}
-                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded cursor-pointer disabled:opacity-50"
-                        title="Hapus berkas ini"
-                      >
-                        {deletingDocId === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
-                      </button>
+                      {!isLockedForCabang && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteExistingDoc(doc.id)}
+                          disabled={deletingDocId === doc.id}
+                          className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded cursor-pointer disabled:opacity-50"
+                          title="Hapus berkas ini"
+                        >
+                          {deletingDocId === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -744,34 +789,35 @@ export default function FormKegiatan() {
                   </label>
                   <p className="text-xs text-slate-400 mt-0.5">Berkas berita acara (PDF, DOC, DOCX)</p>
                 </div>
-                <div className="shrink-0 flex items-center gap-2">
-                  {/* Template download for Dokumen BAP (second template doc) */}
-                  {selectedTemplate?.dokumen?.[1] && (
-                    <button
-                      type="button"
-                      onClick={() => handleDownload(selectedTemplate.dokumen[1].filePath, selectedTemplate.dokumen[1].fileName)}
-                      title={`Unduh template: ${selectedTemplate.dokumen[1].fileName}`}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                {!isLockedForCabang && (
+                  <div className="shrink-0 flex items-center gap-2">
+                    {selectedTemplate?.dokumen?.[1] && (
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(selectedTemplate.dokumen[1].filePath, selectedTemplate.dokumen[1].fileName)}
+                        title={`Unduh template: ${selectedTemplate.dokumen[1].fileName}`}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-bold rounded-lg border border-slate-200 text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                      >
+                        <Download className="w-3 h-3" /> Template
+                      </button>
+                    )}
+                    <input
+                      type="file"
+                      multiple
+                      id="doc-file-input"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleDocFileChange}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="doc-file-input"
+                      className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                     >
-                      <Download className="w-3 h-3" /> Template
-                    </button>
-                  )}
-                  <input
-                    type="file"
-                    multiple
-                    id="doc-file-input"
-                    accept=".pdf,.doc,.docx"
-                    onChange={handleDocFileChange}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="doc-file-input"
-                    className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    Pilih Berkas
-                  </label>
-                </div>
+                      <Upload className="w-3.5 h-3.5" />
+                      Pilih Berkas
+                    </label>
+                  </div>
+                )}
               </div>
 
               {/* Existing uploaded BAP docs in EDIT mode */}
@@ -790,15 +836,17 @@ export default function FormKegiatan() {
                       <button type="button" onClick={() => handleDownload(doc.filePath, doc.fileName)} className="p-1 hover:bg-slate-100 text-slate-400 rounded cursor-pointer" title="Unduh">
                         <Download className="w-3.5 h-3.5" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteExistingDoc(doc.id)}
-                        disabled={deletingDocId === doc.id}
-                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded cursor-pointer disabled:opacity-50"
-                        title="Hapus berkas ini"
-                      >
-                        {deletingDocId === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
-                      </button>
+                      {!isLockedForCabang && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteExistingDoc(doc.id)}
+                          disabled={deletingDocId === doc.id}
+                          className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded cursor-pointer disabled:opacity-50"
+                          title="Hapus berkas ini"
+                        >
+                          {deletingDocId === doc.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -830,7 +878,7 @@ export default function FormKegiatan() {
                 <ImageIcon className="w-5 h-5 text-indigo-500" />
                 Foto Kegiatan
               </h3>
-              <p className="text-xs text-slate-500 mb-3">Unggah foto-foto dokumentasi saat pelaksanaan kegiatan berlangsung.</p>
+              <p className="text-xs text-slate-500 mb-3">Dokumentasi foto pelaksanaan kegiatan.</p>
 
               {/* Existing uploaded photos in EDIT mode */}
               {activeView === 'EDIT' && editingBap?.dokumen?.filter((d: any) => /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image')).length > 0 && (
@@ -856,16 +904,17 @@ export default function FormKegiatan() {
                           >
                             <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
-                          {/* Delete button overlay */}
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); handleDeleteExistingDoc(photo.id); }}
-                            disabled={deletingDocId === photo.id}
-                            className="absolute top-1 right-1 p-0.5 bg-black/60 hover:bg-rose-600 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50 z-10"
-                            title="Hapus foto"
-                          >
-                            {deletingDocId === photo.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
-                          </button>
+                          {!isLockedForCabang && (
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleDeleteExistingDoc(photo.id); }}
+                              disabled={deletingDocId === photo.id}
+                              className="absolute top-1 right-1 p-0.5 bg-black/60 hover:bg-rose-600 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50 z-10"
+                              title="Hapus foto"
+                            >
+                              {deletingDocId === photo.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                            </button>
+                          )}
                         </div>
                       );
                     })}
@@ -874,30 +923,32 @@ export default function FormKegiatan() {
               )}
 
               {/* Uploader */}
-              <div
-                onDragOver={handleDragOverPhoto}
-                onDragLeave={handleDragLeavePhoto}
-                onDrop={handleDropPhoto}
-                className={`border border-dashed rounded-lg p-5 text-center cursor-pointer transition-colors ${
-                  isDraggingPhoto ? 'border-indigo-500 bg-indigo-50/10' : 'border-slate-300 hover:bg-slate-50/50'
-                }`}
-              >
-                <input
-                  type="file"
-                  multiple
-                  id="photo-file-input"
-                  accept="image/*"
-                  onChange={handlePhotoFileChange}
-                  className="hidden"
-                />
-                <label htmlFor="photo-file-input" className="cursor-pointer flex flex-col items-center gap-2">
-                  <Upload className="w-6 h-6 text-indigo-500" />
-                  <span className="text-xs text-slate-600">
-                    <span className="text-indigo-600 font-semibold hover:underline">Pilih foto</span> atau seret kemari
-                  </span>
-                  <span className="text-[10px] text-slate-400">Format Gambar JPG, PNG (Maks 10MB)</span>
-                </label>
-              </div>
+              {!isLockedForCabang && (
+                <div
+                  onDragOver={handleDragOverPhoto}
+                  onDragLeave={handleDragLeavePhoto}
+                  onDrop={handleDropPhoto}
+                  className={`border border-dashed rounded-lg p-5 text-center cursor-pointer transition-colors ${
+                    isDraggingPhoto ? 'border-indigo-500 bg-indigo-50/10' : 'border-slate-300 hover:bg-slate-50/50'
+                  }`}
+                >
+                  <input
+                    type="file"
+                    multiple
+                    id="photo-file-input"
+                    accept="image/*"
+                    onChange={handlePhotoFileChange}
+                    className="hidden"
+                  />
+                  <label htmlFor="photo-file-input" className="cursor-pointer flex flex-col items-center gap-2">
+                    <Upload className="w-6 h-6 text-indigo-500" />
+                    <span className="text-xs text-slate-600">
+                      <span className="text-indigo-600 font-semibold hover:underline">Pilih foto</span> atau seret kemari
+                    </span>
+                    <span className="text-[10px] text-slate-400">Format Gambar JPG, PNG (Maks 10MB)</span>
+                  </label>
+                </div>
+              )}
             </div>
 
             {photoFiles.length > 0 && (
@@ -1006,25 +1057,36 @@ export default function FormKegiatan() {
             disabled={createMutation.isPending || updateMutation.isPending}
             className="px-5 py-2 text-sm font-semibold rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 transition-all cursor-pointer"
           >
-            Batal
+            {isLockedForCabang ? 'Kembali' : 'Batal'}
           </button>
-          <button
-            type="submit"
-            disabled={createMutation.isPending || updateMutation.isPending || !formData.templateId}
-            className="px-5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
-          >
-            {createMutation.isPending || updateMutation.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Mengirim BAP...
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
-                {activeView === 'EDIT' ? 'Perbarui Laporan BAP' : 'Kirim Laporan BAP'}
-              </>
-            )}
-          </button>
+          {isLockedForCabang ? (
+            <button
+              type="button"
+              disabled
+              className="px-5 py-2 text-sm font-semibold rounded-lg bg-slate-200 text-slate-500 flex items-center gap-2 cursor-not-allowed border border-slate-300 shadow-none"
+            >
+              <Lock className="w-4 h-4 text-slate-500" />
+              Laporan BAP Dikunci (Sudah Diterima Pusat)
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={createMutation.isPending || updateMutation.isPending || !formData.templateId}
+              className="px-5 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
+            >
+              {createMutation.isPending || updateMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Mengirim BAP...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  {activeView === 'EDIT' ? 'Perbarui Laporan BAP' : 'Kirim Laporan BAP'}
+                </>
+              )}
+            </button>
+          )}
         </div>
       </form>
     </div>

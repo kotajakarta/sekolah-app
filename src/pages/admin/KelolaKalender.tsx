@@ -14,6 +14,7 @@ interface Kalender {
 
 export default function KelolaKalender() {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   
@@ -24,7 +25,6 @@ export default function KelolaKalender() {
     queryKey: ['kalender'],
     queryFn: async () => {
       const res = await apiClient.get('/pengaturan/kalender');
-  const { showToast } = useToast();
       return res.data;
     }
   });
@@ -45,12 +45,17 @@ export default function KelolaKalender() {
       setTitle(''); 
       showToast('success', 'Kalender berhasil diupload');
     },
-    onError: () => showToast('error', 'Gagal mengupload kalender')
+    onError: (err: any) => showToast('error', err?.response?.data?.message || 'Gagal mengupload kalender')
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => apiClient.delete(`/pengaturan/kalender/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['kalender'] }); setIsConfirmOpen(false); }
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['kalender'] }); 
+      setIsConfirmOpen(false);
+      showToast('success', 'Dokumen kalender berhasil dihapus');
+    },
+    onError: () => showToast('error', 'Gagal menghapus kalender')
   });
 
   const handleUpload = (e: React.FormEvent) => {
@@ -58,11 +63,16 @@ export default function KelolaKalender() {
     uploadMutation.mutate();
   };
 
+  const getFullUrl = (url: string) => {
+    if (!url) return '';
+    return url.startsWith('/pengaturan') ? `/api/v1${url}` : `/api/v1/pengaturan${url}`;
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-slate-800">Kalender Akademik</h1>
-        <p className="text-sm text-slate-500 mt-1.5">Upload dokumen Kalender Pendidikan (PDF).</p>
+        <p className="text-sm text-slate-500 mt-1.5">Upload dokumen Kalender Pendidikan (PDF atau Gambar).</p>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
@@ -73,12 +83,12 @@ export default function KelolaKalender() {
               <input type="text" required value={title} onChange={e => setTitle(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 outline-none" placeholder="Contoh: Kalender Pendidikan 2026/2027" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">File PDF</label>
-              <input type="file" required accept=".pdf" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 outline-none file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+              <label className="block text-sm font-medium text-slate-700 mb-1">File Dokumen (PDF / PNG / JPG)</label>
+              <input type="file" required accept=".pdf,.png,.jpg,.jpeg" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 outline-none file:mr-4 file:py-1 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
             </div>
           </div>
           <div className="flex justify-end pt-2">
-            <button type="submit" disabled={!file || uploadMutation.isPending} className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium disabled:opacity-50">
+            <button type="submit" disabled={!file || uploadMutation.isPending} className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium disabled:opacity-50 cursor-pointer">
               {uploadMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />} Upload Kalender
             </button>
           </div>
@@ -103,7 +113,7 @@ export default function KelolaKalender() {
                       <FileText className="w-5 h-5 text-red-500 mr-3" />
                       <div>
                         <div className="font-medium text-slate-800">{item.title}</div>
-                        <a href={`/api/v1/pengaturan${item.fileUrl}`} target="_blank" rel="noreferrer" className="text-sm text-indigo-600 hover:underline">Lihat File</a>
+                        <a href={getFullUrl(item.fileUrl)} target="_blank" rel="noreferrer" className="text-sm text-indigo-600 hover:underline">Lihat Dokumen</a>
                       </div>
                     </div>
                   </td>

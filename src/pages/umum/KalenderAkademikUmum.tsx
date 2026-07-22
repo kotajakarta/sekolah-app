@@ -23,9 +23,8 @@ export default function KalenderAkademikUmum() {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     if (url.startsWith('/api/v1')) return url;
-    if (url.startsWith('/pengaturan/uploads')) return `/api/v1${url}`;
-    if (url.startsWith('/uploads')) return `/api/v1/pengaturan${url}`;
-    return `/api/v1/pengaturan/uploads/${url.replace(/^\/+/, '')}`;
+    const cleanPath = url.replace(/^\/?(api\/v1\/|pengaturan\/|uploads\/)+/, '');
+    return `/api/v1/pengaturan/uploads/${cleanPath}`;
   };
 
   return (

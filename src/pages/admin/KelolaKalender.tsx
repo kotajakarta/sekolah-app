@@ -65,7 +65,10 @@ export default function KelolaKalender() {
 
   const getFullUrl = (url: string) => {
     if (!url) return '';
-    return url.startsWith('/pengaturan') ? `/api/v1${url}` : `/api/v1/pengaturan${url}`;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/api/v1')) return url;
+    const cleanPath = url.replace(/^\/?(api\/v1\/|pengaturan\/|uploads\/)+/, '');
+    return `/api/v1/pengaturan/uploads/${cleanPath}`;
   };
 
   return (

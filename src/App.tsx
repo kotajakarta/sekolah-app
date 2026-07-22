@@ -20,7 +20,7 @@ import apiClient from './lib/apiClient';
 import Dashboard from './pages/Dashboard';
 import LoginPage from './pages/auth/LoginPage';
 import ManajemenKelas from './pages/formal/ManajemenKelas';
-import InputRapor from './pages/formal/InputRapor';
+import ERaporPage from './pages/formal/ERaporPage';
 import ManajemenMapel from './pages/formal/ManajemenMapel';
 import PenugasanGuru from './pages/formal/PenugasanGuru';
 import UsersWilayah from './pages/admin/UsersWilayah';
@@ -341,7 +341,7 @@ export default function App() {
               <Route path="formal/muadalah" element={<LembagaMuadalahPage />} />
               <Route path="formal/mapel" element={<ManajemenMapel />} />
               <Route path="formal/penugasan-guru" element={<PenugasanGuru />} />
-              <Route path="formal/rapor" element={<InputRapor />} />
+              <Route path="formal/rapor" element={<ERaporPage />} />
               <Route path="settings/users" element={<UsersWilayah />} />
               <Route path="settings/sync" element={<Sinkronisasi />} />
               <Route path="settings/akademik" element={<PengaturanAkademik />} />

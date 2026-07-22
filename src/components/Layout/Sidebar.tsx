@@ -422,7 +422,10 @@ export const Sidebar: React.FC = () => {
             </>
 
             {showRombonganBelajar && (
-              <NavLink to="/dashboard/formal/kelas" icon={UserCheck}>Rombongan Belajar</NavLink>
+              <>
+                <NavLink to="/dashboard/formal/kelas" icon={UserCheck}>Rombongan Belajar</NavLink>
+                <NavLink to="/dashboard/formal/rapor" icon={FileText}>eRapor Madrasah</NavLink>
+              </>
             )}
 
             <>

@@ -49,7 +49,10 @@ async function startServer() {
   const PORT = 3000;
   // In production the sekolah-app and backend-api containers share the 'global_net' Podman network.
   // The backend container is named 'esantri-api', reachable at http://esantri-api:8080.
-  const backendHost = process.env.VITE_BACKEND_HOST || "http://esantri-api:8080";
+  // In development, the backend runs locally at http://localhost:8080.
+  const isProduction = process.env.NODE_ENV === "production";
+  const defaultBackend = isProduction ? "http://esantri-api:8080" : "http://localhost:8080";
+  const backendHost = process.env.VITE_BACKEND_HOST || defaultBackend;
   const backendUrl = new URL(backendHost);
 
   // Proxy ALL /api requests to backend — works in both dev and production

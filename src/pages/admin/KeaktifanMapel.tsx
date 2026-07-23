@@ -29,6 +29,7 @@ export default function KeaktifanMapel() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mapel-grup'] });
+      queryClient.invalidateQueries({ queryKey: ['mapel'] });
     }
   });
 
@@ -48,7 +49,7 @@ export default function KeaktifanMapel() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-slate-800">Keaktifan Mapel Berdasarkan Grup</h1>
-        <p className="text-sm text-slate-500 mt-1.5">Atur mata pelajaran formal mana saja yang diajarkan pada masing-masing grup daimi (pesantren).</p>
+        <p className="text-sm text-slate-500 mt-1.5">Atur mata pelajaran formal mana saja yang diajarkan pada masing-masing jenis grup daimi (pesantren).</p>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -63,8 +64,8 @@ export default function KeaktifanMapel() {
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase border-r border-slate-200">Mata Pelajaran</th>
                   {grupList?.map((grup: any) => (
-                    <th key={grup.id} className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase border-r border-slate-200">
-                      {grup.name}
+                    <th key={grup.id} className="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase border-r border-slate-200">
+                      {grup.jenis || grup.name}
                     </th>
                   ))}
                 </tr>

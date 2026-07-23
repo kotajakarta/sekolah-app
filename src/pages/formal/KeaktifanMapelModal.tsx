@@ -33,6 +33,7 @@ export default function KeaktifanMapelModal({ mapel, onClose }: KeaktifanMapelMo
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mapel-grup'] });
+      queryClient.invalidateQueries({ queryKey: ['mapel'] });
     }
   });
 
@@ -73,7 +74,7 @@ export default function KeaktifanMapelModal({ mapel, onClose }: KeaktifanMapelMo
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-slate-600 mb-4">
-                Pilih di grup daimi mana saja mata pelajaran ini diajarkan secara aktif.
+                Pilih di jenis grup daimi mana saja mata pelajaran ini diajarkan secara aktif.
               </p>
               
               <div className="border border-slate-200 rounded-lg overflow-hidden divide-y divide-slate-100">
@@ -82,7 +83,7 @@ export default function KeaktifanMapelModal({ mapel, onClose }: KeaktifanMapelMo
                   return (
                     <div key={grup.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
                       <div>
-                        <p className="font-medium text-slate-800">{grup.name}</p>
+                        <p className="font-bold text-slate-800">{grup.jenis || grup.name}</p>
                         <p className="text-xs text-slate-500">Status: {isActive ? 'Aktif' : 'Tidak Aktif'}</p>
                       </div>
                       <button

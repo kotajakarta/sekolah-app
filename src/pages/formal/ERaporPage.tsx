@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
+import { useAuth } from '../../hooks/useAuth';
+import { useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useMasterData';
 import { 
-  BookOpen, FileText, CheckCircle2, Save, Printer, Award, UserCheck, 
-  Search, ArrowUpDown, ChevronRight, Layers, Sparkles, Filter, Info, ShieldCheck
+  BookOpen, Save, Printer, UserCheck, 
+  Layers, Sparkles, Filter, Building2, MapPin
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -12,6 +14,7 @@ interface Kelas {
   name: string;
   tingkat?: string;
   tahunAjaran?: string;
+  cabangId?: string;
   lembagaMuadalah?: { name: string };
 }
 
@@ -27,17 +30,16 @@ interface NilaiSiswaRow {
   nisn: string;
   nis: string;
   fullName: string;
-  nilaiHarian: number | null;
-  nilaiPas: number | null;
+  jenisGrupDaimi: string;
   nilaiAkhir: number | null;
   predikat: string;
-  capaianKompetensi: string;
 }
 
 interface PresensiCatatanRow {
   studentId: string;
   nisn: string;
   fullName: string;
+  jenisGrupDaimi: string;
   sakit: number;
   izin: number;
   alpa: number;
@@ -47,14 +49,29 @@ interface PresensiCatatanRow {
   statusAkhir: string;
 }
 
+function calculatePredikat(score: number | null | undefined): string {
+  if (score === null || score === undefined || isNaN(score)) return '';
+  if (score >= 90) return 'A';
+  if (score >= 81) return 'B+';
+  if (score >= 76) return 'B';
+  return 'C+';
+}
+
 export const ERaporPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'nilai' | 'presensi' | 'leger' | 'cetak'>('nilai');
+
+  // Master Data Wilayah & Cabang
+  const { data: wilayahList = [] } = useGetWilayah();
+  const { data: cabangList = [] } = useGetCabang();
 
   // Filter State
   const [tahunAjaran, setTahunAjaran] = useState<string>('2025/2026');
   const [semester, setSemester] = useState<string>('Ganjil');
+  const [selectedWilayahId, setSelectedWilayahId] = useState<string>('');
+  const [selectedCabangId, setSelectedCabangId] = useState<string>('');
   const [selectedKelasId, setSelectedKelasId] = useState<string>('');
   const [selectedMapelId, setSelectedMapelId] = useState<string>('');
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
@@ -64,12 +81,29 @@ export const ERaporPage: React.FC = () => {
     queryKey: ['kelas-list'],
     queryFn: async () => {
       const res = await apiClient.get<Kelas[]>('/formal/kelas');
-      if (res.data.length > 0 && !selectedKelasId) {
-        setSelectedKelasId(res.data[0].id);
-      }
       return res.data;
     }
   });
+
+  // Filter Cabang & Kelas berjenjang (Wilayah -> Cabang -> Kelas)
+  const filteredCabangList = selectedWilayahId
+    ? cabangList.filter(c => c.wilayahId === selectedWilayahId)
+    : (user?.scope === 'WILAYAH' ? cabangList.filter(c => c.wilayahId === user?.wilayahId) : cabangList);
+
+  const filteredKelasList = selectedCabangId
+    ? kelasList.filter(k => k.cabangId === selectedCabangId)
+    : (user?.scope === 'CABANG' ? kelasList.filter(k => k.cabangId === user?.cabangId) : kelasList);
+
+  // Auto Select first class if none selected or if selection out of bounds
+  useEffect(() => {
+    if (filteredKelasList.length > 0) {
+      if (!selectedKelasId || !filteredKelasList.some(k => k.id === selectedKelasId)) {
+        setSelectedKelasId(filteredKelasList[0].id);
+      }
+    } else {
+      setSelectedKelasId('');
+    }
+  }, [filteredKelasList, selectedKelasId]);
 
   // 2. Fetch Master Mapel
   const { data: mapelList = [] } = useQuery<Mapel[]>({
@@ -96,35 +130,29 @@ export const ERaporPage: React.FC = () => {
     enabled: !!selectedKelasId && !!selectedMapelId && activeTab === 'nilai'
   });
 
-  // Dynamic state untuk form batch nilai
+  // Local state untuk form batch nilai
   const [localNilai, setLocalNilai] = useState<Record<string, Partial<NilaiSiswaRow>>>({});
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (nilaiRows.length > 0) {
       const initial: Record<string, Partial<NilaiSiswaRow>> = {};
       nilaiRows.forEach(r => {
         initial[r.studentId] = {
-          nilaiHarian: r.nilaiHarian,
-          nilaiPas: r.nilaiPas,
           nilaiAkhir: r.nilaiAkhir,
-          predikat: r.predikat,
-          capaianKompetensi: r.capaianKompetensi
+          predikat: r.predikat || calculatePredikat(r.nilaiAkhir)
         };
       });
       setLocalNilai(initial);
     }
   }, [nilaiRows]);
 
-  // 4. Mutation Save Batch Nilai
+  // Save Batch Nilai
   const saveNilaiMutation = useMutation({
     mutationFn: async () => {
       const payloadData = Object.entries(localNilai).map(([studentId, val]) => ({
         studentId,
-        nilaiHarian: val.nilaiHarian !== undefined && val.nilaiHarian !== null ? Number(val.nilaiHarian) : null,
-        nilaiPas: val.nilaiPas !== undefined && val.nilaiPas !== null ? Number(val.nilaiPas) : null,
         nilaiAkhir: val.nilaiAkhir !== undefined && val.nilaiAkhir !== null ? Number(val.nilaiAkhir) : null,
-        predikat: val.predikat || '',
-        capaianKompetensi: val.capaianKompetensi || ''
+        predikat: val.predikat || calculatePredikat(val.nilaiAkhir ? Number(val.nilaiAkhir) : null)
       }));
 
       await apiClient.post('/formal/erapor/nilai/batch', {
@@ -136,7 +164,7 @@ export const ERaporPage: React.FC = () => {
       });
     },
     onSuccess: () => {
-      showToast('success', 'Nilai mata pelajaran berhasil disimpan permanen!');
+      showToast('success', 'Nilai Rapor berhasil disimpan secara permanen!');
       refetchNilai();
     },
     onError: (err: any) => {
@@ -144,7 +172,7 @@ export const ERaporPage: React.FC = () => {
     }
   });
 
-  // 5. Fetch Data Presensi & Catatan
+  // 4. Fetch Data Presensi & Catatan
   const { data: presensiRows = [], isLoading: isLoadingPresensi, refetch: refetchPresensi } = useQuery<PresensiCatatanRow[]>({
     queryKey: ['erapor-presensi', selectedKelasId, tahunAjaran, semester],
     queryFn: async () => {
@@ -159,7 +187,7 @@ export const ERaporPage: React.FC = () => {
 
   const [localPresensi, setLocalPresensi] = useState<Record<string, Partial<PresensiCatatanRow>>>({});
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (presensiRows.length > 0) {
       const initial: Record<string, Partial<PresensiCatatanRow>> = {};
       presensiRows.forEach(r => {
@@ -206,7 +234,7 @@ export const ERaporPage: React.FC = () => {
     }
   });
 
-  // 6. Fetch Leger Nilai
+  // 5. Fetch Leger Nilai
   const { data: legerData, isLoading: isLoadingLeger } = useQuery<any>({
     queryKey: ['erapor-leger', selectedKelasId, tahunAjaran, semester],
     queryFn: async () => {
@@ -219,7 +247,7 @@ export const ERaporPage: React.FC = () => {
     enabled: !!selectedKelasId && activeTab === 'leger'
   });
 
-  // 7. Fetch Cetak Rapor Data
+  // 6. Fetch Cetak Rapor Data
   const { data: cetakData, isLoading: isLoadingCetak } = useQuery<any>({
     queryKey: ['erapor-cetak', selectedStudentId, tahunAjaran, semester],
     queryFn: async () => {
@@ -232,9 +260,17 @@ export const ERaporPage: React.FC = () => {
     enabled: !!selectedStudentId && activeTab === 'cetak'
   });
 
+  // Hitung Rata-Rata Kelas untuk Input Nilai
+  const validScores = nilaiRows
+    .map(r => localNilai[r.studentId]?.nilaiAkhir)
+    .filter((v): v is number => v !== undefined && v !== null && !isNaN(v));
+
+  const rataRataKelasInput = validScores.length > 0
+    ? (validScores.reduce((a, b) => a + Number(b), 0) / validScores.length).toFixed(2)
+    : '-';
+
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-6">
-
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 p-8 text-white shadow-xl">
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -245,7 +281,7 @@ export const ERaporPage: React.FC = () => {
             </div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Evaluasi Nilai Rapor (e-Rapor)</h1>
             <p className="text-emerald-100/80 text-sm max-w-2xl">
-              Pengelolaan nilai hasil belajar, deskripsi capaian pembelajaran, presensi, dan cetak lembar Rapor resmi Madrasah secara teratur & terikat riwayat akademik.
+              Pengelolaan nilai akhir Rapor, predikat hasil belajar, presensi, leger kelas, dan cetak lembar Rapor resmi Madrasah.
             </p>
           </div>
 
@@ -263,14 +299,74 @@ export const ERaporPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter Global Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+      {/* Multidropdown Filter Bar (Wilayah -> Cabang -> Kelas) */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+        <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+          <Filter className="w-4 h-4 text-emerald-600" />
+          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Filter Akademik & Kelembagaan</span>
+        </div>
+
         <div className="flex flex-wrap items-center gap-4">
+          {/* Dropdown Wilayah (Admin Global) */}
+          {(user?.scope === 'GLOBAL') && (
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-slate-400" />
+              <label className="text-xs font-medium text-slate-700">Wilayah:</label>
+              <select
+                value={selectedWilayahId}
+                onChange={(e) => {
+                  setSelectedWilayahId(e.target.value);
+                  setSelectedCabangId('');
+                  setSelectedKelasId('');
+                }}
+                className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none min-w-[160px]"
+              >
+                <option value="">Semua Wilayah</option>
+                {wilayahList.map(w => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Dropdown Cabang (Admin / Wilayah) */}
+          {(user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH') && (
+            <div className="flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-slate-400" />
+              <label className="text-xs font-medium text-slate-700">Cabang:</label>
+              <select
+                value={selectedCabangId}
+                onChange={(e) => {
+                  setSelectedCabangId(e.target.value);
+                  setSelectedKelasId('');
+                }}
+                className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none min-w-[180px]"
+              >
+                <option value="">Semua Cabang</option>
+                {filteredCabangList.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Dropdown Kelas */}
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-slate-400" />
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filter Akademik:</span>
+            <label className="text-xs font-medium text-slate-700">Kelas / Rombel:</label>
+            <select
+              value={selectedKelasId}
+              onChange={(e) => setSelectedKelasId(e.target.value)}
+              className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none min-w-[180px]"
+            >
+              {filteredKelasList.map(k => (
+                <option key={k.id} value={k.id}>
+                  {k.name} {k.lembagaMuadalah ? `(${k.lembagaMuadalah.name})` : ''}
+                </option>
+              ))}
+            </select>
           </div>
 
+          {/* Tahun Ajaran */}
           <div className="flex items-center gap-2">
             <label className="text-xs font-medium text-slate-700">Tahun Ajaran:</label>
             <select
@@ -284,6 +380,7 @@ export const ERaporPage: React.FC = () => {
             </select>
           </div>
 
+          {/* Semester */}
           <div className="flex items-center gap-2">
             <label className="text-xs font-medium text-slate-700">Semester:</label>
             <select
@@ -296,21 +393,7 @@ export const ERaporPage: React.FC = () => {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-slate-700">Kelas / Rombel:</label>
-            <select
-              value={selectedKelasId}
-              onChange={(e) => setSelectedKelasId(e.target.value)}
-              className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none min-w-[180px]"
-            >
-              {kelasList.map(k => (
-                <option key={k.id} value={k.id}>
-                  {k.name} {k.lembagaMuadalah ? `(${k.lembagaMuadalah.name})` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-
+          {/* Mata Pelajaran (Khusus Tab 1) */}
           {activeTab === 'nilai' && (
             <div className="flex items-center gap-2">
               <label className="text-xs font-medium text-slate-700">Mata Pelajaran:</label>
@@ -386,21 +469,29 @@ export const ERaporPage: React.FC = () => {
       {/* TAB 1: INPUT NILAI MATA PELAJARAN */}
       {activeTab === 'nilai' && (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-bold text-slate-900">Form Entry Nilai Mata Pelajaran</h2>
+              <h2 className="text-base font-bold text-slate-900">Form Entry Nilai Akhir Rapor</h2>
               <p className="text-xs text-slate-500">
-                Nilai Harian/TP (Bobot 60%) + PAS/PAT (Bobot 40%) dihitung otomatis ke Nilai Akhir & Predikat.
+                Predikat otomatis dikalkulasi berdasarkan skala: 0–75 = C+, 76–80 = B, 81–89 = B+, 90–100 = A.
               </p>
             </div>
-            <button
-              onClick={() => saveNilaiMutation.mutate()}
-              disabled={saveNilaiMutation.isPending || nilaiRows.length === 0}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-all shadow-md shadow-emerald-600/20 disabled:opacity-50"
-            >
-              <Save className="w-4 h-4" />
-              <span>{saveNilaiMutation.isPending ? 'Menyimpan...' : 'Simpan Semua Nilai'}</span>
-            </button>
+
+            <div className="flex items-center gap-4">
+              <div className="bg-emerald-50 border border-emerald-200 px-4 py-1.5 rounded-lg text-center">
+                <span className="text-[11px] font-medium text-emerald-700 block">Rata-Rata Kelas</span>
+                <span className="text-lg font-extrabold text-emerald-900">{rataRataKelasInput}</span>
+              </div>
+
+              <button
+                onClick={() => saveNilaiMutation.mutate()}
+                disabled={saveNilaiMutation.isPending || nilaiRows.length === 0}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-all shadow-md shadow-emerald-600/20 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                <span>{saveNilaiMutation.isPending ? 'Menyimpan...' : 'Simpan Semua Nilai'}</span>
+              </button>
+            </div>
           </div>
 
           {isLoadingNilai ? (
@@ -416,107 +507,63 @@ export const ERaporPage: React.FC = () => {
                   <tr>
                     <th className="py-3 px-4 w-12 text-center">No</th>
                     <th className="py-3 px-4 min-w-[200px]">Nama Siswa</th>
-                    <th className="py-3 px-4 w-28">NISN / NIS</th>
-                    <th className="py-3 px-4 w-28 text-center">Harian / TP (60%)</th>
-                    <th className="py-3 px-4 w-28 text-center">PAS / PAT (40%)</th>
-                    <th className="py-3 px-4 w-24 text-center">Nilai Akhir</th>
-                    <th className="py-3 px-4 w-20 text-center">Predikat</th>
-                    <th className="py-3 px-4 min-w-[300px]">Capaian Kompetensi / Catatan Pembelajaran</th>
+                    <th className="py-3 px-4 min-w-[140px] text-center bg-teal-50 text-teal-900">Jenis Grup Daimi</th>
+                    <th className="py-3 px-4 w-32 text-center">NISN / NIS</th>
+                    <th className="py-3 px-4 w-36 text-center">Nilai Akhir (0 - 100)</th>
+                    <th className="py-3 px-4 w-28 text-center">Predikat</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {nilaiRows.map((row, idx) => {
                     const current = localNilai[row.studentId] || {};
-                    const harian = current.nilaiHarian;
-                    const pas = current.nilaiPas;
-
-                    let autoAkhir = current.nilaiAkhir;
-                    if (harian !== undefined && harian !== null && pas !== undefined && pas !== null) {
-                      autoAkhir = Math.round((Number(harian) * 0.6 + Number(pas) * 0.4) * 100) / 100;
-                    }
-
-                    let autoPredikat = current.predikat;
-                    if (autoAkhir !== null && autoAkhir !== undefined) {
-                      if (autoAkhir >= 90) autoPredikat = 'A';
-                      else if (autoAkhir >= 80) autoPredikat = 'B';
-                      else if (autoAkhir >= 70) autoPredikat = 'C';
-                      else autoPredikat = 'D';
-                    }
+                    const score = current.nilaiAkhir;
+                    const autoPredikat = calculatePredikat(score !== undefined && score !== null ? Number(score) : null);
 
                     return (
                       <tr key={row.studentId} className="hover:bg-slate-50/80 transition-colors">
                         <td className="py-2.5 px-4 text-center text-slate-500 font-medium">{idx + 1}</td>
                         <td className="py-2.5 px-4 font-semibold text-slate-900">{row.fullName}</td>
-                        <td className="py-2.5 px-4 text-slate-500">{row.nisn || row.nis || '-'}</td>
+                        
+                        {/* Kolom Jenis Grup Daimi */}
+                        <td className="py-2.5 px-4 text-center font-semibold text-teal-800 bg-teal-50/40">
+                          {row.jenisGrupDaimi || '-'}
+                        </td>
 
-                        {/* Input Nilai Harian */}
-                        <td className="py-2 px-2 text-center">
+                        <td className="py-2.5 px-4 text-center text-slate-500">{row.nisn || row.nis || '-'}</td>
+
+                        {/* Input Nilai Akhir */}
+                        <td className="py-2 px-4 text-center">
                           <input
                             type="number"
                             min="0"
                             max="100"
-                            value={harian ?? ''}
+                            value={score ?? ''}
                             onChange={(e) => {
                               const val = e.target.value === '' ? null : Number(e.target.value);
                               setLocalNilai(prev => ({
                                 ...prev,
-                                [row.studentId]: { ...prev[row.studentId], nilaiHarian: val }
+                                [row.studentId]: {
+                                  ...prev[row.studentId],
+                                  nilaiAkhir: val,
+                                  predikat: calculatePredikat(val)
+                                }
                               }));
                             }}
-                            className="w-20 text-center py-1.5 px-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none font-semibold text-slate-800"
+                            className="w-24 text-center py-1.5 px-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900"
                             placeholder="0-100"
                           />
                         </td>
 
-                        {/* Input Nilai PAS */}
-                        <td className="py-2 px-2 text-center">
-                          <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={pas ?? ''}
-                            onChange={(e) => {
-                              const val = e.target.value === '' ? null : Number(e.target.value);
-                              setLocalNilai(prev => ({
-                                ...prev,
-                                [row.studentId]: { ...prev[row.studentId], nilaiPas: val }
-                              }));
-                            }}
-                            className="w-20 text-center py-1.5 px-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none font-semibold text-slate-800"
-                            placeholder="0-100"
-                          />
-                        </td>
-
-                        {/* Output Nilai Akhir */}
-                        <td className="py-2 px-4 text-center font-bold text-emerald-700 bg-emerald-50/50">
-                          {autoAkhir !== null && autoAkhir !== undefined ? autoAkhir : '-'}
-                        </td>
-
-                        {/* Output Predikat */}
-                        <td className="py-2 px-2 text-center">
-                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                            autoPredikat === 'A' ? 'bg-emerald-100 text-emerald-800' :
-                            autoPredikat === 'B' ? 'bg-blue-100 text-blue-800' :
-                            autoPredikat === 'C' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                        {/* Output Predikat (0-75 C+, 76-80 B, 81-89 B+, 90-100 A) */}
+                        <td className="py-2 px-4 text-center">
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+                            autoPredikat === 'A' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                            autoPredikat === 'B+' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                            autoPredikat === 'B' ? 'bg-cyan-100 text-cyan-800 border border-cyan-300' :
+                            autoPredikat === 'C+' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-500'
                           }`}>
                             {autoPredikat || '-'}
                           </span>
-                        </td>
-
-                        {/* Input Capaian Pembelajaran */}
-                        <td className="py-2 px-3">
-                          <input
-                            type="text"
-                            value={current.capaianKompetensi || ''}
-                            onChange={(e) => {
-                              setLocalNilai(prev => ({
-                                ...prev,
-                                [row.studentId]: { ...prev[row.studentId], capaianKompetensi: e.target.value }
-                              }));
-                            }}
-                            className="w-full py-1.5 px-3 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none text-xs text-slate-700"
-                            placeholder="Contoh: Menunjukkan penguasaan materi yang sangat baik..."
-                          />
                         </td>
                       </tr>
                     );
@@ -561,12 +608,13 @@ export const ERaporPage: React.FC = () => {
                   <tr>
                     <th className="py-3 px-4 w-12 text-center">No</th>
                     <th className="py-3 px-4 min-w-[180px]">Nama Siswa</th>
+                    <th className="py-3 px-4 min-w-[140px] text-center bg-teal-50 text-teal-900">Jenis Grup Daimi</th>
                     <th className="py-3 px-2 text-center w-16">Sakit</th>
                     <th className="py-3 px-2 text-center w-16">Izin</th>
                     <th className="py-3 px-2 text-center w-16">Alpa</th>
                     <th className="py-3 px-3 w-32">Sikap Spiritual</th>
                     <th className="py-3 px-3 w-32">Sikap Sosial</th>
-                    <th className="py-3 px-4 min-w-[280px]">Catatan Wali Kelas</th>
+                    <th className="py-3 px-4 min-w-[260px]">Catatan Wali Kelas</th>
                     <th className="py-3 px-3 w-36">Status Akhir</th>
                   </tr>
                 </thead>
@@ -578,6 +626,11 @@ export const ERaporPage: React.FC = () => {
                       <tr key={row.studentId} className="hover:bg-slate-50/80 transition-colors">
                         <td className="py-2.5 px-4 text-center text-slate-500 font-medium">{idx + 1}</td>
                         <td className="py-2.5 px-4 font-semibold text-slate-900">{row.fullName}</td>
+
+                        {/* Kolom Jenis Grup Daimi */}
+                        <td className="py-2.5 px-4 text-center font-semibold text-teal-800 bg-teal-50/40">
+                          {row.jenisGrupDaimi || '-'}
+                        </td>
 
                         {/* Sakit */}
                         <td className="py-2 px-1 text-center">
@@ -705,13 +758,22 @@ export const ERaporPage: React.FC = () => {
               </p>
             </div>
 
-            <button
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold transition-all shadow-md"
-            >
-              <Printer className="w-4 h-4" />
-              <span>Cetak / PDF Leger</span>
-            </button>
+            <div className="flex items-center gap-4">
+              {legerData && (
+                <div className="bg-emerald-50 border border-emerald-200 px-4 py-1.5 rounded-lg text-center">
+                  <span className="text-[11px] font-medium text-emerald-700 block">Rata-Rata Kelas (Semua Mapel)</span>
+                  <span className="text-lg font-extrabold text-emerald-900">{legerData.rataRataKelas || '-'}</span>
+                </div>
+              )}
+
+              <button
+                onClick={() => window.print()}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold transition-all shadow-md"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Cetak / PDF Leger</span>
+              </button>
+            </div>
           </div>
 
           {isLoadingLeger ? (
@@ -727,9 +789,10 @@ export const ERaporPage: React.FC = () => {
                   <tr>
                     <th className="py-3 px-3 border-r border-slate-200 text-center w-12">Rank</th>
                     <th className="py-3 px-4 border-r border-slate-200 min-w-[180px]">Nama Siswa</th>
+                    <th className="py-3 px-3 border-r border-slate-200 text-center bg-teal-50 text-teal-900 min-w-[130px]">Jenis Grup Daimi</th>
                     <th className="py-3 px-3 border-r border-slate-200 text-center w-24">NISN</th>
                     {legerData.mapelList.map((m: any) => (
-                      <th key={m.id} className="py-3 px-2 border-r border-slate-200 text-center w-16 title-case" title={m.name}>
+                      <th key={m.id} className="py-3 px-2 border-r border-slate-200 text-center w-16 uppercase" title={m.name}>
                         {m.kodeMapel}
                       </th>
                     ))}
@@ -747,12 +810,18 @@ export const ERaporPage: React.FC = () => {
                         {row.ranking}
                       </td>
                       <td className="py-2.5 px-4 font-semibold text-slate-900 border-r border-slate-200">{row.fullName}</td>
+
+                      {/* Kolom Jenis Grup Daimi */}
+                      <td className="py-2.5 px-3 text-center font-semibold text-teal-800 bg-teal-50/40 border-r border-slate-200">
+                        {row.jenisGrupDaimi || '-'}
+                      </td>
+
                       <td className="py-2.5 px-3 text-center text-slate-500 border-r border-slate-200">{row.nisn || '-'}</td>
                       {legerData.mapelList.map((m: any) => {
                         const score = row.scores[m.id];
                         return (
                           <td key={m.id} className={`py-2.5 px-2 text-center border-r border-slate-200 font-medium ${
-                            score !== undefined && score !== null && score < 70 ? 'text-red-600 bg-red-50' : 'text-slate-800'
+                            score !== undefined && score !== null && score < 76 ? 'text-red-600 bg-red-50' : 'text-slate-800'
                           }`}>
                             {score !== undefined && score !== null ? score : '-'}
                           </td>
@@ -789,7 +858,7 @@ export const ERaporPage: React.FC = () => {
               >
                 <option value="">-- Pilih Siswa --</option>
                 {presensiRows.map(s => (
-                  <option key={s.studentId} value={s.studentId}>{s.fullName} ({s.nisn || 'No NISN'})</option>
+                  <option key={s.studentId} value={s.studentId}>{s.fullName} ({s.jenisGrupDaimi !== '-' ? s.jenisGrupDaimi : (s.nisn || 'No NISN')})</option>
                 ))}
               </select>
             </div>
@@ -834,34 +903,34 @@ export const ERaporPage: React.FC = () => {
               {/* Identitas Siswa & Kelas */}
               <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-lg border border-slate-200">
                 <div className="space-y-1.5">
-                  <div className="flex"><span className="w-28 font-semibold text-slate-600">Nama Siswa</span>: <span className="font-bold ml-1">{cetakData.siswa.fullName}</span></div>
-                  <div className="flex"><span className="w-28 font-semibold text-slate-600">NISN / NIS</span>: <span className="font-medium ml-1">{cetakData.siswa.nisn || '-'} / {cetakData.siswa.nis || '-'}</span></div>
-                  <div className="flex"><span className="w-28 font-semibold text-slate-600">Tempat, Tgl Lahir</span>: <span className="font-medium ml-1">{cetakData.siswa.tempatLahir}, {cetakData.siswa.tanggalLahir ? new Date(cetakData.siswa.tanggalLahir).toLocaleDateString('id-ID') : '-'}</span></div>
+                  <div className="flex"><span className="w-32 font-semibold text-slate-600">Nama Siswa</span>: <span className="font-bold ml-1">{cetakData.siswa.fullName}</span></div>
+                  <div className="flex"><span className="w-32 font-semibold text-slate-600">Jenis Grup Daimi</span>: <span className="font-bold ml-1 text-teal-800">{cetakData.siswa.jenisGrupDaimi || '-'}</span></div>
+                  <div className="flex"><span className="w-32 font-semibold text-slate-600">NISN / NIS</span>: <span className="font-medium ml-1">{cetakData.siswa.nisn || '-'} / {cetakData.siswa.nis || '-'}</span></div>
+                  <div className="flex"><span className="w-32 font-semibold text-slate-600">Tempat, Tgl Lahir</span>: <span className="font-medium ml-1">{cetakData.siswa.tempatLahir}, {cetakData.siswa.tanggalLahir ? new Date(cetakData.siswa.tanggalLahir).toLocaleDateString('id-ID') : '-'}</span></div>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="flex"><span className="w-28 font-semibold text-slate-600">Kelas / Tingkat</span>: <span className="font-bold ml-1">{cetakData.akademik.kelasName} (Tingkat {cetakData.akademik.tingkat})</span></div>
-                  <div className="flex"><span className="w-28 font-semibold text-slate-600">Tahun Ajaran</span>: <span className="font-medium ml-1">{cetakData.akademik.tahunAjaran}</span></div>
-                  <div className="flex"><span className="w-28 font-semibold text-slate-600">Semester</span>: <span className="font-medium ml-1">{cetakData.akademik.semester}</span></div>
+                  <div className="flex"><span className="w-32 font-semibold text-slate-600">Kelas / Tingkat</span>: <span className="font-bold ml-1">{cetakData.akademik.kelasName} (Tingkat {cetakData.akademik.tingkat})</span></div>
+                  <div className="flex"><span className="w-32 font-semibold text-slate-600">Tahun Ajaran</span>: <span className="font-medium ml-1">{cetakData.akademik.tahunAjaran}</span></div>
+                  <div className="flex"><span className="w-32 font-semibold text-slate-600">Semester</span>: <span className="font-medium ml-1">{cetakData.akademik.semester}</span></div>
                 </div>
               </div>
 
-              {/* Tabel Nilai Capaian Pembelajaran */}
+              {/* Tabel Nilai Hasil Belajar */}
               <div className="space-y-2">
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">A. Capaian Hasil Belajar (Pengetahuan & Keterampilan)</h3>
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">A. Capaian Hasil Belajar</h3>
                 <table className="w-full text-xs border-collapse border border-slate-300">
                   <thead className="bg-slate-100 text-slate-900 font-bold">
                     <tr>
-                      <th className="border border-slate-300 p-2 text-center w-10">No</th>
+                      <th className="border border-slate-300 p-2 text-center w-12">No</th>
                       <th className="border border-slate-300 p-2 text-left">Mata Pelajaran</th>
-                      <th className="border border-slate-300 p-2 text-center w-16">Nilai</th>
-                      <th className="border border-slate-300 p-2 text-center w-14">Predikat</th>
-                      <th className="border border-slate-300 p-2 text-left">Capaian Kompetensi</th>
+                      <th className="border border-slate-300 p-2 text-center w-24">Nilai Akhir</th>
+                      <th className="border border-slate-300 p-2 text-center w-24">Predikat</th>
                     </tr>
                   </thead>
                   <tbody>
                     {cetakData.nilai.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="border border-slate-300 p-4 text-center text-slate-500">Belum ada nilai yang di-input.</td>
+                        <td colSpan={4} className="border border-slate-300 p-4 text-center text-slate-500">Belum ada nilai yang di-input.</td>
                       </tr>
                     ) : (
                       cetakData.nilai.map((n: any, idx: number) => (
@@ -870,7 +939,6 @@ export const ERaporPage: React.FC = () => {
                           <td className="border border-slate-300 p-2 font-semibold">{n.namaMapel}</td>
                           <td className="border border-slate-300 p-2 text-center font-bold">{n.nilaiAkhir ?? '-'}</td>
                           <td className="border border-slate-300 p-2 text-center font-bold text-emerald-700">{n.predikat || '-'}</td>
-                          <td className="border border-slate-300 p-2 text-slate-700">{n.capaianKompetensi || 'Menunjukkan penguasaan kompetensi yang baik.'}</td>
                         </tr>
                       ))
                     )}

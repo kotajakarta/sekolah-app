@@ -33,6 +33,7 @@ interface NilaiSiswaRow {
   jenisGrupDaimi: string;
   nilaiAkhir: number | null;
   predikat: string;
+  mapelAktifUntukGrup: boolean;
 }
 
 interface PresensiCatatanRow {
@@ -149,22 +150,27 @@ export const ERaporPage: React.FC = () => {
   // Save Batch Nilai
   const saveNilaiMutation = useMutation({
     mutationFn: async () => {
-      const payloadData = Object.entries(localNilai).map(([studentId, val]) => ({
-        studentId,
-        nilaiAkhir: val.nilaiAkhir !== undefined && val.nilaiAkhir !== null ? Number(val.nilaiAkhir) : null,
-        predikat: val.predikat || calculatePredikat(val.nilaiAkhir ? Number(val.nilaiAkhir) : null)
-      }));
+      const inputableIds = new Set(nilaiRows.filter(r => r.mapelAktifUntukGrup).map(r => r.studentId));
+      const payloadData = Object.entries(localNilai)
+        .filter(([studentId]) => inputableIds.has(studentId))
+        .map(([studentId, val]) => ({
+          studentId,
+          nilaiAkhir: val.nilaiAkhir !== undefined && val.nilaiAkhir !== null ? Number(val.nilaiAkhir) : null,
+          predikat: val.predikat || calculatePredikat(val.nilaiAkhir ? Number(val.nilaiAkhir) : null)
+        }));
 
-      await apiClient.post('/formal/erapor/nilai/batch', {
+      const res = await apiClient.post('/formal/erapor/nilai/batch', {
         kelasId: selectedKelasId,
         mataPelajaranId: selectedMapelId,
         tahunAjaran,
         semester,
         data: payloadData
       });
+      return res.data;
     },
-    onSuccess: () => {
-      showToast('success', 'Nilai Rapor berhasil disimpan secara permanen!');
+    onSuccess: (data: any) => {
+      const skipped = data?.skippedCount ? ` (${data.skippedCount} siswa dilewati karena mapel nonaktif untuk grup daimi-nya)` : '';
+      showToast('success', `Nilai Rapor berhasil disimpan secara permanen!${skipped}`);
       refetchNilai();
     },
     onError: (err: any) => {
@@ -475,6 +481,9 @@ export const ERaporPage: React.FC = () => {
               <p className="text-xs text-slate-500">
                 Predikat otomatis dikalkulasi berdasarkan skala: 0–75 = C+, 76–80 = B, 81–89 = B+, 90–100 = A.
               </p>
+              <p className="text-xs text-amber-600 mt-1">
+                Input hanya bisa dilakukan jika mata pelajaran ini diaktifkan untuk jenis grup daimi siswa yang bersangkutan (lihat menu Keaktifan Mapel).
+              </p>
             </div>
 
             <div className="flex items-center gap-4">
@@ -518,15 +527,19 @@ export const ERaporPage: React.FC = () => {
                     const current = localNilai[row.studentId] || {};
                     const score = current.nilaiAkhir;
                     const autoPredikat = calculatePredikat(score !== undefined && score !== null ? Number(score) : null);
+                    const canInput = row.mapelAktifUntukGrup;
 
                     return (
-                      <tr key={row.studentId} className="hover:bg-slate-50/80 transition-colors">
+                      <tr key={row.studentId} className={`hover:bg-slate-50/80 transition-colors ${!canInput ? 'bg-slate-50/60' : ''}`}>
                         <td className="py-2.5 px-4 text-center text-slate-500 font-medium">{idx + 1}</td>
                         <td className="py-2.5 px-4 font-semibold text-slate-900">{row.fullName}</td>
-                        
+
                         {/* Kolom Jenis Grup Daimi */}
-                        <td className="py-2.5 px-4 text-center font-semibold text-teal-800 bg-teal-50/40">
+                        <td className={`py-2.5 px-4 text-center font-semibold bg-teal-50/40 ${canInput ? 'text-teal-800' : 'text-red-600'}`}>
                           {row.jenisGrupDaimi || '-'}
+                          {!canInput && (
+                            <span className="block text-[10px] font-semibold text-red-500 normal-case">Mapel nonaktif untuk grup ini</span>
+                          )}
                         </td>
 
                         <td className="py-2.5 px-4 text-center text-slate-500">{row.nisn || row.nis || '-'}</td>
@@ -538,6 +551,8 @@ export const ERaporPage: React.FC = () => {
                             min="0"
                             max="100"
                             value={score ?? ''}
+                            disabled={!canInput}
+                            title={!canInput ? 'Mata pelajaran ini tidak aktif untuk jenis grup daimi siswa ini' : undefined}
                             onChange={(e) => {
                               const val = e.target.value === '' ? null : Number(e.target.value);
                               setLocalNilai(prev => ({
@@ -549,7 +564,7 @@ export const ERaporPage: React.FC = () => {
                                 }
                               }));
                             }}
-                            className="w-24 text-center py-1.5 px-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900"
+                            className="w-24 text-center py-1.5 px-2 bg-slate-50 border border-slate-300 rounded-md focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
                             placeholder="0-100"
                           />
                         </td>

@@ -4,6 +4,7 @@ import apiClient from '../lib/apiClient';
 import { useTranslation } from 'react-i18next';
 import { Filter, X } from 'lucide-react';
 import { useGetCabang, useGetWilayah } from '../features/core_data/hooks/useMasterData';
+import { JENIS_DAIMI_OPTIONS } from '../constants/daimi';
 
 export interface FilterState {
   wilayahId: string;
@@ -245,16 +246,9 @@ export default function AdvancedFilterBar({
                   className="w-full text-xs rounded-lg border border-slate-300 bg-slate-50 py-1.5 px-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">Semua Jenis Daimi</option>
-                  <option value="1. YIL LİSE">1. YIL LİSE</option>
-                  <option value="1. YIL ORTAOKUL">1. YIL ORTAOKUL</option>
-                  <option value="HAFIZLIK">HAFIZLIK</option>
-                  <option value="HAZIRLIK LİSE">HAZIRLIK LİSE</option>
-                  <option value="HAZIRLIK ORTAOKUL">HAZIRLIK ORTAOKUL</option>
-                  <option value="İBTİDAİ">İBTİDAİ</option>
-                  <option value="İHZARİ">İHZARİ</option>
-                  <option value="PRA TEDRİS">PRA TEDRİS</option>
-                  <option value="TEKAMÜL">TEKAMÜL</option>
-                  <option value="TEKAMÜLALTI">TEKAMÜLALTI</option>
+                  {JENIS_DAIMI_OPTIONS.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
                 </select>
               </div>
             )}

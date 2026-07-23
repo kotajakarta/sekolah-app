@@ -6,6 +6,7 @@ import { Plus, Edit2, Trash2, Loader2, Eye, User, Settings, UserPlus, UserMinus,
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../hooks/useAuth';
+import { JENIS_DAIMI_OPTIONS } from '../../constants/daimi';
 
 interface Staff {
   id: string;
@@ -37,19 +38,6 @@ interface GrupDaimi {
 interface GrupDaimiTabProps {
   isAdmin?: boolean;
 }
-
-const JENIS_DAIMI_OPTIONS = [
-  '1. YIL LİSE',
-  '1. YIL ORTAOKUL',
-  'HAFIZLIK',
-  'HAZIRLIK LİSE',
-  'HAZIRLIK ORTAOKUL',
-  'İBTİDAİ',
-  'İHZARİ',
-  'PRA TEDRİS',
-  'TEKAMÜL',
-  'TEKAMÜLALTI'
-];
 
 export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
   const queryClient = useQueryClient();
@@ -520,16 +508,19 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Jenis Grup</label>
-                  <select
+                  <input
+                    type="text"
+                    list="jenis-daimi-options-list"
                     value={formData.jenis}
                     onChange={(e) => setFormData({ ...formData, jenis: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white"
-                  >
-                    <option value="">-- Pilih Jenis --</option>
+                    placeholder="Pilih atau ketik jenis grup..."
+                  />
+                  <datalist id="jenis-daimi-options-list">
                     {JENIS_DAIMI_OPTIONS.map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
+                      <option key={opt} value={opt} />
                     ))}
-                  </select>
+                  </datalist>
                 </div>
 
                 {user?.scope !== 'CABANG' && (
@@ -625,17 +616,20 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Jenis Grup</label>
-                    <select
+                    <input
+                      type="text"
+                      list="jenis-daimi-detail-list"
                       value={formData.jenis}
                       onChange={(e) => setFormData({ ...formData, jenis: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white disabled:bg-slate-50"
+                      placeholder="Pilih atau ketik jenis grup..."
                       disabled={!canManage}
-                    >
-                      <option value="">-- Pilih Jenis --</option>
+                    />
+                    <datalist id="jenis-daimi-detail-list">
                       {JENIS_DAIMI_OPTIONS.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
+                        <option key={opt} value={opt} />
                       ))}
-                    </select>
+                    </datalist>
                   </div>
 
                   {user?.scope !== 'CABANG' && (

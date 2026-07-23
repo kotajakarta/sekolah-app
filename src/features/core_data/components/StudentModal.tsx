@@ -628,7 +628,9 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                         <select value={formData.grupDaimi} onChange={(e) => setFormData({ ...formData, grupDaimi: e.target.value })} className={selectCls}>
                           <option value="">Pilih Grup Daimi</option>
                           {grupDaimiList?.map((grup: any) => (
-                            <option key={grup.id} value={grup.name}>{grup.name}</option>
+                            <option key={grup.id} value={grup.name}>
+                              {grup.name}{grup.jenis ? ` (${grup.jenis})` : ''}
+                            </option>
                           ))}
                         </select>
                       </InputField>

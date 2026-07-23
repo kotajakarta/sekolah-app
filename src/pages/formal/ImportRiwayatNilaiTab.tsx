@@ -1,9 +1,10 @@
 import React, { useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { useQuery } from '@tanstack/react-query';
-import { Download, Upload, Loader2, AlertCircle, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import { Download, Upload, FileUp, Loader2, AlertCircle, CheckCircle2, FileSpreadsheet } from 'lucide-react';
 import apiClient from '../../lib/apiClient';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Mapel {
   id: string;
@@ -25,7 +26,11 @@ const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 export default function ImportRiwayatNilaiTab() {
   const { showToast } = useToast();
+  const { user } = useAuth();
+  const isGlobalAdmin = user?.scope === 'GLOBAL';
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const templateFileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingTemplate, setIsUploadingTemplate] = useState(false);
 
   const { data: mapelList = [] } = useQuery<Mapel[]>({
     queryKey: ['mapel-list'],
@@ -41,7 +46,7 @@ export default function ImportRiwayatNilaiTab() {
 
   const templateKeys = () => [...FIXED_COLUMNS, ...mapelList.map(m => m.name)];
 
-  const handleDownloadTemplate = () => {
+  const generateAutoTemplate = () => {
     if (mapelList.length === 0) {
       showToast('error', 'Daftar mata pelajaran belum termuat, coba lagi sesaat lagi.');
       return;
@@ -52,6 +57,53 @@ export default function ImportRiwayatNilaiTab() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
     XLSX.writeFile(workbook, 'Template_Import_Riwayat_Nilai.xlsx');
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const res = await apiClient.get('/formal/erapor/nilai/riwayat-import/template', {
+        responseType: 'blob',
+        validateStatus: (status) => status === 200 || status === 404
+      });
+      if (res.status === 200) {
+        const url = window.URL.createObjectURL(res.data as Blob);
+        const disposition: string = res.headers?.['content-disposition'] || '';
+        const match = disposition.match(/filename="?([^"]+)"?/);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = match ? match[1] : 'Template_Import_Riwayat_Nilai.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        return;
+      }
+    } catch {
+      // lanjut ke fallback auto-generate di bawah
+    }
+    generateAutoTemplate();
+  };
+
+  const handleUploadTemplateClick = () => templateFileInputRef.current?.click();
+
+  const handleTemplateFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setIsUploadingTemplate(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      await apiClient.post('/formal/erapor/nilai/riwayat-import/template', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      showToast('success', 'Template custom berhasil diupload. Tombol "Unduh Template" sekarang memakai file ini.');
+    } catch (err: any) {
+      showToast('error', err.response?.data?.message || 'Gagal mengupload template');
+    } finally {
+      setIsUploadingTemplate(false);
+    }
   };
 
   const handleImportClick = () => fileInputRef.current?.click();
@@ -168,6 +220,22 @@ export default function ImportRiwayatNilaiTab() {
           Unduh Template
         </button>
 
+        {isGlobalAdmin && (
+          <>
+            <input ref={templateFileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleTemplateFileChange} />
+            <button
+              type="button"
+              onClick={handleUploadTemplateClick}
+              disabled={isUploadingTemplate}
+              title="Khusus admin global - menggantikan template yang dipakai semua cabang"
+              className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 shadow-sm text-xs font-semibold rounded-lg text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors"
+            >
+              {isUploadingTemplate ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />}
+              Upload Template Sendiri
+            </button>
+          </>
+        )}
+
         <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
         <button
           type="button"
@@ -192,6 +260,12 @@ export default function ImportRiwayatNilaiTab() {
           )}
         </button>
       </div>
+      <p className="text-[11px] text-slate-400 -mt-3">
+        {isGlobalAdmin
+          ? 'Kalau kamu upload template sendiri (misalnya sudah diatur dropdown/format kolomnya), tombol "Unduh Template" di atas otomatis akan memakai file itu untuk SEMUA cabang, bukan yang dibuat otomatis.'
+          : 'Template mengikuti yang sudah diatur oleh admin pusat (kalau ada), atau dibuat otomatis sesuai daftar mata pelajaran terbaru.'}
+        {' '}Header kolom cukup mengandung nama kolom yang sama (nik, tahun_ajaran, semester, kelas_rombel, jenis_grup_daimi, dan nama tiap mata pelajaran) — urutan kolom bebas.
+      </p>
 
       {progress && (
         <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">

@@ -77,30 +77,9 @@ export default function RaporCetakDocument({ cetakData }: RaporCetakDocumentProp
         </div>
       </div>
 
-      {/* Sikap */}
-      <div className="avoid-break border border-slate-300 rounded-lg p-3 space-y-1.5 text-xs print:p-2 print:space-y-1">
-        <h4 className="font-bold text-slate-900 uppercase">C. Sikap & Perilaku</h4>
-        <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-slate-700">
-          {SIKAP_FIELDS.map(f => (
-            <div key={f.key} className="flex justify-between border-b border-slate-100 pb-1">
-              <span>{f.label}</span>
-              <span className="font-bold text-emerald-700">{(cetakData.presensi as any)[f.key]}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Catatan Wali Kelas */}
-      <div className="avoid-break border border-slate-300 rounded-lg p-3 space-y-1 text-xs print:p-2">
-        <h4 className="font-bold text-slate-900 uppercase">D. Catatan Wali Kelas</h4>
-        <p className="text-slate-700 italic bg-slate-50 p-2.5 rounded border border-slate-200">
-          "{cetakData.presensi.catatanWaliKelas}"
-        </p>
-      </div>
-
       {/* Hafalan Al-Qur'an (Hafizlik) atau Status Hafidz (non-Hafizlik) */}
       <div className="avoid-break border border-slate-300 rounded-lg p-3 space-y-1.5 text-xs print:p-2 print:space-y-1">
-        <h4 className="font-bold text-slate-900 uppercase">E. {cetakData.siswa.isHafizlik ? "Capaian Hafalan Al-Qur'an" : 'Status Hafidz'}</h4>
+        <h4 className="font-bold text-slate-900 uppercase">C. {cetakData.siswa.isHafizlik ? "Capaian Hafalan Al-Qur'an" : 'Status Hafidz'}</h4>
         {cetakData.siswa.isHafizlik ? (
           <table className="w-full text-xs border-collapse border border-slate-300">
             <thead className="bg-slate-100 text-slate-900 font-bold">
@@ -142,6 +121,27 @@ export default function RaporCetakDocument({ cetakData }: RaporCetakDocumentProp
             </span>
           </div>
         )}
+      </div>
+
+      {/* Sikap */}
+      <div className="avoid-break border border-slate-300 rounded-lg p-3 space-y-1.5 text-xs print:p-2 print:space-y-1">
+        <h4 className="font-bold text-slate-900 uppercase">D. Sikap & Perilaku</h4>
+        <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-slate-700">
+          {SIKAP_FIELDS.map(f => (
+            <div key={f.key} className="flex justify-between border-b border-slate-100 pb-1">
+              <span>{f.label}</span>
+              <span className="font-bold text-emerald-700">{(cetakData.presensi as any)[f.key]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Catatan Wali Kelas: mulai halaman baru saat dicetak */}
+      <div className="avoid-break page-break-before border border-slate-300 rounded-lg p-3 space-y-1 text-xs print:p-2">
+        <h4 className="font-bold text-slate-900 uppercase">E. Catatan Wali Kelas</h4>
+        <p className="text-slate-700 italic bg-slate-50 p-2.5 rounded border border-slate-200">
+          "{cetakData.presensi.catatanWaliKelas}"
+        </p>
       </div>
 
       {/* Box Tanda Tangan */}

@@ -57,6 +57,7 @@ export default function RaporCetakModal({ studentId, tahunAjaran, semester, auto
           #rapor-cetak-print-area tr { page-break-inside: avoid; break-inside: avoid; }
           #rapor-cetak-print-area thead { display: table-header-group; }
           #rapor-cetak-print-area .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+          #rapor-cetak-print-area .page-break-before { page-break-before: always; break-before: page; }
         }
       `}</style>
 

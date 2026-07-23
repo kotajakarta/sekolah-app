@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GraduationCap, ClipboardList, ChevronDown, ChevronRight, FileBarChart, Printer } from 'lucide-react';
+import { GraduationCap, ClipboardList, ChevronDown, ChevronRight, FileBarChart, Printer, PencilLine, Plus } from 'lucide-react';
 import { Student } from '../hooks/useGetStudents';
 import {
   useGetNilaiHistory,
@@ -10,6 +10,7 @@ import {
 } from '../hooks/useNilaiHistory';
 import TranskripNilaiModal from './TranskripNilaiModal';
 import RaporCetakModal from '../../../pages/formal/RaporCetakModal';
+import NilaiPeriodeModal from './NilaiPeriodeModal';
 
 interface RiwayatNilaiTabProps {
   student: Student;
@@ -29,6 +30,7 @@ interface NilaiGroup {
   key: string;
   tahunAjaran: string;
   semester: string;
+  kelasId?: string;
   kelasName?: string;
   items: NilaiFormalHistory[];
 }
@@ -42,6 +44,7 @@ const groupBySemester = (history: NilaiFormalHistory[]): NilaiGroup[] => {
         key,
         tahunAjaran: item.tahunAjaran,
         semester: item.semester,
+        kelasId: item.kelasId,
         kelasName: item.kelas?.name,
         items: []
       });
@@ -63,6 +66,8 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [isTranskripOpen, setIsTranskripOpen] = useState(false);
   const [cetakGroup, setCetakGroup] = useState<{ tahunAjaran: string; semester: string } | null>(null);
+  const [editGroup, setEditGroup] = useState<NilaiGroup | null>(null);
+  const [isAddingPeriode, setIsAddingPeriode] = useState(false);
 
   const isLoading = isLoadingHistory || isLoadingMapel;
   const groups = groupBySemester(history ?? []);
@@ -86,15 +91,25 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
               {isLoading ? '...' : groups.length}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => setIsTranskripOpen(true)}
-            disabled={groups.length === 0}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all"
-          >
-            <FileBarChart className="w-3.5 h-3.5" />
-            Transkrip Nilai
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsAddingPeriode(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-semibold transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Tambah Periode
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsTranskripOpen(true)}
+              disabled={groups.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-all"
+            >
+              <FileBarChart className="w-3.5 h-3.5" />
+              Transkrip Nilai
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -130,6 +145,15 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
                           <span className="text-sm font-extrabold text-emerald-700">{rata}</span>
                         </div>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => setEditGroup(group)}
+                        title="Input/Edit nilai periode ini"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors"
+                      >
+                        <PencilLine className="w-3.5 h-3.5" />
+                        Edit Nilai
+                      </button>
                       <button
                         type="button"
                         onClick={() => setCetakGroup({ tahunAjaran: group.tahunAjaran, semester: group.semester })}
@@ -199,6 +223,29 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
           tahunAjaran={cetakGroup.tahunAjaran}
           semester={cetakGroup.semester}
           onClose={() => setCetakGroup(null)}
+        />
+      )}
+
+      {editGroup && (
+        <NilaiPeriodeModal
+          student={student}
+          mapelList={sortedMapel}
+          mode="edit"
+          initialTahunAjaran={editGroup.tahunAjaran}
+          initialSemester={editGroup.semester}
+          initialKelasId={editGroup.kelasId}
+          initialKelasName={editGroup.kelasName}
+          existingItems={editGroup.items}
+          onClose={() => setEditGroup(null)}
+        />
+      )}
+
+      {isAddingPeriode && (
+        <NilaiPeriodeModal
+          student={student}
+          mapelList={sortedMapel}
+          mode="new"
+          onClose={() => setIsAddingPeriode(false)}
         />
       )}
     </div>

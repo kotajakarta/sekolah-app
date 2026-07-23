@@ -14,12 +14,6 @@ interface Mapel {
   name: string;
   grupMapel: string;
   isActive: boolean;
-  keaktifanGrup?: { grupDaimiId: string, isActive: boolean }[];
-}
-
-interface GrupDaimi {
-  id: string;
-  name: string;
 }
 
 export default function ManajemenMapel() {
@@ -33,8 +27,8 @@ export default function ManajemenMapel() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMapel, setEditingMapel] = useState<Mapel | null>(null);
-  const [formData, setFormData] = useState<{ kodeMapel: string, name: string, grupMapel: string, isActive: boolean, activeGrupIds: string[] }>({ 
-    kodeMapel: '', name: '', grupMapel: 'Umum', isActive: true, activeGrupIds: [] 
+  const [formData, setFormData] = useState<{ kodeMapel: string, name: string, grupMapel: string }>({
+    kodeMapel: '', name: '', grupMapel: 'Umum'
   });
   
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -46,14 +40,6 @@ export default function ManajemenMapel() {
     queryKey: ['mapel'],
     queryFn: async () => {
       const res = await apiClient.get('/formal/mapel');
-      return res.data;
-    }
-  });
-
-  const { data: grupDaimiList = [] } = useQuery<GrupDaimi[]>({
-    queryKey: ['grup-daimi'],
-    queryFn: async () => {
-      const res = await apiClient.get('/pesantren/grup-daimi');
       return res.data;
     }
   });
@@ -107,18 +93,16 @@ export default function ManajemenMapel() {
 
   const openAddModal = () => {
     setEditingMapel(null);
-    setFormData({ kodeMapel: '', name: '', grupMapel: 'Umum', isActive: true, activeGrupIds: [] });
+    setFormData({ kodeMapel: '', name: '', grupMapel: 'Umum' });
     setIsModalOpen(true);
   };
 
   const openEditModal = (mapel: Mapel) => {
     setEditingMapel(mapel);
-    setFormData({ 
-      kodeMapel: mapel.kodeMapel, 
-      name: mapel.name, 
-      grupMapel: mapel.grupMapel, 
-      isActive: mapel.isActive,
-      activeGrupIds: mapel.keaktifanGrup?.filter(k => k.isActive).map(k => k.grupDaimiId) || []
+    setFormData({
+      kodeMapel: mapel.kodeMapel,
+      name: mapel.name,
+      grupMapel: mapel.grupMapel
     });
     setIsModalOpen(true);
   };
@@ -288,43 +272,6 @@ export default function ManajemenMapel() {
                     <option value="Umum">Umum</option>
                     <option value="Muatan Lokal">Muatan Lokal</option>
                   </select>
-                </div>
-                <div className="flex items-center pb-2 border-b border-slate-100">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    checked={formData.isActive}
-                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
-                  />
-                  <label htmlFor="isActive" className="ml-2 block text-sm font-medium text-slate-700">
-                    Aktif Secara Umum
-                  </label>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Aktif Khusus Untuk Grup Daimi:</label>
-                  <div className="space-y-2">
-                    {grupDaimiList.map((grup) => (
-                      <div key={grup.id} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id={`grup-${grup.id}`}
-                          checked={formData.activeGrupIds.includes(grup.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFormData({ ...formData, activeGrupIds: [...formData.activeGrupIds, grup.id] });
-                            } else {
-                              setFormData({ ...formData, activeGrupIds: formData.activeGrupIds.filter(id => id !== grup.id) });
-                            }
-                          }}
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
-                        />
-                        <label htmlFor={`grup-${grup.id}`} className="ml-2 block text-sm text-slate-700">
-                          {grup.name}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
               <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">

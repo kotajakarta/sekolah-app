@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { X, Printer } from 'lucide-react';
@@ -52,7 +53,7 @@ export default function RaporCetakModal({ studentId, tahunAjaran, semester, auto
         @media print {
           body * { visibility: hidden !important; }
           #rapor-cetak-print-area, #rapor-cetak-print-area * { visibility: visible !important; }
-          #rapor-cetak-print-area { position: fixed; left: 0; top: 0; right: 0; width: auto; margin: 0; }
+          #rapor-cetak-print-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; }
           #rapor-cetak-print-area table { page-break-inside: auto; }
           #rapor-cetak-print-area tr { page-break-inside: avoid; break-inside: avoid; }
           #rapor-cetak-print-area thead { display: table-header-group; }
@@ -93,11 +94,14 @@ export default function RaporCetakModal({ studentId, tahunAjaran, semester, auto
         </div>
       </div>
 
-      {/* Versi cetak: hanya tampil saat print, supaya chrome dashboard tidak ikut tercetak */}
-      {cetakData && (
+      {/* Versi cetak: di-portal langsung ke document.body supaya tidak mewarisi
+          konteks position dari layout dashboard (yang menyebabkan area cetak
+          "menempel" ke wrapper konten, bukan ke pojok kertas) */}
+      {cetakData && createPortal(
         <div id="rapor-cetak-print-area" className="hidden print:block">
           <RaporCetakDocument cetakData={cetakData} />
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

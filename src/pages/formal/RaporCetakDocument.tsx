@@ -145,18 +145,18 @@ export default function RaporCetakDocument({ cetakData }: RaporCetakDocumentProp
       </div>
 
       {/* Box Tanda Tangan */}
-      <div className="avoid-break pt-8 grid grid-cols-2 gap-8 text-xs text-center print:pt-4 print:gap-4">
-        <div className="space-y-12 print:space-y-6">
+      <div className="avoid-break pt-8 grid grid-cols-2 gap-8 text-xs text-center print:pt-6 print:gap-4">
+        <div className="space-y-12 print:space-y-20">
           <p>Orang Tua / Wali Siswa</p>
           <p className="font-bold underline">( ............................................ )</p>
         </div>
-        <div className="space-y-12 print:space-y-6">
+        <div className="space-y-12 print:space-y-20">
           <p>Wali Kelas</p>
           <p className="font-bold underline">{cetakData.akademik.waliKelasName}</p>
         </div>
       </div>
 
-      <div className="avoid-break pt-4 text-center text-xs space-y-12 print:space-y-6">
+      <div className="avoid-break pt-4 text-center text-xs space-y-12 print:space-y-20">
         <p>Mengetahui,<br /><span className="font-semibold">{cetakData.sekolah.namaKetua}</span></p>
         <p className="font-bold underline">( ............................................ )</p>
       </div>

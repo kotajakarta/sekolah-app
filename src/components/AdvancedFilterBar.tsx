@@ -4,7 +4,6 @@ import apiClient from '../lib/apiClient';
 import { useTranslation } from 'react-i18next';
 import { Filter, X } from 'lucide-react';
 import { useGetCabang, useGetWilayah } from '../features/core_data/hooks/useMasterData';
-import { JENIS_DAIMI_OPTIONS } from '../constants/daimi';
 
 export interface FilterState {
   wilayahId: string;
@@ -60,6 +59,15 @@ export default function AdvancedFilterBar({
 
   const { data: wilayahs = [] } = useGetWilayah();
   const { data: cabangs = [] } = useGetCabang();
+
+  const { data: jenisGrupDaimiList = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['jenis-grup-daimi'],
+    queryFn: async () => {
+      const res = await apiClient.get('/pesantren/jenis-grup-daimi');
+      return res.data;
+    },
+    enabled: showDaimiFilter
+  });
   
   const { data: kelass = [] } = useQuery({
     queryKey: ['kelas', filters.cabangId],
@@ -246,8 +254,8 @@ export default function AdvancedFilterBar({
                   className="w-full text-xs rounded-lg border border-slate-300 bg-slate-50 py-1.5 px-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">Semua Jenis Daimi</option>
-                  {JENIS_DAIMI_OPTIONS.map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
+                  {jenisGrupDaimiList.map(opt => (
+                    <option key={opt.id} value={opt.name}>{opt.name}</option>
                   ))}
                 </select>
               </div>

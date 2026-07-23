@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useGetStudents, Student } from '../../features/core_data/hooks/useGetStudents';
-import { Plus, Edit2, Trash2, Loader2, Eye, User, Settings, UserPlus, UserMinus, Search, X, Check } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Eye, User, Settings, UserPlus, UserMinus, Search, X, Check, Users, Tag } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../hooks/useAuth';
-import { JENIS_DAIMI_OPTIONS } from '../../constants/daimi';
+import JenisGrupDaimiManager from './JenisGrupDaimiManager';
 
 interface Staff {
   id: string;
@@ -44,6 +44,8 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
   const { showToast } = useToast();
   const { user } = useAuth();
   const canManage = user?.scope === 'GLOBAL' || user?.scope === 'CABANG';
+
+  const [subTab, setSubTab] = useState<'daftar' | 'jenis'>('daftar');
 
   // Filters State
   const [filterWilayah, setFilterWilayah] = useState(user?.scope === 'WILAYAH' && user?.wilayahId ? user.wilayahId : '');
@@ -103,6 +105,14 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
       return res.data;
     },
     enabled: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH'
+  });
+
+  const { data: jenisGrupDaimiList = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['jenis-grup-daimi'],
+    queryFn: async () => {
+      const res = await apiClient.get('/pesantren/jenis-grup-daimi');
+      return res.data;
+    }
   });
 
   const { data: allStudents = [], refetch: refetchAllStudents } = useGetStudents();
@@ -327,8 +337,8 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
           <h2 className="text-lg font-medium text-slate-800">Manajemen Grup Daimi</h2>
           <p className="text-sm text-slate-500">Kelola master data Grup Daimi yang digunakan pada penempatan santri dan mapel.</p>
         </div>
-        {canManage && (
-          <button 
+        {canManage && subTab === 'daftar' && (
+          <button
             onClick={openAddModal}
             className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
           >
@@ -338,6 +348,36 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
         )}
       </div>
 
+      {/* Sub-tab: Daftar Grup Daimi / Jenis Grup */}
+      <div className="border-b border-slate-200">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSubTab('daftar')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${subTab === 'daftar'
+              ? 'border-indigo-600 text-indigo-700'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+          >
+            <Users className="w-4 h-4" />
+            Daftar Grup Daimi
+          </button>
+          <button
+            onClick={() => setSubTab('jenis')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${subTab === 'jenis'
+              ? 'border-indigo-600 text-indigo-700'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+          >
+            <Tag className="w-4 h-4" />
+            Jenis Grup
+          </button>
+        </div>
+      </div>
+
+      {subTab === 'jenis' ? (
+        <JenisGrupDaimiManager />
+      ) : (
+      <>
       {/* Filter Toolbar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-end">
         {user?.scope === 'GLOBAL' && (
@@ -385,8 +425,8 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">Semua Jenis</option>
-            {JENIS_DAIMI_OPTIONS.map((j) => (
-              <option key={j} value={j}>{j}</option>
+            {jenisGrupDaimiList.map((j) => (
+              <option key={j.id} value={j.name}>{j.name}</option>
             ))}
           </select>
         </div>
@@ -482,6 +522,8 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
           </table>
         )}
       </div>
+      </>
+      )}
 
       {/* Add / Edit Quick Modal */}
       {isModalOpen && (
@@ -508,19 +550,16 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Jenis Grup</label>
-                  <input
-                    type="text"
-                    list="jenis-daimi-options-list"
+                  <select
                     value={formData.jenis}
                     onChange={(e) => setFormData({ ...formData, jenis: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white"
-                    placeholder="Pilih atau ketik jenis grup..."
-                  />
-                  <datalist id="jenis-daimi-options-list">
-                    {JENIS_DAIMI_OPTIONS.map(opt => (
-                      <option key={opt} value={opt} />
+                  >
+                    <option value="">-- Pilih Jenis Grup --</option>
+                    {jenisGrupDaimiList.map(opt => (
+                      <option key={opt.id} value={opt.name}>{opt.name}</option>
                     ))}
-                  </datalist>
+                  </select>
                 </div>
 
                 {user?.scope !== 'CABANG' && (
@@ -616,20 +655,17 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Jenis Grup</label>
-                    <input
-                      type="text"
-                      list="jenis-daimi-detail-list"
+                    <select
                       value={formData.jenis}
                       onChange={(e) => setFormData({ ...formData, jenis: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white disabled:bg-slate-50"
-                      placeholder="Pilih atau ketik jenis grup..."
                       disabled={!canManage}
-                    />
-                    <datalist id="jenis-daimi-detail-list">
-                      {JENIS_DAIMI_OPTIONS.map(opt => (
-                        <option key={opt} value={opt} />
+                    >
+                      <option value="">-- Pilih Jenis Grup --</option>
+                      {jenisGrupDaimiList.map(opt => (
+                        <option key={opt.id} value={opt.name}>{opt.name}</option>
                       ))}
-                    </datalist>
+                    </select>
                   </div>
 
                   {user?.scope !== 'CABANG' && (

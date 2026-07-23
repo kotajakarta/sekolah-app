@@ -5,7 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useMasterData';
 import {
   BookOpen, Save, Printer, UserCheck,
-  Layers, Sparkles, Filter, Building2, MapPin, Search, Eye
+  Layers, Sparkles, Filter, Building2, MapPin, Search, Eye, AlertTriangle
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import HafalanAlQuranModal from './HafalanAlQuranModal';
@@ -99,6 +99,7 @@ export const ERaporPage: React.FC = () => {
   const [cetakSearch, setCetakSearch] = useState<string>('');
   const [cetakPage, setCetakPage] = useState<number>(1);
   const [cetakModal, setCetakModal] = useState<{ studentId: string; autoPrint: boolean } | null>(null);
+  const [warningPopoverId, setWarningPopoverId] = useState<string | null>(null);
 
   // 1. Fetch Master Kelas
   const { data: kelasList = [] } = useQuery<Kelas[]>({
@@ -1096,21 +1097,49 @@ export const ERaporPage: React.FC = () => {
                           />
                         </td>
                         <td className="py-2.5 px-4">
-                          <div className="flex items-center justify-center gap-2">
+                          <div className="flex items-center justify-center gap-2 relative">
                             <button
-                              onClick={() => setCetakModal({ studentId: row.studentId, autoPrint: false })}
-                              title="Lihat Rapor"
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
+                              onClick={() => row.isLengkap && setCetakModal({ studentId: row.studentId, autoPrint: false })}
+                              disabled={!row.isLengkap}
+                              title={row.isLengkap ? 'Lihat Rapor' : 'Nilai belum lengkap, lihat rincian pada ikon peringatan'}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => setCetakModal({ studentId: row.studentId, autoPrint: true })}
-                              title="Cetak Rapor"
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                              onClick={() => row.isLengkap && setCetakModal({ studentId: row.studentId, autoPrint: true })}
+                              disabled={!row.isLengkap}
+                              title={row.isLengkap ? 'Cetak Rapor' : 'Nilai belum lengkap, lihat rincian pada ikon peringatan'}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-emerald-600"
                             >
                               <Printer className="w-4 h-4" />
                             </button>
+
+                            {!row.isLengkap && (
+                              <>
+                                <button
+                                  onClick={() => setWarningPopoverId(prev => prev === row.studentId ? null : row.studentId)}
+                                  title="Ada mapel aktif yang belum diisi nilainya"
+                                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors"
+                                >
+                                  <AlertTriangle className="w-4 h-4" />
+                                </button>
+
+                                {warningPopoverId === row.studentId && (
+                                  <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setWarningPopoverId(null)} />
+                                    <div className="absolute right-0 top-9 z-50 w-64 bg-white border border-amber-200 rounded-lg shadow-lg p-3 text-left">
+                                      <p className="text-xs font-bold text-amber-700 mb-1.5">Mapel belum diisi nilainya:</p>
+                                      <ul className="text-xs text-slate-600 list-disc list-inside space-y-0.5">
+                                        {row.mapelBelumDiisi.map((m: string) => (
+                                          <li key={m}>{m}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  </>
+                                )}
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>

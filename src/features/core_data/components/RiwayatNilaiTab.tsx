@@ -137,6 +137,7 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
                             <th className="px-4 py-2.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Mapel</th>
                             <th className="px-4 py-2.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Grup</th>
                             <th className="px-4 py-2.5 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Nilai Akhir</th>
+                            <th className="px-4 py-2.5 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Rata-rata Kelas</th>
                             <th className="px-4 py-2.5 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Predikat</th>
                             <th className="px-4 py-2.5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Keterangan</th>
                           </tr>
@@ -153,6 +154,7 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
                                 </td>
                                 <td className="px-4 py-2.5 text-sm text-slate-500">{mapel.grupMapel}</td>
                                 <td className="px-4 py-2.5 text-sm text-center font-bold text-slate-800">{nilai?.nilaiAkhir ?? '-'}</td>
+                                <td className="px-4 py-2.5 text-sm text-center text-emerald-700 font-semibold">{nilai?.rataRataKelas ?? '-'}</td>
                                 <td className="px-4 py-2.5 text-sm text-center text-slate-600">{nilai?.predikat ?? '-'}</td>
                                 <td className="px-4 py-2.5 text-xs text-slate-400 italic">{keterangan}</td>
                               </tr>

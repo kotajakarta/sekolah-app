@@ -45,6 +45,16 @@ export default function RaporCetakModal({ studentId, tahunAjaran, semester, auto
 
   return (
     <>
+      {/* Isolasi area cetak: paksa sembunyikan seluruh isi body kecuali dokumen rapor,
+          supaya tombol Cetak tidak ikut mencetak layout dashboard/sidebar di baliknya. */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          #rapor-cetak-print-area, #rapor-cetak-print-area * { visibility: visible !important; }
+          #rapor-cetak-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+      `}</style>
+
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm print:hidden">
         <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
@@ -79,7 +89,7 @@ export default function RaporCetakModal({ studentId, tahunAjaran, semester, auto
 
       {/* Versi cetak: hanya tampil saat print, supaya chrome dashboard tidak ikut tercetak */}
       {cetakData && (
-        <div className="hidden print:block">
+        <div id="rapor-cetak-print-area" className="hidden print:block">
           <RaporCetakDocument cetakData={cetakData} />
         </div>
       )}

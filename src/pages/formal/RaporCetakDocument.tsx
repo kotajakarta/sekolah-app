@@ -43,13 +43,14 @@ export default function RaporCetakDocument({ cetakData }: RaporCetakDocumentProp
               <th className="border border-slate-300 p-2 text-center w-12">No</th>
               <th className="border border-slate-300 p-2 text-left">Mata Pelajaran</th>
               <th className="border border-slate-300 p-2 text-center w-24">Nilai Akhir</th>
+              <th className="border border-slate-300 p-2 text-center w-24">Rata-rata Kelas</th>
               <th className="border border-slate-300 p-2 text-center w-24">Predikat</th>
             </tr>
           </thead>
           <tbody>
             {cetakData.nilai.length === 0 ? (
               <tr>
-                <td colSpan={4} className="border border-slate-300 p-4 text-center text-slate-500">Belum ada nilai yang di-input.</td>
+                <td colSpan={5} className="border border-slate-300 p-4 text-center text-slate-500">Belum ada nilai yang di-input.</td>
               </tr>
             ) : (
               cetakData.nilai.map((n: any, idx: number) => (
@@ -57,6 +58,7 @@ export default function RaporCetakDocument({ cetakData }: RaporCetakDocumentProp
                   <td className="border border-slate-300 p-2 text-center font-medium">{idx + 1}</td>
                   <td className="border border-slate-300 p-2 font-semibold">{n.namaMapel}</td>
                   <td className="border border-slate-300 p-2 text-center font-bold">{n.nilaiAkhir ?? '-'}</td>
+                  <td className="border border-slate-300 p-2 text-center font-semibold text-slate-600">{n.rataRataKelas ?? '-'}</td>
                   <td className="border border-slate-300 p-2 text-center font-bold text-emerald-700">{n.predikat || '-'}</td>
                 </tr>
               ))

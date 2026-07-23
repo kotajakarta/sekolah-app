@@ -13,6 +13,7 @@ export interface NilaiFormalHistory {
   nilaiAkhir?: number | null;
   predikat?: string | null;
   capaianKompetensi?: string | null;
+  rataRataKelas?: number | null;
   mataPelajaran?: { id: string; kodeMapel: string; name: string; grupMapel: string };
   kelas?: { id: string; name: string; tingkat?: number };
 }

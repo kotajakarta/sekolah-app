@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useMasterData';
-import { 
-  BookOpen, Save, Printer, UserCheck, 
+import {
+  BookOpen, Save, Printer, UserCheck,
   Layers, Sparkles, Filter, Building2, MapPin
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
@@ -283,11 +283,11 @@ export const ERaporPage: React.FC = () => {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-400/30 text-emerald-200 text-xs font-medium">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>Standar e-Rapor Kemenag Madrasah Indonesia</span>
+              <span>Standar e-Rapor Muadalah</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Evaluasi Nilai Rapor (e-Rapor)</h1>
             <p className="text-emerald-100/80 text-sm max-w-2xl">
-              Pengelolaan nilai akhir Rapor, predikat hasil belajar, presensi, leger kelas, dan cetak lembar Rapor resmi Madrasah.
+              Pengelolaan nilai akhir Rapor, predikat hasil belajar, presensi, leger kelas, dan cetak lembar Rapor resmi Muadalah.
             </p>
           </div>
 
@@ -424,11 +424,10 @@ export const ERaporPage: React.FC = () => {
         <div className="flex items-center gap-2 overflow-x-auto">
           <button
             onClick={() => setActiveTab('nilai')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${
-              activeTab === 'nilai'
-                ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${activeTab === 'nilai'
+              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
           >
             <BookOpen className="w-4 h-4" />
             <span>1. Input Nilai Mapel</span>
@@ -436,11 +435,10 @@ export const ERaporPage: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('presensi')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${
-              activeTab === 'presensi'
-                ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${activeTab === 'presensi'
+              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
           >
             <UserCheck className="w-4 h-4" />
             <span>2. Presensi & Catatan Wali</span>
@@ -448,11 +446,10 @@ export const ERaporPage: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('leger')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${
-              activeTab === 'leger'
-                ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${activeTab === 'leger'
+              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
           >
             <Layers className="w-4 h-4" />
             <span>3. Leger Nilai Kelas</span>
@@ -460,14 +457,13 @@ export const ERaporPage: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('cetak')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${
-              activeTab === 'cetak'
-                ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${activeTab === 'cetak'
+              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
           >
             <Printer className="w-4 h-4" />
-            <span>4. Cetak Rapor Madrasah</span>
+            <span>4. Cetak Rapor Muadalah</span>
           </button>
         </div>
       </div>
@@ -571,12 +567,11 @@ export const ERaporPage: React.FC = () => {
 
                         {/* Output Predikat (0-75 C+, 76-80 B, 81-89 B+, 90-100 A) */}
                         <td className="py-2 px-4 text-center">
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-                            autoPredikat === 'A' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${autoPredikat === 'A' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
                             autoPredikat === 'B+' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
-                            autoPredikat === 'B' ? 'bg-cyan-100 text-cyan-800 border border-cyan-300' :
-                            autoPredikat === 'C+' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-500'
-                          }`}>
+                              autoPredikat === 'B' ? 'bg-cyan-100 text-cyan-800 border border-cyan-300' :
+                                autoPredikat === 'C+' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-500'
+                            }`}>
                             {autoPredikat || '-'}
                           </span>
                         </td>
@@ -835,9 +830,8 @@ export const ERaporPage: React.FC = () => {
                       {legerData.mapelList.map((m: any) => {
                         const score = row.scores[m.id];
                         return (
-                          <td key={m.id} className={`py-2.5 px-2 text-center border-r border-slate-200 font-medium ${
-                            score !== undefined && score !== null && score < 76 ? 'text-red-600 bg-red-50' : 'text-slate-800'
-                          }`}>
+                          <td key={m.id} className={`py-2.5 px-2 text-center border-r border-slate-200 font-medium ${score !== undefined && score !== null && score < 76 ? 'text-red-600 bg-red-50' : 'text-slate-800'
+                            }`}>
                             {score !== undefined && score !== null ? score : '-'}
                           </td>
                         );
@@ -860,7 +854,7 @@ export const ERaporPage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 4: CETAK RAPOR MADRASAH */}
+      {/* TAB 4: CETAK RAPOR MUADALAH */}
       {activeTab === 'cetak' && (
         <div className="space-y-6">
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
@@ -891,18 +885,18 @@ export const ERaporPage: React.FC = () => {
 
           {!selectedStudentId ? (
             <div className="bg-white p-12 rounded-xl border border-slate-200 text-center text-xs text-slate-500">
-              Silakan pilih siswa dari dropdown di atas untuk melihat pratinjau Rapor Madrasah.
+              Silakan pilih siswa dari dropdown di atas untuk melihat pratinjau Rapor Muadalah.
             </div>
           ) : isLoadingCetak ? (
             <div className="bg-white p-12 rounded-xl border border-slate-200 text-center text-xs text-slate-500">
-              Memuat data Rapor Madrasah...
+              Memuat data Rapor Muadalah...
             </div>
           ) : !cetakData ? (
             <div className="bg-white p-12 rounded-xl border border-slate-200 text-center text-xs text-slate-500">
               Data Rapor tidak ditemukan.
             </div>
           ) : (
-            /* DOKUMEN RAPOR MADRASAH (READY FOR PRINT) */
+            /* DOKUMEN RAPOR MUADALAH (READY FOR PRINT) */
             <div className="bg-white p-8 rounded-xl border border-slate-300 shadow-xl max-w-4xl mx-auto space-y-6 text-slate-900 font-sans print:shadow-none print:border-none print:p-0">
               {/* Kop Rapor */}
               <div className="border-b-2 border-slate-900 pb-4 text-center space-y-1">
@@ -911,7 +905,7 @@ export const ERaporPage: React.FC = () => {
                   NPSN: {cetakData.sekolah.npsn} | NSPP: {cetakData.sekolah.nspp} | Cabang: {cetakData.sekolah.cabangName}
                 </p>
                 <p className="text-sm font-bold tracking-widest text-emerald-800 uppercase mt-2">
-                  LAPORAN HASIL BELAJAR (RAPOR MADRASAH)
+                  LAPORAN HASIL BELAJAR (RAPOR MUADALAH)
                 </p>
               </div>
 

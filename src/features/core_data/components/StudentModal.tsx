@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
 import { Student } from '../hooks/useGetStudents';
-import { 
-  X, Loader2, Image as ImageIcon, Eye, User, Users, MapPin, BookOpen, 
+import {
+  X, Loader2, Image as ImageIcon, Eye, User, Users, MapPin, BookOpen, ClipboardList,
   Upload, CheckCircle, AlertCircle, ChevronRight, Camera, FileText, Home
 } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
@@ -13,8 +13,9 @@ import Select from 'react-select';
 import NotificationModal from '../../../components/NotificationModal';
 import { useToast } from '../../../contexts/ToastContext';
 import AktivitasBelajarTab from './AktivitasBelajarTab';
+import RiwayatNilaiTab from './RiwayatNilaiTab';
 
-export type TabType = 'SANTRI' | 'ORANG_TUA' | 'ALAMAT' | 'AKTIVITAS_BELAJAR';
+export type TabType = 'SANTRI' | 'ORANG_TUA' | 'ALAMAT' | 'AKTIVITAS_BELAJAR' | 'RIWAYAT_NILAI';
 
 interface StudentModalProps {
   student?: Student | null;
@@ -379,6 +380,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     { id: 'ORANG_TUA',        label: 'Data Orang Tua',    shortLabel: 'Orang Tua',   icon: <Users className="w-4 h-4" />,     show: true },
     { id: 'ALAMAT',           label: 'Data Alamat',       shortLabel: 'Alamat',      icon: <MapPin className="w-4 h-4" />,    show: true },
     { id: 'AKTIVITAS_BELAJAR',label: 'Aktivitas Belajar', shortLabel: 'Aktivitas',   icon: <BookOpen className="w-4 h-4" />,  show: !!student },
+    { id: 'RIWAYAT_NILAI',    label: 'Riwayat Nilai',     shortLabel: 'Nilai',       icon: <ClipboardList className="w-4 h-4" />, show: !!student },
   ];
 
   const isEditMode = !!student;
@@ -467,7 +469,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
 
           {/* Tab Content */}
           <div className="flex-1 overflow-y-auto min-w-0">
-            <form id="student-form" onSubmit={handleSubmit} className={activeTab === 'AKTIVITAS_BELAJAR' ? 'hidden' : 'block h-full'}>
+            <form id="student-form" onSubmit={handleSubmit} className={(activeTab === 'AKTIVITAS_BELAJAR' || activeTab === 'RIWAYAT_NILAI') ? 'hidden' : 'block h-full'}>
               
               {/* ── TAB: DATA SANTRI ─────────────────────────────── */}
               {activeTab === 'SANTRI' && (
@@ -862,6 +864,12 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                 />
               </div>
             )}
+
+            {activeTab === 'RIWAYAT_NILAI' && student && (
+              <div className="p-6 h-full">
+                <RiwayatNilaiTab student={student} />
+              </div>
+            )}
           </div>
         </div>
 
@@ -883,7 +891,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
             >
               {t('common.cancel')}
             </button>
-            {activeTab !== 'AKTIVITAS_BELAJAR' && (
+            {activeTab !== 'AKTIVITAS_BELAJAR' && activeTab !== 'RIWAYAT_NILAI' && (
               <button
                 type="submit"
                 form="student-form"

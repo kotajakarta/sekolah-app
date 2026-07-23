@@ -5,10 +5,13 @@ import { useAuth } from '../../hooks/useAuth';
 import { useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useMasterData';
 import {
   BookOpen, Save, Printer, UserCheck,
-  Layers, Sparkles, Filter, Building2, MapPin
+  Layers, Sparkles, Filter, Building2, MapPin, Search, Eye
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import HafalanAlQuranModal from './HafalanAlQuranModal';
+import RaporCetakModal from './RaporCetakModal';
+import Pagination from '../../components/Pagination';
+import { calculatePredikat, PREDIKAT_SIKAP_OPTIONS, SIKAP_FIELDS } from './eRaporConstants';
 
 interface Kelas {
   id: string;
@@ -59,35 +62,6 @@ interface PresensiCatatanRow {
   statusAkhir: string;
 }
 
-const PREDIKAT_SIKAP_OPTIONS = ['A', 'B+', 'B', 'C+', 'C'];
-
-const SIKAP_FIELDS: { key: keyof PresensiCatatanRow; label: string }[] = [
-  { key: 'ketakwaan', label: 'Ketakwaan' },
-  { key: 'ketaatan', label: 'Ketaatan' },
-  { key: 'kemampuanRepresentasi', label: 'Kemampuan Representasi' },
-  { key: 'kerapihan', label: 'Kerapihan' },
-  { key: 'kepercayaanDiri', label: 'Kepercayaan Diri' },
-  { key: 'hubunganSosial', label: 'Hubungan Sosial' },
-  { key: 'semangatBelajar', label: 'Semangat Belajar' },
-  { key: 'disiplin', label: 'Disiplin' },
-  { key: 'tanggungJawab', label: 'Tanggung Jawab' },
-];
-
-function calculatePredikat(score: number | null | undefined): string {
-  if (score === null || score === undefined || isNaN(score)) return '';
-  if (score >= 90) return 'A';
-  if (score >= 81) return 'B+';
-  if (score >= 76) return 'B';
-  return 'C+';
-}
-
-const STATUS_HAFIDZ_LABELS: Record<string, string> = {
-  BELUM_MULAI: 'Belum Mulai',
-  SEDANG_BERLANGSUNG: 'Sedang Berlangsung',
-  SUDAH_SETOR_30_JUZ: 'Sudah Setor 30 Juz',
-  SUDAH_KHATAMAN_KUBRO: 'Sudah Khataman Kubro',
-};
-
 export const ERaporPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -114,8 +88,17 @@ export const ERaporPage: React.FC = () => {
   const [selectedCabangId, setSelectedCabangId] = useState<string>('');
   const [selectedKelasId, setSelectedKelasId] = useState<string>('');
   const [selectedMapelId, setSelectedMapelId] = useState<string>('');
-  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [hafalanModalRow, setHafalanModalRow] = useState<NilaiSiswaRow | null>(null);
+
+  // Filter khusus tab Cetak Rapor (independen dari periode terkunci di tab lain,
+  // karena cetak ulang rapor semester lampau harus tetap bisa dilakukan)
+  const [cetakKelasId, setCetakKelasId] = useState<string>('');
+  const [cetakTahunAjaran, setCetakTahunAjaran] = useState<string>('');
+  const [cetakSemester, setCetakSemester] = useState<string>('');
+  const [cetakSearchInput, setCetakSearchInput] = useState<string>('');
+  const [cetakSearch, setCetakSearch] = useState<string>('');
+  const [cetakPage, setCetakPage] = useState<number>(1);
+  const [cetakModal, setCetakModal] = useState<{ studentId: string; autoPrint: boolean } | null>(null);
 
   // 1. Fetch Master Kelas
   const { data: kelasList = [] } = useQuery<Kelas[]>({
@@ -307,17 +290,78 @@ export const ERaporPage: React.FC = () => {
     enabled: !!selectedKelasId && !!tahunAjaran && !!semester && activeTab === 'leger'
   });
 
-  // 6. Fetch Cetak Rapor Data
-  const { data: cetakData, isLoading: isLoadingCetak } = useQuery<any>({
-    queryKey: ['erapor-cetak', selectedStudentId, tahunAjaran, semester],
+  // 6. Default filter periode tab Cetak Rapor mengikuti periode aktif (bisa diganti manual untuk cetak ulang semester lampau)
+  useEffect(() => {
+    if (tahunAjaran && !cetakTahunAjaran) setCetakTahunAjaran(tahunAjaran);
+    if (semester && !cetakSemester) setCetakSemester(semester);
+  }, [tahunAjaran, semester, cetakTahunAjaran, cetakSemester]);
+
+  const cetakTahunAjaranOptions = React.useMemo(() => {
+    const set = new Set<string>();
+    kelasList.forEach(k => { if (k.tahunAjaran) set.add(k.tahunAjaran); });
+    if (tahunAjaran) set.add(tahunAjaran);
+    return Array.from(set).sort().reverse();
+  }, [kelasList, tahunAjaran]);
+
+  // Daftar kelas untuk tab Cetak Rapor: independen dari cascading Wilayah/Cabang tab lain,
+  // cukup dibatasi oleh scope area kerja user (CABANG/WILAYAH/GLOBAL)
+  const cetakKelasOptions = React.useMemo(() => {
+    if (user?.scope === 'CABANG' && user?.cabangId) {
+      return kelasList.filter(k => k.cabangId === user.cabangId);
+    }
+    if (user?.scope === 'WILAYAH' && user?.wilayahId) {
+      const cabangIdsInWilayah = new Set(cabangList.filter(c => c.wilayahId === user.wilayahId).map(c => c.id));
+      return kelasList.filter(k => k.cabangId && cabangIdsInWilayah.has(k.cabangId));
+    }
+    return kelasList;
+  }, [kelasList, cabangList, user]);
+
+  const cetakScopeLabel = React.useMemo(() => {
+    if (cetakKelasId) {
+      const kelas = cetakKelasOptions.find(k => k.id === cetakKelasId);
+      const cabang = cabangList.find(c => c.id === kelas?.cabangId);
+      return cabang?.name || 'Kelas Terpilih';
+    }
+    if (user?.scope === 'CABANG' && user?.cabangId) {
+      return cabangList.find(c => c.id === user.cabangId)?.name || 'Cabang Anda';
+    }
+    return 'Semua Kelas Area Anda';
+  }, [cetakKelasId, cetakKelasOptions, cabangList, user]);
+
+  const { data: cetakListData, isLoading: isLoadingCetakList } = useQuery<any>({
+    queryKey: ['erapor-cetak-list', cetakKelasId, cetakTahunAjaran, cetakSemester, cetakSearch, cetakPage],
     queryFn: async () => {
-      if (!selectedStudentId) return null;
-      const res = await apiClient.get(`/formal/erapor/cetak/${selectedStudentId}`, {
-        params: { tahunAjaran, semester }
+      const res = await apiClient.get('/formal/erapor/cetak-list', {
+        params: {
+          kelasId: cetakKelasId || undefined,
+          tahunAjaran: cetakTahunAjaran,
+          semester: cetakSemester,
+          search: cetakSearch || undefined,
+          page: cetakPage,
+          pageSize: 20
+        }
       });
       return res.data;
     },
-    enabled: !!selectedStudentId && !!tahunAjaran && !!semester && activeTab === 'cetak'
+    enabled: activeTab === 'cetak' && !!cetakTahunAjaran && !!cetakSemester
+  });
+
+  const toggleSudahCetakMutation = useMutation({
+    mutationFn: async (payload: { studentId: string; kelasId: string; sudahCetak: boolean }) => {
+      await apiClient.post('/formal/erapor/tandai-cetak', {
+        studentId: payload.studentId,
+        kelasId: payload.kelasId,
+        tahunAjaran: cetakTahunAjaran,
+        semester: cetakSemester,
+        sudahCetak: payload.sudahCetak
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['erapor-cetak-list'] });
+    },
+    onError: (err: any) => {
+      showToast('error', err?.response?.data?.message || 'Gagal memperbarui status cetak');
+    }
   });
 
   // Hitung Rata-Rata Kelas untuk Input Nilai
@@ -757,7 +801,7 @@ export const ERaporPage: React.FC = () => {
                         {SIKAP_FIELDS.map(f => (
                           <td key={f.key} className="py-2 px-1">
                             <select
-                              value={(current[f.key] as string) || 'A'}
+                              value={((current as any)[f.key] as string) || 'A'}
                               onChange={(e) => setLocalPresensi(prev => ({
                                 ...prev,
                                 [row.studentId]: { ...prev[row.studentId], [f.key]: e.target.value }
@@ -928,172 +972,163 @@ export const ERaporPage: React.FC = () => {
 
       {/* TAB 4: CETAK RAPOR MUADALAH */}
       {activeTab === 'cetak' && (
-        <div className="space-y-6">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <label className="text-xs font-semibold text-slate-700">Pilih Siswa untuk Dicetak:</label>
-              <select
-                value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none min-w-[240px]"
-              >
-                <option value="">-- Pilih Siswa --</option>
-                {presensiRows.map(s => (
-                  <option key={s.studentId} value={s.studentId}>{s.fullName} ({s.jenisGrupDaimi !== '-' ? s.jenisGrupDaimi : (s.nisn || 'No NISN')})</option>
-                ))}
-              </select>
-            </div>
+        <div className="space-y-4">
+          {/* Filter Bar */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex flex-wrap items-end gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Kelas</label>
+                <select
+                  value={cetakKelasId}
+                  onChange={(e) => { setCetakKelasId(e.target.value); setCetakPage(1); }}
+                  className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none min-w-[220px]"
+                >
+                  <option value="">-- Semua Kelas Area Anda --</option>
+                  {cetakKelasOptions.map(k => (
+                    <option key={k.id} value={k.id}>{k.name} {k.lembagaMuadalah ? `(${k.lembagaMuadalah.name})` : ''}</option>
+                  ))}
+                </select>
+              </div>
 
-            {cetakData && (
-              <button
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-all shadow-lg shadow-emerald-600/30"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Cetak Lembar Rapor</span>
-              </button>
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Semester</label>
+                <select
+                  value={cetakSemester}
+                  onChange={(e) => { setCetakSemester(e.target.value); setCetakPage(1); }}
+                  className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="Ganjil">Ganjil (1)</option>
+                  <option value="Genap">Genap (2)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Thn. Ajaran</label>
+                <select
+                  value={cetakTahunAjaran}
+                  onChange={(e) => { setCetakTahunAjaran(e.target.value); setCetakPage(1); }}
+                  className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none"
+                >
+                  {cetakTahunAjaranOptions.map(ta => (
+                    <option key={ta} value={ta}>{ta}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex-1 min-w-[220px]">
+                <label className="block text-xs font-medium text-slate-700 mb-1">Cari Nama</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={cetakSearchInput}
+                    onChange={(e) => setCetakSearchInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { setCetakSearch(cetakSearchInput); setCetakPage(1); } }}
+                    placeholder="Nama siswa..."
+                    className="flex-1 text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                  <button
+                    onClick={() => { setCetakSearch(cetakSearchInput); setCetakPage(1); }}
+                    className="inline-flex items-center justify-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Header Info & Badge */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">
+                Daftar Siswa {cetakKelasId ? cetakKelasOptions.find(k => k.id === cetakKelasId)?.name : 'Semua Kelas'} di {cetakScopeLabel}
+                {' '}| Periode: Sem {cetakSemester === 'Genap' ? '2' : '1'} TA {cetakTahunAjaran}
+              </h2>
+              {cetakListData && (
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Menampilkan {cetakListData.data.length} dari {cetakListData.total} siswa (Halaman {cetakListData.page} dari {cetakListData.totalPages}).
+                </p>
+              )}
+            </div>
+            {cetakListData && (
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold self-start">
+                Sudah Tandai Cetak: {cetakListData.sudahCetakCount} / {cetakListData.total}
+              </span>
             )}
           </div>
 
-          {!selectedStudentId ? (
-            <div className="bg-white p-12 rounded-xl border border-slate-200 text-center text-xs text-slate-500">
-              Silakan pilih siswa dari dropdown di atas untuk melihat pratinjau Rapor Muadalah.
-            </div>
-          ) : isLoadingCetak ? (
-            <div className="bg-white p-12 rounded-xl border border-slate-200 text-center text-xs text-slate-500">
-              Memuat data Rapor Muadalah...
-            </div>
-          ) : !cetakData ? (
-            <div className="bg-white p-12 rounded-xl border border-slate-200 text-center text-xs text-slate-500">
-              Data Rapor tidak ditemukan.
-            </div>
-          ) : (
-            /* DOKUMEN RAPOR MUADALAH (READY FOR PRINT) */
-            <div className="bg-white p-8 rounded-xl border border-slate-300 shadow-xl max-w-4xl mx-auto space-y-6 text-slate-900 font-sans print:shadow-none print:border-none print:p-0">
-              {/* Kop Rapor */}
-              <div className="border-b-2 border-slate-900 pb-4 text-center space-y-1">
-                <h2 className="text-xl font-extrabold uppercase tracking-wider text-slate-900">{cetakData.sekolah.namaLembaga}</h2>
-                <p className="text-xs font-medium text-slate-700">
-                  NPSN: {cetakData.sekolah.npsn} | NSPP: {cetakData.sekolah.nspp} | Cabang: {cetakData.sekolah.cabangName}
-                </p>
-                <p className="text-sm font-bold tracking-widest text-emerald-800 uppercase mt-2">
-                  LAPORAN HASIL BELAJAR (RAPOR MUADALAH)
-                </p>
-              </div>
-
-              {/* Identitas Siswa & Kelas */}
-              <div className="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-lg border border-slate-200">
-                <div className="space-y-1.5">
-                  <div className="flex"><span className="w-32 font-semibold text-slate-600">Nama Siswa</span>: <span className="font-bold ml-1">{cetakData.siswa.fullName}</span></div>
-                  <div className="flex"><span className="w-32 font-semibold text-slate-600">Jenis Grup Daimi</span>: <span className="font-bold ml-1 text-teal-800">{cetakData.siswa.jenisGrupDaimi || '-'}</span></div>
-                  <div className="flex"><span className="w-32 font-semibold text-slate-600">NISN / NIS</span>: <span className="font-medium ml-1">{cetakData.siswa.nisn || '-'} / {cetakData.siswa.nis || '-'}</span></div>
-                  <div className="flex"><span className="w-32 font-semibold text-slate-600">Tempat, Tgl Lahir</span>: <span className="font-medium ml-1">{cetakData.siswa.tempatLahir}, {cetakData.siswa.tanggalLahir ? new Date(cetakData.siswa.tanggalLahir).toLocaleDateString('id-ID') : '-'}</span></div>
-                </div>
-                <div className="space-y-1.5">
-                  <div className="flex"><span className="w-32 font-semibold text-slate-600">Kelas / Tingkat</span>: <span className="font-bold ml-1">{cetakData.akademik.kelasName} (Tingkat {cetakData.akademik.tingkat})</span></div>
-                  <div className="flex"><span className="w-32 font-semibold text-slate-600">Tahun Ajaran</span>: <span className="font-medium ml-1">{cetakData.akademik.tahunAjaran}</span></div>
-                  <div className="flex"><span className="w-32 font-semibold text-slate-600">Semester</span>: <span className="font-medium ml-1">{cetakData.akademik.semester}</span></div>
-                </div>
-              </div>
-
-              {/* Tabel Nilai Hasil Belajar */}
-              <div className="space-y-2">
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">A. Capaian Hasil Belajar</h3>
-                <table className="w-full text-xs border-collapse border border-slate-300">
-                  <thead className="bg-slate-100 text-slate-900 font-bold">
+          {/* Tabel Daftar Siswa */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            {isLoadingCetakList ? (
+              <div className="p-12 text-center text-xs text-slate-500">Memuat daftar siswa...</div>
+            ) : !cetakListData || cetakListData.data.length === 0 ? (
+              <div className="p-12 text-center text-xs text-slate-500">Tidak ada siswa yang cocok dengan filter.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold uppercase tracking-wider">
                     <tr>
-                      <th className="border border-slate-300 p-2 text-center w-12">No</th>
-                      <th className="border border-slate-300 p-2 text-left">Mata Pelajaran</th>
-                      <th className="border border-slate-300 p-2 text-center w-24">Nilai Akhir</th>
-                      <th className="border border-slate-300 p-2 text-center w-24">Predikat</th>
+                      <th className="py-3 px-4 w-12 text-center">No</th>
+                      <th className="py-3 px-4">NIS</th>
+                      <th className="py-3 px-4">NISN</th>
+                      <th className="py-3 px-4 min-w-[200px]">Nama Siswa</th>
+                      <th className="py-3 px-4">Kelas</th>
+                      <th className="py-3 px-4">Grup</th>
+                      <th className="py-3 px-4 text-center">Sudah Cetak?</th>
+                      <th className="py-3 px-4 text-center">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {cetakData.nilai.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="border border-slate-300 p-4 text-center text-slate-500">Belum ada nilai yang di-input.</td>
+                  <tbody className="divide-y divide-slate-100">
+                    {cetakListData.data.map((row: any, idx: number) => (
+                      <tr key={row.studentId} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-2.5 px-4 text-center text-slate-500 font-medium">{(cetakListData.page - 1) * cetakListData.pageSize + idx + 1}</td>
+                        <td className="py-2.5 px-4 text-slate-600">{row.nis || '-'}</td>
+                        <td className="py-2.5 px-4 text-slate-600">{row.nisn || '-'}</td>
+                        <td className="py-2.5 px-4 font-semibold text-slate-900">{row.fullName}</td>
+                        <td className="py-2.5 px-4 text-slate-600">{row.kelasName}</td>
+                        <td className="py-2.5 px-4 text-teal-800 font-medium">{row.jenisGrupDaimi}</td>
+                        <td className="py-2.5 px-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={row.sudahCetak}
+                            onChange={(e) => toggleSudahCetakMutation.mutate({ studentId: row.studentId, kelasId: row.kelasId, sudahCetak: e.target.checked })}
+                            className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                          />
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => setCetakModal({ studentId: row.studentId, autoPrint: false })}
+                              title="Lihat Rapor"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => setCetakModal({ studentId: row.studentId, autoPrint: true })}
+                              title="Cetak Rapor"
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
-                    ) : (
-                      cetakData.nilai.map((n: any, idx: number) => (
-                        <tr key={n.mataPelajaranId}>
-                          <td className="border border-slate-300 p-2 text-center font-medium">{idx + 1}</td>
-                          <td className="border border-slate-300 p-2 font-semibold">{n.namaMapel}</td>
-                          <td className="border border-slate-300 p-2 text-center font-bold">{n.nilaiAkhir ?? '-'}</td>
-                          <td className="border border-slate-300 p-2 text-center font-bold text-emerald-700">{n.predikat || '-'}</td>
-                        </tr>
-                      ))
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>
-
-              {/* Sikap & Presensi */}
-              <div className="border border-slate-300 rounded-lg p-3 space-y-1.5 text-xs">
-                <h4 className="font-bold text-slate-900 uppercase">B. Ketidakhadiran</h4>
-                <div className="grid grid-cols-3 gap-2 text-slate-700">
-                  <div className="flex justify-between"><span>Sakit</span><span className="font-bold">{cetakData.presensi.sakit} hari</span></div>
-                  <div className="flex justify-between"><span>Izin</span><span className="font-bold">{cetakData.presensi.izin} hari</span></div>
-                  <div className="flex justify-between"><span>Alpa</span><span className="font-bold">{cetakData.presensi.alpa} hari</span></div>
-                </div>
-              </div>
-
-              {/* Sikap */}
-              <div className="border border-slate-300 rounded-lg p-3 space-y-1.5 text-xs">
-                <h4 className="font-bold text-slate-900 uppercase">C. Sikap & Perilaku</h4>
-                <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-slate-700">
-                  {SIKAP_FIELDS.map(f => (
-                    <div key={f.key} className="flex justify-between border-b border-slate-100 pb-1">
-                      <span>{f.label}</span>
-                      <span className="font-bold text-emerald-700">{(cetakData.presensi as any)[f.key]}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Catatan Wali Kelas */}
-              <div className="border border-slate-300 rounded-lg p-3 space-y-1 text-xs">
-                <h4 className="font-bold text-slate-900 uppercase">D. Catatan Wali Kelas</h4>
-                <p className="text-slate-700 italic bg-slate-50 p-2.5 rounded border border-slate-200">
-                  "{cetakData.presensi.catatanWaliKelas}"
-                </p>
-              </div>
-
-              {/* Hafalan Al-Qur'an (Hafizlik) atau Status Hafidz (non-Hafizlik) */}
-              <div className="border border-slate-300 rounded-lg p-3 space-y-1.5 text-xs">
-                <h4 className="font-bold text-slate-900 uppercase">E. {cetakData.siswa.isHafizlik ? "Capaian Hafalan Al-Qur'an" : 'Status Hafidz'}</h4>
-                {cetakData.siswa.isHafizlik ? (
-                  <div className="grid grid-cols-2 gap-2 text-slate-700">
-                    <div className="flex justify-between"><span>Jumlah Juz</span><span className="font-bold text-emerald-700">{cetakData.siswa.hafalan?.jumlahJuz ?? '-'} Juz</span></div>
-                    <div className="flex justify-between"><span>Jumlah Halaman</span><span className="font-bold text-emerald-700">{cetakData.siswa.hafalan?.jumlahHalaman ?? '-'} Halaman</span></div>
-                  </div>
-                ) : (
-                  <div className="flex justify-between text-slate-700">
-                    <span>Status Hafidz</span>
-                    <span className="font-bold text-emerald-700">
-                      {cetakData.siswa.statusHafidz ? (STATUS_HAFIDZ_LABELS[cetakData.siswa.statusHafidz] || cetakData.siswa.statusHafidz) : '-'}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Box Tanda Tangan */}
-              <div className="pt-8 grid grid-cols-2 gap-8 text-xs text-center">
-                <div className="space-y-12">
-                  <p>Orang Tua / Wali Siswa</p>
-                  <p className="font-bold underline">( ............................................ )</p>
-                </div>
-                <div className="space-y-12">
-                  <p>Wali Kelas</p>
-                  <p className="font-bold underline">{cetakData.akademik.waliKelasName}</p>
-                </div>
-              </div>
-
-              <div className="pt-4 text-center text-xs space-y-12">
-                <p>Mengetahui,<br /><span className="font-semibold">{cetakData.sekolah.namaKetua}</span></p>
-                <p className="font-bold underline">( ............................................ )</p>
-              </div>
-            </div>
-          )}
+            )}
+            {cetakListData && (
+              <Pagination
+                currentPage={cetakListData.page}
+                totalPages={cetakListData.totalPages}
+                onPageChange={setCetakPage}
+                totalItems={cetakListData.total}
+                itemsPerPage={cetakListData.pageSize}
+              />
+            )}
+          </div>
         </div>
       )}
 
@@ -1108,6 +1143,22 @@ export const ERaporPage: React.FC = () => {
           tahunAjaran={tahunAjaran}
           semester={semester}
           onClose={() => setHafalanModalRow(null)}
+        />
+      )}
+
+      {cetakModal && (
+        <RaporCetakModal
+          studentId={cetakModal.studentId}
+          tahunAjaran={cetakTahunAjaran}
+          semester={cetakSemester}
+          autoPrint={cetakModal.autoPrint}
+          onClose={() => setCetakModal(null)}
+          onPrinted={() => {
+            const row = cetakListData?.data.find((r: any) => r.studentId === cetakModal.studentId);
+            if (row) {
+              toggleSudahCetakMutation.mutate({ studentId: row.studentId, kelasId: row.kelasId, sudahCetak: true });
+            }
+          }}
         />
       )}
     </div>

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { GraduationCap, ClipboardList, ChevronDown, ChevronRight, FileBarChart, Printer, PencilLine, Plus } from 'lucide-react';
+import apiClient from '../../../lib/apiClient';
 import { Student } from '../hooks/useGetStudents';
 import {
   useGetNilaiHistory,
@@ -60,9 +62,34 @@ const average = (items: NilaiFormalHistory[]) => {
   return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
 };
 
+const semesterOrder = (semester: string) => {
+  const normalized = semester?.toUpperCase();
+  if (normalized === 'GANJIL') return 0;
+  if (normalized === 'GENAP') return 1;
+  return 2;
+};
+
+// Periode dianggap "aktif saat ini" kalau tahun ajaran & semester-nya sama persis dengan
+// periode aktif di Pengaturan Akademik - untuk periode ini, edit nilai harus lewat tab
+// Input Nilai Mapel (bukan lewat sini), supaya modal riwayat/backfill tidak menyentuh data aktif
+const isPeriodeAktif = (tahunAjaran: string, semester: string, activeTahunAjaran: string, activeSemester: string) => {
+  if (!activeTahunAjaran || !activeSemester) return false;
+  return tahunAjaran === activeTahunAjaran && semesterOrder(semester) === semesterOrder(activeSemester);
+};
+
 export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
   const { data: history, isLoading: isLoadingHistory } = useGetNilaiHistory(student.id);
   const { data: mapelList, isLoading: isLoadingMapel } = useGetMapelList();
+  const { data: pengaturanAkademik } = useQuery({
+    queryKey: ['pengaturan-akademik'],
+    queryFn: async () => {
+      const res = await apiClient.get('/pengaturan/akademik');
+      return res.data;
+    }
+  });
+  const activeTahunAjaran = pengaturanAkademik?.tahunAjaran || '';
+  const activeSemester = pengaturanAkademik?.semesterAktif || '';
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [isTranskripOpen, setIsTranskripOpen] = useState(false);
   const [cetakGroup, setCetakGroup] = useState<{ tahunAjaran: string; semester: string } | null>(null);
@@ -122,6 +149,7 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
               const rata = average(group.items);
               const nilaiMap = new Map(group.items.map(item => [item.mataPelajaranId, item]));
               const isOpen = !!expanded[group.key];
+              const isAktif = isPeriodeAktif(group.tahunAjaran, group.semester, activeTahunAjaran, activeSemester);
               return (
                 <div key={group.key} className="rounded-xl border border-slate-200 overflow-hidden">
                   <div className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors">
@@ -145,15 +173,25 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
                           <span className="text-sm font-extrabold text-emerald-700">{rata}</span>
                         </div>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => setEditGroup(group)}
-                        title="Input/Edit nilai periode ini"
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors"
-                      >
-                        <PencilLine className="w-3.5 h-3.5" />
-                        Edit Nilai
-                      </button>
+                      {isAktif ? (
+                        <span
+                          title="Periode aktif saat ini, edit nilai lewat tab Input Nilai Mapel"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed"
+                        >
+                          <PencilLine className="w-3.5 h-3.5" />
+                          Periode Aktif
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEditGroup(group)}
+                          title="Input/Edit nilai periode ini"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors"
+                        >
+                          <PencilLine className="w-3.5 h-3.5" />
+                          Edit Nilai
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setCetakGroup({ tahunAjaran: group.tahunAjaran, semester: group.semester })}
@@ -231,6 +269,8 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
           student={student}
           mapelList={sortedMapel}
           mode="edit"
+          activeTahunAjaran={activeTahunAjaran}
+          activeSemester={activeSemester}
           initialTahunAjaran={editGroup.tahunAjaran}
           initialSemester={editGroup.semester}
           initialKelasId={editGroup.kelasId}
@@ -245,6 +285,8 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
           student={student}
           mapelList={sortedMapel}
           mode="new"
+          activeTahunAjaran={activeTahunAjaran}
+          activeSemester={activeSemester}
           onClose={() => setIsAddingPeriode(false)}
         />
       )}

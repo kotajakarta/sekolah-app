@@ -5,12 +5,13 @@ import { useAuth } from '../../hooks/useAuth';
 import { useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useMasterData';
 import {
   BookOpen, Save, Printer, UserCheck,
-  Layers, Sparkles, Filter, Building2, MapPin, Eye, AlertTriangle, X
+  Layers, Sparkles, Filter, Building2, MapPin, Eye, AlertTriangle, X, Upload
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import HafalanAlQuranModal from './HafalanAlQuranModal';
 import RaporCetakModal from './RaporCetakModal';
 import Pagination from '../../components/Pagination';
+import ImportRiwayatNilaiTab from './ImportRiwayatNilaiTab';
 import { calculatePredikat, PREDIKAT_SIKAP_OPTIONS, SIKAP_FIELDS } from './eRaporConstants';
 
 interface Kelas {
@@ -66,7 +67,7 @@ export const ERaporPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'nilai' | 'presensi' | 'leger' | 'cetak'>('nilai');
+  const [activeTab, setActiveTab] = useState<'nilai' | 'presensi' | 'leger' | 'cetak' | 'import-riwayat'>('nilai');
 
   // Master Data Wilayah & Cabang
   const { data: wilayahList = [] } = useGetWilayah();
@@ -520,6 +521,17 @@ export const ERaporPage: React.FC = () => {
           >
             <Printer className="w-4 h-4" />
             <span>4. Cetak Rapor Muadalah</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('import-riwayat')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${activeTab === 'import-riwayat'
+              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+          >
+            <Upload className="w-4 h-4" />
+            <span>5. Import Riwayat Nilai</span>
           </button>
         </div>
       </div>
@@ -1042,6 +1054,9 @@ export const ERaporPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* TAB 5: IMPORT RIWAYAT NILAI */}
+      {activeTab === 'import-riwayat' && <ImportRiwayatNilaiTab />}
 
       {warningPopoverId && (() => {
         const row = cetakListData?.data.find((r: any) => r.studentId === warningPopoverId);

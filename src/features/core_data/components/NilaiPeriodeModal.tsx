@@ -16,10 +16,19 @@ interface Kelas {
   lembagaMuadalah?: { name: string };
 }
 
+interface GrupDaimiOption {
+  id: string;
+  name: string;
+  jenis?: string | null;
+  cabangId?: string | null;
+}
+
 interface NilaiPeriodeModalProps {
   student: Student;
   mapelList: MapelWithKeaktifan[];
   mode: 'edit' | 'new';
+  activeTahunAjaran: string;
+  activeSemester: string;
   initialTahunAjaran?: string;
   initialSemester?: string;
   initialKelasId?: string;
@@ -28,8 +37,24 @@ interface NilaiPeriodeModalProps {
   onClose: () => void;
 }
 
+const semesterOrder = (semester: string) => {
+  const normalized = semester?.toUpperCase();
+  if (normalized === 'GANJIL') return 0;
+  if (normalized === 'GENAP') return 1;
+  return 2;
+};
+
+// Tahun ajaran diformat "YYYY/YYYY+1" - dibandingkan secara leksikal sudah sesuai urutan kronologis
+const isPeriodeLampau = (tahunAjaran: string, semester: string, activeTahunAjaran: string, activeSemester: string) => {
+  if (!tahunAjaran || !semester || !activeTahunAjaran || !activeSemester) return false;
+  if (tahunAjaran < activeTahunAjaran) return true;
+  if (tahunAjaran === activeTahunAjaran) return semesterOrder(semester) < semesterOrder(activeSemester);
+  return false;
+};
+
 export default function NilaiPeriodeModal({
-  student, mapelList, mode, initialTahunAjaran, initialSemester, initialKelasId, initialKelasName, existingItems, onClose
+  student, mapelList, mode, activeTahunAjaran, activeSemester,
+  initialTahunAjaran, initialSemester, initialKelasId, initialKelasName, existingItems, onClose
 }: NilaiPeriodeModalProps) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -37,11 +62,7 @@ export default function NilaiPeriodeModal({
   const [tahunAjaran, setTahunAjaran] = useState(initialTahunAjaran || '');
   const [semester, setSemester] = useState(initialSemester || '');
   const [kelasId, setKelasId] = useState(initialKelasId || '');
-
-  const existingMap = useMemo(
-    () => new Map((existingItems || []).map(item => [item.mataPelajaranId, item])),
-    [existingItems]
-  );
+  const [grupDaimiId, setGrupDaimiId] = useState<string>(student.dataDaimi?.grupId || '');
 
   const [localNilai, setLocalNilai] = useState<Record<string, number | null>>(() => {
     const initial: Record<string, number | null> = {};
@@ -60,24 +81,69 @@ export default function NilaiPeriodeModal({
     enabled: mode === 'new'
   });
 
+  const { data: grupDaimiList = [] } = useQuery<GrupDaimiOption[]>({
+    queryKey: ['grup-daimi'],
+    queryFn: async () => {
+      const res = await apiClient.get<GrupDaimiOption[]>('/pesantren/grup-daimi');
+      return res.data;
+    }
+  });
+
+  const grupDaimiCabangList = useMemo(
+    () => grupDaimiList.filter(g => !student.cabangId || !g.cabangId || g.cabangId === student.cabangId),
+    [grupDaimiList, student.cabangId]
+  );
+
+  // Kelas/rombel untuk backfill hanya boleh dari cabang siswa & tingkat DI BAWAH tingkat aktifnya saat ini,
+  // supaya modal ini tidak dipakai untuk menyentuh data kelas yang sedang berjalan
+  const currentTingkat = parseInt(student.siswaFormal?.kelas?.tingkat || '', 10);
+
   const kelasCabangList = useMemo(
     () => kelasList.filter(k => !student.cabangId || k.cabangId === student.cabangId),
     [kelasList, student.cabangId]
   );
 
+  // Tahun ajaran yang bisa dipilih untuk backfill: tahun ajaran aktif & beberapa tahun sebelumnya,
+  // digenerate dari tahun ajaran aktif (bukan hanya dari Kelas yang sudah ada) supaya tetap muncul
+  // walau Kelas untuk tahun itu belum pernah dibuat
   const tahunAjaranOptions = useMemo(() => {
-    const set = new Set<string>();
-    kelasCabangList.forEach(k => { if (k.tahunAjaran) set.add(k.tahunAjaran); });
-    return Array.from(set).sort().reverse();
-  }, [kelasCabangList]);
+    const startYear = parseInt((activeTahunAjaran || '').split('/')[0], 10);
+    if (isNaN(startYear)) return [];
+    const options: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      const y = startYear - i;
+      options.push(`${y}/${y + 1}`);
+    }
+    return options;
+  }, [activeTahunAjaran]);
+
+  // Semester yang boleh dipilih: kalau tahun ajarannya sama dengan yang aktif, hanya semester
+  // SEBELUM semester aktif yang boleh (mis. aktif Genap -> hanya Ganjil tahun itu yang tampil).
+  // Ini memastikan periode yang dipilih selalu lampau, tidak pernah menyentuh periode aktif sekarang.
+  const semesterOptions = useMemo(() => {
+    const all = [{ value: 'Ganjil', label: 'Ganjil (1)' }, { value: 'Genap', label: 'Genap (2)' }];
+    if (tahunAjaran === activeTahunAjaran) {
+      return all.filter(s => semesterOrder(s.value) < semesterOrder(activeSemester));
+    }
+    return all;
+  }, [tahunAjaran, activeTahunAjaran, activeSemester]);
 
   const kelasOptions = useMemo(
-    () => kelasCabangList.filter(k => !tahunAjaran || k.tahunAjaran === tahunAjaran),
-    [kelasCabangList, tahunAjaran]
+    () => kelasCabangList.filter(k => {
+      if (tahunAjaran && k.tahunAjaran !== tahunAjaran) return false;
+      const tingkat = parseInt(k.tingkat || '', 10);
+      if (!isNaN(currentTingkat) && !isNaN(tingkat) && tingkat >= currentTingkat) return false;
+      return true;
+    }),
+    [kelasCabangList, tahunAjaran, currentTingkat]
   );
 
-  const grupDaimiId = student.dataDaimi?.grupId ?? null;
-  const grupDaimiName = student.dataDaimi?.grup?.jenis || student.dataDaimi?.grup?.name || null;
+  const grupDaimiName = useMemo(
+    () => grupDaimiCabangList.find(g => g.id === grupDaimiId)?.jenis
+      || grupDaimiCabangList.find(g => g.id === grupDaimiId)?.name
+      || null,
+    [grupDaimiCabangList, grupDaimiId]
+  );
 
   const isMapelActive = (mapel: MapelWithKeaktifan) => {
     if (mapel.isActive === false) return false;
@@ -97,6 +163,7 @@ export default function NilaiPeriodeModal({
         kelasId,
         tahunAjaran,
         semester,
+        grupDaimiId,
         data
       });
       return res.data;
@@ -111,7 +178,8 @@ export default function NilaiPeriodeModal({
     }
   });
 
-  const canSave = !!tahunAjaran && !!semester && !!kelasId && !saveMutation.isPending;
+  const isLampau = isPeriodeLampau(tahunAjaran, semester, activeTahunAjaran, activeSemester);
+  const canSave = !!tahunAjaran && !!semester && !!kelasId && !!grupDaimiId && isLampau && !saveMutation.isPending;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
@@ -121,7 +189,7 @@ export default function NilaiPeriodeModal({
             <ClipboardList className="w-5 h-5" />
             <div>
               <h3 className="text-base font-bold">{mode === 'new' ? 'Tambah Periode & Input Nilai' : 'Input/Edit Nilai Rapor'}</h3>
-              <p className="text-xs text-indigo-100">{student.biodata?.fullName}</p>
+              <p className="text-xs text-indigo-100">{student.biodata?.fullName} &middot; khusus periode lampau, tidak mengubah data aktif saat ini</p>
             </div>
           </div>
           <button onClick={onClose} className="text-white/80 hover:text-white">
@@ -136,7 +204,7 @@ export default function NilaiPeriodeModal({
                 <label className="block text-xs font-medium text-slate-700 mb-1">Tahun Ajaran</label>
                 <select
                   value={tahunAjaran}
-                  onChange={(e) => { setTahunAjaran(e.target.value); setKelasId(''); }}
+                  onChange={(e) => { setTahunAjaran(e.target.value); setSemester(''); setKelasId(''); }}
                   className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
                 >
                   <option value="">-- Pilih --</option>
@@ -148,19 +216,22 @@ export default function NilaiPeriodeModal({
                 <select
                   value={semester}
                   onChange={(e) => setSemester(e.target.value)}
-                  className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  disabled={!tahunAjaran || semesterOptions.length === 0}
+                  className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-50"
                 >
                   <option value="">-- Pilih --</option>
-                  <option value="Ganjil">Ganjil (1)</option>
-                  <option value="Genap">Genap (2)</option>
+                  {semesterOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
+                {tahunAjaran === activeTahunAjaran && semesterOptions.length === 0 && (
+                  <p className="text-[10px] text-amber-600 mt-1">Tahun ajaran ini tidak punya semester lampau, pilih tahun sebelumnya.</p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-700 mb-1">Kelas / Rombel</label>
                 <select
                   value={kelasId}
                   onChange={(e) => setKelasId(e.target.value)}
-                  disabled={!tahunAjaran}
+                  disabled={!semester}
                   className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-50"
                 >
                   <option value="">-- Pilih --</option>
@@ -176,8 +247,25 @@ export default function NilaiPeriodeModal({
             </div>
           )}
 
+          <div>
+            <label className="block text-xs font-medium text-slate-700 mb-1">Jenis Grup Daimi (saat periode ini)</label>
+            <select
+              value={grupDaimiId}
+              onChange={(e) => setGrupDaimiId(e.target.value)}
+              className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              <option value="">-- Pilih --</option>
+              {grupDaimiCabangList.map(g => (
+                <option key={g.id} value={g.id}>{g.name}{g.jenis ? ` (${g.jenis})` : ''}</option>
+              ))}
+            </select>
+            <p className="text-[10px] text-slate-400 mt-1">
+              Menentukan mapel mana yang aktif/bisa diisi untuk periode ini. Boleh berbeda dari grup daimi siswa saat ini kalau dulu berbeda.
+            </p>
+          </div>
+
           {mode === 'new' && !canSave && (
-            <p className="text-xs text-amber-600 italic">Pilih Tahun Ajaran, Semester, dan Kelas terlebih dahulu untuk mulai input nilai.</p>
+            <p className="text-xs text-amber-600 italic">Lengkapi Tahun Ajaran, Semester, Kelas, dan Jenis Grup Daimi (harus periode lampau) untuk mulai input nilai.</p>
           )}
 
           <div className="overflow-x-auto border border-slate-200 rounded-lg">

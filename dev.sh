@@ -18,8 +18,8 @@ echo "=== 3. Mem-push ke GitHub ==="
 # Gunakan flag --verbose agar terlihat progress upload-nya
 git push --verbose origin main
 
-echo "=== 4. Menjalankan Backend API Lokal ==="
-# Menghentikan proses di port 8080 jika ada
+echo "=== 4. Menjalankan Frontend Lokal ==="
+# Menghentikan proses di port 3000 jika ada
 fuser -k 3000/tcp 2>/dev/null || kill -9 $(lsof -t -i:3000) 2>/dev/null || true
 
 npm run dev

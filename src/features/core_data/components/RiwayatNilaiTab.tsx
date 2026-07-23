@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GraduationCap, ClipboardList, ChevronDown, ChevronRight, FileBarChart } from 'lucide-react';
+import { GraduationCap, ClipboardList, ChevronDown, ChevronRight, FileBarChart, Printer } from 'lucide-react';
 import { Student } from '../hooks/useGetStudents';
 import {
   useGetNilaiHistory,
@@ -9,6 +9,7 @@ import {
   NilaiFormalHistory
 } from '../hooks/useNilaiHistory';
 import TranskripNilaiModal from './TranskripNilaiModal';
+import RaporCetakModal from '../../../pages/formal/RaporCetakModal';
 
 interface RiwayatNilaiTabProps {
   student: Student;
@@ -61,6 +62,7 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
   const { data: mapelList, isLoading: isLoadingMapel } = useGetMapelList();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [isTranskripOpen, setIsTranskripOpen] = useState(false);
+  const [cetakGroup, setCetakGroup] = useState<{ tahunAjaran: string; semester: string } | null>(null);
 
   const isLoading = isLoadingHistory || isLoadingMapel;
   const groups = groupBySemester(history ?? []);
@@ -107,12 +109,12 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
               const isOpen = !!expanded[group.key];
               return (
                 <div key={group.key} className="rounded-xl border border-slate-200 overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup(group.key)}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group.key)}
+                      className="flex items-center gap-2 flex-wrap flex-1 text-left"
+                    >
                       {isOpen ? <ChevronDown className="w-4 h-4 text-slate-400 flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />}
                       <GraduationCap className="w-4 h-4 text-slate-400" />
                       <span className="text-sm font-bold text-slate-700">{group.tahunAjaran}</span>
@@ -120,14 +122,25 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
                       {group.kelasName && (
                         <span className="text-xs text-slate-500">Kelas: <span className="font-semibold text-slate-700">{group.kelasName}</span></span>
                       )}
+                    </button>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {rata !== null && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-slate-400">Rata-rata</span>
+                          <span className="text-sm font-extrabold text-emerald-700">{rata}</span>
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setCetakGroup({ tahunAjaran: group.tahunAjaran, semester: group.semester })}
+                        title="Cetak Rapor periode ini"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        Cetak Rapor
+                      </button>
                     </div>
-                    {rata !== null && (
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <span className="text-xs text-slate-400">Rata-rata</span>
-                        <span className="text-sm font-extrabold text-emerald-700">{rata}</span>
-                      </div>
-                    )}
-                  </button>
+                  </div>
 
                   {isOpen && (
                     <div className="overflow-x-auto">
@@ -177,6 +190,15 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
           history={history ?? []}
           mapelList={sortedMapel}
           onClose={() => setIsTranskripOpen(false)}
+        />
+      )}
+
+      {cetakGroup && (
+        <RaporCetakModal
+          studentId={student.id}
+          tahunAjaran={cetakGroup.tahunAjaran}
+          semester={cetakGroup.semester}
+          onClose={() => setCetakGroup(null)}
         />
       )}
     </div>

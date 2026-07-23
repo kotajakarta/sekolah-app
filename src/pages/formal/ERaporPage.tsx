@@ -5,7 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useMasterData';
 import {
   BookOpen, Save, Printer, UserCheck,
-  Layers, Sparkles, Filter, Building2, MapPin, Search, Eye, AlertTriangle, X
+  Layers, Sparkles, Filter, Building2, MapPin, Eye, AlertTriangle, X
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import HafalanAlQuranModal from './HafalanAlQuranModal';
@@ -90,13 +90,7 @@ export const ERaporPage: React.FC = () => {
   const [selectedMapelId, setSelectedMapelId] = useState<string>('');
   const [hafalanModalRow, setHafalanModalRow] = useState<NilaiSiswaRow | null>(null);
 
-  // Filter khusus tab Cetak Rapor (independen dari periode terkunci di tab lain,
-  // karena cetak ulang rapor semester lampau harus tetap bisa dilakukan)
-  const [cetakKelasId, setCetakKelasId] = useState<string>('');
-  const [cetakTahunAjaran, setCetakTahunAjaran] = useState<string>('');
-  const [cetakSemester, setCetakSemester] = useState<string>('');
-  const [cetakSearchInput, setCetakSearchInput] = useState<string>('');
-  const [cetakSearch, setCetakSearch] = useState<string>('');
+  // Tab Cetak Rapor mengikuti filter Wilayah/Cabang/Kelas & periode aktif di bagian atas
   const [cetakPage, setCetakPage] = useState<number>(1);
   const [cetakModal, setCetakModal] = useState<{ studentId: string; autoPrint: boolean } | null>(null);
   const [warningPopoverId, setWarningPopoverId] = useState<string | null>(null);
@@ -129,6 +123,11 @@ export const ERaporPage: React.FC = () => {
       setSelectedKelasId('');
     }
   }, [filteredKelasList, selectedKelasId]);
+
+  // Reset halaman tab Cetak Rapor saat kelas terpilih (filter atas) berubah
+  useEffect(() => {
+    setCetakPage(1);
+  }, [selectedKelasId]);
 
   // 2. Fetch Master Mapel
   const { data: mapelList = [] } = useQuery<Mapel[]>({
@@ -291,60 +290,21 @@ export const ERaporPage: React.FC = () => {
     enabled: !!selectedKelasId && !!tahunAjaran && !!semester && activeTab === 'leger'
   });
 
-  // 6. Default filter periode tab Cetak Rapor mengikuti periode aktif (bisa diganti manual untuk cetak ulang semester lampau)
-  useEffect(() => {
-    if (tahunAjaran && !cetakTahunAjaran) setCetakTahunAjaran(tahunAjaran);
-    if (semester && !cetakSemester) setCetakSemester(semester);
-  }, [tahunAjaran, semester, cetakTahunAjaran, cetakSemester]);
-
-  const cetakTahunAjaranOptions = React.useMemo(() => {
-    const set = new Set<string>();
-    kelasList.forEach(k => { if (k.tahunAjaran) set.add(k.tahunAjaran); });
-    if (tahunAjaran) set.add(tahunAjaran);
-    return Array.from(set).sort().reverse();
-  }, [kelasList, tahunAjaran]);
-
-  // Daftar kelas untuk tab Cetak Rapor: independen dari cascading Wilayah/Cabang tab lain,
-  // cukup dibatasi oleh scope area kerja user (CABANG/WILAYAH/GLOBAL)
-  const cetakKelasOptions = React.useMemo(() => {
-    if (user?.scope === 'CABANG' && user?.cabangId) {
-      return kelasList.filter(k => k.cabangId === user.cabangId);
-    }
-    if (user?.scope === 'WILAYAH' && user?.wilayahId) {
-      const cabangIdsInWilayah = new Set(cabangList.filter(c => c.wilayahId === user.wilayahId).map(c => c.id));
-      return kelasList.filter(k => k.cabangId && cabangIdsInWilayah.has(k.cabangId));
-    }
-    return kelasList;
-  }, [kelasList, cabangList, user]);
-
-  const cetakScopeLabel = React.useMemo(() => {
-    if (cetakKelasId) {
-      const kelas = cetakKelasOptions.find(k => k.id === cetakKelasId);
-      const cabang = cabangList.find(c => c.id === kelas?.cabangId);
-      return cabang?.name || 'Kelas Terpilih';
-    }
-    if (user?.scope === 'CABANG' && user?.cabangId) {
-      return cabangList.find(c => c.id === user.cabangId)?.name || 'Cabang Anda';
-    }
-    return 'Semua Kelas Area Anda';
-  }, [cetakKelasId, cetakKelasOptions, cabangList, user]);
-
   const { data: cetakListData, isLoading: isLoadingCetakList } = useQuery<any>({
-    queryKey: ['erapor-cetak-list', cetakKelasId, cetakTahunAjaran, cetakSemester, cetakSearch, cetakPage],
+    queryKey: ['erapor-cetak-list', selectedKelasId, tahunAjaran, semester, cetakPage],
     queryFn: async () => {
       const res = await apiClient.get('/formal/erapor/cetak-list', {
         params: {
-          kelasId: cetakKelasId || undefined,
-          tahunAjaran: cetakTahunAjaran,
-          semester: cetakSemester,
-          search: cetakSearch || undefined,
+          kelasId: selectedKelasId || undefined,
+          tahunAjaran,
+          semester,
           page: cetakPage,
           pageSize: 20
         }
       });
       return res.data;
     },
-    enabled: activeTab === 'cetak' && !!cetakTahunAjaran && !!cetakSemester
+    enabled: activeTab === 'cetak' && !!selectedKelasId && !!tahunAjaran && !!semester
   });
 
   const toggleSudahCetakMutation = useMutation({
@@ -352,8 +312,8 @@ export const ERaporPage: React.FC = () => {
       await apiClient.post('/formal/erapor/tandai-cetak', {
         studentId: payload.studentId,
         kelasId: payload.kelasId,
-        tahunAjaran: cetakTahunAjaran,
-        semester: cetakSemester,
+        tahunAjaran,
+        semester,
         sudahCetak: payload.sudahCetak
       });
     },
@@ -974,76 +934,12 @@ export const ERaporPage: React.FC = () => {
       {/* TAB 4: CETAK RAPOR MUADALAH */}
       {activeTab === 'cetak' && (
         <div className="space-y-4">
-          {/* Filter Bar */}
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex flex-wrap items-end gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Kelas</label>
-                <select
-                  value={cetakKelasId}
-                  onChange={(e) => { setCetakKelasId(e.target.value); setCetakPage(1); }}
-                  className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none min-w-[220px]"
-                >
-                  <option value="">-- Semua Kelas Area Anda --</option>
-                  {cetakKelasOptions.map(k => (
-                    <option key={k.id} value={k.id}>{k.name} {k.lembagaMuadalah ? `(${k.lembagaMuadalah.name})` : ''}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Semester</label>
-                <select
-                  value={cetakSemester}
-                  onChange={(e) => { setCetakSemester(e.target.value); setCetakPage(1); }}
-                  className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none"
-                >
-                  <option value="Ganjil">Ganjil (1)</option>
-                  <option value="Genap">Genap (2)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Thn. Ajaran</label>
-                <select
-                  value={cetakTahunAjaran}
-                  onChange={(e) => { setCetakTahunAjaran(e.target.value); setCetakPage(1); }}
-                  className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none"
-                >
-                  {cetakTahunAjaranOptions.map(ta => (
-                    <option key={ta} value={ta}>{ta}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex-1 min-w-[220px]">
-                <label className="block text-xs font-medium text-slate-700 mb-1">Cari Nama</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={cetakSearchInput}
-                    onChange={(e) => setCetakSearchInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { setCetakSearch(cetakSearchInput); setCetakPage(1); } }}
-                    placeholder="Nama siswa..."
-                    className="flex-1 text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none"
-                  />
-                  <button
-                    onClick={() => { setCetakSearch(cetakSearchInput); setCetakPage(1); }}
-                    className="inline-flex items-center justify-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-                  >
-                    <Search className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Header Info & Badge */}
+          {/* Header Info & Badge (mengikuti Filter Akademik & Kelembagaan di atas) */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-bold text-slate-900">
-                Daftar Siswa {cetakKelasId ? cetakKelasOptions.find(k => k.id === cetakKelasId)?.name : 'Semua Kelas'} di {cetakScopeLabel}
-                {' '}| Periode: Sem {cetakSemester === 'Genap' ? '2' : '1'} TA {cetakTahunAjaran}
+                Daftar Siswa {selectedKelasInfo?.name || '-'} di {selectedKelasCabang?.name || 'Area Anda'}
+                {' '}| Periode: Sem {semester === 'Genap' ? '2' : '1'} TA {tahunAjaran}
               </h2>
               {cetakListData && (
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1198,8 +1094,8 @@ export const ERaporPage: React.FC = () => {
       {cetakModal && (
         <RaporCetakModal
           studentId={cetakModal.studentId}
-          tahunAjaran={cetakTahunAjaran}
-          semester={cetakSemester}
+          tahunAjaran={tahunAjaran}
+          semester={semester}
           autoPrint={cetakModal.autoPrint}
           onClose={() => setCetakModal(null)}
           onPrinted={() => {

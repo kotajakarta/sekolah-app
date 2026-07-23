@@ -48,10 +48,15 @@ export default function RaporCetakModal({ studentId, tahunAjaran, semester, auto
       {/* Isolasi area cetak: paksa sembunyikan seluruh isi body kecuali dokumen rapor,
           supaya tombol Cetak tidak ikut mencetak layout dashboard/sidebar di baliknya. */}
       <style>{`
+        @page { size: A4; margin: 12mm; }
         @media print {
           body * { visibility: hidden !important; }
           #rapor-cetak-print-area, #rapor-cetak-print-area * { visibility: visible !important; }
           #rapor-cetak-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          #rapor-cetak-print-area table { page-break-inside: auto; }
+          #rapor-cetak-print-area tr { page-break-inside: avoid; break-inside: avoid; }
+          #rapor-cetak-print-area thead { display: table-header-group; }
+          #rapor-cetak-print-area .avoid-break { page-break-inside: avoid; break-inside: avoid; }
         }
       `}</style>
 

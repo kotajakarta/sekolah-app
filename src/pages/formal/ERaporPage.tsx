@@ -1092,8 +1092,10 @@ export const ERaporPage: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={row.sudahCetak}
-                            onChange={(e) => toggleSudahCetakMutation.mutate({ studentId: row.studentId, kelasId: row.kelasId, sudahCetak: e.target.checked })}
-                            className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                            disabled={!row.isLengkap}
+                            title={row.isLengkap ? undefined : 'Nilai belum lengkap, lihat rincian pada ikon peringatan'}
+                            onChange={(e) => row.isLengkap && toggleSudahCetakMutation.mutate({ studentId: row.studentId, kelasId: row.kelasId, sudahCetak: e.target.checked })}
+                            className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                           />
                         </td>
                         <td className="py-2.5 px-4">

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { X, Save, ClipboardList } from 'lucide-react';
 import apiClient from '../../../lib/apiClient';
@@ -37,6 +37,30 @@ interface NilaiPeriodeModalProps {
   onClose: () => void;
 }
 
+interface HafalanData {
+  awalPutaran: number | null;
+  awalJuz: number | null;
+  targetPutaran: number | null;
+  targetJuz: number | null;
+  akhirPutaran: number | null;
+  akhirJuz: number | null;
+}
+
+const EMPTY_HAFALAN: HafalanData = {
+  awalPutaran: null, awalJuz: null, targetPutaran: null, targetJuz: null, akhirPutaran: null, akhirJuz: null
+};
+
+// Sama persis dengan logika di HafalanAlQuranModal.tsx: (akhir putaran * 30 + akhir juz - 30) / 20
+function calculateJumlahHafalan(akhirPutaran: number | null, akhirJuz: number | null) {
+  if (akhirPutaran === null || akhirJuz === null || isNaN(akhirPutaran) || isNaN(akhirJuz)) {
+    return { jumlahJuz: null as number | null, jumlahHalaman: null as number | null };
+  }
+  const total = (akhirPutaran * 30 + akhirJuz - 30) / 20;
+  const jumlahJuz = Math.floor(total);
+  const jumlahHalaman = Math.round((total - jumlahJuz) * 20);
+  return { jumlahJuz, jumlahHalaman };
+}
+
 const semesterOrder = (semester: string) => {
   const normalized = semester?.toUpperCase();
   if (normalized === 'GANJIL') return 0;
@@ -63,6 +87,7 @@ export default function NilaiPeriodeModal({
   const [semester, setSemester] = useState(initialSemester || '');
   const [kelasId, setKelasId] = useState(initialKelasId || '');
   const [grupDaimiId, setGrupDaimiId] = useState<string>(student.dataDaimi?.grupId || '');
+  const [hafalan, setHafalan] = useState<HafalanData>(EMPTY_HAFALAN);
 
   const [localNilai, setLocalNilai] = useState<Record<string, number | null>>(() => {
     const initial: Record<string, number | null> = {};
@@ -128,14 +153,16 @@ export default function NilaiPeriodeModal({
     return all;
   }, [tahunAjaran, activeTahunAjaran, activeSemester]);
 
+  // Semua kelas terdaftar di cabang siswa, tidak difilter berdasarkan tahun_ajaran kelas
+  // (banyak kelas lama tidak konsisten diisi tahun ajarannya) - cukup batasi tingkat yang
+  // setingkat atau di bawah tingkat aktif siswa saat ini.
   const kelasOptions = useMemo(
     () => kelasCabangList.filter(k => {
-      if (tahunAjaran && k.tahunAjaran !== tahunAjaran) return false;
       const tingkat = parseInt(k.tingkat || '', 10);
-      if (!isNaN(currentTingkat) && !isNaN(tingkat) && tingkat >= currentTingkat) return false;
+      if (!isNaN(currentTingkat) && !isNaN(tingkat) && tingkat > currentTingkat) return false;
       return true;
     }),
-    [kelasCabangList, tahunAjaran, currentTingkat]
+    [kelasCabangList, currentTingkat]
   );
 
   const grupDaimiName = useMemo(
@@ -152,6 +179,38 @@ export default function NilaiPeriodeModal({
     return entry ? entry.isActive : false;
   };
 
+  // Kalau jenis grup daimi yang dipilih untuk periode ini HAFIZLIK, tampilkan juga input
+  // Capaian Hafalan Al-Qur'an (sama seperti tab Input Nilai Mapel untuk periode aktif)
+  const isHafizlikSelected = grupDaimiCabangList.find(g => g.id === grupDaimiId)?.jenis === 'HAFIZLIK';
+
+  const { data: existingHafalan } = useQuery({
+    queryKey: ['hafalan-al-quran', student.id, tahunAjaran, semester],
+    queryFn: async () => {
+      const res = await apiClient.get(`/formal/erapor/hafalan/${student.id}`, {
+        params: { tahunAjaran, semester }
+      });
+      return res.data;
+    },
+    enabled: isHafizlikSelected && !!tahunAjaran && !!semester
+  });
+
+  useEffect(() => {
+    if (existingHafalan) {
+      setHafalan({
+        awalPutaran: existingHafalan.awalPutaran ?? null,
+        awalJuz: existingHafalan.awalJuz ?? null,
+        targetPutaran: existingHafalan.targetPutaran ?? null,
+        targetJuz: existingHafalan.targetJuz ?? null,
+        akhirPutaran: existingHafalan.akhirPutaran ?? null,
+        akhirJuz: existingHafalan.akhirJuz ?? null,
+      });
+    } else {
+      setHafalan(EMPTY_HAFALAN);
+    }
+  }, [existingHafalan]);
+
+  const { jumlahJuz, jumlahHalaman } = calculateJumlahHafalan(hafalan.akhirPutaran, hafalan.akhirJuz);
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const data = mapelList
@@ -166,10 +225,22 @@ export default function NilaiPeriodeModal({
         grupDaimiId,
         data
       });
+
+      if (isHafizlikSelected) {
+        await apiClient.post('/formal/erapor/hafalan', {
+          studentId: student.id,
+          kelasId,
+          tahunAjaran,
+          semester,
+          ...hafalan
+        });
+      }
+
       return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['nilai-history', student.id] });
+      queryClient.invalidateQueries({ queryKey: ['hafalan-al-quran', student.id, tahunAjaran, semester] });
       showToast('success', 'Nilai rapor berhasil disimpan');
       onClose();
     },
@@ -235,7 +306,9 @@ export default function NilaiPeriodeModal({
                   className="w-full text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none disabled:opacity-50"
                 >
                   <option value="">-- Pilih --</option>
-                  {kelasOptions.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+                  {kelasOptions.map(k => (
+                    <option key={k.id} value={k.id}>{k.name}{k.tahunAjaran ? ` (TA ${k.tahunAjaran})` : ''}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -263,6 +336,72 @@ export default function NilaiPeriodeModal({
               Menentukan mapel mana yang aktif/bisa diisi untuk periode ini. Boleh berbeda dari grup daimi siswa saat ini kalau dulu berbeda.
             </p>
           </div>
+
+          {isHafizlikSelected && (
+            <div className="border border-emerald-200 bg-emerald-50/40 rounded-lg p-4 space-y-3">
+              <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Capaian Hafalan Al-Qur'an (HAFIZLIK)</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Awal Putaran</label>
+                  <input
+                    type="number"
+                    value={hafalan.awalPutaran ?? ''}
+                    onChange={(e) => setHafalan(prev => ({ ...prev, awalPutaran: e.target.value === '' ? null : Number(e.target.value) }))}
+                    className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Awal Juz</label>
+                  <input
+                    type="number"
+                    value={hafalan.awalJuz ?? ''}
+                    onChange={(e) => setHafalan(prev => ({ ...prev, awalJuz: e.target.value === '' ? null : Number(e.target.value) }))}
+                    className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Target Putaran</label>
+                  <input
+                    type="number"
+                    value={hafalan.targetPutaran ?? ''}
+                    onChange={(e) => setHafalan(prev => ({ ...prev, targetPutaran: e.target.value === '' ? null : Number(e.target.value) }))}
+                    className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Target Juz</label>
+                  <input
+                    type="number"
+                    value={hafalan.targetJuz ?? ''}
+                    onChange={(e) => setHafalan(prev => ({ ...prev, targetJuz: e.target.value === '' ? null : Number(e.target.value) }))}
+                    className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Akhir Putaran</label>
+                  <input
+                    type="number"
+                    value={hafalan.akhirPutaran ?? ''}
+                    onChange={(e) => setHafalan(prev => ({ ...prev, akhirPutaran: e.target.value === '' ? null : Number(e.target.value) }))}
+                    className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Akhir Juz</label>
+                  <input
+                    type="number"
+                    value={hafalan.akhirJuz ?? ''}
+                    onChange={(e) => setHafalan(prev => ({ ...prev, akhirJuz: e.target.value === '' ? null : Number(e.target.value) }))}
+                    className="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-md outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-4 pt-1 text-xs">
+                <span className="text-slate-500">Total Capaian:</span>
+                <span className="font-bold text-emerald-700">{jumlahJuz ?? '-'} Juz {jumlahHalaman ?? '-'} Halaman</span>
+              </div>
+            </div>
+          )}
 
           {mode === 'new' && !canSave && (
             <p className="text-xs text-amber-600 italic">Lengkapi Tahun Ajaran, Semester, Kelas, dan Jenis Grup Daimi (harus periode lampau) untuk mulai input nilai.</p>

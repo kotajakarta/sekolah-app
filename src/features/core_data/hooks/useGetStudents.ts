@@ -82,6 +82,7 @@ export interface Student {
   riwayatPendidikan?: RiwayatPendidikan[];
   jenisSiswa?: string | null;
   grupDaimi?: string | null;
+  statusHafidz?: string | null;
   dataDaimi?: {
     id: string;
     grupId?: string | null;

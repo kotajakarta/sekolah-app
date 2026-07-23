@@ -8,6 +8,7 @@ import {
   Layers, Sparkles, Filter, Building2, MapPin
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import HafalanAlQuranModal from './HafalanAlQuranModal';
 
 interface Kelas {
   id: string;
@@ -31,6 +32,7 @@ interface NilaiSiswaRow {
   nis: string;
   fullName: string;
   jenisGrupDaimi: string;
+  isHafizlik: boolean;
   nilaiAkhir: number | null;
   predikat: string;
   mapelAktifUntukGrup: boolean;
@@ -45,10 +47,31 @@ interface PresensiCatatanRow {
   izin: number;
   alpa: number;
   catatanWaliKelas: string;
-  sikapSpiritual: string;
-  sikapSosial: string;
+  ketakwaan: string;
+  ketaatan: string;
+  kemampuanRepresentasi: string;
+  kerapihan: string;
+  kepercayaanDiri: string;
+  hubunganSosial: string;
+  semangatBelajar: string;
+  disiplin: string;
+  tanggungJawab: string;
   statusAkhir: string;
 }
+
+const PREDIKAT_SIKAP_OPTIONS = ['A', 'B+', 'B', 'C+', 'C'];
+
+const SIKAP_FIELDS: { key: keyof PresensiCatatanRow; label: string }[] = [
+  { key: 'ketakwaan', label: 'Ketakwaan' },
+  { key: 'ketaatan', label: 'Ketaatan' },
+  { key: 'kemampuanRepresentasi', label: 'Kemampuan Representasi' },
+  { key: 'kerapihan', label: 'Kerapihan' },
+  { key: 'kepercayaanDiri', label: 'Kepercayaan Diri' },
+  { key: 'hubunganSosial', label: 'Hubungan Sosial' },
+  { key: 'semangatBelajar', label: 'Semangat Belajar' },
+  { key: 'disiplin', label: 'Disiplin' },
+  { key: 'tanggungJawab', label: 'Tanggung Jawab' },
+];
 
 function calculatePredikat(score: number | null | undefined): string {
   if (score === null || score === undefined || isNaN(score)) return '';
@@ -57,6 +80,13 @@ function calculatePredikat(score: number | null | undefined): string {
   if (score >= 76) return 'B';
   return 'C+';
 }
+
+const STATUS_HAFIDZ_LABELS: Record<string, string> = {
+  BELUM_MULAI: 'Belum Mulai',
+  SEDANG_BERLANGSUNG: 'Sedang Berlangsung',
+  SUDAH_SETOR_30_JUZ: 'Sudah Setor 30 Juz',
+  SUDAH_KHATAMAN_KUBRO: 'Sudah Khataman Kubro',
+};
 
 export const ERaporPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -68,14 +98,24 @@ export const ERaporPage: React.FC = () => {
   const { data: wilayahList = [] } = useGetWilayah();
   const { data: cabangList = [] } = useGetCabang();
 
+  // Tahun Ajaran & Semester mengikuti Pengaturan Akademik (admin), tidak bisa dipilih bebas oleh user
+  const { data: pengaturanAkademik } = useQuery({
+    queryKey: ['pengaturan-akademik'],
+    queryFn: async () => {
+      const res = await apiClient.get('/pengaturan/akademik');
+      return res.data;
+    }
+  });
+  const tahunAjaran = pengaturanAkademik?.tahunAjaran || '';
+  const semester = pengaturanAkademik?.semesterAktif || '';
+
   // Filter State
-  const [tahunAjaran, setTahunAjaran] = useState<string>('2025/2026');
-  const [semester, setSemester] = useState<string>('Ganjil');
   const [selectedWilayahId, setSelectedWilayahId] = useState<string>('');
   const [selectedCabangId, setSelectedCabangId] = useState<string>('');
   const [selectedKelasId, setSelectedKelasId] = useState<string>('');
   const [selectedMapelId, setSelectedMapelId] = useState<string>('');
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [hafalanModalRow, setHafalanModalRow] = useState<NilaiSiswaRow | null>(null);
 
   // 1. Fetch Master Kelas
   const { data: kelasList = [] } = useQuery<Kelas[]>({
@@ -128,7 +168,7 @@ export const ERaporPage: React.FC = () => {
       });
       return res.data;
     },
-    enabled: !!selectedKelasId && !!selectedMapelId && activeTab === 'nilai'
+    enabled: !!selectedKelasId && !!selectedMapelId && !!tahunAjaran && !!semester && activeTab === 'nilai'
   });
 
   // Local state untuk form batch nilai
@@ -188,7 +228,7 @@ export const ERaporPage: React.FC = () => {
       });
       return res.data;
     },
-    enabled: !!selectedKelasId && activeTab === 'presensi'
+    enabled: !!selectedKelasId && !!tahunAjaran && !!semester && activeTab === 'presensi'
   });
 
   const [localPresensi, setLocalPresensi] = useState<Record<string, Partial<PresensiCatatanRow>>>({});
@@ -202,8 +242,15 @@ export const ERaporPage: React.FC = () => {
           izin: r.izin,
           alpa: r.alpa,
           catatanWaliKelas: r.catatanWaliKelas,
-          sikapSpiritual: r.sikapSpiritual,
-          sikapSosial: r.sikapSosial,
+          ketakwaan: r.ketakwaan,
+          ketaatan: r.ketaatan,
+          kemampuanRepresentasi: r.kemampuanRepresentasi,
+          kerapihan: r.kerapihan,
+          kepercayaanDiri: r.kepercayaanDiri,
+          hubunganSosial: r.hubunganSosial,
+          semangatBelajar: r.semangatBelajar,
+          disiplin: r.disiplin,
+          tanggungJawab: r.tanggungJawab,
           statusAkhir: r.statusAkhir
         };
       });
@@ -219,8 +266,15 @@ export const ERaporPage: React.FC = () => {
         izin: val.izin ? Number(val.izin) : 0,
         alpa: val.alpa ? Number(val.alpa) : 0,
         catatanWaliKelas: val.catatanWaliKelas || '',
-        sikapSpiritual: val.sikapSpiritual || 'Sangat Baik',
-        sikapSosial: val.sikapSosial || 'Baik',
+        ketakwaan: val.ketakwaan || 'A',
+        ketaatan: val.ketaatan || 'A',
+        kemampuanRepresentasi: val.kemampuanRepresentasi || 'A',
+        kerapihan: val.kerapihan || 'A',
+        kepercayaanDiri: val.kepercayaanDiri || 'A',
+        hubunganSosial: val.hubunganSosial || 'A',
+        semangatBelajar: val.semangatBelajar || 'A',
+        disiplin: val.disiplin || 'A',
+        tanggungJawab: val.tanggungJawab || 'A',
         statusAkhir: val.statusAkhir || ''
       }));
 
@@ -250,7 +304,7 @@ export const ERaporPage: React.FC = () => {
       });
       return res.data;
     },
-    enabled: !!selectedKelasId && activeTab === 'leger'
+    enabled: !!selectedKelasId && !!tahunAjaran && !!semester && activeTab === 'leger'
   });
 
   // 6. Fetch Cetak Rapor Data
@@ -263,7 +317,7 @@ export const ERaporPage: React.FC = () => {
       });
       return res.data;
     },
-    enabled: !!selectedStudentId && activeTab === 'cetak'
+    enabled: !!selectedStudentId && !!tahunAjaran && !!semester && activeTab === 'cetak'
   });
 
   // Hitung Rata-Rata Kelas untuk Input Nilai
@@ -274,6 +328,11 @@ export const ERaporPage: React.FC = () => {
   const rataRataKelasInput = validScores.length > 0
     ? (validScores.reduce((a, b) => a + Number(b), 0) / validScores.length).toFixed(2)
     : '-';
+
+  // Info kelas & wilayah untuk modal Hafalan Al-Qur'an
+  const selectedKelasInfo = filteredKelasList.find(k => k.id === selectedKelasId);
+  const selectedKelasCabang = cabangList.find(c => c.id === selectedKelasInfo?.cabangId);
+  const selectedKelasWilayahName = wilayahList.find(w => w.id === selectedKelasCabang?.wilayahId)?.name;
 
   return (
     <div className="p-6 max-w-[1600px] mx-auto space-y-6">
@@ -372,32 +431,24 @@ export const ERaporPage: React.FC = () => {
             </select>
           </div>
 
-          {/* Tahun Ajaran */}
+          {/* Tahun Ajaran (mengikuti Pengaturan Akademik, tidak bisa diubah di sini) */}
           <div className="flex items-center gap-2">
             <label className="text-xs font-medium text-slate-700">Tahun Ajaran:</label>
-            <select
-              value={tahunAjaran}
-              onChange={(e) => setTahunAjaran(e.target.value)}
-              className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none"
-            >
-              <option value="2025/2026">2025/2026</option>
-              <option value="2024/2025">2024/2025</option>
-              <option value="2023/2024">2023/2024</option>
-            </select>
+            <span className="text-xs font-semibold bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-700">
+              {tahunAjaran || '-'}
+            </span>
           </div>
 
-          {/* Semester */}
+          {/* Semester (mengikuti Pengaturan Akademik, tidak bisa diubah di sini) */}
           <div className="flex items-center gap-2">
             <label className="text-xs font-medium text-slate-700">Semester:</label>
-            <select
-              value={semester}
-              onChange={(e) => setSemester(e.target.value)}
-              className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none"
-            >
-              <option value="Ganjil">Ganjil</option>
-              <option value="Genap">Genap</option>
-            </select>
+            <span className="text-xs font-semibold bg-slate-100 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-700">
+              {semester || '-'}
+            </span>
           </div>
+          <p className="text-[11px] text-slate-400 italic">
+            Tahun ajaran & semester mengikuti Pengaturan Akademik (Admin). Ubah di menu Pengaturan &gt; Akademik.
+          </p>
 
           {/* Mata Pelajaran (Khusus Tab 1) */}
           {activeTab === 'nilai' && (
@@ -516,6 +567,7 @@ export const ERaporPage: React.FC = () => {
                     <th className="py-3 px-4 w-32 text-center">NISN / NIS</th>
                     <th className="py-3 px-4 w-36 text-center">Nilai Akhir (0 - 100)</th>
                     <th className="py-3 px-4 w-28 text-center">Predikat</th>
+                    <th className="py-3 px-4 w-40 text-center">Hafalan Al-Qur'an</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -575,6 +627,22 @@ export const ERaporPage: React.FC = () => {
                             {autoPredikat || '-'}
                           </span>
                         </td>
+
+                        {/* Hafalan Al-Qur'an (khusus grup daimi jenis HAFIZLIK) */}
+                        <td className="py-2 px-4 text-center">
+                          {row.isHafizlik ? (
+                            <button
+                              type="button"
+                              onClick={() => setHafalanModalRow(row)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold transition-colors"
+                            >
+                              <BookOpen className="w-3.5 h-3.5" />
+                              Input Hafalan
+                            </button>
+                          ) : (
+                            <span className="text-slate-300">-</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
@@ -592,7 +660,7 @@ export const ERaporPage: React.FC = () => {
             <div>
               <h2 className="text-base font-bold text-slate-900">Catatan Wali Kelas & Rekapitulasi Presensi</h2>
               <p className="text-xs text-slate-500">
-                Catat ketidakhadiran (Sakit, Izin, Alpa), Sikap Spiritual & Sosial, serta Catatan Kenaikan Kelas.
+                Catat ketidakhadiran (Sakit, Izin, Alpa), penilaian sikap (predikat A, B+, B, C+, C), serta Catatan Kenaikan Kelas.
               </p>
             </div>
             <button
@@ -622,8 +690,9 @@ export const ERaporPage: React.FC = () => {
                     <th className="py-3 px-2 text-center w-16">Sakit</th>
                     <th className="py-3 px-2 text-center w-16">Izin</th>
                     <th className="py-3 px-2 text-center w-16">Alpa</th>
-                    <th className="py-3 px-3 w-32">Sikap Spiritual</th>
-                    <th className="py-3 px-3 w-32">Sikap Sosial</th>
+                    {SIKAP_FIELDS.map(f => (
+                      <th key={f.key} className="py-3 px-2 w-24 text-center">{f.label}</th>
+                    ))}
                     <th className="py-3 px-4 min-w-[260px]">Catatan Wali Kelas</th>
                     <th className="py-3 px-3 w-36">Status Akhir</th>
                   </tr>
@@ -684,37 +753,23 @@ export const ERaporPage: React.FC = () => {
                           />
                         </td>
 
-                        {/* Sikap Spiritual */}
-                        <td className="py-2 px-2">
-                          <select
-                            value={current.sikapSpiritual || 'Sangat Baik'}
-                            onChange={(e) => setLocalPresensi(prev => ({
-                              ...prev,
-                              [row.studentId]: { ...prev[row.studentId], sikapSpiritual: e.target.value }
-                            }))}
-                            className="w-full py-1.5 px-2 bg-slate-50 border border-slate-300 rounded-md text-xs"
-                          >
-                            <option value="Sangat Baik">Sangat Baik</option>
-                            <option value="Baik">Baik</option>
-                            <option value="Cukup">Cukup</option>
-                          </select>
-                        </td>
-
-                        {/* Sikap Sosial */}
-                        <td className="py-2 px-2">
-                          <select
-                            value={current.sikapSosial || 'Baik'}
-                            onChange={(e) => setLocalPresensi(prev => ({
-                              ...prev,
-                              [row.studentId]: { ...prev[row.studentId], sikapSosial: e.target.value }
-                            }))}
-                            className="w-full py-1.5 px-2 bg-slate-50 border border-slate-300 rounded-md text-xs"
-                          >
-                            <option value="Sangat Baik">Sangat Baik</option>
-                            <option value="Baik">Baik</option>
-                            <option value="Cukup">Cukup</option>
-                          </select>
-                        </td>
+                        {/* Nilai Sikap (predikat A, B+, B, C+, C) */}
+                        {SIKAP_FIELDS.map(f => (
+                          <td key={f.key} className="py-2 px-1">
+                            <select
+                              value={(current[f.key] as string) || 'A'}
+                              onChange={(e) => setLocalPresensi(prev => ({
+                                ...prev,
+                                [row.studentId]: { ...prev[row.studentId], [f.key]: e.target.value }
+                              }))}
+                              className="w-full py-1.5 px-1 bg-slate-50 border border-slate-300 rounded-md text-xs text-center"
+                            >
+                              {PREDIKAT_SIKAP_OPTIONS.map(opt => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          </td>
+                        ))}
 
                         {/* Catatan Wali Kelas */}
                         <td className="py-2 px-3">
@@ -765,6 +820,10 @@ export const ERaporPage: React.FC = () => {
               <h2 className="text-base font-bold text-slate-900">Rekapitulasi Leger Nilai Kelas</h2>
               <p className="text-xs text-slate-500">
                 Matriks perolehan nilai seluruh mata pelajaran, total nilai, rata-rata, dan peringkat siswa.
+              </p>
+              <p className="text-xs mt-1 flex items-center gap-3">
+                <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-red-100 border border-red-300"></span> Nilai kosong, mapel aktif untuk grup siswa</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-blue-50 border border-blue-300"></span> Mapel tidak aktif untuk grup siswa</span>
               </p>
             </div>
 
@@ -829,10 +888,23 @@ export const ERaporPage: React.FC = () => {
                       <td className="py-2.5 px-3 text-center text-slate-500 border-r border-slate-200">{row.nisn || '-'}</td>
                       {legerData.mapelList.map((m: any) => {
                         const score = row.scores[m.id];
+                        const isEmpty = score === undefined || score === null;
+                        const isAktifUntukGrup = !!row.aktifMapel?.[m.id];
+                        let cellClass = 'text-slate-800';
+                        if (!isEmpty && score < 76) {
+                          cellClass = 'text-red-600 bg-red-50';
+                        } else if (isEmpty) {
+                          cellClass = isAktifUntukGrup
+                            ? 'text-red-700 bg-red-100 font-bold'
+                            : 'text-blue-700 bg-blue-50';
+                        }
                         return (
-                          <td key={m.id} className={`py-2.5 px-2 text-center border-r border-slate-200 font-medium ${score !== undefined && score !== null && score < 76 ? 'text-red-600 bg-red-50' : 'text-slate-800'
-                            }`}>
-                            {score !== undefined && score !== null ? score : '-'}
+                          <td
+                            key={m.id}
+                            className={`py-2.5 px-2 text-center border-r border-slate-200 font-medium ${cellClass}`}
+                            title={isEmpty ? (isAktifUntukGrup ? 'Nilai belum diisi, mapel aktif untuk grup ini' : 'Mapel tidak aktif untuk grup daimi siswa ini') : undefined}
+                          >
+                            {isEmpty ? '-' : score}
                           </td>
                         );
                       })}
@@ -956,24 +1028,25 @@ export const ERaporPage: React.FC = () => {
               </div>
 
               {/* Sikap & Presensi */}
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                {/* Catatan Presensi */}
-                <div className="border border-slate-300 rounded-lg p-3 space-y-1.5">
-                  <h4 className="font-bold text-slate-900 uppercase">B. Ketidakhadiran</h4>
-                  <div className="space-y-1 text-slate-700">
-                    <div className="flex justify-between border-b border-slate-100 pb-1"><span>Sakit</span><span className="font-bold">{cetakData.presensi.sakit} hari</span></div>
-                    <div className="flex justify-between border-b border-slate-100 pb-1"><span>Izin</span><span className="font-bold">{cetakData.presensi.izin} hari</span></div>
-                    <div className="flex justify-between"><span>Tanpa Keterangan (Alpa)</span><span className="font-bold">{cetakData.presensi.alpa} hari</span></div>
-                  </div>
+              <div className="border border-slate-300 rounded-lg p-3 space-y-1.5 text-xs">
+                <h4 className="font-bold text-slate-900 uppercase">B. Ketidakhadiran</h4>
+                <div className="grid grid-cols-3 gap-2 text-slate-700">
+                  <div className="flex justify-between"><span>Sakit</span><span className="font-bold">{cetakData.presensi.sakit} hari</span></div>
+                  <div className="flex justify-between"><span>Izin</span><span className="font-bold">{cetakData.presensi.izin} hari</span></div>
+                  <div className="flex justify-between"><span>Alpa</span><span className="font-bold">{cetakData.presensi.alpa} hari</span></div>
                 </div>
+              </div>
 
-                {/* Sikap */}
-                <div className="border border-slate-300 rounded-lg p-3 space-y-1.5">
-                  <h4 className="font-bold text-slate-900 uppercase">C. Sikap & Perilaku</h4>
-                  <div className="space-y-1 text-slate-700">
-                    <div className="flex justify-between border-b border-slate-100 pb-1"><span>Sikap Spiritual</span><span className="font-bold text-emerald-700">{cetakData.presensi.sikapSpiritual}</span></div>
-                    <div className="flex justify-between"><span>Sikap Sosial</span><span className="font-bold text-emerald-700">{cetakData.presensi.sikapSosial}</span></div>
-                  </div>
+              {/* Sikap */}
+              <div className="border border-slate-300 rounded-lg p-3 space-y-1.5 text-xs">
+                <h4 className="font-bold text-slate-900 uppercase">C. Sikap & Perilaku</h4>
+                <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-slate-700">
+                  {SIKAP_FIELDS.map(f => (
+                    <div key={f.key} className="flex justify-between border-b border-slate-100 pb-1">
+                      <span>{f.label}</span>
+                      <span className="font-bold text-emerald-700">{(cetakData.presensi as any)[f.key]}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -983,6 +1056,24 @@ export const ERaporPage: React.FC = () => {
                 <p className="text-slate-700 italic bg-slate-50 p-2.5 rounded border border-slate-200">
                   "{cetakData.presensi.catatanWaliKelas}"
                 </p>
+              </div>
+
+              {/* Hafalan Al-Qur'an (Hafizlik) atau Status Hafidz (non-Hafizlik) */}
+              <div className="border border-slate-300 rounded-lg p-3 space-y-1.5 text-xs">
+                <h4 className="font-bold text-slate-900 uppercase">E. {cetakData.siswa.isHafizlik ? "Capaian Hafalan Al-Qur'an" : 'Status Hafidz'}</h4>
+                {cetakData.siswa.isHafizlik ? (
+                  <div className="grid grid-cols-2 gap-2 text-slate-700">
+                    <div className="flex justify-between"><span>Jumlah Juz</span><span className="font-bold text-emerald-700">{cetakData.siswa.hafalan?.jumlahJuz ?? '-'} Juz</span></div>
+                    <div className="flex justify-between"><span>Jumlah Halaman</span><span className="font-bold text-emerald-700">{cetakData.siswa.hafalan?.jumlahHalaman ?? '-'} Halaman</span></div>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-slate-700">
+                    <span>Status Hafidz</span>
+                    <span className="font-bold text-emerald-700">
+                      {cetakData.siswa.statusHafidz ? (STATUS_HAFIDZ_LABELS[cetakData.siswa.statusHafidz] || cetakData.siswa.statusHafidz) : '-'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Box Tanda Tangan */}
@@ -1004,6 +1095,20 @@ export const ERaporPage: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {hafalanModalRow && (
+        <HafalanAlQuranModal
+          studentId={hafalanModalRow.studentId}
+          kelasId={selectedKelasId}
+          fullName={hafalanModalRow.fullName}
+          nis={hafalanModalRow.nis || hafalanModalRow.nisn}
+          kelasName={selectedKelasInfo?.name || '-'}
+          wilayahName={selectedKelasWilayahName}
+          tahunAjaran={tahunAjaran}
+          semester={semester}
+          onClose={() => setHafalanModalRow(null)}
+        />
       )}
     </div>
   );

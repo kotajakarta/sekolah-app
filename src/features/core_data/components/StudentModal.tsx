@@ -237,6 +237,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     cabangId: user?.scope === 'CABANG' ? user.cabangId || '' : '',
     jenisSiswa: '',
     grupDaimi: '',
+    statusHafidz: '',
     tanggalMasuk: new Date().toISOString().split('T')[0],
     isActive: true,
     alamatProvId: '',
@@ -314,6 +315,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
         cabangId: student.cabangId || '',
         jenisSiswa: student.jenisSiswa || '',
         grupDaimi: student.grupDaimi || '',
+        statusHafidz: student.statusHafidz || '',
         tanggalMasuk: new Date().toISOString().split('T')[0],
         isActive: student.isActive !== undefined ? student.isActive : true,
         alamatProvId: (student.biodata as any)?.alamatProvId || '',
@@ -634,6 +636,15 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                               {grup.name}{grup.jenis ? ` (${grup.jenis})` : ''}
                             </option>
                           ))}
+                        </select>
+                      </InputField>
+                      <InputField label="Status Hafidz">
+                        <select value={formData.statusHafidz} onChange={(e) => setFormData({ ...formData, statusHafidz: e.target.value })} className={selectCls}>
+                          <option value="">Pilih Status Hafidz</option>
+                          <option value="BELUM_MULAI">Belum Mulai</option>
+                          <option value="SEDANG_BERLANGSUNG">Sedang Berlangsung</option>
+                          <option value="SUDAH_SETOR_30_JUZ">Sudah Setor 30 Juz</option>
+                          <option value="SUDAH_KHATAMAN_KUBRO">Sudah Khataman Kubro</option>
                         </select>
                       </InputField>
                     </div>

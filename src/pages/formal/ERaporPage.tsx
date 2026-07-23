@@ -5,7 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useMasterData';
 import {
   BookOpen, Save, Printer, UserCheck,
-  Layers, Sparkles, Filter, Building2, MapPin, Search, Eye, AlertTriangle
+  Layers, Sparkles, Filter, Building2, MapPin, Search, Eye, AlertTriangle, X
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import HafalanAlQuranModal from './HafalanAlQuranModal';
@@ -1097,7 +1097,7 @@ export const ERaporPage: React.FC = () => {
                           />
                         </td>
                         <td className="py-2.5 px-4">
-                          <div className="flex items-center justify-center gap-2 relative">
+                          <div className="flex items-center justify-center gap-2">
                             <button
                               onClick={() => row.isLengkap && setCetakModal({ studentId: row.studentId, autoPrint: false })}
                               disabled={!row.isLengkap}
@@ -1116,29 +1116,13 @@ export const ERaporPage: React.FC = () => {
                             </button>
 
                             {!row.isLengkap && (
-                              <>
-                                <button
-                                  onClick={() => setWarningPopoverId(prev => prev === row.studentId ? null : row.studentId)}
-                                  title="Ada mapel aktif yang belum diisi nilainya"
-                                  className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors"
-                                >
-                                  <AlertTriangle className="w-4 h-4" />
-                                </button>
-
-                                {warningPopoverId === row.studentId && (
-                                  <>
-                                    <div className="fixed inset-0 z-40" onClick={() => setWarningPopoverId(null)} />
-                                    <div className="absolute right-0 top-9 z-50 w-64 bg-white border border-amber-200 rounded-lg shadow-lg p-3 text-left">
-                                      <p className="text-xs font-bold text-amber-700 mb-1.5">Mapel belum diisi nilainya:</p>
-                                      <ul className="text-xs text-slate-600 list-disc list-inside space-y-0.5">
-                                        {row.mapelBelumDiisi.map((m: string) => (
-                                          <li key={m}>{m}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  </>
-                                )}
-                              </>
+                              <button
+                                onClick={() => setWarningPopoverId(row.studentId)}
+                                title="Ada mapel aktif yang belum diisi nilainya"
+                                className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors"
+                              >
+                                <AlertTriangle className="w-4 h-4" />
+                              </button>
                             )}
                           </div>
                         </td>
@@ -1160,6 +1144,40 @@ export const ERaporPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {warningPopoverId && (() => {
+        const row = cetakListData?.data.find((r: any) => r.studentId === warningPopoverId);
+        if (!row) return null;
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+            onClick={() => setWarningPopoverId(null)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  <h3 className="text-sm font-bold text-slate-900">Nilai Belum Lengkap</h3>
+                </div>
+                <button onClick={() => setWarningPopoverId(null)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 mb-2">
+                <span className="font-semibold text-slate-700">{row.fullName}</span> — mata pelajaran berikut belum diisi nilainya:
+              </p>
+              <ul className="text-xs text-slate-700 list-disc list-inside space-y-1 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                {row.mapelBelumDiisi.map((m: string) => (
+                  <li key={m}>{m}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+      })()}
 
       {hafalanModalRow && (
         <HafalanAlQuranModal

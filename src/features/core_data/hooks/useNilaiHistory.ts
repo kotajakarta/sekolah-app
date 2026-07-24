@@ -16,6 +16,7 @@ export interface NilaiFormalHistory {
   rataRataKelas?: number | null;
   mataPelajaran?: { id: string; kodeMapel: string; name: string; grupMapel: string };
   kelas?: { id: string; name: string; tingkat?: number };
+  riwayatKelas?: { grupDaimiId?: string | null } | null;
 }
 
 export const useGetNilaiHistory = (studentId: string) => {

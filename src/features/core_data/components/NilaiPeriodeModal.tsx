@@ -33,6 +33,7 @@ interface NilaiPeriodeModalProps {
   initialSemester?: string;
   initialKelasId?: string;
   initialKelasName?: string;
+  initialGrupDaimiId?: string | null;
   existingItems?: NilaiFormalHistory[];
   onClose: () => void;
 }
@@ -78,7 +79,7 @@ const isPeriodeLampau = (tahunAjaran: string, semester: string, activeTahunAjara
 
 export default function NilaiPeriodeModal({
   student, mapelList, mode, activeTahunAjaran, activeSemester,
-  initialTahunAjaran, initialSemester, initialKelasId, initialKelasName, existingItems, onClose
+  initialTahunAjaran, initialSemester, initialKelasId, initialKelasName, initialGrupDaimiId, existingItems, onClose
 }: NilaiPeriodeModalProps) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -86,7 +87,14 @@ export default function NilaiPeriodeModal({
   const [tahunAjaran, setTahunAjaran] = useState(initialTahunAjaran || '');
   const [semester, setSemester] = useState(initialSemester || '');
   const [kelasId, setKelasId] = useState(initialKelasId || '');
-  const [grupDaimiId, setGrupDaimiId] = useState<string>(student.dataDaimi?.grupId || '');
+  // Mode edit: pakai grup daimi yang TERSIMPAN untuk periode ini (bisa beda dari grup siswa
+  // saat ini kalau dulu berbeda) - jangan default ke grup aktif siswa sekarang, supaya nilai
+  // yang sudah dipilih sebelumnya tidak "hilang"/keliru tertimpa saat dibuka ulang.
+  // Mode new (backfill periode baru): belum ada riwayat tersimpan, jadi tebakan awal yang
+  // masuk akal adalah grup daimi siswa saat ini.
+  const [grupDaimiId, setGrupDaimiId] = useState<string>(
+    mode === 'edit' ? (initialGrupDaimiId || '') : (student.dataDaimi?.grupId || '')
+  );
   const [hafalan, setHafalan] = useState<HafalanData>(EMPTY_HAFALAN);
 
   const [localNilai, setLocalNilai] = useState<Record<string, number | null>>(() => {

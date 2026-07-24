@@ -34,6 +34,7 @@ interface NilaiGroup {
   semester: string;
   kelasId?: string;
   kelasName?: string;
+  grupDaimiId?: string | null;
   items: NilaiFormalHistory[];
 }
 
@@ -48,6 +49,7 @@ const groupBySemester = (history: NilaiFormalHistory[]): NilaiGroup[] => {
         semester: item.semester,
         kelasId: item.kelasId,
         kelasName: item.kelas?.name,
+        grupDaimiId: item.riwayatKelas?.grupDaimiId ?? null,
         items: []
       });
     }
@@ -275,6 +277,7 @@ export default function RiwayatNilaiTab({ student }: RiwayatNilaiTabProps) {
           initialSemester={editGroup.semester}
           initialKelasId={editGroup.kelasId}
           initialKelasName={editGroup.kelasName}
+          initialGrupDaimiId={editGroup.grupDaimiId}
           existingItems={editGroup.items}
           onClose={() => setEditGroup(null)}
         />

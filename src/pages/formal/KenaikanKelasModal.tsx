@@ -145,8 +145,13 @@ export default function KenaikanKelasModal({ kelasList, onClose }: KenaikanKelas
     }
     
     if (pendingPayload.type === 'BULK') {
-      request.then(() => {
-        showToast('success', 'Berhasil memproses kenaikan semua kelas massal');
+      request.then((res: any) => {
+        const warnCount = res?.data?.tingkatTidakDikenali?.length || 0;
+        if (warnCount > 0) {
+          showToast('error', `${warnCount} siswa tingkatnya TIDAK berubah (format tingkat tidak dikenali, cek data siswa terkait)`);
+        } else {
+          showToast('success', 'Berhasil memproses kenaikan semua kelas massal');
+        }
         onClose();
       }).catch((err: any) => {
         showToast('error', 'Terjadi kesalahan: ' + (err.response?.data?.message || err.message));
@@ -156,8 +161,13 @@ export default function KenaikanKelasModal({ kelasList, onClose }: KenaikanKelas
     } else {
       // mutation logic already handles toast in KenaikanKelasModal outside if we used mutate instead of mutateAsync, but let's just do it here
       mutation.mutate(pendingPayload.data, {
-        onSuccess: () => {
-          showToast('success', 'Berhasil memproses kenaikan kelas massal');
+        onSuccess: (res: any) => {
+          const warnCount = res?.tingkatTidakDikenali?.length || 0;
+          if (warnCount > 0) {
+            showToast('error', `${warnCount} siswa tingkatnya TIDAK berubah (format tingkat tidak dikenali, cek data siswa terkait)`);
+          } else {
+            showToast('success', 'Berhasil memproses kenaikan kelas massal');
+          }
           onClose();
         },
         onError: (err: any) => {

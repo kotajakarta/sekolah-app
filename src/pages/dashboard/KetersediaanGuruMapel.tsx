@@ -111,7 +111,7 @@ export default function KetersediaanGuruMapel() {
     setPage(1);
   }, [searchCabang, filterWilayah, filterCabang, filterStatus, filterMapel]);
 
-  // Detail kelas+mapel yang belum ada guru, untuk ikon "!" di kolom Jumlah Kurang Guru
+  // Detail kelas+mapel yang belum ada guru, untuk ikon "!" di kolom Formasi Kosong
   interface MissingDetailItem { kelasName: string; cabangName?: string; missingMapel: string[] }
 
   const [detailModalRow, setDetailModalRow] = useState<{ label: string; items: MissingDetailItem[] } | null>(null);
@@ -384,10 +384,10 @@ export default function KetersediaanGuruMapel() {
                 <tr>
                   <th className="px-5 py-3 bg-slate-50">Nama Wilayah</th>
                   <th className="px-5 py-3 text-center bg-slate-50">Jumlah Rombel</th>
-                  <th className="px-5 py-3 text-center bg-slate-50">Total Kebutuhan Guru</th>
-                  <th className="px-5 py-3 text-center bg-slate-50">Jumlah Guru Saat Ini</th>
-                  <th className="px-5 py-3 text-center bg-slate-50">Jumlah Kurang Guru</th>
-                  <th className="px-5 py-3 text-center bg-slate-50">Persentase</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Total Formasi Guru Dibutuhkan</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Formasi Terisi</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Formasi Kosong</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Persentase Formasi Terisi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
@@ -408,7 +408,7 @@ export default function KetersediaanGuruMapel() {
                           {w.totalKurang > 0 && (
                             <button
                               onClick={() => setDetailModalRow({ label: w.name, items: w.missingDetail })}
-                              title="Lihat mapel & kelas yang kurang guru"
+                              title="Lihat mapel & kelas dengan formasi kosong"
                               className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors"
                             >
                               <AlertTriangle className="w-3 h-3" />
@@ -439,10 +439,10 @@ export default function KetersediaanGuruMapel() {
                   <th className="px-5 py-3 bg-slate-50">Wilayah</th>
                   <th className="px-5 py-3 bg-slate-50">Nama Cabang</th>
                   <th className="px-5 py-3 text-center bg-slate-50">Jumlah Rombel</th>
-                  <th className="px-5 py-3 text-center bg-slate-50">Total Kebutuhan Guru</th>
-                  <th className="px-5 py-3 text-center bg-slate-50">Jumlah Guru Saat Ini</th>
-                  <th className="px-5 py-3 text-center bg-slate-50">Jumlah Kurang Guru</th>
-                  <th className="px-5 py-3 text-center bg-slate-50">Persentase</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Total Formasi Guru Dibutuhkan</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Formasi Terisi</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Formasi Kosong</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Persentase Formasi Terisi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
@@ -464,7 +464,7 @@ export default function KetersediaanGuruMapel() {
                           {c.totalKurang > 0 && (
                             <button
                               onClick={() => setDetailModalRow({ label: c.name, items: c.missingDetail })}
-                              title="Lihat mapel & kelas yang kurang guru"
+                              title="Lihat mapel & kelas dengan formasi kosong"
                               className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors"
                             >
                               <AlertTriangle className="w-3 h-3" />
@@ -604,7 +604,7 @@ export default function KetersediaanGuruMapel() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <AlertTriangle className="w-4.5 h-4.5 text-amber-500" />
-                Kurang Guru - {detailModalRow.label}
+                Formasi Kosong - {detailModalRow.label}
               </h3>
               <button onClick={() => setDetailModalRow(null)} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <X className="w-5 h-5" />

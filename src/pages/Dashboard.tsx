@@ -504,10 +504,10 @@ export default function Dashboard() {
 
             <div className="p-4 grid grid-cols-1 gap-3">
               {[
-                { label: 'Data Santri', path: '/core/siswa', icon: Users },
-                { label: 'Kelas Formal', path: '/formal/kelas', icon: LayoutDashboard },
-                { label: 'Kalender', path: '/settings/kalender', icon: Calendar },
-                { label: 'Pengumuman', path: '/umum/pengumuman', icon: FileText }
+                { label: 'Data Santri', path: '/dashboard/core/siswa', icon: Users },
+                { label: 'Kelas Formal', path: '/dashboard/formal/kelas', icon: LayoutDashboard },
+                { label: 'Kalender', path: '/dashboard/settings/kalender', icon: Calendar },
+                { label: 'Pengumuman', path: '/dashboard/umum/pengumuman', icon: FileText }
               ].map((item, i) => (
                 <Link
                   to={item.path}

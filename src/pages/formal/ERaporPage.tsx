@@ -5,13 +5,14 @@ import { useAuth } from '../../hooks/useAuth';
 import { useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useMasterData';
 import {
   BookOpen, Save, Printer, UserCheck,
-  Layers, Sparkles, Filter, Building2, MapPin, Eye, AlertTriangle, X, Upload
+  Layers, Sparkles, Filter, Building2, MapPin, Eye, AlertTriangle, X, Upload, ShieldAlert
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import HafalanAlQuranModal from './HafalanAlQuranModal';
 import RaporCetakModal from './RaporCetakModal';
 import Pagination from '../../components/Pagination';
 import ImportRiwayatNilaiTab from './ImportRiwayatNilaiTab';
+import RiwayatContinuityTab from './RiwayatContinuityTab';
 import { calculatePredikat, PREDIKAT_SIKAP_OPTIONS, SIKAP_FIELDS } from './eRaporConstants';
 
 interface Kelas {
@@ -67,7 +68,7 @@ export const ERaporPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'nilai' | 'presensi' | 'leger' | 'cetak' | 'import-riwayat'>('nilai');
+  const [activeTab, setActiveTab] = useState<'nilai' | 'presensi' | 'leger' | 'cetak' | 'import-riwayat' | 'cek-riwayat'>('nilai');
 
   // Master Data Wilayah & Cabang
   const { data: wilayahList = [] } = useGetWilayah();
@@ -532,6 +533,17 @@ export const ERaporPage: React.FC = () => {
           >
             <Upload className="w-4 h-4" />
             <span>5. Import Riwayat Nilai</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('cek-riwayat')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${activeTab === 'cek-riwayat'
+              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>6. Cek Kelengkapan Riwayat</span>
           </button>
         </div>
       </div>
@@ -1057,6 +1069,9 @@ export const ERaporPage: React.FC = () => {
 
       {/* TAB 5: IMPORT RIWAYAT NILAI */}
       {activeTab === 'import-riwayat' && <ImportRiwayatNilaiTab />}
+
+      {/* TAB 6: CEK KELENGKAPAN RIWAYAT */}
+      {activeTab === 'cek-riwayat' && <RiwayatContinuityTab />}
 
       {warningPopoverId && (() => {
         const row = cetakListData?.data.find((r: any) => r.studentId === warningPopoverId);

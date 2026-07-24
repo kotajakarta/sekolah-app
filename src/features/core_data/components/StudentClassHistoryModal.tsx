@@ -130,7 +130,7 @@ export default function StudentClassHistoryModal({ student, onClose }: StudentCl
 
       {isFormOpen && (
         <FormRiwayatKelasModal
-          studentId={student.id}
+          student={student}
           initialData={selectedHistory}
           onClose={() => setIsFormOpen(false)}
         />

@@ -268,7 +268,7 @@ export default function AktivitasBelajarTab({ student, onStatusChange }: Aktivit
       {/* ── Modals ─────────────────────────────────────── */}
       {isFormOpen && (
         <FormRiwayatKelasModal
-          studentId={student.id}
+          student={student}
           initialData={selectedHistory}
           onClose={() => setIsFormOpen(false)}
         />

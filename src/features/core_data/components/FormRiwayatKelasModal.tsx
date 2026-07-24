@@ -1,19 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Save } from 'lucide-react';
 import { useCreateRiwayatKelas, useUpdateRiwayatKelas, RiwayatKelasFormal } from '../hooks/useRiwayatKelas';
+import { Student } from '../hooks/useGetStudents';
 import apiClient from '../../../lib/apiClient';
 
+interface KelasOption {
+  id: string;
+  name: string;
+  tingkat?: string | number;
+  cabangId?: string;
+  isActive?: boolean;
+}
+
 interface FormRiwayatKelasModalProps {
-  studentId: string;
+  student: Student;
   initialData?: RiwayatKelasFormal;
   onClose: () => void;
 }
 
-export default function FormRiwayatKelasModal({ studentId, initialData, onClose }: FormRiwayatKelasModalProps) {
+export default function FormRiwayatKelasModal({ student, initialData, onClose }: FormRiwayatKelasModalProps) {
+  const studentId = student.id;
   const createMutation = useCreateRiwayatKelas();
   const updateMutation = useUpdateRiwayatKelas();
-  
-  const [kelasOptions, setKelasOptions] = useState<{id: string, name: string}[]>([]);
+
+  const [kelasList, setKelasList] = useState<KelasOption[]>([]);
   const [staffOptions, setStaffOptions] = useState<{id: string, name: string}[]>([]);
 
   const [formData, setFormData] = useState({
@@ -27,9 +37,31 @@ export default function FormRiwayatKelasModal({ studentId, initialData, onClose 
 
   useEffect(() => {
     // Fetch options
-    apiClient.get('/formal/kelas').then(res => setKelasOptions(res.data.filter((k: any) => k.isActive))).catch(console.error);
+    apiClient.get('/formal/kelas').then(res => setKelasList(res.data)).catch(console.error);
     apiClient.get('/master-data/guru').then(res => setStaffOptions(res.data)).catch(console.error);
   }, []);
+
+  // Kelas/rombel yang bisa dipilih: sama seperti dropdown di Riwayat Nilai - semua kelas
+  // terdaftar di cabang siswa (tidak dibatasi isActive, supaya riwayat kelas LAMPAU/nonaktif
+  // tetap bisa dipilih & tetap muncul saat edit), dibatasi hanya setingkat atau di bawah
+  // tingkat siswa saat ini.
+  const currentTingkat = parseInt(String(student.siswaFormal?.kelas?.tingkat ?? ''), 10);
+  const kelasOptions = useMemo(() => {
+    const filtered = kelasList.filter(k => {
+      if (student.cabangId && k.cabangId && k.cabangId !== student.cabangId) return false;
+      const tingkat = parseInt(String(k.tingkat ?? ''), 10);
+      if (!isNaN(currentTingkat) && !isNaN(tingkat) && tingkat > currentTingkat) return false;
+      return true;
+    });
+    // Jaring pengaman: kalau kelas yang sudah tersimpan di riwayat ini (edit mode) ternyata
+    // tidak lolos filter di atas (mis. beda cabang karena siswa pernah pindah), tetap
+    // sertakan supaya field select tidak tampil kosong/salah saat form dibuka untuk edit.
+    if (initialData?.kelasId && !filtered.some(k => k.id === initialData.kelasId)) {
+      const original = kelasList.find(k => k.id === initialData.kelasId);
+      if (original) return [original, ...filtered];
+    }
+    return filtered;
+  }, [kelasList, student.cabangId, currentTingkat, initialData?.kelasId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

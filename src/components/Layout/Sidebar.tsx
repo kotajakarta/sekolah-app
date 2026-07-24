@@ -238,7 +238,7 @@ export const Sidebar: React.FC = () => {
     { to: '/dashboard/laporan/kelengkapan-data', label: 'Rekap Kelengkapan Data Santri', show: true },
     { to: '/dashboard/laporan/kelengkapan-guru', label: 'Rekap Kelengkapan Data Guru', show: true },
     { to: '/dashboard/core/riwayat-perubahan', label: 'Riwayat Perubahan Data', show: true },
-    { to: '/dashboard/laporan/evaluasi', label: 'Laporan Evaluasi', show: true, disabled: true },
+
   ].filter(i => i.show);
 
   const konfirmasiItems = [

@@ -170,7 +170,7 @@ export default function RiwayatPerubahanData() {
                             </>
                           );
                         })()}
-                        <p className="text-[11px] text-slate-400 mt-1.5 font-medium">ID: {log.entityId} | Entitas: {log.entityName}</p>
+                        <p className="text-[11px] text-slate-400 mt-1.5 font-medium">Entitas: {log.entityName}</p>
                       </div>
                     </td>
                     <td className="p-4">

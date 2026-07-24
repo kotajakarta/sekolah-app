@@ -4,7 +4,7 @@ import apiClient from '../../lib/apiClient';
 import { Link } from 'react-router-dom';
 import {
   Loader2, AlertCircle, CheckCircle2, Search, ChevronDown, ChevronRight,
-  BookOpen, Users, Filter, ArrowLeft, Download, X, BarChart3, AlertTriangle
+  BookOpen, Users, Filter, ArrowLeft, Download, X, AlertTriangle
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -67,11 +67,6 @@ export default function KetersediaanGuruMapel() {
   const [page, setPage] = useState(1);
   const limit = 10;
 
-  // Summary Modal States
-  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
-  const [summarySearch, setSummarySearch] = useState('');
-  const [summaryStatusFilter, setSummaryStatusFilter] = useState('');
-
   const { data = [], isLoading, isError } = useQuery<CabangData[]>({
     queryKey: ['ketersediaan-guru-detail'],
     queryFn: async () => {
@@ -116,29 +111,20 @@ export default function KetersediaanGuruMapel() {
     setPage(1);
   }, [searchCabang, filterWilayah, filterCabang, filterStatus, filterMapel]);
 
-  const summaryFiltered = useMemo(() => {
-    return data.filter(cabang => {
-      const matchesSearch = !summarySearch ||
-        cabang.cabangName.toLowerCase().includes(summarySearch.toLowerCase()) ||
-        cabang.wilayahName.toLowerCase().includes(summarySearch.toLowerCase());
-      const matchesStatus = !summaryStatusFilter || cabang.status === summaryStatusFilter;
-      return matchesSearch && matchesStatus;
-    });
-  }, [data, summarySearch, summaryStatusFilter]);
-
   // Detail kelas+mapel yang belum ada guru, untuk ikon "!" di kolom Jumlah Kurang Guru
   interface MissingDetailItem { kelasName: string; cabangName?: string; missingMapel: string[] }
 
   const [detailModalRow, setDetailModalRow] = useState<{ label: string; items: MissingDetailItem[] } | null>(null);
 
-  // Ringkasan per Wilayah: rollup lintas semua cabang di wilayah itu
+  // Ringkasan per Wilayah: rollup lintas semua cabang di wilayah itu, mengikuti filter
+  // Wilayah/Cabang/Status/Mapel/Cari yang sama dengan daftar detail di bawah (`filtered`)
   const wilayahSummaries = useMemo(() => {
     const map = new Map<string, {
       name: string; totalKelas: number; totalKebutuhan: number; totalGuru: number; totalKurang: number;
       missingDetail: MissingDetailItem[];
     }>();
 
-    summaryFiltered.forEach(cabang => {
+    filtered.forEach(cabang => {
       const key = cabang.wilayahName || 'Tanpa Wilayah';
       if (!map.has(key)) {
         map.set(key, { name: key, totalKelas: 0, totalKebutuhan: 0, totalGuru: 0, totalKurang: 0, missingDetail: [] });
@@ -159,11 +145,11 @@ export default function KetersediaanGuruMapel() {
     return Array.from(map.values())
       .map(e => ({ ...e, persentase: e.totalKebutuhan > 0 ? Math.round((e.totalGuru / e.totalKebutuhan) * 100) : 0 }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [summaryFiltered]);
+  }, [filtered]);
 
   // Ringkasan per Cabang, dengan kolom & metrik yang sama
   const cabangSummaries = useMemo(() => {
-    return summaryFiltered.map(cabang => {
+    return filtered.map(cabang => {
       let totalKebutuhan = 0, totalGuru = 0, totalKurang = 0;
       const missingDetail: MissingDetailItem[] = [];
       cabang.kelas.forEach(kelas => {
@@ -183,7 +169,7 @@ export default function KetersediaanGuruMapel() {
         missingDetail
       };
     }).sort((a, b) => a.name.localeCompare(b.name));
-  }, [summaryFiltered]);
+  }, [filtered]);
 
   const persentaseBadgeClass = (p: number) => {
     if (p >= 80) return 'bg-emerald-100 text-emerald-700';
@@ -277,13 +263,6 @@ export default function KetersediaanGuruMapel() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setIsSummaryOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-lg transition-colors shadow-sm cursor-pointer"
-            >
-              <BarChart3 className="w-4 h-4 text-indigo-500" />
-              Ringkasan
-            </button>
             <button
               onClick={handleExportExcel}
               className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm cursor-pointer"
@@ -395,6 +374,116 @@ export default function KetersediaanGuruMapel() {
         </div>
       </div>
 
+      {/* Ringkasan per Wilayah */}
+      <div className="mb-5">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ringkasan Kelengkapan per Wilayah</h3>
+        <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+          <div className="max-h-[280px] overflow-y-auto">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
+                <tr>
+                  <th className="px-5 py-3 bg-slate-50">Nama Wilayah</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Jumlah Rombel</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Total Kebutuhan Guru</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Jumlah Guru Saat Ini</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Jumlah Kurang Guru</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Persentase</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {wilayahSummaries.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">Tidak ada data yang cocok dengan filter.</td>
+                  </tr>
+                ) : (
+                  wilayahSummaries.map(w => (
+                    <tr key={w.name} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-5 py-3 font-semibold text-slate-800">{w.name}</td>
+                      <td className="px-5 py-3 text-center text-slate-700">{w.totalKelas}</td>
+                      <td className="px-5 py-3 text-center text-slate-700">{w.totalKebutuhan}</td>
+                      <td className="px-5 py-3 text-center text-slate-700">{w.totalGuru}</td>
+                      <td className="px-5 py-3 text-center">
+                        <div className="inline-flex items-center gap-1.5">
+                          <span className={w.totalKurang > 0 ? 'text-rose-600 font-bold' : 'text-emerald-600 font-semibold'}>{w.totalKurang}</span>
+                          {w.totalKurang > 0 && (
+                            <button
+                              onClick={() => setDetailModalRow({ label: w.name, items: w.missingDetail })}
+                              title="Lihat mapel & kelas yang kurang guru"
+                              className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors"
+                            >
+                              <AlertTriangle className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full ${persentaseBadgeClass(w.persentase)}`}>{w.persentase}%</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Ringkasan per Cabang */}
+      <div className="mb-6">
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ringkasan Kelengkapan per Cabang</h3>
+        <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+          <div className="max-h-[350px] overflow-y-auto">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
+                <tr>
+                  <th className="px-5 py-3 bg-slate-50">Wilayah</th>
+                  <th className="px-5 py-3 bg-slate-50">Nama Cabang</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Jumlah Rombel</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Total Kebutuhan Guru</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Jumlah Guru Saat Ini</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Jumlah Kurang Guru</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Persentase</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {cabangSummaries.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-400 italic">Tidak ada data yang cocok dengan filter.</td>
+                  </tr>
+                ) : (
+                  cabangSummaries.map(c => (
+                    <tr key={c.cabangId} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-5 py-3 text-slate-600">{c.wilayahName}</td>
+                      <td className="px-5 py-3 font-semibold text-slate-800">{c.name}</td>
+                      <td className="px-5 py-3 text-center text-slate-700">{c.totalKelas}</td>
+                      <td className="px-5 py-3 text-center text-slate-700">{c.totalKebutuhan}</td>
+                      <td className="px-5 py-3 text-center text-slate-700">{c.totalGuru}</td>
+                      <td className="px-5 py-3 text-center">
+                        <div className="inline-flex items-center gap-1.5">
+                          <span className={c.totalKurang > 0 ? 'text-rose-600 font-bold' : 'text-emerald-600 font-semibold'}>{c.totalKurang}</span>
+                          {c.totalKurang > 0 && (
+                            <button
+                              onClick={() => setDetailModalRow({ label: c.name, items: c.missingDetail })}
+                              title="Lihat mapel & kelas yang kurang guru"
+                              className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors"
+                            >
+                              <AlertTriangle className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full ${persentaseBadgeClass(c.persentase)}`}>{c.persentase}%</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       {/* Content */}
       {isLoading ? (
         <div className="flex justify-center items-center h-48">
@@ -502,190 +591,6 @@ export default function KetersediaanGuruMapel() {
               />
             </div>
           )}
-        </div>
-      )}
-
-      {/* Summary Modal */}
-      {isSummaryOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-indigo-500" />
-                Ringkasan Ketersediaan Guru Mapel
-              </h2>
-              <button 
-                onClick={() => setIsSummaryOpen(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-50 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              {/* Stats Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { label: 'Total Wilayah', value: new Set(data.map(d => d.wilayahName)).size, color: 'text-slate-700', bg: 'bg-slate-50 border-slate-200' },
-                  { label: 'Total Cabang', value: data.length, color: 'text-indigo-700', bg: 'bg-indigo-50/40 border-indigo-100' },
-                  { label: 'Total Kelas', value: data.reduce((sum, d) => sum + d.totalKelas, 0), color: 'text-emerald-700', bg: 'bg-emerald-50/30 border-emerald-100' },
-                  { label: 'Total Slot Kosong', value: data.reduce((sum, d) => sum + d.totalMissingSlots, 0), color: 'text-rose-700', bg: 'bg-rose-50/30 border-rose-100' },
-                ].map(stat => (
-                  <div key={stat.label} className={`${stat.bg} border rounded-xl p-4 shadow-sm`}>
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{stat.label}</p>
-                    <p className={`text-2xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Filters */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={summarySearch}
-                    onChange={e => setSummarySearch(e.target.value)}
-                    placeholder="Cari wilayah atau cabang..."
-                    className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-slate-50/50"
-                  />
-                </div>
-                <select
-                  value={summaryStatusFilter}
-                  onChange={e => setSummaryStatusFilter(e.target.value)}
-                  className="w-full sm:w-48 px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-slate-50/50"
-                >
-                  <option value="">Semua Status</option>
-                  <option value="hijau">Lengkap</option>
-                  <option value="kuning">Sebagian</option>
-                  <option value="merah">Kosong</option>
-                </select>
-              </div>
-
-              {/* Ringkasan per Wilayah */}
-              <div>
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ringkasan Kelengkapan per Wilayah</h3>
-                <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                  <div className="max-h-[280px] overflow-y-auto">
-                    <table className="w-full text-sm text-left border-collapse">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
-                        <tr>
-                          <th className="px-5 py-3 bg-slate-50">Nama Wilayah</th>
-                          <th className="px-5 py-3 text-center bg-slate-50">Jumlah Rombel</th>
-                          <th className="px-5 py-3 text-center bg-slate-50">Total Kebutuhan Guru</th>
-                          <th className="px-5 py-3 text-center bg-slate-50">Jumlah Guru Saat Ini</th>
-                          <th className="px-5 py-3 text-center bg-slate-50">Jumlah Kurang Guru</th>
-                          <th className="px-5 py-3 text-center bg-slate-50">Persentase</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
-                        {wilayahSummaries.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">Tidak ada data yang cocok dengan filter.</td>
-                          </tr>
-                        ) : (
-                          wilayahSummaries.map(w => (
-                            <tr key={w.name} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-5 py-3 font-semibold text-slate-800">{w.name}</td>
-                              <td className="px-5 py-3 text-center text-slate-700">{w.totalKelas}</td>
-                              <td className="px-5 py-3 text-center text-slate-700">{w.totalKebutuhan}</td>
-                              <td className="px-5 py-3 text-center text-slate-700">{w.totalGuru}</td>
-                              <td className="px-5 py-3 text-center">
-                                <div className="inline-flex items-center gap-1.5">
-                                  <span className={w.totalKurang > 0 ? 'text-rose-600 font-bold' : 'text-emerald-600 font-semibold'}>{w.totalKurang}</span>
-                                  {w.totalKurang > 0 && (
-                                    <button
-                                      onClick={() => setDetailModalRow({ label: w.name, items: w.missingDetail })}
-                                      title="Lihat mapel & kelas yang kurang guru"
-                                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors"
-                                    >
-                                      <AlertTriangle className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-5 py-3 text-center">
-                                <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full ${persentaseBadgeClass(w.persentase)}`}>{w.persentase}%</span>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              {/* Ringkasan per Cabang */}
-              <div>
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ringkasan Kelengkapan per Cabang</h3>
-                <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                  <div className="max-h-[350px] overflow-y-auto">
-                    <table className="w-full text-sm text-left border-collapse">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
-                        <tr>
-                          <th className="px-5 py-3 bg-slate-50">Wilayah</th>
-                          <th className="px-5 py-3 bg-slate-50">Nama Cabang</th>
-                          <th className="px-5 py-3 text-center bg-slate-50">Jumlah Rombel</th>
-                          <th className="px-5 py-3 text-center bg-slate-50">Total Kebutuhan Guru</th>
-                          <th className="px-5 py-3 text-center bg-slate-50">Jumlah Guru Saat Ini</th>
-                          <th className="px-5 py-3 text-center bg-slate-50">Jumlah Kurang Guru</th>
-                          <th className="px-5 py-3 text-center bg-slate-50">Persentase</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
-                        {cabangSummaries.length === 0 ? (
-                          <tr>
-                            <td colSpan={7} className="px-6 py-12 text-center text-slate-400 italic">Tidak ada data yang cocok dengan filter.</td>
-                          </tr>
-                        ) : (
-                          cabangSummaries.map(c => (
-                            <tr key={c.cabangId} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-5 py-3 text-slate-600">{c.wilayahName}</td>
-                              <td className="px-5 py-3 font-semibold text-slate-800">{c.name}</td>
-                              <td className="px-5 py-3 text-center text-slate-700">{c.totalKelas}</td>
-                              <td className="px-5 py-3 text-center text-slate-700">{c.totalKebutuhan}</td>
-                              <td className="px-5 py-3 text-center text-slate-700">{c.totalGuru}</td>
-                              <td className="px-5 py-3 text-center">
-                                <div className="inline-flex items-center gap-1.5">
-                                  <span className={c.totalKurang > 0 ? 'text-rose-600 font-bold' : 'text-emerald-600 font-semibold'}>{c.totalKurang}</span>
-                                  {c.totalKurang > 0 && (
-                                    <button
-                                      onClick={() => setDetailModalRow({ label: c.name, items: c.missingDetail })}
-                                      title="Lihat mapel & kelas yang kurang guru"
-                                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors"
-                                    >
-                                      <AlertTriangle className="w-3 h-3" />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-5 py-3 text-center">
-                                <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full ${persentaseBadgeClass(c.persentase)}`}>{c.persentase}%</span>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500 shrink-0">
-              <span>Menampilkan <strong>{summaryFiltered.length}</strong> dari {data.length} cabang</span>
-              <button
-                onClick={() => setIsSummaryOpen(false)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-semibold rounded-lg transition-colors cursor-pointer"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
         </div>
       )}
 

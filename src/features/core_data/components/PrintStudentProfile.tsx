@@ -1,12 +1,14 @@
 import React from 'react';
 import { Student } from '../hooks/useGetStudents';
+import { RiwayatKelasFormal } from '../hooks/useRiwayatKelas';
 import { User, Phone, MapPin, Mail } from 'lucide-react';
 
 interface PrintStudentProfileProps {
   student: Student | null;
+  riwayatKelas?: RiwayatKelasFormal[];
 }
 
-export default function PrintStudentProfile({ student }: PrintStudentProfileProps) {
+export default function PrintStudentProfile({ student, riwayatKelas }: PrintStudentProfileProps) {
   if (!student) return null;
 
   return (
@@ -158,6 +160,25 @@ export default function PrintStudentProfile({ student }: PrintStudentProfileProp
                 <li>• <span className="font-bold">Kelas Saat Ini:</span> {student.siswaFormal?.kelas?.name || '-'}</li>
                 <li>• <span className="font-bold">Grup Daimi:</span> {student.grupDaimi || '-'}</li>
               </ul>
+            </section>
+
+            {/* RIWAYAT AKTIVITAS BELAJAR */}
+            <section>
+              <h2 className="text-lg font-bold text-[#1e293b] uppercase tracking-widest border-b-2 border-slate-200 pb-1 mb-2 mt-4">
+                Riwayat Aktivitas Belajar
+              </h2>
+              {riwayatKelas && riwayatKelas.length > 0 ? (
+                <ul className="space-y-1.5 text-xs text-slate-700 font-medium">
+                  {riwayatKelas.slice(0, 6).map(riwayat => (
+                    <li key={riwayat.id}>
+                      • <span className="font-bold">{riwayat.tahunAjaran} {riwayat.semester}</span> — {riwayat.kelas?.name || '-'}
+                      {riwayat.statusAkhir ? ` (${riwayat.statusAkhir})` : ''}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-slate-500">Belum ada riwayat aktivitas belajar tercatat.</p>
+              )}
             </section>
 
           </div>

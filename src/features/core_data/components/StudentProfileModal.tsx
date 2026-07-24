@@ -6,6 +6,20 @@ import { useTranslation } from 'react-i18next';
 import PrintStudentProfile from './PrintStudentProfile';
 import StudentClassHistoryModal from './StudentClassHistoryModal';
 import { useState } from 'react';
+import { useGetRiwayatKelas } from '../hooks/useRiwayatKelas';
+
+const semesterOrder = (semester?: string | null) => {
+  const normalized = semester?.toUpperCase();
+  if (normalized === 'GANJIL') return 0;
+  if (normalized === 'GENAP') return 1;
+  return 2;
+};
+
+const sortRiwayatTerbaru = <T extends { tahunAjaran: string; semester: string }>(list: T[]): T[] =>
+  [...list].sort((a, b) => {
+    if (a.tahunAjaran !== b.tahunAjaran) return b.tahunAjaran.localeCompare(a.tahunAjaran);
+    return semesterOrder(b.semester) - semesterOrder(a.semester);
+  });
 
 interface StudentProfileModalProps {
   student: Student;
@@ -16,6 +30,8 @@ interface StudentProfileModalProps {
 export default function StudentProfileModal({ student, onClose, onEdit }: StudentProfileModalProps) {
   const { t } = useTranslation();
   const [isClassHistoryOpen, setIsClassHistoryOpen] = useState(false);
+  const { data: riwayatKelas } = useGetRiwayatKelas(student.id);
+  const riwayatKelasTerbaru = sortRiwayatTerbaru(riwayatKelas ?? []);
 
   return (
     <>
@@ -161,6 +177,52 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
                 </div>
               </div>
 
+              {/* Grid Riwayat Aktivitas Belajar */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <History className="w-4 h-4 text-slate-400" /> Riwayat Aktivitas Belajar
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setIsClassHistoryOpen(true)}
+                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+                  >
+                    Kelola
+                  </button>
+                </div>
+                {riwayatKelasTerbaru.length === 0 ? (
+                  <div className="text-center py-6 bg-white rounded-lg border border-dashed border-slate-200">
+                    <p className="text-sm text-slate-400">Belum ada riwayat aktivitas belajar untuk siswa ini.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto border border-slate-100 rounded-lg">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
+                        <tr>
+                          <th className="py-2 px-3">Tahun Ajaran</th>
+                          <th className="py-2 px-3">Semester</th>
+                          <th className="py-2 px-3">Kelas / Rombel</th>
+                          <th className="py-2 px-3">Wali Kelas</th>
+                          <th className="py-2 px-3">Status Akhir</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {riwayatKelasTerbaru.map(riwayat => (
+                          <tr key={riwayat.id}>
+                            <td className="py-2 px-3 font-semibold text-slate-800">{riwayat.tahunAjaran}</td>
+                            <td className="py-2 px-3 text-slate-600">{riwayat.semester}</td>
+                            <td className="py-2 px-3 text-slate-600">{riwayat.kelas?.name || '-'}</td>
+                            <td className="py-2 px-3 text-slate-600">{riwayat.waliKelas?.name || '-'}</td>
+                            <td className="py-2 px-3 text-slate-600">{riwayat.statusAkhir || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
               {/* Grid 3: Orang Tua */}
               <div>
                 <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -252,7 +314,7 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
       {/* Print View */}
       {createPortal(
         <div className="hidden print:block absolute top-0 left-0 w-full min-h-screen bg-white z-[99999] m-0 p-0">
-          <PrintStudentProfile student={student} />
+          <PrintStudentProfile student={student} riwayatKelas={riwayatKelasTerbaru} />
         </div>,
         document.body
       )}

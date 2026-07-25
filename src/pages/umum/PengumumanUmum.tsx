@@ -37,7 +37,7 @@ export default function PengumumanUmum() {
     <div className="max-w-6xl mx-auto pb-12">
       <div className="bg-[#2A3F54] text-white px-6 py-4 rounded-t-lg flex items-center shadow-md mb-6">
         <Megaphone className="w-6 h-6 mr-3 text-white fill-white transform -rotate-12" />
-        <h1 className="text-xl font-bold tracking-wide">PENGUMUMAN</h1>
+        <h1 className="text-xl font-bold tracking-wide text-white">PENGUMUMAN</h1>
       </div>
 
       {isLoading ? (
@@ -65,11 +65,11 @@ export default function PengumumanUmum() {
 
             return (
               <div key={item.id} className="flex flex-col lg:flex-row gap-6">
-                
+
                 {/* Left Column: Content */}
                 <div className="flex-1 bg-white rounded-md shadow-sm border border-slate-200 p-8">
                   <h2 className="text-2xl font-bold text-slate-800 mb-6">{item.title}</h2>
-                  <div 
+                  <div
                     className="prose prose-slate max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5"
                     dangerouslySetInnerHTML={{ __html: item.content }}
                   />
@@ -86,7 +86,7 @@ export default function PengumumanUmum() {
                             {groupName}
                           </h3>
                         </div>
-                        
+
                         {/* Links List */}
                         <div className="divide-y divide-slate-100">
                           {groupLinks.map((link, lIdx) => (
@@ -94,12 +94,12 @@ export default function PengumumanUmum() {
                               <h4 className="text-[#0d6efd] font-bold text-sm mb-2 uppercase hover:underline cursor-pointer">
                                 {link.title || link.url}
                               </h4>
-                              
-                                {link.description && (
-                                  <div className="text-[13px] text-slate-500 mb-2 mt-1">
-                                    {link.description}
-                                  </div>
-                                )}
+
+                              {link.description && (
+                                <div className="text-[13px] text-slate-500 mb-2 mt-1">
+                                  {link.description}
+                                </div>
+                              )}
                               <div className="space-y-1.5">
                                 <div className="flex items-start text-[13px] text-slate-600">
                                   <LinkIcon className="w-3.5 h-3.5 mr-2 mt-0.5 text-slate-400 shrink-0" />
@@ -107,14 +107,14 @@ export default function PengumumanUmum() {
                                     {link.url}
                                   </a>
                                 </div>
-                                
+
                                 {link.username && (
                                   <div className="flex items-start text-[13px] text-slate-600">
                                     <Mail className="w-3.5 h-3.5 mr-2 mt-0.5 text-slate-400 shrink-0" />
                                     <span>{link.username}</span>
                                   </div>
                                 )}
-                                
+
                                 {link.password && (
                                   <div className="flex items-start text-[13px] text-pink-500 font-mono">
                                     <Key className="w-3.5 h-3.5 mr-2 mt-0.5 shrink-0" />

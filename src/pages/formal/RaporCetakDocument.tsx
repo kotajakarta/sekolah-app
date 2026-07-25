@@ -153,8 +153,8 @@ export default function RaporCetakDocument({ cetakData }: RaporCetakDocumentProp
         )}
       </div>
 
-      {/* Sikap */}
-      <div className="avoid-break border border-slate-300 rounded-lg p-3 space-y-1.5 text-xs print:p-2 print:space-y-1">
+      {/* Sikap: mulai halaman baru saat dicetak */}
+      <div className="avoid-break page-break-before border border-slate-300 rounded-lg p-3 space-y-1.5 text-xs print:p-2 print:space-y-1">
         <h4 className="font-bold text-slate-900 uppercase">D. Sikap & Perilaku</h4>
         <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-slate-700">
           {SIKAP_FIELDS.map(f => (
@@ -166,8 +166,8 @@ export default function RaporCetakDocument({ cetakData }: RaporCetakDocumentProp
         </div>
       </div>
 
-      {/* Catatan Wali Kelas: mulai halaman baru saat dicetak */}
-      <div className="avoid-break page-break-before border border-slate-300 rounded-lg p-3 space-y-1 text-xs print:p-2">
+      {/* Catatan Wali Kelas */}
+      <div className="avoid-break border border-slate-300 rounded-lg p-3 space-y-1 text-xs print:p-2">
         <h4 className="font-bold text-slate-900 uppercase">E. Catatan Wali Kelas</h4>
         <p className="text-slate-700 italic bg-slate-50 p-2.5 rounded border border-slate-200">
           "{cetakData.presensi.catatanWaliKelas}"

@@ -7,6 +7,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet, useNavigate, Navigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import { Sidebar } from './components/Layout/Sidebar';
 import MobileBottomNav from './components/Layout/MobileBottomNav';
+import HeaderSearch from './components/Layout/HeaderSearch';
 import { GlobalSearch } from './components/Layout/GlobalSearch';
 import { Bell, Search, UserCircle, LogOut, Loader2, Sparkles, LifeBuoy, CheckCircle } from 'lucide-react';
 import { useAuth, AuthProvider } from './hooks/useAuth';
@@ -174,8 +175,10 @@ const MainLayout = () => {
       <PengumumanPopup />
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between gap-2 px-3 lg:px-8 shrink-0 sticky top-0 z-10">
-          <div className="flex items-center gap-2 min-w-0">
+        <header className="h-14 bg-white border-b border-gray-200 flex items-center gap-3 px-3 lg:px-8 shrink-0 sticky top-0 z-10">
+          <HeaderSearch />
+
+          <div className="flex items-center gap-3 sm:gap-5 text-sm font-medium text-gray-600 shrink-0 ml-auto">
             {user?.scope === 'GLOBAL' && (
               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm truncate">
                 <span className="hidden sm:inline">Scope:&nbsp;</span>Pusat
@@ -191,9 +194,7 @@ const MainLayout = () => {
                 <span className="hidden sm:inline">Cabang:&nbsp;</span>{user.cabangName || 'Semua Cabang'}
               </span>
             )}
-          </div>
 
-          <div className="flex items-center gap-3 sm:gap-5 text-sm font-medium text-gray-600 shrink-0">
             <button onClick={() => navigate('/faq')} className="flex items-center gap-2 hover:text-gray-900 transition-colors">
               <LifeBuoy className="w-4 h-4" />
               <span className="hidden sm:inline">Support</span>

@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Users, FileText, Database, Search, ChevronRight, ChevronLeft, ChevronDown, Settings } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import apiClient from '../../lib/apiClient';
-import { useNavigate } from 'react-router-dom';
+import { Users, FileText, Database, ChevronRight, ChevronLeft, ChevronDown, Settings } from 'lucide-react';
 import { useNavEntries } from './navConfig';
 
 const SidebarContext = createContext({ isCollapsed: false });
@@ -125,10 +122,7 @@ const GroupHeader = ({ label, icon: Icon, isOpen, onClick }: { label: string, ic
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem('sidebar-collapsed') === 'true';
@@ -137,16 +131,6 @@ export const Sidebar: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('sidebar-collapsed', isCollapsed.toString());
   }, [isCollapsed]);
-
-  const { data: searchResults = [], isLoading: isSearching } = useQuery({
-    queryKey: ['global-search', searchQuery],
-    queryFn: async () => {
-      if (!searchQuery || searchQuery.length < 2) return [];
-      const res = await apiClient.get(`/search?q=${encodeURIComponent(searchQuery)}`);
-      return res.data;
-    },
-    enabled: searchQuery.length >= 2,
-  });
 
   const navEntries = useNavEntries();
 
@@ -217,62 +201,7 @@ export const Sidebar: React.FC = () => {
           </div>
         )}
 
-        {isCollapsed ? (
-          <div className="flex justify-center mb-4">
-            <button
-              onClick={() => setIsCollapsed(false)}
-              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 cursor-pointer"
-              title="Cari data..."
-            >
-              <Search className="w-[18px] h-[18px] text-slate-400" />
-            </button>
-          </div>
-        ) : (
-          <div className="px-3 mb-4">
-            <div className="relative flex items-center">
-              <Search className="absolute left-2.5 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Cari data..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-md py-1.5 pl-8 pr-8 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
-              />
-              <span className="absolute right-2.5 text-[10px] font-medium text-slate-400 border border-slate-200 rounded px-1">Ctrl K</span>
-
-              {isSearchFocused && searchQuery.length >= 2 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto custom-scrollbar">
-                  {isSearching ? (
-                    <div className="p-3 text-center text-sm text-slate-500">Mencari...</div>
-                  ) : searchResults.length > 0 ? (
-                    <ul className="py-1">
-                      {searchResults.map((res: any) => (
-                        <li key={`${res.type}-${res.id}`}>
-                          <button
-                            onClick={() => {
-                              const targetLink = res.link.startsWith('/dashboard') ? res.link : `/dashboard${res.link}`;
-                              navigate(targetLink);
-                            }}
-                            className="w-full text-left px-4 py-2 hover:bg-slate-50 transition-colors flex flex-col"
-                          >
-                            <span className="text-sm font-medium text-slate-800">{res.name}</span>
-                            <span className="text-xs text-slate-500">{res.type} • {res.subtitle}</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="p-3 text-center text-sm text-slate-500">Tidak ada hasil</div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        <nav className="flex-1 overflow-hidden hover:overflow-y-auto px-3 py-2 custom-scrollbar">
+        <nav className="flex-1 overflow-hidden hover:overflow-y-auto px-3 py-2 custom-scrollbar mt-1">
           <ul className="space-y-1">
             {navEntries.map(entry => (
               entry.type === 'link' ? (

@@ -28,6 +28,13 @@ interface KehadiranRow {
   catatan: string;
 }
 
+const STATUS_OPTIONS = [
+  { key: 'HADIR', label: 'Hadir', activeBg: 'bg-emerald-600 text-white border-emerald-600', hoverBg: 'hover:bg-emerald-50 text-emerald-600 border-slate-200' },
+  { key: 'SAKIT', label: 'Sakit', activeBg: 'bg-blue-600 text-white border-blue-600', hoverBg: 'hover:bg-blue-50 text-blue-600 border-slate-200' },
+  { key: 'IZIN', label: 'Izin', activeBg: 'bg-amber-500 text-white border-amber-500', hoverBg: 'hover:bg-amber-50 text-amber-600 border-slate-200' },
+  { key: 'ALPA', label: 'Alpa', activeBg: 'bg-rose-600 text-white border-rose-600', hoverBg: 'hover:bg-rose-50 text-rose-600 border-slate-200' },
+] as const;
+
 export default function AbsensiSiswa() {
   const { user } = useAuth();
   const isGlobal = user?.scope === 'GLOBAL';
@@ -210,18 +217,18 @@ export default function AbsensiSiswa() {
   return (
     <div className="font-sans text-[#1d1d1f] animate-in fade-in duration-300 pb-12">
       {/* Title Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <Activity className="w-6 h-6 text-indigo-600" />
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-lg sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
           Absensi Kehadiran Siswa
         </h1>
-        <p className="text-sm text-slate-500 mt-1">
+        <p className="hidden sm:block text-sm text-slate-500 mt-1">
           Pilih wilayah, cabang, program absensi, dan kelas untuk mulai mengisi kehadiran siswa pekanan.
         </p>
       </div>
 
       {/* Filter Selector Section: Wilayah -> Cabang -> Kelas */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-5 shadow-sm mb-4 sm:mb-6 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Program Absensi</label>
           {loadingPrograms ? (
@@ -316,47 +323,85 @@ export default function AbsensiSiswa() {
           Belum ada siswa aktif yang terdaftar di kelas ini untuk cabang terpilih.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Quick Actions Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-50 border border-slate-200 p-4 rounded-xl">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mr-2">Tandai Cepat Semua:</span>
+          <div className="flex flex-col gap-2.5 bg-slate-50 border border-slate-200 p-3 sm:p-4 rounded-xl">
+            <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Tandai Cepat Semua</span>
+            <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-1.5 sm:gap-2">
               <button
                 onClick={() => markAll('HADIR')}
-                className="px-3 py-1 bg-white hover:bg-emerald-50 text-emerald-700 border border-slate-200 hover:border-emerald-200 text-xs font-semibold rounded-lg transition-all"
+                className="px-2 sm:px-3 py-1.5 sm:py-1 bg-white hover:bg-emerald-50 text-emerald-700 border border-slate-200 hover:border-emerald-200 text-[11px] sm:text-xs font-semibold rounded-lg transition-all"
               >
-                Hadir Semua
+                Hadir
               </button>
               <button
                 onClick={() => markAll('SAKIT')}
-                className="px-3 py-1 bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 hover:border-blue-200 text-xs font-semibold rounded-lg transition-all"
+                className="px-2 sm:px-3 py-1.5 sm:py-1 bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 hover:border-blue-200 text-[11px] sm:text-xs font-semibold rounded-lg transition-all"
               >
-                Sakit Semua
+                Sakit
               </button>
               <button
                 onClick={() => markAll('IZIN')}
-                className="px-3 py-1 bg-white hover:bg-amber-50 text-amber-700 border border-slate-200 hover:border-amber-200 text-xs font-semibold rounded-lg transition-all"
+                className="px-2 sm:px-3 py-1.5 sm:py-1 bg-white hover:bg-amber-50 text-amber-700 border border-slate-200 hover:border-amber-200 text-[11px] sm:text-xs font-semibold rounded-lg transition-all"
               >
-                Izin Semua
+                Izin
               </button>
               <button
                 onClick={() => markAll('ALPA')}
-                className="px-3 py-1 bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 hover:border-rose-200 text-xs font-semibold rounded-lg transition-all"
+                className="px-2 sm:px-3 py-1.5 sm:py-1 bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 hover:border-rose-200 text-[11px] sm:text-xs font-semibold rounded-lg transition-all"
               >
-                Alpa Semua
+                Alpa
               </button>
             </div>
-            
+
             {isSavedSuccessfully && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold animate-pulse">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold animate-pulse self-start">
                 <CheckCircle className="w-3.5 h-3.5" /> Absensi Tersimpan
               </span>
             )}
           </div>
 
-          {/* Table */}
+          {/* Attendance list */}
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
-            <div className="overflow-x-auto">
+            {/* Mobile: compact card list (no horizontal scroll) */}
+            <div className="md:hidden divide-y divide-slate-100">
+              {paginatedRows.map((row, idx) => (
+                <div key={row.studentId} className="p-3 space-y-2">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm font-semibold text-slate-800 truncate">
+                      <span className="text-slate-400 font-normal mr-1.5">{(page - 1) * limit + idx + 1}.</span>
+                      {row.fullName}
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-mono -mt-1.5">NIS: {row.nisLokal || '-'}</p>
+                  <div className="grid grid-cols-4 gap-1">
+                    {STATUS_OPTIONS.map(opt => {
+                      const active = row.status === opt.key;
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() => handleStatusChange(row.studentId, opt.key)}
+                          className={`py-1.5 text-[11px] font-semibold rounded-md border transition-all text-center ${active ? opt.activeBg : opt.hoverBg}`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Catatan (opsional)"
+                    value={row.catatan}
+                    onChange={e => handleCatatanChange(row.studentId, e.target.value)}
+                    className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-xs bg-slate-50/30"
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop: full table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wider text-left">
@@ -377,18 +422,13 @@ export default function AbsensiSiswa() {
                       <td className="px-6 py-4 font-semibold text-slate-800">{row.fullName}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-center gap-1">
-                          {[
-                            { key: 'HADIR', label: 'Hadir', activeBg: 'bg-emerald-600 text-white border-emerald-600', hoverBg: 'hover:bg-emerald-50 text-emerald-600 border-slate-200' },
-                            { key: 'SAKIT', label: 'Sakit', activeBg: 'bg-blue-600 text-white border-blue-600', hoverBg: 'hover:bg-blue-50 text-blue-600 border-slate-200' },
-                            { key: 'IZIN', label: 'Izin', activeBg: 'bg-amber-500 text-white border-amber-500', hoverBg: 'hover:bg-amber-50 text-amber-600 border-slate-200' },
-                            { key: 'ALPA', label: 'Alpa', activeBg: 'bg-rose-600 text-white border-rose-600', hoverBg: 'hover:bg-rose-50 text-rose-600 border-slate-200' }
-                          ].map(opt => {
+                          {STATUS_OPTIONS.map(opt => {
                             const active = row.status === opt.key;
                             return (
                               <button
                                 key={opt.key}
                                 type="button"
-                                onClick={() => handleStatusChange(row.studentId, opt.key as any)}
+                                onClick={() => handleStatusChange(row.studentId, opt.key)}
                                 className={`px-4 py-1.5 text-xs font-semibold rounded-lg border transition-all shrink-0 w-20 text-center ${
                                   active ? opt.activeBg : opt.hoverBg
                                 }`}
@@ -415,7 +455,7 @@ export default function AbsensiSiswa() {
             </div>
 
             {/* Pagination & Save footer */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div className="px-3 sm:px-6 py-3 sm:py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
               {totalPages > 1 ? (
                 <div className="flex items-center justify-between w-full sm:w-auto gap-4">
                   <span className="text-xs text-slate-500 font-medium">

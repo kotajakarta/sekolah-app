@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useGetCabang, useGetGuru } from '../../features/core_data/hooks/useMasterData';
-import { Plus, Edit2, CheckCircle, XCircle, Loader2, Upload, Download, Trash2, Eye, Users } from 'lucide-react';
+import { Plus, Edit2, CheckCircle, XCircle, Loader2, Upload, Download, Trash2, Eye, Users, GraduationCap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
 import Papa from 'papaparse';
@@ -421,21 +421,38 @@ export default function ManajemenKelas() {
               const t = k.tingkat || 'Tanpa Tingkat';
               tingkatCounts[t] = (tingkatCounts[t] || 0) + (k._count?.siswaFormal || 0);
             });
+            const totalSantri = Object.values(tingkatCounts).reduce((a, b) => a + b, 0);
 
             return (
               <div className="space-y-6 mt-6">
-                {/* Compact Cards: Total Siswa menurut Tingkat */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                {/* Cards: Total Santri menurut Tingkat */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                  <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 p-4 shadow-sm flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-indigo-100 tracking-wide">Total Santri</span>
+                      <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
+                        <Users className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+                    <span className="text-2xl font-bold text-white mt-3">
+                      {totalSantri.toLocaleString('id-ID')}
+                    </span>
+                  </div>
                   {Object.entries(tingkatCounts).map(([tingkat, total]) => (
-                    <div key={tingkat} className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
-                      <span className="text-[10px] font-bold text-slate-400 font-mono tracking-wider uppercase truncate" title={tingkat}>
-                        {tingkat}
-                      </span>
-                      <div className="flex items-baseline justify-between mt-1">
-                        <span className="text-xl font-bold text-slate-800 font-mono">
-                          {total}
+                    <div key={tingkat} className="group rounded-2xl bg-white border border-slate-200 p-4 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200 flex flex-col justify-between">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-slate-500 truncate" title={tingkat}>
+                          {/^\d+$/.test(tingkat) ? `Tingkat ${tingkat}` : tingkat}
                         </span>
-                        <span className="text-[10px] text-slate-500 font-medium">Santri</span>
+                        <div className="w-8 h-8 shrink-0 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                          <GraduationCap className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="flex items-baseline gap-1 mt-3">
+                        <span className="text-2xl font-bold text-slate-800">
+                          {total.toLocaleString('id-ID')}
+                        </span>
+                        <span className="text-xs text-slate-400 font-medium">santri</span>
                       </div>
                     </div>
                   ))}

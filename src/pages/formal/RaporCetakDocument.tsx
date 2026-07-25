@@ -5,7 +5,28 @@ interface RaporCetakDocumentProps {
   cetakData: any;
 }
 
+// Urutan & pengelompokan mata pelajaran pada cetak rapor: Umum -> Agama Islam -> Muatan Lokal
+const GRUP_MAPEL_ORDER: Record<string, number> = { 'Umum': 0, 'Agama Islam': 1, 'Muatan Lokal': 2 };
+const GRUP_MAPEL_LABELS: Record<string, string> = {
+  'Umum': 'Mata Pelajaran Umum',
+  'Agama Islam': 'Mata Pelajaran Agama Islam',
+  'Muatan Lokal': 'Mata Pelajaran Muatan Lokal',
+};
+
+function groupNilaiByMapel(nilai: any[]) {
+  const groups = new Map<string, any[]>();
+  [...nilai]
+    .sort((a, b) => (GRUP_MAPEL_ORDER[a.grupMapel] ?? 99) - (GRUP_MAPEL_ORDER[b.grupMapel] ?? 99))
+    .forEach(n => {
+      const key = n.grupMapel || 'Lainnya';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(n);
+    });
+  return Array.from(groups.entries());
+}
+
 export default function RaporCetakDocument({ cetakData }: RaporCetakDocumentProps) {
+  const nilaiGroups = groupNilaiByMapel(cetakData.nilai);
   return (
     <div className="bg-white p-8 rounded-xl border border-slate-300 shadow-xl max-w-4xl mx-auto space-y-6 text-slate-900 font-sans print:shadow-none print:border-none print:p-0 print:space-y-3 print:max-w-none">
       {/* Kop Rapor */}
@@ -35,36 +56,45 @@ export default function RaporCetakDocument({ cetakData }: RaporCetakDocumentProp
       </div>
 
       {/* Tabel Nilai Hasil Belajar */}
-      <div className="space-y-2 print:space-y-1">
-        <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">A. Capaian Hasil Belajar</h3>
-        <table className="w-full text-xs border-collapse border border-slate-300">
-          <thead className="bg-slate-100 text-slate-900 font-bold">
-            <tr>
-              <th className="border border-slate-300 p-2 print:p-1 text-center w-12">No</th>
-              <th className="border border-slate-300 p-2 print:p-1 text-left">Mata Pelajaran</th>
-              <th className="border border-slate-300 p-2 print:p-1 text-center w-24">Nilai Akhir</th>
-              <th className="border border-slate-300 p-2 print:p-1 text-center w-24">Rata-rata Kelas</th>
-              <th className="border border-slate-300 p-2 print:p-1 text-center w-24">Predikat</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cetakData.nilai.length === 0 ? (
+      <div className="space-y-3 print:space-y-2">
+        <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">A. Mata Pelajaran</h3>
+        {cetakData.nilai.length === 0 ? (
+          <table className="w-full text-xs border-collapse border border-slate-300">
+            <tbody>
               <tr>
-                <td colSpan={5} className="border border-slate-300 p-4 text-center text-slate-500">Belum ada nilai yang di-input.</td>
+                <td className="border border-slate-300 p-4 text-center text-slate-500">Belum ada nilai yang di-input.</td>
               </tr>
-            ) : (
-              cetakData.nilai.map((n: any, idx: number) => (
-                <tr key={n.mataPelajaranId}>
-                  <td className="border border-slate-300 p-2 print:p-1 text-center font-medium">{idx + 1}</td>
-                  <td className="border border-slate-300 p-2 print:p-1 font-semibold">{n.namaMapel}</td>
-                  <td className="border border-slate-300 p-2 print:p-1 text-center font-bold">{n.nilaiAkhir ?? '-'}</td>
-                  <td className="border border-slate-300 p-2 print:p-1 text-center font-semibold text-slate-600">{n.rataRataKelas ?? '-'}</td>
-                  <td className="border border-slate-300 p-2 print:p-1 text-center font-bold text-emerald-700">{n.predikat || '-'}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        ) : (
+          nilaiGroups.map(([grup, items]) => (
+            <div key={grup} className="avoid-break space-y-1">
+              <h4 className="text-xs font-bold text-slate-800">{GRUP_MAPEL_LABELS[grup] || grup}</h4>
+              <table className="w-full text-xs border-collapse border border-slate-300">
+                <thead className="bg-slate-100 text-slate-900 font-bold">
+                  <tr>
+                    <th className="border border-slate-300 p-2 print:p-1 text-center w-12">No</th>
+                    <th className="border border-slate-300 p-2 print:p-1 text-left">Mata Pelajaran</th>
+                    <th className="border border-slate-300 p-2 print:p-1 text-center w-24">Nilai Akhir</th>
+                    <th className="border border-slate-300 p-2 print:p-1 text-center w-24">Predikat</th>
+                    <th className="border border-slate-300 p-2 print:p-1 text-center w-24">Rata-rata Kelas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((n: any, idx: number) => (
+                    <tr key={n.mataPelajaranId}>
+                      <td className="border border-slate-300 p-2 print:p-1 text-center font-medium">{idx + 1}</td>
+                      <td className="border border-slate-300 p-2 print:p-1 font-semibold">{n.namaMapel}</td>
+                      <td className="border border-slate-300 p-2 print:p-1 text-center font-bold">{n.nilaiAkhir ?? '-'}</td>
+                      <td className="border border-slate-300 p-2 print:p-1 text-center font-bold text-emerald-700">{n.predikat || '-'}</td>
+                      <td className="border border-slate-300 p-2 print:p-1 text-center font-semibold text-slate-600">{n.rataRataKelas ?? '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Sikap & Presensi */}

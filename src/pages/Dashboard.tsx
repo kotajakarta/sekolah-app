@@ -23,6 +23,13 @@ interface DashboardStats {
   chartGrupDaimi: { name: string; value: number }[];
   chartKelas: { name: string; value: number }[];
   activities: { title: string; time: string; author: string }[];
+  raporCetakProgress: {
+    tahunAjaran: string;
+    semester: string;
+    sudahCetak: number;
+    total: number;
+    percent: number;
+  } | null;
 }
 
 const getActivityIcon = (title: string) => {
@@ -172,7 +179,7 @@ export default function Dashboard() {
               <div className="text-3xl font-bold text-rose-600 tracking-tight">
                 {statsData.cabangMissingSubjectsCount} Issue{statsData.cabangMissingSubjectsCount! > 1 ? 's' : ''}
               </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar mt-3 space-y-3">
+              <div className="max-h-40 overflow-y-auto custom-scrollbar mt-3 space-y-3">
                 {statsData.ketersediaanGuru!.filter(k => k.status !== 'hijau').map((cabang, idx) => (
                   <div key={idx} className="border-b border-slate-100 pb-2.5 last:border-0 last:pb-0">
                     <p className="text-sm font-bold text-slate-800">{cabang.cabangName}</p>
@@ -184,9 +191,33 @@ export default function Dashboard() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-6">
+            <div className="flex flex-col items-center justify-center text-slate-400 py-6">
               <CheckCircle2 className="w-7 h-7 mb-1.5 text-emerald-500" />
               <p className="text-xs text-center">Semua slot guru terisi, tidak ada kendala.</p>
+            </div>
+          )}
+
+          {/* Progres Cetak Rapor — TA/Semester aktif */}
+          {statsData.raporCetakProgress && (
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Progres Cetak Rapor</span>
+                <span className="text-[11px] font-medium text-slate-400">
+                  {statsData.raporCetakProgress.semester} {statsData.raporCetakProgress.tahunAjaran}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-2xl font-bold text-slate-900 tracking-tight">{statsData.raporCetakProgress.percent}%</span>
+                <span className="text-xs text-slate-400">
+                  {statsData.raporCetakProgress.sudahCetak} / {statsData.raporCetakProgress.total} santri
+                </span>
+              </div>
+              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[#0051c3] rounded-full transition-all duration-300"
+                  style={{ width: `${statsData.raporCetakProgress.percent}%` }}
+                />
+              </div>
             </div>
           )}
         </div>

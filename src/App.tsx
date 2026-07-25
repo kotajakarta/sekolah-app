@@ -304,10 +304,8 @@ const MainLayout = () => {
             </div>
           </div>
         </header>
-        <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden bg-white p-4 pb-20 lg:p-10 lg:pb-10">
-          <div className="max-w-[1400px] mx-auto">
-            <Outlet />
-          </div>
+        <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden bg-white px-3 lg:px-8 py-4 pb-20 lg:py-10 lg:pb-10">
+          <Outlet />
         </main>
       </div>
       <MobileBottomNav />

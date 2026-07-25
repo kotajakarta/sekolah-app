@@ -52,6 +52,15 @@
   background-color: rgba(148, 163, 184, 0.4);
 }
 
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 
 
 @plugin "@tailwindcss/typography";

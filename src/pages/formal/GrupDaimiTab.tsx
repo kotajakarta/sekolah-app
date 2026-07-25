@@ -438,6 +438,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50/80 border-b border-slate-200">
               <tr>
@@ -520,6 +521,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
               )}
             </tbody>
           </table>
+          </div>
         )}
       </div>
       </>
@@ -734,6 +736,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                       <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
                     </div>
                   ) : (
+                    <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-200">
                       <thead className="bg-slate-50">
                         <tr>
@@ -775,11 +778,12 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                         )}
                       </tbody>
                     </table>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
-            
+
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-150 flex justify-end">
               <button
                 type="button"

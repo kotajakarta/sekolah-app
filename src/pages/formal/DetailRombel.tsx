@@ -242,6 +242,7 @@ export default function DetailRombel({ kelas, onClose, onEdit, onDelete, isAdmin
               <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50/80 border-b border-slate-200">
                 <tr>
@@ -292,6 +293,7 @@ export default function DetailRombel({ kelas, onClose, onEdit, onDelete, isAdmin
                 )}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

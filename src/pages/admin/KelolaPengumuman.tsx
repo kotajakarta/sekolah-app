@@ -102,6 +102,7 @@ export default function KelolaPengumuman() {
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         {isLoading ? <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div> : (
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
@@ -147,6 +148,7 @@ export default function KelolaPengumuman() {
               {list?.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-slate-500">Tidak ada pengumuman.</td></tr>}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

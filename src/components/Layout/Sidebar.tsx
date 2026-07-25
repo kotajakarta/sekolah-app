@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { LayoutDashboard, Users, UserCheck, Building2, Map, BookOpen, GraduationCap, Home, FileText, Database, Search, ChevronRight, ChevronLeft, ChevronDown, Cloud, Settings, Activity, School, User, HeartHandshake, CheckCircle, CalendarCheck } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Users, FileText, Database, Search, ChevronRight, ChevronLeft, ChevronDown, Settings } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useNavigate } from 'react-router-dom';
+import { useNavEntries } from './navConfig';
 
 const SidebarContext = createContext({ isCollapsed: false });
 
@@ -125,7 +125,6 @@ const GroupHeader = ({ label, icon: Icon, isOpen, onClick }: { label: string, ic
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuth();
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -149,15 +148,7 @@ export const Sidebar: React.FC = () => {
     enabled: searchQuery.length >= 2,
   });
 
-  const { data: pendingCount = 0 } = useQuery({
-    queryKey: ['permintaan-tarik-pending-count'],
-    queryFn: async () => {
-      const res = await apiClient.get('/students/permintaan-tarik/pending-count');
-      return res.data;
-    },
-    enabled: user?.scope === 'GLOBAL',
-    refetchInterval: 30000,
-  });
+  const navEntries = useNavEntries();
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
@@ -180,91 +171,21 @@ export const Sidebar: React.FC = () => {
     }
   };
 
-  const showKelembagaan =
-    user?.scope === 'CABANG' ||
-    user?.divisi === 'FORMAL' ||
-    user?.divisi === 'ALL' ||
-    user?.scope === 'GLOBAL' ||
-    user?.scope === 'WILAYAH';
-
-  const kelembagaanItems = [
-    { to: '/dashboard/profile-cabang', label: 'Profil Cabang', show: user?.scope === 'CABANG' },
-    { to: '/dashboard/formal/muadalah', label: 'Lembaga Muadalah', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
-    { to: '/dashboard/core/cabang', label: t('sidebar.cabang'), show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
-    { to: '/dashboard/core/wilayah', label: t('sidebar.wilayah'), show: user?.scope === 'GLOBAL' },
-    { to: '/dashboard/formal/mapel', label: 'Mata Pelajaran', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
-  ].filter(i => i.show);
-
-  const sarprasItems = [
-    { to: '/dashboard/sarpras/ruang', label: 'Ruang & Bangunan', show: true },
-    { to: '/dashboard/sarpras/fasilitas', label: 'Fasilitas Utama', show: true },
-  ];
-
-  const santriItems = [
-    { to: '/dashboard/core/siswa', label: 'Data Semua Santri', show: true },
-    { to: '/dashboard/formal/siswa', label: 'Santri Muadalah', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
-    { to: '/dashboard/core/pool', label: 'Pool Santri', show: user?.scope === 'GLOBAL' },
-  ].filter(i => i.show);
-
-  const ustadzItems = [
-    { to: '/dashboard/core/guru', label: 'Data Guru', show: true },
-    { to: '/dashboard/formal/penugasan-guru', label: 'Penugasan Guru', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
-    { to: '/dashboard/core/pool-guru', label: 'Pool Guru', show: user?.scope === 'GLOBAL' },
-  ].filter(i => i.show);
-
-  const absensiItems: Array<{ to: string; label: string; show: boolean; disabled?: boolean }> = [
-    { to: '/dashboard/absensi/siswa', label: 'Absensi Siswa', show: true },
-    { to: '/dashboard/absensi/guru', label: 'Absensi Guru', show: true },
-    { to: '/dashboard/absensi/programs', label: 'Kelola Program Absensi', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
-  ].filter(i => i.show);
-
-  const showRombonganBelajar = user?.divisi === 'FORMAL' || user?.divisi === 'ALL';
-
-  const layananItems = [
-    { to: '/dashboard/umum/pengumuman', label: 'Pengumuman', show: true },
-    { to: '/dashboard/umum/kalender', label: 'Kalender Pendidikan', show: true },
-  ].filter(i => i.show);
-
-  const bapItems = [
-    { to: '/dashboard/kegiatan', label: 'Daftar BAP Laporan', show: true },
-    { to: '/dashboard/kegiatan/buat', label: 'Buat Laporan BAP', show: user?.scope === 'CABANG' },
-    { to: '/dashboard/kegiatan/templates', label: 'Kelola Template Kegiatan', show: user?.scope === 'GLOBAL' },
-    { to: '/dashboard/kegiatan/jenis', label: 'Kelola Jenis Kegiatan', show: user?.scope === 'GLOBAL' },
-  ].filter(i => i.show);
-
-  const monitoringItems = [
-    { to: '/dashboard/dashboard/ketersediaan-guru', label: 'Rekap Ketersediaan Guru Mapel', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
-    { to: '/dashboard/laporan/absensi', label: 'Rekapitulasi Absensi', show: true },
-    { to: '/dashboard/laporan/kelengkapan-data', label: 'Rekap Kelengkapan Data Santri', show: true },
-    { to: '/dashboard/laporan/kelengkapan-guru', label: 'Rekap Kelengkapan Data Guru', show: true },
-    { to: '/dashboard/core/riwayat-perubahan', label: 'Riwayat Perubahan Data', show: true },
-
-  ].filter(i => i.show);
-
-  const konfirmasiItems = [
-    { to: '/dashboard/core/permintaan-tarik', label: 'Status Mutasi & Tarik Data', badge: pendingCount, show: true },
-  ].filter(i => i.show);
-
   const location = useLocation();
 
   useEffect(() => {
     const preOpen: Record<string, boolean> = {};
-    if (kelembagaanItems.some(i => i.to === location.pathname)) preOpen.kelembagaan = true;
-    if (sarprasItems.some(i => i.to === location.pathname)) preOpen.sarpras = true;
-    if (santriItems.some(i => i.to === location.pathname)) preOpen.santri = true;
-    if (ustadzItems.some(i => i.to === location.pathname)) preOpen.ustadz = true;
-    if (absensiItems.some(i => i.to === location.pathname)) preOpen.absensi = true;
-    if (layananItems.some(i => i.to === location.pathname)) preOpen.layanan = true;
-    if (monitoringItems.some(i => i.to === location.pathname)) preOpen.monitoring = true;
-    if (konfirmasiItems.some(i => i.to === location.pathname)) preOpen.konfirmasi = true;
-    if (bapItems.some(i => i.to === location.pathname)) preOpen.bap = true;
-
+    navEntries.forEach(entry => {
+      if (entry.type === 'group' && entry.items.some(i => i.to === location.pathname)) {
+        preOpen[entry.key] = true;
+      }
+    });
     setOpenGroups(prev => ({ ...prev, ...preOpen }));
-  }, [location.pathname]);
+  }, [location.pathname, navEntries]);
 
   return (
     <SidebarContext.Provider value={{ isCollapsed }}>
-      <div className={`h-screen bg-white flex flex-col relative z-20 border-r border-slate-200 transition-all duration-300 ${isCollapsed ? 'w-[70px]' : 'w-[260px]'}`}>
+      <div className={`h-screen bg-white hidden lg:flex flex-col relative z-20 border-r border-slate-200 transition-all duration-300 ${isCollapsed ? 'w-[70px]' : 'w-[260px]'}`}>
 
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -353,160 +274,27 @@ export const Sidebar: React.FC = () => {
 
         <nav className="flex-1 overflow-hidden hover:overflow-y-auto px-3 py-2 custom-scrollbar">
           <ul className="space-y-1">
-            <NavLink to="/dashboard" icon={Home}>Dashboard</NavLink>
-
-            {showKelembagaan && (
-              <>
-                <GroupHeader
-                  label="Kelembagaan"
-                  icon={School}
-                  isOpen={!!openGroups.kelembagaan}
-                  onClick={() => handleGroupClick('kelembagaan')}
-                />
-                {!isCollapsed && openGroups.kelembagaan && (
-                  <ul className="mt-1 space-y-1">
-                    {kelembagaanItems.map(item => (
-                      <SubNavLink key={item.to} to={item.to}>{item.label}</SubNavLink>
-                    ))}
-                  </ul>
-                )}
-              </>
-            )}
-
-            <>
-              <GroupHeader
-                label="Sarana Prasarana"
-                icon={Building2}
-                isOpen={!!openGroups.sarpras}
-                onClick={() => handleGroupClick('sarpras')}
-              />
-              {!isCollapsed && openGroups.sarpras && (
-                <ul className="mt-1 space-y-1">
-                  {sarprasItems.map(item => (
-                    <SubNavLink key={item.to} to={item.to}>{item.label}</SubNavLink>
-                  ))}
-                </ul>
-              )}
-            </>
-
-            <>
-              <GroupHeader
-                label="Santri"
-                icon={User}
-                isOpen={!!openGroups.santri}
-                onClick={() => handleGroupClick('santri')}
-              />
-              {!isCollapsed && openGroups.santri && (
-                <ul className="mt-1 space-y-1">
-                  {santriItems.map(item => (
-                    <SubNavLink key={item.to} to={item.to}>{item.label}</SubNavLink>
-                  ))}
-                </ul>
-              )}
-            </>
-
-            <>
-              <GroupHeader
-                label="Ustadz"
-                icon={Users}
-                isOpen={!!openGroups.ustadz}
-                onClick={() => handleGroupClick('ustadz')}
-              />
-              {!isCollapsed && openGroups.ustadz && (
-                <ul className="mt-1 space-y-1">
-                  {ustadzItems.map(item => (
-                    <SubNavLink key={item.to} to={item.to}>{item.label}</SubNavLink>
-                  ))}
-                </ul>
-              )}
-            </>
-
-            {showRombonganBelajar && (
-              <>
-                <NavLink to="/dashboard/formal/kelas" icon={UserCheck}>Rombongan Belajar</NavLink>
-                <NavLink to="/dashboard/formal/rapor" icon={FileText}>Rapor Muadalah</NavLink>
-              </>
-            )}
-
-            <>
-              <GroupHeader
-                label="Absensi"
-                icon={CalendarCheck}
-                isOpen={!!openGroups.absensi}
-                onClick={() => handleGroupClick('absensi')}
-              />
-              {!isCollapsed && openGroups.absensi && (
-                <ul className="mt-1 space-y-1">
-                  {absensiItems.map(item => (
-                    <SubNavLink key={item.to} to={item.to} disabled={item.disabled}>{item.label}</SubNavLink>
-                  ))}
-                </ul>
-              )}
-            </>
-
-            <>
-              <GroupHeader
-                label="Layanan dan Bantuan"
-                icon={HeartHandshake}
-                isOpen={!!openGroups.layanan}
-                onClick={() => handleGroupClick('layanan')}
-              />
-              {!isCollapsed && openGroups.layanan && (
-                <ul className="mt-1 space-y-1">
-                  {layananItems.map(item => (
-                    <SubNavLink key={item.to} to={item.to}>{item.label}</SubNavLink>
-                  ))}
-                </ul>
-              )}
-            </>
-
-            <>
-              <GroupHeader
-                label="Berita Acara (BAP)"
-                icon={FileText}
-                isOpen={!!openGroups.bap}
-                onClick={() => handleGroupClick('bap')}
-              />
-              {!isCollapsed && openGroups.bap && (
-                <ul className="mt-1 space-y-1">
-                  {bapItems.map(item => (
-                    <SubNavLink key={item.to} to={item.to}>{item.label}</SubNavLink>
-                  ))}
-                </ul>
-              )}
-            </>
-
-            <>
-              <GroupHeader
-                label="Monitoring"
-                icon={Activity}
-                isOpen={!!openGroups.monitoring}
-                onClick={() => handleGroupClick('monitoring')}
-              />
-              {!isCollapsed && openGroups.monitoring && (
-                <ul className="mt-1 space-y-1">
-                  {monitoringItems.map(item => (
-                    <SubNavLink key={item.to} to={item.to} disabled={item.disabled}>{item.label}</SubNavLink>
-                  ))}
-                </ul>
-              )}
-            </>
-
-            <>
-              <GroupHeader
-                label="Konfirmasi"
-                icon={CheckCircle}
-                isOpen={!!openGroups.konfirmasi}
-                onClick={() => handleGroupClick('konfirmasi')}
-              />
-              {!isCollapsed && openGroups.konfirmasi && (
-                <ul className="mt-1 space-y-1">
-                  {konfirmasiItems.map(item => (
-                    <SubNavLink key={item.to} to={item.to} badge={item.badge}>{item.label}</SubNavLink>
-                  ))}
-                </ul>
-              )}
-            </>
+            {navEntries.map(entry => (
+              entry.type === 'link' ? (
+                <NavLink key={entry.key} to={entry.to} icon={entry.icon}>{entry.label}</NavLink>
+              ) : (
+                <React.Fragment key={entry.key}>
+                  <GroupHeader
+                    label={entry.label}
+                    icon={entry.icon}
+                    isOpen={!!openGroups[entry.key]}
+                    onClick={() => handleGroupClick(entry.key)}
+                  />
+                  {!isCollapsed && openGroups[entry.key] && (
+                    <ul className="mt-1 space-y-1">
+                      {entry.items.map(item => (
+                        <SubNavLink key={item.to} to={item.to} badge={item.badge} disabled={item.disabled}>{item.label}</SubNavLink>
+                      ))}
+                    </ul>
+                  )}
+                </React.Fragment>
+              )
+            ))}
           </ul>
         </nav>
 

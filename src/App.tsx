@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet, useNavigate, Navigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import { Sidebar } from './components/Layout/Sidebar';
+import MobileBottomNav from './components/Layout/MobileBottomNav';
 import { GlobalSearch } from './components/Layout/GlobalSearch';
 import { Bell, Search, UserCircle, LogOut, Loader2, Sparkles, LifeBuoy, CheckCircle } from 'lucide-react';
 import { useAuth, AuthProvider } from './hooks/useAuth';
@@ -173,29 +174,29 @@ const MainLayout = () => {
       <PengumumanPopup />
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 shrink-0 sticky top-0 z-10">
-          <div className="flex items-center gap-2">
+        <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between gap-2 px-3 lg:px-8 shrink-0 sticky top-0 z-10">
+          <div className="flex items-center gap-2 min-w-0">
             {user?.scope === 'GLOBAL' && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm">
-                Scope: Pusat (Global)
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm truncate">
+                <span className="hidden sm:inline">Scope:&nbsp;</span>Pusat
               </span>
             )}
             {user?.scope === 'WILAYAH' && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm">
-                Wilayah: {user.wilayahName || 'Semua Wilayah'}
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 shadow-sm truncate max-w-[140px] sm:max-w-none">
+                <span className="hidden sm:inline">Wilayah:&nbsp;</span>{user.wilayahName || 'Semua Wilayah'}
               </span>
             )}
             {user?.scope === 'CABANG' && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
-                Cabang: {user.cabangName || 'Semua Cabang'}
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm truncate max-w-[140px] sm:max-w-none">
+                <span className="hidden sm:inline">Cabang:&nbsp;</span>{user.cabangName || 'Semua Cabang'}
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-5 text-sm font-medium text-gray-600">
+          <div className="flex items-center gap-3 sm:gap-5 text-sm font-medium text-gray-600 shrink-0">
             <button onClick={() => navigate('/faq')} className="flex items-center gap-2 hover:text-gray-900 transition-colors">
               <LifeBuoy className="w-4 h-4" />
-              Support
+              <span className="hidden sm:inline">Support</span>
             </button>
 
             {/* Notification Center */}
@@ -302,12 +303,13 @@ const MainLayout = () => {
             </div>
           </div>
         </header>
-        <main ref={mainRef} className="flex-1 overflow-auto bg-white p-6 lg:p-10">
+        <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden bg-white p-4 pb-20 lg:p-10 lg:pb-10">
           <div className="max-w-[1400px] mx-auto">
             <Outlet />
           </div>
         </main>
       </div>
+      <MobileBottomNav />
     </div>
   );
 };

@@ -357,6 +357,7 @@ export default function FormKegiatan() {
           </div>
         ) : (
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
               <thead className="bg-slate-55/70 font-semibold text-slate-700">
                 <tr>
@@ -441,6 +442,7 @@ export default function FormKegiatan() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>

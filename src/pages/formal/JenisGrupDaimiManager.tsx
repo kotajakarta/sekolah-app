@@ -114,6 +114,7 @@ export default function JenisGrupDaimiManager() {
         ) : list.length === 0 ? (
           <div className="p-8 text-center text-sm text-slate-400">Belum ada jenis grup yang terdaftar.</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50/80 border-b border-slate-200">
               <tr>
@@ -139,6 +140,7 @@ export default function JenisGrupDaimiManager() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

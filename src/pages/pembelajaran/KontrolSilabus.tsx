@@ -49,6 +49,7 @@ export default function KontrolSilabus() {
   const [selectedWilayah, setSelectedWilayah] = useState<string>('');
   const [selectedCabang, setSelectedCabang] = useState<string>('');
   const [selectedKelas, setSelectedKelas] = useState<string>('');
+  const [selectedMapel, setSelectedMapel] = useState<string>('');
 
   const [rows, setRows] = useState<PelaksanaanRow[]>([]);
   const [isSavedSuccessfully, setIsSavedSuccessfully] = useState(false);
@@ -133,6 +134,7 @@ export default function KontrolSilabus() {
     if (pelaksanaanData) {
       setRows(pelaksanaanData.items.map(r => ({ ...r, tanggalDiajar: r.tanggalDiajar || todayStr() })));
       setIsSavedSuccessfully(false);
+      setSelectedMapel('');
     }
   }, [pelaksanaanData]);
 
@@ -168,13 +170,21 @@ export default function KontrolSilabus() {
     setIsSavedSuccessfully(false);
   };
 
+  // Daftar mapel yang benar-benar punya silabus di kelas ini (data-driven, bukan semua mapel aktif global)
+  const mapelOptions = Array.from(
+    new Map(rows.map(r => [r.mataPelajaranId, r.mataPelajaranName])).entries()
+  ).map(([id, name]) => ({ id, name }));
+
+  const visibleRows = selectedMapel ? rows.filter(r => r.mataPelajaranId === selectedMapel) : rows;
+
   const markAll = (status: PelaksanaanRow['status']) => {
-    setRows(prev => prev.map(r => ({ ...r, status })));
+    const visibleIds = new Set(visibleRows.map(r => r.silabusId));
+    setRows(prev => prev.map(r => visibleIds.has(r.silabusId) ? { ...r, status } : r));
     setIsSavedSuccessfully(false);
   };
 
   // Group rows by mata pelajaran untuk keterbacaan (satu kelas bisa punya banyak mapel aktif)
-  const grouped = rows.reduce<Record<string, PelaksanaanRow[]>>((acc, row) => {
+  const grouped = visibleRows.reduce<Record<string, PelaksanaanRow[]>>((acc, row) => {
     (acc[row.mataPelajaranName] = acc[row.mataPelajaranName] || []).push(row);
     return acc;
   }, {});
@@ -185,7 +195,7 @@ export default function KontrolSilabus() {
         Tandai status ketercapaian silabus per bab/section untuk kelas ini pada periode {semester || '-'} {tahunAjaran || ''}.
       </p>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-3 mb-3 sm:mb-4 grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="bg-white border border-gray-200 rounded-lg p-3 mb-3 sm:mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Wilayah</label>
           <select
@@ -235,6 +245,19 @@ export default function KontrolSilabus() {
             {classes.map(c => (
               <option key={c.id} value={c.id}>{c.name} (Tingkat {c.tingkat || '-'})</option>
             ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Mapel</label>
+          <select
+            value={selectedMapel}
+            onChange={e => setSelectedMapel(e.target.value)}
+            disabled={mapelOptions.length === 0}
+            className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15 disabled:opacity-70"
+          >
+            <option value="">-- Semua Mapel --</option>
+            {mapelOptions.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
         </div>
       </div>

@@ -2,14 +2,15 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
-import { GraduationCap, BookMarked, ClipboardCheck, BookOpen, FileBarChart, Settings } from 'lucide-react';
+import { GraduationCap, LayoutDashboard, BookMarked, ClipboardCheck, BookOpen, FileBarChart, Settings } from 'lucide-react';
+import Ringkasan from './Ringkasan';
 import KelolaSilabus from './KelolaSilabus';
 import KontrolSilabus from './KontrolSilabus';
 import AbsensiMapel from './AbsensiMapel';
 import LaporanPembelajaran from './LaporanPembelajaran';
 import PengaturanMapelPembelajaran from './PengaturanMapelPembelajaran';
 
-type TabKey = 'silabus' | 'kontrol-silabus' | 'absensi-mapel' | 'laporan' | 'pengaturan';
+type TabKey = 'ringkasan' | 'silabus' | 'kontrol-silabus' | 'absensi-mapel' | 'laporan' | 'pengaturan';
 
 export default function KontrolPembelajaran() {
   const { user } = useAuth();
@@ -21,6 +22,7 @@ export default function KontrolPembelajaran() {
 
   const tabs = useMemo(() => {
     const list: { key: TabKey; label: string; icon: any }[] = [];
+    list.push({ key: 'ringkasan', label: 'Dashboard', icon: LayoutDashboard });
     if (user?.scope === 'GLOBAL') {
       list.push({ key: 'silabus', label: 'Kelola Silabus', icon: BookMarked });
     }
@@ -76,6 +78,7 @@ export default function KontrolPembelajaran() {
         </div>
       </div>
 
+      {activeTab === 'ringkasan' && <Ringkasan />}
       {activeTab === 'silabus' && user?.scope === 'GLOBAL' && <KelolaSilabus />}
       {activeTab === 'kontrol-silabus' && <KontrolSilabus />}
       {activeTab === 'absensi-mapel' && <AbsensiMapel />}

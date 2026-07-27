@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
-import { BookOpen, Loader2, Save, AlertCircle, CheckCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Save, AlertCircle, CheckCircle, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Mapel {
   id: string;
@@ -179,15 +179,9 @@ export default function AbsensiMapel() {
 
   return (
     <div className="font-sans text-[#1d1d1f] animate-in fade-in duration-300 pb-12">
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-lg sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
-          Absensi Siswa per Mata Pelajaran
-        </h1>
-        <p className="hidden sm:block text-sm text-slate-500 mt-1">
-          Catat kehadiran siswa untuk sesi mata pelajaran tertentu, terpisah dari absensi harian umum.
-        </p>
-      </div>
+      <p className="text-sm text-slate-500 mb-4 sm:mb-6">
+        Catat kehadiran siswa untuk sesi mata pelajaran tertentu, terpisah dari absensi harian umum.
+      </p>
 
       <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-5 shadow-sm mb-4 sm:mb-6 grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         <div>

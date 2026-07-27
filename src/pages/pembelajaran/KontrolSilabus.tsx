@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
-import { ClipboardCheck, Loader2, Save, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { Loader2, Save, AlertCircle, CheckCircle, Info } from 'lucide-react';
 
 interface Kelas {
   id: string;
@@ -161,15 +161,9 @@ export default function KontrolSilabus() {
 
   return (
     <div className="font-sans text-[#1d1d1f] animate-in fade-in duration-300 pb-12">
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-lg sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <ClipboardCheck className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
-          Kontrol Silabus
-        </h1>
-        <p className="hidden sm:block text-sm text-slate-500 mt-1">
-          Tandai status ketercapaian silabus per bab/section untuk kelas ini pada periode {semester || '-'} {tahunAjaran || ''}.
-        </p>
-      </div>
+      <p className="text-sm text-slate-500 mb-4 sm:mb-6">
+        Tandai status ketercapaian silabus per bab/section untuk kelas ini pada periode {semester || '-'} {tahunAjaran || ''}.
+      </p>
 
       <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-5 shadow-sm mb-4 sm:mb-6 grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
         <div>

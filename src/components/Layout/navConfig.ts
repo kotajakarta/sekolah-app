@@ -114,13 +114,7 @@ export function useNavEntries(): NavEntry[] {
       entries.push({ type: 'link', key: 'rombel', label: 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas' });
       entries.push({ type: 'link', key: 'rapor', label: 'Rapor Muadalah', icon: FileText, to: '/dashboard/formal/rapor' });
 
-      const pembelajaranItems: NavSubItem[] = [
-        { to: '/dashboard/pembelajaran/silabus', label: 'Kelola Silabus', show: user?.scope === 'GLOBAL' },
-        { to: '/dashboard/pembelajaran/kontrol-silabus', label: 'Kontrol Silabus', show: true },
-        { to: '/dashboard/pembelajaran/absensi-mapel', label: 'Absensi Mapel', show: true },
-        { to: '/dashboard/pembelajaran/laporan', label: 'Laporan Pembelajaran', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
-      ].filter(i => i.show).map(({ show, ...rest }) => rest);
-      entries.push({ type: 'group', key: 'pembelajaran', label: 'Kontrol Pembelajaran', icon: BookOpen, items: pembelajaranItems });
+      entries.push({ type: 'link', key: 'pembelajaran', label: 'Kontrol Pembelajaran', icon: BookOpen, to: '/dashboard/pembelajaran' });
     }
 
     if (showKontrolMapel) {

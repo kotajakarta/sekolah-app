@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
-import { BookMarked, Loader2, Plus, Trash2, Save, Info } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, Info } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 
 interface Mapel {
@@ -111,13 +111,7 @@ export default function KelolaSilabus() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-800 flex items-center gap-2">
-          <BookMarked className="w-6 h-6 text-indigo-600" />
-          Kelola Silabus
-        </h1>
-        <p className="text-sm text-slate-500 mt-1.5">Susun Bab/Section dan tanggal target diajar per Mata Pelajaran &amp; Tingkat.</p>
-      </div>
+      <p className="text-sm text-slate-500">Susun Bab/Section dan tanggal target diajar per Mata Pelajaran &amp; Tingkat.</p>
 
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>

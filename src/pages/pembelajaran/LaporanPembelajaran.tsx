@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
-import { FileBarChart, Loader2, Search, AlertCircle, Info } from 'lucide-react';
+import { Loader2, Search, AlertCircle, Info } from 'lucide-react';
 
 interface Mapel {
   id: string;
@@ -109,15 +109,9 @@ export default function LaporanPembelajaran() {
 
   return (
     <div className="font-sans text-[#1d1d1f] animate-in fade-in duration-300 pb-12">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <FileBarChart className="w-6 h-6 text-indigo-600" />
-          Laporan Pembelajaran
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Agregasi ketercapaian silabus dan kehadiran siswa per cabang — mingguan, bulanan, atau per semester.
-        </p>
-      </div>
+      <p className="text-sm text-slate-500 mb-6">
+        Agregasi ketercapaian silabus dan kehadiran siswa per cabang — mingguan, bulanan, atau per semester.
+      </p>
 
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

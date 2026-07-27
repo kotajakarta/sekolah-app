@@ -117,12 +117,12 @@ export default function LaporanPembelajaran() {
 
   return (
     <div className="font-sans text-[#1d1d1f] animate-in fade-in duration-300 pb-12">
-      <p className="text-sm text-gray-500 mb-6">
+      <p className="text-xs text-gray-500 mb-3">
         Agregasi ketercapaian silabus dan kehadiran siswa per cabang — mingguan, bulanan, atau per semester.
       </p>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-3 mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Wilayah</label>
             <select
@@ -165,16 +165,16 @@ export default function LaporanPembelajaran() {
           </div>
         </div>
 
-        <div className="border-t border-gray-100 pt-4 flex flex-col md:flex-row gap-4 items-start md:items-end">
+        <div className="border-t border-gray-100 pt-3 flex flex-col md:flex-row gap-3 items-start md:items-end">
           <div className="w-full md:w-auto">
-            <span className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Periode Laporan</span>
+            <span className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Periode Laporan</span>
             <div className="flex border border-gray-300 rounded overflow-hidden w-full md:w-72">
               {(['weekly', 'monthly', 'semester'] as const).map(m => (
                 <button
                   key={m}
                   type="button"
                   onClick={() => setMode(m)}
-                  className={`flex-1 text-center py-1.5 text-xs font-semibold transition-all border-l first:border-l-0 border-gray-300 ${
+                  className={`flex-1 text-center py-1 text-xs font-semibold transition-all border-l first:border-l-0 border-gray-300 ${
                     mode === m ? 'bg-blue-800 text-white' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                   }`}
                 >
@@ -248,62 +248,62 @@ export default function LaporanPembelajaran() {
       </div>
 
       {!isFilterReady ? (
-        <div className="bg-white border border-dashed border-gray-300 rounded-lg p-12 text-center text-gray-400 flex flex-col items-center justify-center">
-          <Info className="w-8 h-8 mb-2 text-gray-300" />
-          <p className="font-medium text-gray-600">Lengkapi filter periode untuk memuat laporan.</p>
+        <div className="bg-white border border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-400 flex flex-col items-center justify-center">
+          <Info className="w-6 h-6 mb-1.5 text-gray-300" />
+          <p className="text-sm font-medium text-gray-600">Lengkapi filter periode untuk memuat laporan.</p>
         </div>
       ) : isLoading ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-12 flex justify-center items-center">
-          <Loader2 className="w-8 h-8 text-blue-800 animate-spin" />
+        <div className="bg-white border border-gray-200 rounded-lg p-8 flex justify-center items-center">
+          <Loader2 className="w-6 h-6 text-blue-800 animate-spin" />
         </div>
       ) : isError ? (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-6 text-center flex items-center justify-center gap-2">
-          <AlertCircle className="w-5 h-5" /> Gagal memuat laporan.
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-center flex items-center justify-center gap-2 text-sm">
+          <AlertCircle className="w-4 h-4" /> Gagal memuat laporan.
         </div>
       ) : !laporan || laporan.rekap.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-12 text-center text-gray-400">
+        <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-sm text-gray-400">
           Tidak ada data untuk filter yang dipilih.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {(() => {
             const avgSilabus = Math.round(laporan.rekap.reduce((s, r) => s + r.persenSilabus, 0) / laporan.rekap.length);
             const avgKehadiran = Math.round(laporan.rekap.reduce((s, r) => s + r.persenKehadiran, 0) / laporan.rekap.length);
             const best = laporan.rekap.reduce((top, r) => (r.persenSilabus > (top?.persenSilabus ?? -1) ? r : top), laporan.rekap[0]);
             return (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-white border border-gray-200 rounded-lg p-5">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Rata-rata Penyelesaian Silabus</span>
-                  <div className={`text-3xl font-bold mt-2 ${percentColor(avgSilabus)}`}>{avgSilabus}%</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Rata-rata Penyelesaian Silabus</span>
+                  <div className={`text-2xl font-bold mt-1 ${percentColor(avgSilabus)}`}>{avgSilabus}%</div>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-5">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Rata-rata Tingkat Kehadiran</span>
-                  <div className={`text-3xl font-bold mt-2 ${percentColor(avgKehadiran)}`}>{avgKehadiran}%</div>
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Rata-rata Tingkat Kehadiran</span>
+                  <div className={`text-2xl font-bold mt-1 ${percentColor(avgKehadiran)}`}>{avgKehadiran}%</div>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-5">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Cabang Performa Terbaik</span>
-                  <div className="text-lg font-bold text-gray-900 mt-2 truncate">{best?.cabangName || '-'}</div>
-                  <p className="text-xs text-gray-500 mt-0.5">{best?.persenSilabus ?? 0}% Penyelesaian Silabus</p>
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Cabang Performa Terbaik</span>
+                  <div className="text-base font-bold text-gray-900 mt-1 truncate">{best?.cabangName || '-'}</div>
+                  <p className="text-[11px] text-gray-500 mt-0.5">{best?.persenSilabus ?? 0}% Penyelesaian Silabus</p>
                 </div>
               </div>
             );
           })()}
 
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h3 className="text-sm font-bold text-gray-800">Rincian Cabang</h3>
+            <div className="px-3 py-2 border-b border-gray-100">
+              <h3 className="text-xs font-bold text-gray-800">Rincian Cabang</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-100">
                 <thead className="bg-gray-50">
-                  <tr className="text-xs font-semibold text-gray-500 uppercase tracking-wide text-left">
-                    <th className="px-5 py-3">Cabang</th>
-                    <th className="px-5 py-3">Wilayah</th>
-                    <th className="px-5 py-3 text-center">Silabus Selesai</th>
-                    <th className="px-5 py-3 text-center">% Silabus</th>
-                    <th className="px-5 py-3 text-center">Kehadiran</th>
-                    <th className="px-5 py-3 text-center">% Kehadiran</th>
-                    <th className="px-5 py-3 text-center">Status</th>
+                  <tr className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide text-left">
+                    <th className="px-3 py-2">Cabang</th>
+                    <th className="px-3 py-2">Wilayah</th>
+                    <th className="px-3 py-2 text-center">Silabus Selesai</th>
+                    <th className="px-3 py-2 text-center">% Silabus</th>
+                    <th className="px-3 py-2 text-center">Kehadiran</th>
+                    <th className="px-3 py-2 text-center">% Kehadiran</th>
+                    <th className="px-3 py-2 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-sm">
@@ -311,14 +311,14 @@ export default function LaporanPembelajaran() {
                     const status = statusForPercent(row.persenSilabus);
                     return (
                       <tr key={row.cabangId} className="hover:bg-gray-50/60 transition-colors">
-                        <td className="px-5 py-3.5 font-semibold text-gray-800">{row.cabangName}</td>
-                        <td className="px-5 py-3.5 text-gray-500">{row.wilayahName}</td>
-                        <td className="px-5 py-3.5 text-center text-gray-600">{row.silabusCompleted} / {row.silabusTotal}</td>
-                        <td className={`px-5 py-3.5 text-center font-bold ${percentColor(row.persenSilabus)}`}>{row.persenSilabus}%</td>
-                        <td className="px-5 py-3.5 text-center text-gray-600">{row.hadir} / {row.totalAbsensi}</td>
-                        <td className={`px-5 py-3.5 text-center font-bold ${percentColor(row.persenKehadiran)}`}>{row.persenKehadiran}%</td>
-                        <td className="px-5 py-3.5 text-center">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ${status.cls}`}>
+                        <td className="px-3 py-2 font-semibold text-gray-800">{row.cabangName}</td>
+                        <td className="px-3 py-2 text-gray-500">{row.wilayahName}</td>
+                        <td className="px-3 py-2 text-center text-gray-600">{row.silabusCompleted} / {row.silabusTotal}</td>
+                        <td className={`px-3 py-2 text-center font-bold ${percentColor(row.persenSilabus)}`}>{row.persenSilabus}%</td>
+                        <td className="px-3 py-2 text-center text-gray-600">{row.hadir} / {row.totalAbsensi}</td>
+                        <td className={`px-3 py-2 text-center font-bold ${percentColor(row.persenKehadiran)}`}>{row.persenKehadiran}%</td>
+                        <td className="px-3 py-2 text-center">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${status.cls}`}>
                             {status.label}
                           </span>
                         </td>

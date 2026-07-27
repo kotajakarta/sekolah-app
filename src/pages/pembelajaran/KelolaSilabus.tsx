@@ -111,10 +111,10 @@ export default function KelolaSilabus() {
   };
 
   return (
-    <div className="space-y-6">
-      <p className="text-sm text-slate-500">Susun Bab/Section dan tanggal target diajar per Mata Pelajaran &amp; Tingkat.</p>
+    <div className="space-y-4">
+      <p className="text-xs text-slate-500">Susun Bab/Section dan tanggal target diajar per Mata Pelajaran &amp; Tingkat.</p>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-5 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Mata Pelajaran</label>
           {loadingMapel ? (
@@ -165,13 +165,13 @@ export default function KelolaSilabus() {
       </div>
 
       {!isReady ? (
-        <div className="bg-white border border-dashed border-gray-300 rounded-lg p-12 text-center text-gray-400 flex flex-col items-center justify-center">
-          <Info className="w-8 h-8 mb-2 text-gray-300" />
-          <p className="font-medium text-gray-600">Pilih Mata Pelajaran dan Tingkat untuk mulai menyusun silabus.</p>
+        <div className="bg-white border border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-400 flex flex-col items-center justify-center">
+          <Info className="w-6 h-6 mb-1.5 text-gray-300" />
+          <p className="text-sm font-medium text-gray-600">Pilih Mata Pelajaran dan Tingkat untuk mulai menyusun silabus.</p>
         </div>
       ) : loadingSilabus ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-12 flex justify-center items-center">
-          <Loader2 className="w-8 h-8 text-blue-800 animate-spin" />
+        <div className="bg-white border border-gray-200 rounded-lg p-8 flex justify-center items-center">
+          <Loader2 className="w-6 h-6 text-blue-800 animate-spin" />
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -179,50 +179,50 @@ export default function KelolaSilabus() {
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">No</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Bab</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Section / Sub-Bab</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-48">Tanggal Target Diajar</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Aksi</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-12">No</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Bab</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Section / Sub-Bab</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-44">Tanggal Target Diajar</th>
+                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-12">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {items.map((item, idx) => (
                   <tr key={idx}>
-                    <td className="px-4 py-2.5 text-sm text-gray-400 font-medium">{idx + 1}</td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-3 py-1.5 text-sm text-gray-400 font-medium">{idx + 1}</td>
+                    <td className="px-3 py-1.5">
                       <input
                         type="text"
                         value={item.bab}
                         onChange={e => updateItem(idx, { bab: e.target.value })}
                         placeholder="Bab 1"
-                        className="w-full px-2.5 py-1.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
                       />
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-3 py-1.5">
                       <input
                         type="text"
                         value={item.section}
                         onChange={e => updateItem(idx, { section: e.target.value })}
                         placeholder="1.1 Pengenalan..."
-                        className="w-full px-2.5 py-1.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
                       />
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-3 py-1.5">
                       <input
                         type="date"
                         value={item.tanggalTarget}
                         onChange={e => updateItem(idx, { tanggalTarget: e.target.value })}
-                        className="w-full px-2.5 py-1.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
                       />
                     </td>
-                    <td className="px-4 py-2.5 text-center">
+                    <td className="px-3 py-1.5 text-center">
                       <button
                         onClick={() => removeRow(idx)}
-                        className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+                        className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
                         title="Hapus baris"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </td>
                   </tr>
@@ -231,20 +231,20 @@ export default function KelolaSilabus() {
             </table>
           </div>
 
-          <div className="p-4 border-t border-gray-100">
+          <div className="p-3 border-t border-gray-100">
             <button
               onClick={addRow}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-blue-800 border border-dashed border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-blue-800 border border-dashed border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" /> Tambah Baris
             </button>
           </div>
 
-          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex justify-end">
+          <div className="px-3 py-2.5 bg-gray-50 border-t border-gray-200 flex justify-end">
             <button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending}
-              className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded text-white bg-blue-800 hover:bg-blue-900 transition-colors disabled:opacity-50 w-full sm:w-auto"
+              className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded text-white bg-blue-800 hover:bg-blue-900 transition-colors disabled:opacity-50 w-full sm:w-auto"
             >
               {saveMutation.isPending ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Menyimpan...</>

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import * as XLSX from 'xlsx';
 import apiClient from '../../lib/apiClient';
-import { Loader2, Plus, Trash2, Save, Info } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, Info, Download, Upload, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 
 interface Mapel {
@@ -27,12 +28,32 @@ const emptyItem = (urutanBab: number, urutanSection: number): SilabusItem => ({
   bab: '', urutanBab, section: '', urutanSection, tanggalTarget: ''
 });
 
+const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const parseTanggal = (raw: any): string => {
+  if (raw === null || raw === undefined || raw === '') return '';
+  if (typeof raw === 'number') {
+    const parsed = XLSX.SSF.parse_date_code(raw);
+    if (!parsed) return '';
+    return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`;
+  }
+  const str = String(raw).trim();
+  const isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2].padStart(2, '0')}-${isoMatch[3].padStart(2, '0')}`;
+  const dmyMatch = str.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})$/);
+  if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2].padStart(2, '0')}-${dmyMatch[1].padStart(2, '0')}`;
+  const parsedDate = new Date(str);
+  if (!isNaN(parsedDate.getTime())) return parsedDate.toISOString().slice(0, 10);
+  return '';
+};
+
 export default function KelolaSilabus() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
   const [selectedMapel, setSelectedMapel] = useState('');
   const [selectedTingkat, setSelectedTingkat] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: pengaturanAkademik } = useQuery({
     queryKey: ['pengaturan-akademik'],
@@ -110,9 +131,131 @@ export default function KelolaSilabus() {
     setItems(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const mapelName = (mapelList || []).find(m => m.id === selectedMapel)?.name || 'Mapel';
+  const exportFileName = () => `Silabus_${mapelName}_${selectedTingkat}_${tahunAjaran.replace('/', '-')}_${semester}.xlsx`.replace(/\s+/g, '_');
+
+  const handleDownloadTemplate = () => {
+    const worksheet = XLSX.utils.json_to_sheet([
+      { Bab: 'Bab 1', Section: '1.1 Pengenalan', 'Tanggal Target': '2026-07-11' },
+      { Bab: 'Bab 1', Section: '1.2 Lanjutan', 'Tanggal Target': '2026-07-18' }
+    ]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template Silabus');
+    XLSX.writeFile(workbook, 'Template_Silabus.xlsx');
+  };
+
+  const handleExport = () => {
+    const exportable = items.filter(i => i.bab.trim() && i.section.trim());
+    if (exportable.length === 0) {
+      showToast('error', 'Belum ada data silabus untuk diekspor.');
+      return;
+    }
+    const worksheet = XLSX.utils.json_to_sheet(
+      exportable.map(i => ({ Bab: i.bab, Section: i.section, 'Tanggal Target': i.tanggalTarget }))
+    );
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Silabus');
+    XLSX.writeFile(workbook, exportFileName());
+  };
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!isReady) {
+      showToast('error', 'Pilih Mata Pelajaran, Tingkat, Tahun Ajaran, dan Semester terlebih dahulu.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = evt => {
+      try {
+        const rawData = new Uint8Array(evt.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(rawData, { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: '', raw: true });
+
+        if (rows.length === 0) {
+          showToast('error', 'File kosong atau format tidak dikenali.');
+          return;
+        }
+
+        const findKey = (row: Record<string, any>, candidates: string[]) =>
+          Object.keys(row).find(k => candidates.includes(normalize(k)));
+
+        const parsed: SilabusItem[] = [];
+        let currentBab = '';
+        let urutanBab = 0;
+        let urutanSection = 0;
+
+        rows.forEach(row => {
+          const babKey = findKey(row, ['bab']);
+          const sectionKey = findKey(row, ['section', 'subbab', 'sectionsubbab']);
+          const tanggalKey = findKey(row, ['tanggaltarget', 'tanggal', 'targetdiajar', 'tanggaltargetdiajar']);
+          const bab = String(row[babKey || 'Bab'] || '').trim();
+          const section = String(row[sectionKey || 'Section'] || '').trim();
+          if (!bab || !section) return;
+
+          if (bab !== currentBab) {
+            currentBab = bab;
+            urutanBab++;
+            urutanSection = 0;
+          }
+          urutanSection++;
+
+          const tanggalTarget = parseTanggal(row[tanggalKey || 'Tanggal Target']);
+          parsed.push({ bab, urutanBab, section, urutanSection, tanggalTarget });
+        });
+
+        if (parsed.length === 0) {
+          showToast('error', 'Tidak ada baris valid ditemukan. Pastikan kolom Bab dan Section terisi.');
+          return;
+        }
+
+        setItems(parsed);
+        showToast('success', `${parsed.length} baris berhasil diimpor. Periksa lalu klik "Simpan Silabus" untuk menyimpan.`);
+      } catch {
+        showToast('error', 'Gagal membaca file Excel.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-500">Susun Bab/Section dan tanggal target diajar per Mata Pelajaran &amp; Tingkat.</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs text-slate-500">Susun Bab/Section dan tanggal target diajar per Mata Pelajaran &amp; Tingkat.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownloadTemplate}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" /> Unduh Template
+          </button>
+          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
+          <button
+            type="button"
+            onClick={handleImportClick}
+            disabled={!isReady}
+            title={!isReady ? 'Pilih Mapel, Tingkat, Tahun Ajaran, dan Semester dahulu' : 'Import dari Excel'}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <Upload className="w-3.5 h-3.5" /> Import Excel
+          </button>
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={!isReady || items.length === 0}
+            title={!isReady ? 'Pilih Mapel, Tingkat, Tahun Ajaran, dan Semester dahulu' : 'Export ke Excel'}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
+          </button>
+        </div>
+      </div>
 
       <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
         <div>

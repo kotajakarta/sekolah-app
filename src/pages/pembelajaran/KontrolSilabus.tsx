@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
-import { Loader2, Save, AlertCircle, CheckCircle, Info, ClipboardList } from 'lucide-react';
+import { Loader2, Save, AlertCircle, CheckCircle, Info, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react';
 import AbsensiSilabusModal from './AbsensiSilabusModal';
 
 interface Kelas {
@@ -40,7 +40,21 @@ const STATUS_OPTIONS = [
   { key: 'LIBUR', label: 'Libur', activeBg: 'bg-gray-200 text-gray-700 border-gray-300', hoverBg: 'hover:bg-gray-100 text-gray-600 border-gray-300' },
 ] as const;
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+// Sesi diajarkan setiap hari Sabtu — tabel Kontrol Silabus dibangun per-tanggal Sabtu
+// dalam bulan yang sedang dilihat, bukan per-section, supaya sesuai jadwal riil di lapangan.
+function getSaturdaysInMonth(year: number, month: number): string[] {
+  const dates: string[] = [];
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let day = 1; day <= daysInMonth; day++) {
+    if (new Date(year, month, day).getDay() === 6) {
+      dates.push(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+    }
+  }
+  return dates;
+}
+
+const formatTanggal = (date: string) =>
+  new Date(`${date}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
 
 export default function KontrolSilabus() {
   const { user } = useAuth();
@@ -56,6 +70,10 @@ export default function KontrolSilabus() {
   const [rows, setRows] = useState<PelaksanaanRow[]>([]);
   const [isSavedSuccessfully, setIsSavedSuccessfully] = useState(false);
   const [absensiSilabusId, setAbsensiSilabusId] = useState<string | null>(null);
+  const [viewDate, setViewDate] = useState(() => {
+    const d = new Date();
+    return { year: d.getFullYear(), month: d.getMonth() };
+  });
 
   useEffect(() => {
     if (isWilayah && user?.wilayahId) setSelectedWilayah(user.wilayahId);
@@ -135,9 +153,11 @@ export default function KontrolSilabus() {
 
   useEffect(() => {
     if (pelaksanaanData) {
-      setRows(pelaksanaanData.items.map(r => ({ ...r, tanggalDiajar: r.tanggalDiajar || todayStr() })));
+      setRows(pelaksanaanData.items);
       setIsSavedSuccessfully(false);
       setSelectedMapel('');
+      const d = new Date();
+      setViewDate({ year: d.getFullYear(), month: d.getMonth() });
     }
   }, [pelaksanaanData]);
 
@@ -163,13 +183,24 @@ export default function KontrolSilabus() {
     setIsSavedSuccessfully(false);
   };
 
-  const handleTanggalChange = (silabusId: string, tanggalDiajar: string) => {
-    setRows(prev => prev.map(r => r.silabusId === silabusId ? { ...r, tanggalDiajar } : r));
+  const handleGuruChange = (silabusId: string, guruId: string) => {
+    setRows(prev => prev.map(r => r.silabusId === silabusId ? { ...r, guruId: guruId || null } : r));
     setIsSavedSuccessfully(false);
   };
 
-  const handleGuruChange = (silabusId: string, guruId: string) => {
-    setRows(prev => prev.map(r => r.silabusId === silabusId ? { ...r, guruId: guruId || null } : r));
+  // Menempelkan satu materi silabus ke tanggal Sabtu tertentu (mengosongkan tanggal lama
+  // materi itu kalau sebelumnya sudah menempel di tanggal lain).
+  const handleAssign = (date: string, silabusId: string) => {
+    setRows(prev => prev.map(r => {
+      if (r.silabusId === silabusId) return { ...r, tanggalDiajar: date };
+      if (r.tanggalDiajar === date) return { ...r, tanggalDiajar: null };
+      return r;
+    }));
+    setIsSavedSuccessfully(false);
+  };
+
+  const handleUnassign = (silabusId: string) => {
+    setRows(prev => prev.map(r => r.silabusId === silabusId ? { ...r, tanggalDiajar: null } : r));
     setIsSavedSuccessfully(false);
   };
 
@@ -178,24 +209,26 @@ export default function KontrolSilabus() {
     new Map(rows.map(r => [r.mataPelajaranId, r.mataPelajaranName])).entries()
   ).map(([id, name]) => ({ id, name }));
 
-  const visibleRows = selectedMapel ? rows.filter(r => r.mataPelajaranId === selectedMapel) : rows;
+  const mapelRows = selectedMapel ? rows.filter(r => r.mataPelajaranId === selectedMapel) : [];
+  const unassignedSections = mapelRows.filter(r => !r.tanggalDiajar);
+  const assignedByDate = new Map(mapelRows.filter(r => r.tanggalDiajar).map(r => [r.tanggalDiajar as string, r]));
 
+  const saturdays = getSaturdaysInMonth(viewDate.year, viewDate.month);
+  const monthLabel = new Date(viewDate.year, viewDate.month, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  const goPrevMonth = () => setViewDate(v => v.month === 0 ? { year: v.year - 1, month: 11 } : { year: v.year, month: v.month - 1 });
+  const goNextMonth = () => setViewDate(v => v.month === 11 ? { year: v.year + 1, month: 0 } : { year: v.year, month: v.month + 1 });
+
+  const assignedInView = saturdays.map(d => assignedByDate.get(d)).filter((r): r is PelaksanaanRow => !!r);
   const markAll = (status: PelaksanaanRow['status']) => {
-    const visibleIds = new Set(visibleRows.map(r => r.silabusId));
-    setRows(prev => prev.map(r => visibleIds.has(r.silabusId) ? { ...r, status } : r));
+    const ids = new Set(assignedInView.map(r => r.silabusId));
+    setRows(prev => prev.map(r => ids.has(r.silabusId) ? { ...r, status } : r));
     setIsSavedSuccessfully(false);
   };
-
-  // Group rows by mata pelajaran untuk keterbacaan (satu kelas bisa punya banyak mapel aktif)
-  const grouped = visibleRows.reduce<Record<string, PelaksanaanRow[]>>((acc, row) => {
-    (acc[row.mataPelajaranName] = acc[row.mataPelajaranName] || []).push(row);
-    return acc;
-  }, {});
 
   return (
     <div className="font-sans text-[#1d1d1f] animate-in fade-in duration-300 pb-12">
       <p className="text-xs text-gray-500 mb-3 sm:mb-4">
-        Tandai status ketercapaian silabus per bab/section untuk kelas ini pada periode {semester || '-'} {tahunAjaran || ''}.
+        Tandai status ketercapaian silabus per sesi Sabtu untuk kelas ini pada periode {semester || '-'} {tahunAjaran || ''}.
       </p>
 
       <div className="bg-white border border-gray-200 rounded-lg p-3 mb-3 sm:mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -259,7 +292,7 @@ export default function KontrolSilabus() {
             disabled={mapelOptions.length === 0}
             className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15 disabled:opacity-70"
           >
-            <option value="">-- Semua Mapel --</option>
+            <option value="">-- Pilih Mapel --</option>
             {mapelOptions.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
         </div>
@@ -282,15 +315,30 @@ export default function KontrolSilabus() {
         <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-sm text-gray-400">
           Belum ada silabus yang diinput Admin Pusat untuk tingkat kelas ini pada periode aktif.
         </div>
+      ) : !selectedMapel ? (
+        <div className="bg-white border border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-400 flex flex-col items-center justify-center">
+          <Info className="w-6 h-6 mb-1.5 text-gray-300" />
+          <p className="text-sm font-medium text-gray-600">Pilih Mata Pelajaran untuk memuat jadwal sesi Sabtu.</p>
+        </div>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2 bg-white border border-gray-200 p-2.5 rounded-lg">
+            <div className="flex items-center gap-1 mr-2">
+              <button type="button" onClick={goPrevMonth} className="p-1 border border-gray-300 bg-white rounded text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-all">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-bold text-gray-800 w-32 text-center capitalize">{monthLabel}</span>
+              <button type="button" onClick={goNextMonth} className="p-1 border border-gray-300 bg-white rounded text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-all">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
             <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mr-1">Tandai Cepat:</span>
             {STATUS_OPTIONS.map(opt => (
               <button
                 key={opt.key}
                 onClick={() => markAll(opt.key)}
-                className="px-2.5 py-1 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-[11px] font-semibold rounded-full transition-all"
+                disabled={assignedInView.length === 0}
+                className="px-2.5 py-1 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 text-[11px] font-semibold rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {opt.label}
               </button>
@@ -302,59 +350,77 @@ export default function KontrolSilabus() {
             )}
           </div>
 
-          {Object.entries(grouped).map(([mapelName, mapelRows]) => (
-            <div key={mapelName} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-              <div className="px-3 py-2 bg-gray-50 border-b border-gray-200">
-                <h3 className="text-xs font-bold text-gray-800">{mapelName}</h3>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {mapelRows.map(row => (
-                  <div key={row.silabusId} className="p-2.5 flex flex-col lg:flex-row lg:items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">{row.bab} — {row.section}</p>
-                      <p className="text-[11px] text-gray-400">
-                        Target: {new Date(row.tanggalTarget).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </p>
+          {unassignedSections.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs text-amber-800">
+              <span className="font-semibold">{unassignedSections.length} materi belum dijadwalkan ke sesi Sabtu manapun:</span>{' '}
+              {unassignedSections.map(s => `${s.bab} — ${s.section}`).join(', ')}
+            </div>
+          )}
+
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <div className="divide-y divide-gray-100">
+              {saturdays.map(date => {
+                const assigned = assignedByDate.get(date);
+                const options = mapelRows.filter(r => !r.tanggalDiajar || r.silabusId === assigned?.silabusId);
+                return (
+                  <div key={date} className="p-2.5 flex flex-col lg:flex-row lg:items-center gap-2">
+                    <div className="lg:w-44 shrink-0">
+                      <p className="text-sm font-semibold text-gray-800 capitalize">{formatTanggal(date)}</p>
                     </div>
 
                     <div className="shrink-0 flex flex-row lg:flex-col items-center lg:items-stretch gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setAbsensiSilabusId(row.silabusId)}
-                        disabled={row.status === 'LIBUR'}
-                        title={row.status === 'LIBUR' ? 'Libur — tidak ada sesi' : 'Isi absensi untuk materi ini'}
+                        onClick={() => assigned && setAbsensiSilabusId(assigned.silabusId)}
+                        disabled={!assigned || assigned.status === 'LIBUR'}
+                        title={!assigned ? 'Pilih materi dahulu' : assigned.status === 'LIBUR' ? 'Libur — tidak ada sesi' : 'Isi absensi untuk materi ini'}
                         className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded text-white bg-blue-800 hover:bg-blue-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <ClipboardList className="w-3.5 h-3.5" /> Absensi
                       </button>
-                      {row.status !== 'LIBUR' && (
+                      {assigned && assigned.status !== 'LIBUR' && (
                         <span
                           className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-center ${
-                            row.hasAbsensi ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'
+                            assigned.hasAbsensi ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'
                           }`}
                         >
-                          {row.hasAbsensi ? 'Sudah Absensi' : 'Belum Absensi'}
+                          {assigned.hasAbsensi ? 'Sudah Absensi' : 'Belum Absensi'}
                         </span>
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center lg:gap-2 shrink-0">
-                      <input
-                        type="date"
-                        value={row.tanggalDiajar || ''}
-                        onChange={e => handleTanggalChange(row.silabusId, e.target.value)}
-                        title="Tanggal Pelaksanaan"
-                        className="w-full lg:w-36 px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
-                      />
+                    <div className="flex-1 min-w-0">
                       <select
-                        value={row.guruId || ''}
-                        onChange={e => handleGuruChange(row.silabusId, e.target.value)}
+                        value={assigned?.silabusId || ''}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (!val) {
+                            if (assigned) handleUnassign(assigned.silabusId);
+                          } else {
+                            handleAssign(date, val);
+                          }
+                        }}
+                        title="Materi Silabus"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                      >
+                        <option value="">-- Pilih Materi --</option>
+                        {options.map(o => (
+                          <option key={o.silabusId} value={o.silabusId}>{o.bab} — {o.section}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="shrink-0 w-full lg:w-40">
+                      <select
+                        value={assigned?.guruId || ''}
+                        onChange={e => assigned && handleGuruChange(assigned.silabusId, e.target.value)}
+                        disabled={!assigned}
                         title="Pengajar"
-                        className="w-full lg:w-40 px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15 disabled:opacity-50"
                       >
                         <option value="">-- Pengajar --</option>
-                        {row.guruId && !guruOptions.some(g => g.id === row.guruId) && (
-                          <option value={row.guruId}>{row.guruName || 'Guru (tidak dikenal)'}</option>
+                        {assigned?.guruId && !guruOptions.some(g => g.id === assigned.guruId) && (
+                          <option value={assigned.guruId}>{assigned.guruName || 'Guru (tidak dikenal)'}</option>
                         )}
                         {guruOptions.map(g => (
                           <option key={g.id} value={g.id}>{g.name}</option>
@@ -364,13 +430,14 @@ export default function KontrolSilabus() {
 
                     <div className="grid grid-cols-3 gap-1.5 lg:flex lg:gap-1.5 shrink-0">
                       {STATUS_OPTIONS.map(opt => {
-                        const active = row.status === opt.key;
+                        const active = assigned?.status === opt.key;
                         return (
                           <button
                             key={opt.key}
                             type="button"
-                            onClick={() => handleStatusChange(row.silabusId, opt.key)}
-                            className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all text-center ${active ? opt.activeBg : opt.hoverBg}`}
+                            disabled={!assigned}
+                            onClick={() => assigned && handleStatusChange(assigned.silabusId, opt.key)}
+                            className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all text-center disabled:opacity-40 disabled:cursor-not-allowed ${active ? opt.activeBg : opt.hoverBg}`}
                           >
                             {opt.label}
                           </button>
@@ -378,10 +445,10 @@ export default function KontrolSilabus() {
                       })}
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          ))}
+          </div>
 
           <div className="bg-white border border-gray-200 rounded-lg p-2.5 flex justify-end">
             <button

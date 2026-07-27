@@ -33,9 +33,10 @@ interface Props {
   kelasName: string;
   silabusId: string;
   onClose: () => void;
+  onSaved?: () => void;
 }
 
-export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, onClose }: Props) {
+export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, onClose, onSaved }: Props) {
   const queryClient = useQueryClient();
   const [rows, setRows] = useState<AbsensiSilabusRow[]>([]);
   const [tanggal, setTanggal] = useState(todayStr());
@@ -62,6 +63,7 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, onC
     onSuccess: () => {
       setIsSavedSuccessfully(true);
       queryClient.invalidateQueries({ queryKey: ['absensi-silabus', kelasId, silabusId] });
+      onSaved?.();
     }
   });
 

@@ -25,6 +25,7 @@ interface PelaksanaanRow {
   catatan: string;
   guruId: string | null;
   guruName: string | null;
+  hasAbsensi: boolean;
 }
 
 interface GuruOption {
@@ -316,16 +317,25 @@ export default function KontrolSilabus() {
                       </p>
                     </div>
 
-                    <div className="shrink-0">
+                    <div className="shrink-0 flex flex-row lg:flex-col items-center lg:items-stretch gap-1.5">
                       <button
                         type="button"
                         onClick={() => setAbsensiSilabusId(row.silabusId)}
                         disabled={row.status === 'LIBUR'}
                         title={row.status === 'LIBUR' ? 'Libur — tidak ada sesi' : 'Isi absensi untuk materi ini'}
-                        className="w-full lg:w-auto inline-flex items-center justify-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded text-white bg-blue-800 hover:bg-blue-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded text-white bg-blue-800 hover:bg-blue-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <ClipboardList className="w-3.5 h-3.5" /> Absensi
                       </button>
+                      {row.status !== 'LIBUR' && (
+                        <span
+                          className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-center ${
+                            row.hasAbsensi ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'
+                          }`}
+                        >
+                          {row.hasAbsensi ? 'Sudah Absensi' : 'Belum Absensi'}
+                        </span>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center lg:gap-2 shrink-0">
@@ -395,6 +405,7 @@ export default function KontrolSilabus() {
           kelasName={classes.find(c => c.id === selectedKelas)?.name || ''}
           silabusId={absensiSilabusId}
           onClose={() => setAbsensiSilabusId(null)}
+          onSaved={() => setRows(prev => prev.map(r => r.silabusId === absensiSilabusId ? { ...r, hasAbsensi: true } : r))}
         />
       )}
     </div>

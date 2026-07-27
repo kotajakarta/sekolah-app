@@ -113,16 +113,16 @@ export default function KelolaSilabus() {
     <div className="space-y-6">
       <p className="text-sm text-slate-500">Susun Bab/Section dan tanggal target diajar per Mata Pelajaran &amp; Tingkat.</p>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-5 grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Mata Pelajaran</label>
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Mata Pelajaran</label>
           {loadingMapel ? (
-            <div className="text-slate-400 text-sm flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Memuat...</div>
+            <div className="text-gray-400 text-sm flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Memuat...</div>
           ) : (
             <select
               value={selectedMapel}
               onChange={e => setSelectedMapel(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
+              className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
             >
               <option value="">-- Pilih Mapel --</option>
               {(mapelList || []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -130,32 +130,32 @@ export default function KelolaSilabus() {
           )}
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tingkat</label>
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Tingkat</label>
           <select
             value={selectedTingkat}
             onChange={e => setSelectedTingkat(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
+            className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
           >
             <option value="">-- Pilih Tingkat --</option>
             {TINGKAT_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tahun Ajaran</label>
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Tahun Ajaran</label>
           <select
             value={tahunAjaran}
             onChange={e => setTahunAjaran(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
+            className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
           >
             {TAHUN_AJARAN_OPTIONS.map(ta => <option key={ta} value={ta}>{ta}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Semester</label>
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Semester</label>
           <select
             value={semester}
             onChange={e => setSemester(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
+            className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
           >
             <option value="Ganjil">Ganjil</option>
             <option value="Genap">Genap</option>
@@ -164,38 +164,38 @@ export default function KelolaSilabus() {
       </div>
 
       {!isReady ? (
-        <div className="bg-slate-50 border border-dashed border-slate-300/80 rounded-xl p-12 text-center text-slate-400 flex flex-col items-center justify-center">
-          <Info className="w-8 h-8 mb-2 text-slate-300" />
-          <p className="font-medium text-slate-600">Pilih Mata Pelajaran dan Tingkat untuk mulai menyusun silabus.</p>
+        <div className="bg-white border border-dashed border-gray-300 rounded-lg p-12 text-center text-gray-400 flex flex-col items-center justify-center">
+          <Info className="w-8 h-8 mb-2 text-gray-300" />
+          <p className="font-medium text-gray-600">Pilih Mata Pelajaran dan Tingkat untuk mulai menyusun silabus.</p>
         </div>
       ) : loadingSilabus ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-12 flex justify-center items-center shadow-sm">
-          <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+        <div className="bg-white border border-gray-200 rounded-lg p-12 flex justify-center items-center">
+          <Loader2 className="w-8 h-8 text-blue-800 animate-spin" />
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50/80 border-b border-slate-200">
+            <table className="min-w-full divide-y divide-gray-100">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Bab</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Section / Sub-Bab</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest w-48">Tanggal Target Diajar</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">Aksi</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">No</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Bab</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Section / Sub-Bab</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide w-48">Tanggal Target Diajar</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wide w-16">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-gray-100">
                 {items.map((item, idx) => (
                   <tr key={idx}>
-                    <td className="px-4 py-2.5 text-sm text-slate-400 font-medium">{idx + 1}</td>
+                    <td className="px-4 py-2.5 text-sm text-gray-400 font-medium">{idx + 1}</td>
                     <td className="px-4 py-2.5">
                       <input
                         type="text"
                         value={item.bab}
                         onChange={e => updateItem(idx, { bab: e.target.value })}
                         placeholder="Bab 1"
-                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/30"
+                        className="w-full px-2.5 py-1.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
                       />
                     </td>
                     <td className="px-4 py-2.5">
@@ -204,7 +204,7 @@ export default function KelolaSilabus() {
                         value={item.section}
                         onChange={e => updateItem(idx, { section: e.target.value })}
                         placeholder="1.1 Pengenalan..."
-                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/30"
+                        className="w-full px-2.5 py-1.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
                       />
                     </td>
                     <td className="px-4 py-2.5">
@@ -212,13 +212,13 @@ export default function KelolaSilabus() {
                         type="date"
                         value={item.tanggalTarget}
                         onChange={e => updateItem(idx, { tanggalTarget: e.target.value })}
-                        className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/30"
+                        className="w-full px-2.5 py-1.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
                       />
                     </td>
                     <td className="px-4 py-2.5 text-center">
                       <button
                         onClick={() => removeRow(idx)}
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                        className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
                         title="Hapus baris"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -230,17 +230,20 @@ export default function KelolaSilabus() {
             </table>
           </div>
 
-          <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-3">
+          <div className="p-4 border-t border-gray-100">
             <button
               onClick={addRow}
-              className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold text-blue-800 border border-dashed border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
             >
-              <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Baris
+              <Plus className="w-3.5 h-3.5" /> Tambah Baris
             </button>
+          </div>
+
+          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 flex justify-end">
             <button
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending}
-              className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 w-full sm:w-auto"
+              className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded text-white bg-blue-800 hover:bg-blue-900 transition-colors disabled:opacity-50 w-full sm:w-auto"
             >
               {saveMutation.isPending ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Menyimpan...</>

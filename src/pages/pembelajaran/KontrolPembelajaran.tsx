@@ -2,15 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
-import { GraduationCap, LayoutDashboard, BookMarked, ClipboardCheck, BookOpen, FileBarChart, Settings } from 'lucide-react';
+import { GraduationCap, LayoutDashboard, BookMarked, ClipboardCheck, FileBarChart, Settings } from 'lucide-react';
 import Ringkasan from './Ringkasan';
 import KelolaSilabus from './KelolaSilabus';
 import KontrolSilabus from './KontrolSilabus';
-import AbsensiMapel from './AbsensiMapel';
 import LaporanPembelajaran from './LaporanPembelajaran';
 import PengaturanMapelPembelajaran from './PengaturanMapelPembelajaran';
 
-type TabKey = 'ringkasan' | 'silabus' | 'kontrol-silabus' | 'absensi-mapel' | 'laporan' | 'pengaturan';
+type TabKey = 'ringkasan' | 'silabus' | 'kontrol-silabus' | 'laporan' | 'pengaturan';
 
 export default function KontrolPembelajaran() {
   const { user } = useAuth();
@@ -27,7 +26,6 @@ export default function KontrolPembelajaran() {
       list.push({ key: 'silabus', label: 'Kelola Silabus', icon: BookMarked });
     }
     list.push({ key: 'kontrol-silabus', label: 'Kontrol Silabus', icon: ClipboardCheck });
-    list.push({ key: 'absensi-mapel', label: 'Absensi Mapel', icon: BookOpen });
     if (user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH') {
       list.push({ key: 'laporan', label: 'Laporan Pembelajaran', icon: FileBarChart });
     }
@@ -81,7 +79,6 @@ export default function KontrolPembelajaran() {
       {activeTab === 'ringkasan' && <Ringkasan />}
       {activeTab === 'silabus' && user?.scope === 'GLOBAL' && <KelolaSilabus />}
       {activeTab === 'kontrol-silabus' && <KontrolSilabus />}
-      {activeTab === 'absensi-mapel' && <AbsensiMapel />}
       {activeTab === 'laporan' && (user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH') && <LaporanPembelajaran />}
       {activeTab === 'pengaturan' && user?.scope === 'GLOBAL' && <PengaturanMapelPembelajaran />}
     </div>

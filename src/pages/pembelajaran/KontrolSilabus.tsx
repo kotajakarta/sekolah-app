@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
-import { Loader2, Save, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { Loader2, Save, AlertCircle, CheckCircle, Info, ClipboardList } from 'lucide-react';
+import AbsensiSilabusModal from './AbsensiSilabusModal';
 
 interface Kelas {
   id: string;
@@ -53,6 +54,7 @@ export default function KontrolSilabus() {
 
   const [rows, setRows] = useState<PelaksanaanRow[]>([]);
   const [isSavedSuccessfully, setIsSavedSuccessfully] = useState(false);
+  const [absensiSilabusId, setAbsensiSilabusId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isWilayah && user?.wilayahId) setSelectedWilayah(user.wilayahId);
@@ -314,6 +316,18 @@ export default function KontrolSilabus() {
                       </p>
                     </div>
 
+                    <div className="shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setAbsensiSilabusId(row.silabusId)}
+                        disabled={row.status === 'LIBUR'}
+                        title={row.status === 'LIBUR' ? 'Libur — tidak ada sesi' : 'Isi absensi untuk materi ini'}
+                        className="w-full lg:w-auto inline-flex items-center justify-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded text-white bg-blue-800 hover:bg-blue-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <ClipboardList className="w-3.5 h-3.5" /> Absensi
+                      </button>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center lg:gap-2 shrink-0">
                       <input
                         type="date"
@@ -373,6 +387,15 @@ export default function KontrolSilabus() {
             </button>
           </div>
         </div>
+      )}
+
+      {absensiSilabusId && (
+        <AbsensiSilabusModal
+          kelasId={selectedKelas}
+          kelasName={classes.find(c => c.id === selectedKelas)?.name || ''}
+          silabusId={absensiSilabusId}
+          onClose={() => setAbsensiSilabusId(null)}
+        />
       )}
     </div>
   );

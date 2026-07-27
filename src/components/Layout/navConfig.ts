@@ -62,19 +62,17 @@ export function useNavEntries(): NavEntry[] {
       { to: '/dashboard/core/siswa', label: 'Data Semua Santri', show: true },
       { to: '/dashboard/formal/siswa', label: 'Santri Muadalah', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
       { to: '/dashboard/core/pool', label: 'Pool Santri', show: user?.scope === 'GLOBAL' },
+      { to: '/dashboard/absensi/siswa', label: 'Absensi Siswa', show: true },
     ].filter(i => i.show).map(({ show, ...rest }) => rest);
 
     const ustadzItems = [
       { to: '/dashboard/core/guru', label: 'Data Guru', show: true },
       { to: '/dashboard/formal/penugasan-guru', label: 'Penugasan Guru', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
       { to: '/dashboard/core/pool-guru', label: 'Pool Guru', show: user?.scope === 'GLOBAL' },
+      { to: '/dashboard/absensi/guru', label: 'Absensi Guru', show: true },
     ].filter(i => i.show).map(({ show, ...rest }) => rest);
 
-    const absensiItems: NavSubItem[] = [
-      { to: '/dashboard/absensi/siswa', label: 'Absensi Siswa', show: true },
-      { to: '/dashboard/absensi/guru', label: 'Absensi Guru', show: true },
-      { to: '/dashboard/absensi/programs', label: 'Kelola Program Absensi', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
-    ].filter(i => i.show).map(({ show, ...rest }) => rest);
+    const showKontrolMapel = user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH';
 
     const layananItems = [
       { to: '/dashboard/umum/pengumuman', label: 'Pengumuman' },
@@ -117,7 +115,9 @@ export function useNavEntries(): NavEntry[] {
       entries.push({ type: 'link', key: 'rapor', label: 'Rapor Muadalah', icon: FileText, to: '/dashboard/formal/rapor' });
     }
 
-    entries.push({ type: 'group', key: 'absensi', label: 'Absensi', icon: CalendarCheck, items: absensiItems });
+    if (showKontrolMapel) {
+      entries.push({ type: 'link', key: 'absensi', label: 'Kontrol Mapel', icon: CalendarCheck, to: '/dashboard/absensi/programs' });
+    }
     entries.push({ type: 'group', key: 'layanan', label: 'Layanan dan Bantuan', icon: HeartHandshake, items: layananItems });
     entries.push({ type: 'group', key: 'bap', label: 'Berita Acara (BAP)', icon: FileText, items: bapItems });
     entries.push({ type: 'group', key: 'monitoring', label: 'Monitoring', icon: Activity, items: monitoringItems });

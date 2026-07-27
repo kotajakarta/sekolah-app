@@ -142,7 +142,7 @@ export default function MobileBottomNav() {
 
       {/* Bottom bar */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)]">
-        <div className="grid grid-cols-5 h-14">
+        <div className="grid h-14" style={{ gridTemplateColumns: `repeat(${2 + quickEntries.length}, minmax(0, 1fr))` }}>
           <button
             onClick={() => handleNavigate('/dashboard')}
             className={`flex flex-col items-center justify-center gap-0.5 ${location.pathname === '/dashboard' ? 'text-brand' : 'text-slate-500'}`}
@@ -151,16 +151,19 @@ export default function MobileBottomNav() {
             <span className="text-[10px] font-medium">Beranda</span>
           </button>
 
-          {quickEntries.map(entry => (
-            <button
-              key={entry.key}
-              onClick={() => setSheetStack([entry.key])}
-              className={`flex flex-col items-center justify-center gap-0.5 ${isGroupActive(entry) || currentKey === entry.key ? 'text-brand' : 'text-slate-500'}`}
-            >
-              <entry.icon className="w-5 h-5" strokeWidth={isGroupActive(entry) ? 2.5 : 2} />
-              <span className="text-[10px] font-medium">{entry.label}</span>
-            </button>
-          ))}
+          {quickEntries.map(entry => {
+            const isActive = entry.type === 'link' ? location.pathname === entry.to : isGroupActive(entry);
+            return (
+              <button
+                key={entry.key}
+                onClick={() => entry.type === 'link' ? handleNavigate(entry.to) : setSheetStack([entry.key])}
+                className={`flex flex-col items-center justify-center gap-0.5 ${isActive || currentKey === entry.key ? 'text-brand' : 'text-slate-500'}`}
+              >
+                <entry.icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+                <span className="text-[10px] font-medium">{entry.label}</span>
+              </button>
+            );
+          })}
 
           <button
             onClick={() => setSheetStack(['root'])}

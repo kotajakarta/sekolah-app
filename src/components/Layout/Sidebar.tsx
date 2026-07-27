@@ -17,11 +17,11 @@ const NavLink = ({ to, icon: Icon, badge, children }: { to: string, icon: any, b
         <Link
           to={to}
           className={`flex items-center justify-center p-2 mx-auto w-10 h-10 rounded-lg transition-all duration-200 group ${isActive
-            ? 'bg-glacier-primary/15 text-glacier-accent font-semibold'
+            ? 'bg-brand/10 text-brand font-semibold'
             : 'text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900'
             }`}
         >
-          <Icon className={`w-[18px] h-[18px] transition-colors ${isActive ? 'text-glacier-accent' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive ? 2.5 : 2} />
+          <Icon className={`w-[18px] h-[18px] transition-colors ${isActive ? 'text-brand' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive ? 2.5 : 2} />
         </Link>
       </li>
     );
@@ -32,12 +32,12 @@ const NavLink = ({ to, icon: Icon, badge, children }: { to: string, icon: any, b
       <Link
         to={to}
         className={`flex items-center justify-between px-3 py-2 text-[13px] rounded-lg transition-all duration-200 group ${isActive
-          ? 'bg-glacier-primary/15 text-glacier-accent font-semibold'
+          ? 'bg-brand/10 text-brand font-semibold'
           : 'text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900'
           }`}
       >
         <div className="flex items-center">
-          <Icon className={`w-[18px] h-[18px] mr-3 transition-colors ${isActive ? 'text-glacier-accent' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive ? 2.5 : 2} />
+          <Icon className={`w-[18px] h-[18px] mr-3 transition-colors ${isActive ? 'text-brand' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive ? 2.5 : 2} />
           {children}
         </div>
         {badge !== undefined && badge > 0 && (
@@ -69,7 +69,7 @@ const SubNavLink = ({ to, badge, disabled, children }: { to: string, badge?: num
       <Link
         to={to}
         className={`flex items-center justify-between pl-[42px] pr-3 py-1.5 text-[12px] rounded-lg transition-all duration-200 group ${isActive
-          ? 'bg-glacier-primary/10 text-glacier-accent font-semibold'
+          ? 'bg-brand/10 text-brand font-semibold'
           : 'text-slate-600 font-medium hover:bg-slate-50 hover:text-slate-900'
           }`}
       >
@@ -169,11 +169,11 @@ export const Sidebar: React.FC = () => {
 
   return (
     <SidebarContext.Provider value={{ isCollapsed }}>
-      <div className={`h-screen bg-white/70 backdrop-blur-xl hidden lg:flex flex-col relative z-20 border-r border-glacier-primary/20 transition-all duration-300 ${isCollapsed ? 'w-[70px]' : 'w-[260px]'}`}>
+      <div className={`h-screen bg-white hidden lg:flex flex-col relative z-20 border-r border-slate-200 transition-all duration-300 ${isCollapsed ? 'w-[70px]' : 'w-[260px]'}`}>
 
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute top-4 -right-3 w-6 h-6 bg-white border border-glacier-primary/30 rounded-full shadow-md flex items-center justify-center cursor-pointer hover:bg-glacier-primary/10 text-glacier-accent z-50 transition-transform duration-205"
+          className="absolute top-4 -right-3 w-6 h-6 bg-white border border-slate-200 rounded-full shadow-md flex items-center justify-center cursor-pointer hover:bg-brand/10 text-brand z-50 transition-transform duration-205"
         >
           {isCollapsed ? (
             <ChevronRight className="w-3.5 h-3.5" strokeWidth={3} />

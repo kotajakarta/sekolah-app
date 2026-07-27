@@ -171,11 +171,11 @@ const MainLayout = () => {
   const totalWarnings = activeAnnouncements.length + pendingBaps.length;
 
   return (
-    <div className="app-atmosphere flex w-full h-screen font-sans text-gray-800 overflow-hidden">
+    <div className="bg-slate-50 flex w-full h-screen font-sans text-gray-800 overflow-hidden">
       <PengumumanPopup />
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-14 bg-white/70 backdrop-blur-xl border-b border-glacier-primary/20 flex items-center gap-3 px-3 lg:px-8 shrink-0 sticky top-0 z-10">
+        <header className="h-14 bg-white border-b border-slate-200 flex items-center gap-3 px-3 lg:px-8 shrink-0 sticky top-0 z-10">
           <HeaderSearch />
 
           <div className="flex items-center gap-3 sm:gap-5 text-sm font-medium text-gray-600 shrink-0 ml-auto">
@@ -216,7 +216,7 @@ const MainLayout = () => {
               </button>
 
               {isNotifOpen && (
-                <div className="absolute right-0 mt-2.5 w-80 bg-white/85 backdrop-blur-xl rounded-xl shadow-xl border border-glacier-primary/25 py-2 z-50 text-left text-xs">
+                <div className="absolute right-0 mt-2.5 w-80 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 text-left text-xs">
                   <div className="px-4 py-2 border-b border-slate-100 font-bold text-slate-700 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
                     <span>Notifikasi & Tugas</span>
                     {totalWarnings > 0 && (
@@ -280,7 +280,7 @@ const MainLayout = () => {
               </button>
               
               {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white/85 backdrop-blur-xl rounded-lg shadow-lg border border-glacier-primary/25 py-1 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
                   <button
                     onClick={() => {
                       setIsDropdownOpen(false);

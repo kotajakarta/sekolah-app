@@ -68,7 +68,7 @@ export default function MobileBottomNav() {
             onClick={closeSheet}
             className="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]"
           />
-          <div className="relative bg-white/90 backdrop-blur-2xl rounded-t-2xl shadow-2xl border-t border-glacier-primary/25 max-h-[70vh] flex flex-col animate-[slideUp_0.2s_ease-out]">
+          <div className="relative bg-white rounded-t-2xl shadow-2xl border-t border-slate-200 max-h-[70vh] flex flex-col animate-[slideUp_0.2s_ease-out]">
             <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2 min-w-0">
                 {sheetStack.length > 1 && (
@@ -94,7 +94,7 @@ export default function MobileBottomNav() {
                       onClick={() => entry.type === 'link' ? handleNavigate(entry.to) : openGroup(entry.key)}
                       className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border transition-colors ${
                         (entry.type === 'link' ? location.pathname === entry.to : isGroupActive(entry))
-                          ? 'bg-glacier-primary/15 border-glacier-primary/30 text-glacier-accent'
+                          ? 'bg-brand/10 border-brand/30 text-brand'
                           : 'bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100'
                       }`}
                     >
@@ -116,7 +116,7 @@ export default function MobileBottomNav() {
                           onClick={() => handleNavigate(item.to)}
                           className={`w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-colors ${
                             location.pathname === item.to
-                              ? 'bg-glacier-primary/15 text-glacier-accent font-semibold'
+                              ? 'bg-brand/10 text-brand font-semibold'
                               : 'text-slate-700 font-medium hover:bg-slate-50'
                           }`}
                         >
@@ -141,11 +141,11 @@ export default function MobileBottomNav() {
       )}
 
       {/* Bottom bar */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/80 backdrop-blur-xl border-t border-glacier-primary/20 pb-[env(safe-area-inset-bottom)]">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)]">
         <div className="grid grid-cols-5 h-14">
           <button
             onClick={() => handleNavigate('/dashboard')}
-            className={`flex flex-col items-center justify-center gap-0.5 ${location.pathname === '/dashboard' ? 'text-glacier-accent' : 'text-slate-500'}`}
+            className={`flex flex-col items-center justify-center gap-0.5 ${location.pathname === '/dashboard' ? 'text-brand' : 'text-slate-500'}`}
           >
             <Home className="w-5 h-5" strokeWidth={location.pathname === '/dashboard' ? 2.5 : 2} />
             <span className="text-[10px] font-medium">Beranda</span>
@@ -155,7 +155,7 @@ export default function MobileBottomNav() {
             <button
               key={entry.key}
               onClick={() => setSheetStack([entry.key])}
-              className={`flex flex-col items-center justify-center gap-0.5 ${isGroupActive(entry) || currentKey === entry.key ? 'text-glacier-accent' : 'text-slate-500'}`}
+              className={`flex flex-col items-center justify-center gap-0.5 ${isGroupActive(entry) || currentKey === entry.key ? 'text-brand' : 'text-slate-500'}`}
             >
               <entry.icon className="w-5 h-5" strokeWidth={isGroupActive(entry) ? 2.5 : 2} />
               <span className="text-[10px] font-medium">{entry.label}</span>
@@ -164,7 +164,7 @@ export default function MobileBottomNav() {
 
           <button
             onClick={() => setSheetStack(['root'])}
-            className={`relative flex flex-col items-center justify-center gap-0.5 ${currentKey === 'root' ? 'text-glacier-accent' : 'text-slate-500'}`}
+            className={`relative flex flex-col items-center justify-center gap-0.5 ${currentKey === 'root' ? 'text-brand' : 'text-slate-500'}`}
           >
             <Menu className="w-5 h-5" strokeWidth={2} />
             {pendingCount > 0 && (

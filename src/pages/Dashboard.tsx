@@ -104,7 +104,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[60vh] font-mono text-sm text-slate-500">
-        <Loader2 className="w-5 h-5 animate-spin text-glacier-accent mr-2" />
+        <Loader2 className="w-5 h-5 animate-spin text-brand mr-2" />
         <span>Loading Dashboard statistics...</span>
       </div>
     );
@@ -135,7 +135,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
 
         {/* Total Santri */}
-        <div className="bg-white/70 backdrop-blur-xl border border-glacier-primary/25 rounded-2xl p-5 shadow-sm flex flex-col">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Santri</span>
             <span className="inline-flex items-center gap-0.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
@@ -147,7 +147,7 @@ export default function Dashboard() {
             {[30, 50, 40, 70, 90, 65, 80, 55, 60, 85].map((val, idx) => (
               <div
                 key={idx}
-                className="flex-1 bg-glacier-accent/15 hover:bg-glacier-accent/70 transition-colors duration-150 cursor-pointer rounded-sm"
+                className="flex-1 bg-brand/15 hover:bg-brand/70 transition-colors duration-150 cursor-pointer rounded-sm"
                 style={{ height: `${val}%` }}
               />
             ))}
@@ -155,7 +155,7 @@ export default function Dashboard() {
         </div>
 
         {/* Kelas Aktif */}
-        <div className="bg-white/70 backdrop-blur-xl border border-glacier-primary/25 rounded-2xl p-5 shadow-sm flex flex-col">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Kelas Aktif</span>
             <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400">
@@ -165,14 +165,14 @@ export default function Dashboard() {
           <div className="text-3xl font-bold text-slate-900 tracking-tight">{statsData.totalKelas.toLocaleString()}</div>
           <div className="h-10 w-full mt-4 overflow-hidden relative">
             <svg className="w-full h-full" viewBox="0 0 100 40" preserveAspectRatio="none">
-              <path d="M0,35 Q15,10 30,25 T60,15 T90,20 L100,25" fill="none" stroke="#0ea5e9" strokeWidth="1.5" />
-              <path d="M0,35 Q15,10 30,25 T60,15 T90,20 L100,25 L100,40 L0,40 Z" fill="rgba(14, 165, 233, 0.08)" />
+              <path d="M0,35 Q15,10 30,25 T60,15 T90,20 L100,25" fill="none" stroke="#2563eb" strokeWidth="1.5" />
+              <path d="M0,35 Q15,10 30,25 T60,15 T90,20 L100,25 L100,40 L0,40 Z" fill="rgba(37, 99, 235, 0.08)" />
             </svg>
           </div>
         </div>
 
         {/* System Status & Incidents — spans both rows on the right */}
-        <div className="bg-white/70 backdrop-blur-xl border border-glacier-primary/25 rounded-2xl p-5 shadow-sm flex flex-col lg:row-span-2">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col lg:row-span-2">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">System Status &amp; Incidents</span>
           {hasIncidents ? (
             <>
@@ -214,7 +214,7 @@ export default function Dashboard() {
               </div>
               <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-glacier-accent rounded-full transition-all duration-300"
+                  className="h-full bg-brand rounded-full transition-all duration-300"
                   style={{ width: `${statsData.raporCetakProgress.percent}%` }}
                 />
               </div>
@@ -223,7 +223,7 @@ export default function Dashboard() {
         </div>
 
         {/* Distribusi Grup Daimi */}
-        <div className="bg-white/70 backdrop-blur-xl border border-glacier-primary/25 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Distribusi Grup Daimi</h3>
           <div className="flex items-end justify-between gap-3 h-40">
             {statsData.chartGrupDaimi && statsData.chartGrupDaimi.length > 0 ? (
@@ -235,7 +235,7 @@ export default function Dashboard() {
                     <span className="text-xs font-semibold text-slate-500 mb-1">{item.value}</span>
                     <div className="w-full max-w-6 bg-slate-100 rounded-t-md flex flex-col justify-end overflow-hidden" style={{ height: '5.5rem' }}>
                       <div
-                        className="w-full bg-glacier-accent rounded-t-md transition-all duration-300"
+                        className="w-full bg-brand rounded-t-md transition-all duration-300"
                         style={{ height: `${percent}%` }}
                       />
                     </div>
@@ -252,7 +252,7 @@ export default function Dashboard() {
         </div>
 
         {/* Kategori Siswa */}
-        <div className="bg-white/70 backdrop-blur-xl border border-glacier-primary/25 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">Kategori Siswa (Formal)</h3>
           <div className="flex items-end justify-between gap-3 h-40">
             {statsData.chartKelas && statsData.chartKelas.length > 0 ? (
@@ -264,7 +264,7 @@ export default function Dashboard() {
                     <span className="text-xs font-semibold text-slate-500 mb-1">{item.value}</span>
                     <div className="w-full max-w-6 bg-slate-100 rounded-t-md flex flex-col justify-end overflow-hidden" style={{ height: '5.5rem' }}>
                       <div
-                        className="w-full bg-glacier-accent rounded-t-md transition-all duration-300"
+                        className="w-full bg-brand rounded-t-md transition-all duration-300"
                         style={{ height: `${percent}%` }}
                       />
                     </div>
@@ -286,10 +286,10 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4 mb-4">
 
         {/* Ketersediaan Guru Mapel Umum */}
-        <div className="bg-white/70 backdrop-blur-xl border border-glacier-primary/25 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
           <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-glacier-accent" />
+              <Users className="w-4 h-4 text-brand" />
               <h3 className="text-sm font-bold text-slate-800">Ketersediaan Guru Mapel Umum</h3>
             </div>
             <div className="flex items-center gap-2 text-xs">
@@ -355,7 +355,7 @@ export default function Dashboard() {
                       <td className="px-5 py-3.5 text-center">
                         <Link
                           to="/dashboard/formal/penugasan-guru"
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg hover:bg-slate-100 text-glacier-accent transition-colors"
+                          className="inline-flex items-center justify-center p-1.5 rounded-lg hover:bg-slate-100 text-brand transition-colors"
                           title="Kelola Penugasan"
                         >
                           <ChevronRight className="w-4 h-4" />
@@ -388,19 +388,19 @@ export default function Dashboard() {
         </div>
 
         {/* Akses Cepat */}
-        <div className="bg-white/70 backdrop-blur-xl border border-glacier-primary/25 rounded-2xl shadow-sm p-4">
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-4">
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Akses Cepat</h3>
           <div className="grid grid-cols-2 gap-2">
             {quickLinks.map((item, i) => (
               <Link
                 to={item.path}
                 key={i}
-                className="group flex flex-col items-start gap-2 p-3 bg-slate-50 hover:bg-white border border-transparent hover:border-glacier-accent/30 rounded-xl transition-colors"
+                className="group flex flex-col items-start gap-2 p-3 bg-slate-50 hover:bg-white border border-transparent hover:border-brand/30 rounded-xl transition-colors"
               >
-                <div className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 group-hover:text-glacier-accent group-hover:border-glacier-accent/30 transition-colors">
+                <div className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 group-hover:text-brand group-hover:border-brand/30 transition-colors">
                   <item.icon className="w-4 h-4" />
                 </div>
-                <span className="text-xs font-semibold text-slate-700 group-hover:text-glacier-accent transition-colors leading-tight">{item.label}</span>
+                <span className="text-xs font-semibold text-slate-700 group-hover:text-brand transition-colors leading-tight">{item.label}</span>
               </Link>
             ))}
           </div>
@@ -409,7 +409,7 @@ export default function Dashboard() {
       </div>
 
       {/* Aktivitas Terbaru — full width */}
-      <div className="bg-white/70 backdrop-blur-xl border border-glacier-primary/25 rounded-2xl shadow-sm p-5">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-slate-500" />
@@ -420,7 +420,7 @@ export default function Dashboard() {
           </div>
           <Link
             to="/dashboard/core/riwayat-perubahan"
-            className="text-glacier-accent hover:text-glacier-accent-dark text-xs font-medium flex items-center gap-0.5"
+            className="text-brand hover:text-brand-hover text-xs font-medium flex items-center gap-0.5"
           >
             Lihat log <ChevronRight className="w-3.5 h-3.5" />
           </Link>

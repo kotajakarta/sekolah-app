@@ -6,13 +6,9 @@
   --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
-  /* Glacier design system (stitch/design.md) — light "Frozen Light" variant.
-     Primary is the soft pastel from the spec; accent is a more saturated
-     shade of the same hue for text/links/data-fill that need real contrast. */
-  --color-glacier-primary: #7dd3fc;
-  --color-glacier-accent: #0ea5e9;
-  --color-glacier-accent-dark: #0369a1;
-  --color-glacier-tertiary: #c8a0f0;
+  /* Brand accent — solid, high-contrast blue (replaces the earlier pastel glass accent). */
+  --color-brand: #2563eb;
+  --color-brand-hover: #1d4ed8;
 }
 
 @layer base {
@@ -68,18 +64,5 @@
     transform: translateY(0);
   }
 }
-
-/* Glacier "Frozen Light" atmosphere: soft ice-blue/lavender glow behind glass
-   panels, so backdrop-blur on cards/sidebar/header has visible depth to blur. */
-.app-atmosphere {
-  background-color: #f8fafc;
-  background-image:
-    radial-gradient(640px circle at 12% 8%, rgba(125, 211, 252, 0.14), transparent 60%),
-    radial-gradient(520px circle at 88% 92%, rgba(200, 160, 240, 0.10), transparent 60%),
-    radial-gradient(480px circle at 92% 15%, rgba(125, 211, 252, 0.08), transparent 55%);
-  background-attachment: fixed;
-}
-
-
 
 @plugin "@tailwindcss/typography";

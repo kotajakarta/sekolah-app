@@ -18,7 +18,7 @@ function useGlobalSearch(query: string) {
 
 function ResultsDropdown({ query, results, isSearching, onSelect }: { query: string; results: any[]; isSearching: boolean; onSelect: (link: string) => void }) {
   return (
-    <div className="absolute top-full left-0 right-0 mt-1.5 bg-white/90 backdrop-blur-xl border border-glacier-primary/25 rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto custom-scrollbar">
+    <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-50 max-h-80 overflow-y-auto custom-scrollbar">
       {isSearching ? (
         <div className="p-3 text-center text-sm text-slate-500">Mencari...</div>
       ) : results.length > 0 ? (
@@ -99,9 +99,9 @@ export default function HeaderSearch() {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-          className="w-full bg-white/60 backdrop-blur-sm border border-glacier-primary/30 rounded-lg h-9 pl-9 pr-14 text-sm focus:outline-none focus:border-glacier-accent focus:ring-2 focus:ring-glacier-primary/20 transition-colors"
+          className="w-full bg-slate-50 border border-slate-200 rounded-lg h-9 pl-9 pr-14 text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/15 transition-colors"
         />
-        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-medium text-slate-400 border border-glacier-primary/30 rounded px-1.5 py-0.5">
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-medium text-slate-400 border border-slate-200 rounded px-1.5 py-0.5">
           Ctrl K
         </span>
 
@@ -120,8 +120,8 @@ export default function HeaderSearch() {
       </button>
 
       {isMobileOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-white/90 backdrop-blur-2xl flex flex-col">
-          <div className="h-14 shrink-0 flex items-center gap-2 px-3 border-b border-glacier-primary/20">
+        <div className="lg:hidden fixed inset-0 z-50 bg-white flex flex-col">
+          <div className="h-14 shrink-0 flex items-center gap-2 px-3 border-b border-slate-200">
             <Search className="w-4 h-4 text-slate-400 shrink-0" />
             <input
               ref={mobileInputRef}

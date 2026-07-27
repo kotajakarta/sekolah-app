@@ -25,6 +25,10 @@ import ManajemenKelas from './pages/formal/ManajemenKelas';
 import ERaporPage from './pages/formal/ERaporPage';
 import ManajemenMapel from './pages/formal/ManajemenMapel';
 import PenugasanGuru from './pages/formal/PenugasanGuru';
+import KelolaSilabus from './pages/pembelajaran/KelolaSilabus';
+import KontrolSilabus from './pages/pembelajaran/KontrolSilabus';
+import AbsensiMapel from './pages/pembelajaran/AbsensiMapel';
+import LaporanPembelajaran from './pages/pembelajaran/LaporanPembelajaran';
 import UsersWilayah from './pages/admin/UsersWilayah';
 import DataSiswaMuadalah from './pages/formal/DataSiswaMuadalah';
 import PoolSiswa from './pages/core/PoolSiswa';
@@ -342,6 +346,10 @@ export default function App() {
               <Route path="formal/muadalah" element={<LembagaMuadalahPage />} />
               <Route path="formal/mapel" element={<ManajemenMapel />} />
               <Route path="formal/penugasan-guru" element={<PenugasanGuru />} />
+              <Route path="pembelajaran/silabus" element={<KelolaSilabus />} />
+              <Route path="pembelajaran/kontrol-silabus" element={<KontrolSilabus />} />
+              <Route path="pembelajaran/absensi-mapel" element={<AbsensiMapel />} />
+              <Route path="pembelajaran/laporan" element={<LaporanPembelajaran />} />
               <Route path="formal/rapor" element={<ERaporPage />} />
               <Route path="settings/users" element={<UsersWilayah />} />
               <Route path="settings/sync" element={<Sinkronisasi />} />

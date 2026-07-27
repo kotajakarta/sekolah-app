@@ -7,6 +7,7 @@ import { Loader2, Search, AlertCircle, Info } from 'lucide-react';
 interface Mapel {
   id: string;
   name: string;
+  aktifPembelajaran: boolean;
 }
 
 interface RekapCabang {
@@ -159,7 +160,7 @@ export default function LaporanPembelajaran() {
               className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
             >
               <option value="">-- Semua Mapel --</option>
-              {mapelList.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              {mapelList.filter(m => m.aktifPembelajaran).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
           </div>
         </div>

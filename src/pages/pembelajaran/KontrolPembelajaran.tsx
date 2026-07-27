@@ -2,13 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
-import { GraduationCap, BookMarked, ClipboardCheck, BookOpen, FileBarChart } from 'lucide-react';
+import { GraduationCap, BookMarked, ClipboardCheck, BookOpen, FileBarChart, Settings } from 'lucide-react';
 import KelolaSilabus from './KelolaSilabus';
 import KontrolSilabus from './KontrolSilabus';
 import AbsensiMapel from './AbsensiMapel';
 import LaporanPembelajaran from './LaporanPembelajaran';
+import PengaturanMapelPembelajaran from './PengaturanMapelPembelajaran';
 
-type TabKey = 'silabus' | 'kontrol-silabus' | 'absensi-mapel' | 'laporan';
+type TabKey = 'silabus' | 'kontrol-silabus' | 'absensi-mapel' | 'laporan' | 'pengaturan';
 
 export default function KontrolPembelajaran() {
   const { user } = useAuth();
@@ -27,6 +28,9 @@ export default function KontrolPembelajaran() {
     list.push({ key: 'absensi-mapel', label: 'Absensi Mapel', icon: BookOpen });
     if (user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH') {
       list.push({ key: 'laporan', label: 'Laporan Pembelajaran', icon: FileBarChart });
+    }
+    if (user?.scope === 'GLOBAL') {
+      list.push({ key: 'pengaturan', label: 'Pengaturan', icon: Settings });
     }
     return list;
   }, [user?.scope]);
@@ -76,6 +80,7 @@ export default function KontrolPembelajaran() {
       {activeTab === 'kontrol-silabus' && <KontrolSilabus />}
       {activeTab === 'absensi-mapel' && <AbsensiMapel />}
       {activeTab === 'laporan' && (user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH') && <LaporanPembelajaran />}
+      {activeTab === 'pengaturan' && user?.scope === 'GLOBAL' && <PengaturanMapelPembelajaran />}
     </div>
   );
 }

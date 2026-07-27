@@ -22,6 +22,14 @@ interface PelaksanaanRow {
   status: 'PENDING' | 'COMPLETED' | 'LIBUR';
   tanggalDiajar: string | null;
   catatan: string;
+  guruId: string | null;
+  guruName: string | null;
+}
+
+interface GuruOption {
+  id: string;
+  name: string;
+  position: string;
 }
 
 const STATUS_OPTIONS = [
@@ -109,7 +117,7 @@ export default function KontrolSilabus() {
 
   const isReady = !!selectedKelas && !!tahunAjaran && !!semester;
 
-  const { data: fetchedPelaksanaan, isLoading, refetch, isError } = useQuery<PelaksanaanRow[]>({
+  const { data: pelaksanaanData, isLoading, refetch, isError } = useQuery<{ items: PelaksanaanRow[]; guruOptions: GuruOption[] }>({
     queryKey: ['pelaksanaan-silabus', selectedKelas, tahunAjaran, semester],
     queryFn: async () => {
       const res = await apiClient.get('/pembelajaran/pelaksanaan', {
@@ -119,21 +127,23 @@ export default function KontrolSilabus() {
     },
     enabled: isReady
   });
+  const guruOptions = pelaksanaanData?.guruOptions || [];
 
   useEffect(() => {
-    if (fetchedPelaksanaan) {
-      setRows(fetchedPelaksanaan.map(r => ({ ...r, tanggalDiajar: r.tanggalDiajar || todayStr() })));
+    if (pelaksanaanData) {
+      setRows(pelaksanaanData.items.map(r => ({ ...r, tanggalDiajar: r.tanggalDiajar || todayStr() })));
       setIsSavedSuccessfully(false);
     }
-  }, [fetchedPelaksanaan]);
+  }, [pelaksanaanData]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const logs = rows.map(r => ({
         silabusId: r.silabusId,
         status: r.status,
-        tanggalDiajar: r.status === 'COMPLETED' ? r.tanggalDiajar : null,
-        catatan: r.catatan
+        tanggalDiajar: r.tanggalDiajar || null,
+        catatan: r.catatan,
+        guruId: r.guruId || null
       }));
       return apiClient.post('/pembelajaran/pelaksanaan/bulk', { kelasId: selectedKelas, logs });
     },
@@ -145,6 +155,16 @@ export default function KontrolSilabus() {
 
   const handleStatusChange = (silabusId: string, status: PelaksanaanRow['status']) => {
     setRows(prev => prev.map(r => r.silabusId === silabusId ? { ...r, status } : r));
+    setIsSavedSuccessfully(false);
+  };
+
+  const handleTanggalChange = (silabusId: string, tanggalDiajar: string) => {
+    setRows(prev => prev.map(r => r.silabusId === silabusId ? { ...r, tanggalDiajar } : r));
+    setIsSavedSuccessfully(false);
+  };
+
+  const handleGuruChange = (silabusId: string, guruId: string) => {
+    setRows(prev => prev.map(r => r.silabusId === silabusId ? { ...r, guruId: guruId || null } : r));
     setIsSavedSuccessfully(false);
   };
 
@@ -265,27 +285,57 @@ export default function KontrolSilabus() {
               </div>
               <div className="divide-y divide-gray-100">
                 {mapelRows.map(row => (
-                  <div key={row.silabusId} className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800">{row.bab} — {row.section}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Target: {new Date(row.tanggalTarget).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </p>
+                  <div key={row.silabusId} className="p-3 sm:p-4 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800">{row.bab} — {row.section}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Target: {new Date(row.tanggalTarget).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5 sm:flex sm:gap-2 shrink-0">
+                        {STATUS_OPTIONS.map(opt => {
+                          const active = row.status === opt.key;
+                          return (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => handleStatusChange(row.silabusId, opt.key)}
+                              className={`px-3 py-1.5 text-[11px] sm:text-xs font-semibold rounded-full border transition-all text-center ${active ? opt.activeBg : opt.hoverBg}`}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-1.5 sm:flex sm:gap-2 shrink-0">
-                      {STATUS_OPTIONS.map(opt => {
-                        const active = row.status === opt.key;
-                        return (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            onClick={() => handleStatusChange(row.silabusId, opt.key)}
-                            className={`px-3 py-1.5 text-[11px] sm:text-xs font-semibold rounded-full border transition-all text-center ${active ? opt.activeBg : opt.hoverBg}`}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-400 mb-1 uppercase tracking-wide">Tanggal Pelaksanaan</label>
+                        <input
+                          type="date"
+                          value={row.tanggalDiajar || ''}
+                          onChange={e => handleTanggalChange(row.silabusId, e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold text-gray-400 mb-1 uppercase tracking-wide">Pengajar</label>
+                        <select
+                          value={row.guruId || ''}
+                          onChange={e => handleGuruChange(row.silabusId, e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                        >
+                          <option value="">-- Pilih Pengajar --</option>
+                          {row.guruId && !guruOptions.some(g => g.id === row.guruId) && (
+                            <option value={row.guruId}>{row.guruName || 'Guru (tidak dikenal)'}</option>
+                          )}
+                          {guruOptions.map(g => (
+                            <option key={g.id} value={g.id}>{g.name}{g.position ? ` — ${g.position}` : ''}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                   </div>
                 ))}

@@ -34,6 +34,12 @@ interface GuruOption {
   position: string;
 }
 
+interface LiburMarker {
+  id: string;
+  mataPelajaranId: string;
+  tanggalDiajar: string;
+}
+
 const STATUS_OPTIONS = [
   { key: 'COMPLETED', label: 'Dikerjakan', activeBg: 'bg-emerald-100 text-emerald-800 border-emerald-300', hoverBg: 'hover:bg-emerald-50 text-gray-600 border-gray-300' },
   { key: 'PENDING', label: 'Belum Dikerjakan', activeBg: 'bg-amber-100 text-amber-800 border-amber-300', hoverBg: 'hover:bg-amber-50 text-gray-600 border-gray-300' },
@@ -139,7 +145,7 @@ export default function KontrolSilabus() {
 
   const isReady = !!selectedKelas && !!tahunAjaran && !!semester;
 
-  const { data: pelaksanaanData, isLoading, refetch, isError } = useQuery<{ items: PelaksanaanRow[]; guruOptions: GuruOption[] }>({
+  const { data: pelaksanaanData, isLoading, refetch, isError } = useQuery<{ items: PelaksanaanRow[]; guruOptions: GuruOption[]; liburMarkers: LiburMarker[] }>({
     queryKey: ['pelaksanaan-silabus', selectedKelas, tahunAjaran, semester],
     queryFn: async () => {
       const res = await apiClient.get('/pembelajaran/pelaksanaan', {
@@ -150,16 +156,37 @@ export default function KontrolSilabus() {
     enabled: isReady
   });
   const guruOptions = pelaksanaanData?.guruOptions || [];
+  const [liburRows, setLiburRows] = useState<LiburMarker[]>([]);
 
   useEffect(() => {
     if (pelaksanaanData) {
       setRows(pelaksanaanData.items);
+      setLiburRows(pelaksanaanData.liburMarkers.map(l => ({ ...l, tanggalDiajar: l.tanggalDiajar.slice(0, 10) })));
       setIsSavedSuccessfully(false);
       setSelectedMapel('');
       const d = new Date();
       setViewDate({ year: d.getFullYear(), month: d.getMonth() });
     }
   }, [pelaksanaanData]);
+
+  const markLiburMutation = useMutation({
+    mutationFn: async (date: string) => {
+      const res = await apiClient.post('/pembelajaran/pelaksanaan/libur', { kelasId: selectedKelas, mataPelajaranId: selectedMapel, tanggal: date });
+      return res.data;
+    },
+    onSuccess: (data, date) => {
+      setLiburRows(prev => [...prev.filter(l => !(l.mataPelajaranId === selectedMapel && l.tanggalDiajar === date)), { id: data.id, mataPelajaranId: selectedMapel, tanggalDiajar: date }]);
+    }
+  });
+
+  const clearLiburMutation = useMutation({
+    mutationFn: async (date: string) => {
+      await apiClient.post('/pembelajaran/pelaksanaan/libur/clear', { kelasId: selectedKelas, mataPelajaranId: selectedMapel, tanggal: date });
+    },
+    onSuccess: (_data, date) => {
+      setLiburRows(prev => prev.filter(l => !(l.mataPelajaranId === selectedMapel && l.tanggalDiajar === date)));
+    }
+  });
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -213,12 +240,31 @@ export default function KontrolSilabus() {
   const unassignedSections = mapelRows.filter(r => !r.tanggalDiajar);
   const assignedByDate = new Map(mapelRows.filter(r => r.tanggalDiajar).map(r => [r.tanggalDiajar as string, r]));
 
+  const mapelLiburRows = selectedMapel ? liburRows.filter(l => l.mataPelajaranId === selectedMapel) : [];
+  const liburByDate = new Map(mapelLiburRows.map(l => [l.tanggalDiajar, l]));
+
   const saturdays = getSaturdaysInMonth(viewDate.year, viewDate.month);
+  // Data lama (sebelum tabel ini jadi per-Sabtu) bisa punya tanggalDiajar yang bukan hari Sabtu
+  // (mis. dulu default ke "hari ini" saat disimpan). Baris tanggal itu tetap harus tampil & bisa
+  // diedit, bukan hilang begitu saja — jadi gabungkan dengan daftar Sabtu, bukan dibuang. Tanggal
+  // yang ditandai Libur tanpa materi juga ikut digabung supaya tetap terlihat di bulan itu.
+  const monthPrefix = `${viewDate.year}-${String(viewDate.month + 1).padStart(2, '0')}`;
+  const extraDates = Array.from(
+    new Set([
+      ...mapelRows
+        .filter(r => r.tanggalDiajar && r.tanggalDiajar.startsWith(monthPrefix) && !saturdays.includes(r.tanggalDiajar))
+        .map(r => r.tanggalDiajar as string),
+      ...mapelLiburRows
+        .filter(l => l.tanggalDiajar.startsWith(monthPrefix) && !saturdays.includes(l.tanggalDiajar))
+        .map(l => l.tanggalDiajar)
+    ])
+  );
+  const datesInView = [...saturdays, ...extraDates].sort();
   const monthLabel = new Date(viewDate.year, viewDate.month, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
   const goPrevMonth = () => setViewDate(v => v.month === 0 ? { year: v.year - 1, month: 11 } : { year: v.year, month: v.month - 1 });
   const goNextMonth = () => setViewDate(v => v.month === 11 ? { year: v.year + 1, month: 0 } : { year: v.year, month: v.month + 1 });
 
-  const assignedInView = saturdays.map(d => assignedByDate.get(d)).filter((r): r is PelaksanaanRow => !!r);
+  const assignedInView = datesInView.map(d => assignedByDate.get(d)).filter((r): r is PelaksanaanRow => !!r);
   const markAll = (status: PelaksanaanRow['status']) => {
     const ids = new Set(assignedInView.map(r => r.silabusId));
     setRows(prev => prev.map(r => ids.has(r.silabusId) ? { ...r, status } : r));
@@ -359,8 +405,11 @@ export default function KontrolSilabus() {
 
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <div className="divide-y divide-gray-100">
-              {saturdays.map(date => {
+              {datesInView.map(date => {
                 const assigned = assignedByDate.get(date);
+                const bareLibur = !assigned ? liburByDate.get(date) : undefined;
+                const liburPending = (markLiburMutation.isPending && markLiburMutation.variables === date)
+                  || (clearLiburMutation.isPending && clearLiburMutation.variables === date);
                 return (
                   <div key={date} className="p-2.5 flex flex-col lg:flex-row lg:items-center gap-2">
                     <div className="lg:w-44 shrink-0">
@@ -389,30 +438,36 @@ export default function KontrolSilabus() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <select
-                        value={assigned?.silabusId || ''}
-                        onChange={e => {
-                          const val = e.target.value;
-                          if (!val) {
-                            if (assigned) handleUnassign(assigned.silabusId);
-                          } else {
-                            handleAssign(date, val);
-                          }
-                        }}
-                        title="Materi Silabus"
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
-                      >
-                        <option value="">-- Pilih Materi --</option>
-                        {mapelRows.map(o => {
-                          const elsewhere = o.tanggalDiajar && o.tanggalDiajar !== date;
-                          const doneMark = o.status === 'COMPLETED' ? ' ✓' : '';
-                          return (
-                            <option key={o.silabusId} value={o.silabusId}>
-                              {o.bab} — {o.section}{doneMark}{elsewhere ? ` (sudah di ${formatTanggal(o.tanggalDiajar as string)})` : ''}
-                            </option>
-                          );
-                        })}
-                      </select>
+                      {bareLibur ? (
+                        <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-gray-100 border border-gray-200 rounded text-xs font-semibold text-gray-600">
+                          Libur (Tanpa Materi)
+                        </div>
+                      ) : (
+                        <select
+                          value={assigned?.silabusId || ''}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (!val) {
+                              if (assigned) handleUnassign(assigned.silabusId);
+                            } else {
+                              handleAssign(date, val);
+                            }
+                          }}
+                          title="Materi Silabus"
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                        >
+                          <option value="">-- Pilih Materi --</option>
+                          {mapelRows.map(o => {
+                            const elsewhere = o.tanggalDiajar && o.tanggalDiajar !== date;
+                            const doneMark = o.status === 'COMPLETED' ? ' ✓' : '';
+                            return (
+                              <option key={o.silabusId} value={o.silabusId}>
+                                {o.bab} — {o.section}{doneMark}{elsewhere ? ` (sudah di ${formatTanggal(o.tanggalDiajar as string)})` : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      )}
                     </div>
 
                     <div className="shrink-0 w-full lg:w-40">
@@ -435,13 +490,25 @@ export default function KontrolSilabus() {
 
                     <div className="grid grid-cols-3 gap-1.5 lg:flex lg:gap-1.5 shrink-0">
                       {STATUS_OPTIONS.map(opt => {
-                        const active = assigned?.status === opt.key;
+                        const isLiburOption = opt.key === 'LIBUR';
+                        const active = assigned ? assigned.status === opt.key : (isLiburOption && !!bareLibur);
+                        const disabled = assigned ? false : (!isLiburOption || liburPending);
+                        const handleClick = () => {
+                          if (assigned) {
+                            handleStatusChange(assigned.silabusId, opt.key);
+                            return;
+                          }
+                          if (!isLiburOption) return;
+                          if (bareLibur) clearLiburMutation.mutate(date);
+                          else markLiburMutation.mutate(date);
+                        };
                         return (
                           <button
                             key={opt.key}
                             type="button"
-                            disabled={!assigned}
-                            onClick={() => assigned && handleStatusChange(assigned.silabusId, opt.key)}
+                            disabled={disabled}
+                            title={!assigned && isLiburOption ? (bareLibur ? 'Batalkan penanda Libur' : 'Tandai tanggal ini Libur tanpa memilih materi') : undefined}
+                            onClick={handleClick}
                             className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all text-center disabled:opacity-40 disabled:cursor-not-allowed ${active ? opt.activeBg : opt.hoverBg}`}
                           >
                             {opt.label}

@@ -19,6 +19,13 @@ interface MapelWeekRow {
   weeks: WeekCell[];
 }
 
+interface WeekInfo {
+  weekNumber: number;
+  dateLabel: string;
+  saturdayDate: string | null;
+  dateRange: string;
+}
+
 interface RingkasanResponse {
   tahunAjaran: string;
   semester: string;
@@ -40,6 +47,7 @@ interface RingkasanResponse {
   kelasOptions: Array<{ id: string; name: string }>;
   selectedKelasId: string | null;
   pemantauanMingguan: MapelWeekRow[];
+  weeksInfo?: WeekInfo[];
 }
 
 const CELL_STATUS_META: Record<string, { label: string; cls: string }> = {
@@ -52,6 +60,34 @@ const cellStatusMeta = (status: WeekCell['status']) => (status ? CELL_STATUS_MET
 const currentMonthValue = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const getWeekDateLabel = (selectedMonth: string, weekIdx: number) => {
+  const [yearStr, monthStr] = selectedMonth.split('-');
+  const selYear = parseInt(yearStr, 10);
+  const selMonthIdx = parseInt(monthStr, 10) - 1;
+  if (isNaN(selYear) || isNaN(selMonthIdx)) return 'Sabtu';
+
+  const daysInMonth = new Date(Date.UTC(selYear, selMonthIdx + 1, 0)).getUTCDate();
+  const startDay = weekIdx * 7 + 1;
+  const endDay = Math.min(daysInMonth, (weekIdx + 1) * 7);
+
+  let satDay: number | null = null;
+  for (let d = startDay; d <= endDay; d++) {
+    const dateObj = new Date(Date.UTC(selYear, selMonthIdx, d));
+    if (dateObj.getUTCDay() === 6) {
+      satDay = d;
+      break;
+    }
+  }
+
+  const monthShortNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const monthShort = monthShortNames[selMonthIdx] || '';
+
+  if (satDay !== null) {
+    return `Sabtu, ${satDay} ${monthShort}`;
+  }
+  return `${startDay}-${endDay} ${monthShort}`;
 };
 
 export default function Ringkasan() {
@@ -186,8 +222,10 @@ export default function Ringkasan() {
             <div className="flex gap-3 min-w-max pb-1">
               {Array.from({ length: weekCount }).map((_, weekIdx) => (
                 <div key={weekIdx} className="w-56 shrink-0 space-y-2">
-                  <div className="bg-blue-900 text-white text-center py-2 rounded-lg">
-                    <p className="text-[9px] font-semibold uppercase tracking-widest text-blue-200">Sabtu</p>
+                  <div className="bg-blue-900 text-white text-center py-2 px-1.5 rounded-lg">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-200 truncate">
+                      {data.weeksInfo?.[weekIdx]?.dateLabel || getWeekDateLabel(data.selectedMonth || monthFilter, weekIdx)}
+                    </p>
                     <p className="text-sm font-bold">Minggu {weekIdx + 1}</p>
                   </div>
                   {data.pemantauanMingguan.map(mapel => {

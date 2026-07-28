@@ -39,6 +39,12 @@ export default function PengaturanMapelPembelajaran() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['mapel'] });
+      // Mengaktifkan/menonaktifkan mapel mengubah mapel mana yang ikut dihitung & muncul di
+      // Kelola Silabus, Kontrol Silabus, Dashboard, dan Laporan — semuanya ikut disegarkan.
+      queryClient.invalidateQueries({ queryKey: ['silabus'] });
+      queryClient.invalidateQueries({ queryKey: ['pelaksanaan-silabus'] });
+      queryClient.invalidateQueries({ queryKey: ['pembelajaran-ringkasan'] });
+      queryClient.invalidateQueries({ queryKey: ['laporan-pembelajaran'] });
     }
   });
 

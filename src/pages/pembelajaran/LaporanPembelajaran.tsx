@@ -50,7 +50,7 @@ export default function LaporanPembelajaran() {
   const [weekStart, setWeekStart] = useState('');
   const [month, setMonth] = useState('');
   const [tahunAjaran, setTahunAjaran] = useState('');
-  const [semester, setSemester] = useState('GANJIL');
+  const [semester, setSemester] = useState('Ganjil');
 
   useEffect(() => {
     if (isWilayah && user?.wilayahId) setSelectedWilayah(user.wilayahId);
@@ -64,7 +64,10 @@ export default function LaporanPembelajaran() {
   useEffect(() => {
     if (academicSetting) {
       setTahunAjaran(academicSetting.tahunAjaran || '');
-      setSemester((academicSetting.semesterAktif || 'GANJIL').toUpperCase());
+      // Jangan di-uppercase: SilabusMapel.semester disimpan persis seperti nilai Pengaturan
+      // Akademik ("Ganjil"/"Genap") dan backend mencocokkannya secara exact-match, sehingga
+      // "GANJIL" tidak akan pernah cocok dan laporan mode Semester selalu kosong.
+      setSemester(academicSetting.semesterAktif || 'Ganjil');
     }
   }, [academicSetting]);
 
@@ -226,8 +229,8 @@ export default function LaporanPembelajaran() {
                   onChange={e => setSemester(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
                 >
-                  <option value="GANJIL">GANJIL</option>
-                  <option value="GENAP">GENAP</option>
+                  <option value="Ganjil">Ganjil</option>
+                  <option value="Genap">Genap</option>
                 </select>
               </div>
             </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { Loader2, Save, AlertCircle, CheckCircle, Info, ClipboardList, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -62,8 +62,13 @@ function getSaturdaysInMonth(year: number, month: number): string[] {
 const formatTanggal = (date: string) =>
   new Date(`${date}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
 
+// Query lain yang ikut basi setiap kali progres silabus/absensi berubah, supaya Dashboard &
+// Laporan tidak menampilkan angka lama setelah user menyimpan di sini.
+export const PEMBELAJARAN_DEPENDENT_KEYS = [['pembelajaran-ringkasan'], ['laporan-pembelajaran']];
+
 export default function KontrolSilabus() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const isGlobal = user?.scope === 'GLOBAL';
   const isWilayah = user?.scope === 'WILAYAH';
   const isCabang = user?.scope === 'CABANG';
@@ -166,12 +171,21 @@ export default function KontrolSilabus() {
       // berbeda yang tidak pernah cocok satu sama lain — menghasilkan baris kosong + baris "Invalid Date".
       setRows(pelaksanaanData.items.map(r => ({ ...r, tanggalDiajar: r.tanggalDiajar ? r.tanggalDiajar.slice(0, 10) : null })));
       setLiburRows(pelaksanaanData.liburMarkers.map(l => ({ ...l, tanggalDiajar: l.tanggalDiajar.slice(0, 10) })));
-      setIsSavedSuccessfully(false);
-      setSelectedMapel('');
-      const d = new Date();
-      setViewDate({ year: d.getFullYear(), month: d.getMonth() });
+      // Pertahankan pilihan mapel & bulan yang sedang dilihat kalau masih valid — kalau direset
+      // tiap kali refetch (mis. setelah Simpan), tabel mendadak kosong dan terlihat seperti
+      // data hilang padahal tersimpan.
+      setSelectedMapel(prev => (prev && pelaksanaanData.items.some(r => r.mataPelajaranId === prev) ? prev : ''));
     }
   }, [pelaksanaanData]);
+
+  // Setiap perubahan progres/libur/absensi ikut menyegarkan Dashboard & Laporan.
+  const invalidateDependents = () => {
+    PEMBELAJARAN_DEPENDENT_KEYS.forEach(queryKey => queryClient.invalidateQueries({ queryKey }));
+  };
+
+  useEffect(() => {
+    setIsSavedSuccessfully(false);
+  }, [selectedKelas]);
 
   const markLiburMutation = useMutation({
     mutationFn: async (date: string) => {
@@ -180,6 +194,7 @@ export default function KontrolSilabus() {
     },
     onSuccess: (data, date) => {
       setLiburRows(prev => [...prev.filter(l => !(l.mataPelajaranId === selectedMapel && l.tanggalDiajar === date)), { id: data.id, mataPelajaranId: selectedMapel, tanggalDiajar: date }]);
+      invalidateDependents();
     }
   });
 
@@ -189,6 +204,7 @@ export default function KontrolSilabus() {
     },
     onSuccess: (_data, date) => {
       setLiburRows(prev => prev.filter(l => !(l.mataPelajaranId === selectedMapel && l.tanggalDiajar === date)));
+      invalidateDependents();
     }
   });
 
@@ -206,6 +222,7 @@ export default function KontrolSilabus() {
     onSuccess: () => {
       setIsSavedSuccessfully(true);
       refetch();
+      invalidateDependents();
     }
   });
 
@@ -221,12 +238,21 @@ export default function KontrolSilabus() {
 
   // Menempelkan satu materi silabus ke tanggal Sabtu tertentu (mengosongkan tanggal lama
   // materi itu kalau sebelumnya sudah menempel di tanggal lain).
+  // PENTING: bentrok tanggal hanya dibersihkan DI DALAM mapel yang sama. Mapel berbeda memang
+  // wajar berbagi hari Sabtu yang sama, jadi menghapus lintas mapel akan merusak jadwal mapel
+  // lain yang sudah tersimpan (karena tombol Simpan mengirim seluruh baris semua mapel).
   const handleAssign = (date: string, silabusId: string) => {
-    setRows(prev => prev.map(r => {
-      if (r.silabusId === silabusId) return { ...r, tanggalDiajar: date };
-      if (r.tanggalDiajar === date) return { ...r, tanggalDiajar: null };
-      return r;
-    }));
+    setRows(prev => {
+      const target = prev.find(r => r.silabusId === silabusId);
+      if (!target) return prev;
+      return prev.map(r => {
+        if (r.silabusId === silabusId) return { ...r, tanggalDiajar: date };
+        if (r.mataPelajaranId === target.mataPelajaranId && r.tanggalDiajar === date) {
+          return { ...r, tanggalDiajar: null };
+        }
+        return r;
+      });
+    });
     setIsSavedSuccessfully(false);
   };
 

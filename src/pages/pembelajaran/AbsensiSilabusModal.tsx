@@ -63,6 +63,11 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, onC
     onSuccess: () => {
       setIsSavedSuccessfully(true);
       queryClient.invalidateQueries({ queryKey: ['absensi-silabus', kelasId, silabusId] });
+      // Dashboard & Laporan ikut disegarkan. Sengaja TIDAK meng-invalidate ['pelaksanaan-silabus']
+      // supaya tabel Kontrol Silabus di belakang modal tidak ter-refetch dan membuang perubahan
+      // yang belum disimpan — penanda "Sudah Absensi" cukup di-patch lewat onSaved().
+      queryClient.invalidateQueries({ queryKey: ['pembelajaran-ringkasan'] });
+      queryClient.invalidateQueries({ queryKey: ['laporan-pembelajaran'] });
       onSaved?.();
     }
   });

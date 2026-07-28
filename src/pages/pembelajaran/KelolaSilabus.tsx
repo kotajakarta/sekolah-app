@@ -112,6 +112,10 @@ export default function KelolaSilabus() {
     onSuccess: () => {
       showToast('success', 'Silabus berhasil disimpan');
       queryClient.invalidateQueries({ queryKey: ['silabus', selectedMapel, selectedTingkat, tahunAjaran, semester] });
+      // Menambah/menghapus section mengubah daftar materi & pembagi persentase di modul lain.
+      queryClient.invalidateQueries({ queryKey: ['pelaksanaan-silabus'] });
+      queryClient.invalidateQueries({ queryKey: ['pembelajaran-ringkasan'] });
+      queryClient.invalidateQueries({ queryKey: ['laporan-pembelajaran'] });
     },
     onError: (err: any) => {
       showToast('error', err?.response?.data?.message || 'Gagal menyimpan silabus');

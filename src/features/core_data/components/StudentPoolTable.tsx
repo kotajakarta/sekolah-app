@@ -28,16 +28,22 @@ export default function StudentPoolTable() {
   const [studentToTarik, setStudentToTarik] = useState<Student | null>(null);
 
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
-    wilayahId: user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? user?.wilayahId || '' : '',
-    cabangId: user?.scope === 'CABANG' ? user?.cabangId || '' : '',
+    wilayahId: '',
+    cabangId: '',
     kelasId: '',
     lembagaMuadalahId: ''
   });
 
   const filteredStudents = (Array.isArray(students) ? students : []).filter(s => {
-    // Advanced filters
-    if (advancedFilters.wilayahId && s.wilayahId !== advancedFilters.wilayahId) return false;
-    if (advancedFilters.cabangId && s.cabangId !== advancedFilters.cabangId) return false;
+    // Advanced filters: check direct cabang/wilayah OR last riwayat cabang/wilayah
+    if (advancedFilters.wilayahId) {
+      const studentWilayahId = s.wilayahId || s.riwayatPendidikan?.[0]?.cabang?.wilayahId;
+      if (studentWilayahId !== advancedFilters.wilayahId) return false;
+    }
+    if (advancedFilters.cabangId) {
+      const studentCabangId = s.cabangId || s.riwayatPendidikan?.[0]?.cabangId;
+      if (studentCabangId !== advancedFilters.cabangId) return false;
+    }
     if (advancedFilters.kelasId && s.siswaFormal?.kelasId !== advancedFilters.kelasId) return false;
     if (advancedFilters.lembagaMuadalahId && s.siswaFormal?.kelas?.lembagaMuadalah?.id !== advancedFilters.lembagaMuadalahId) return false;
 
@@ -56,7 +62,7 @@ export default function StudentPoolTable() {
       return apiClient.delete('/students/pool/all');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pool-students'] });
+      queryClient.invalidateQueries({ queryKey: ['students', 'pool'] });
       showToast('success', 'Berhasil menghapus semua data pool siswa');
       setIsConfirmDeleteAllOpen(false);
     },

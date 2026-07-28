@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useGetCabang, useGetGuru } from '../../features/core_data/hooks/useMasterData';
-import { Plus, Edit2, CheckCircle, XCircle, Loader2, Upload, Download, Trash2, Eye, Users, GraduationCap } from 'lucide-react';
+import { Plus, Edit2, CheckCircle, CheckCircle2, XCircle, Loader2, Upload, Download, Trash2, Eye, Users, GraduationCap, School, BarChart3, Filter } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
 import Papa from 'papaparse';
@@ -417,105 +417,216 @@ export default function ManajemenKelas() {
 
           {activeTab === 'kelas' ? (() => {
             const tingkatCounts: Record<string, number> = {};
+            let totalKelasCount = filteredKelasList.length;
+            let activeKelasCount = 0;
+            let totalKapasitasCount = 0;
+
             filteredKelasList.forEach(k => {
               const t = k.tingkat || 'Tanpa Tingkat';
               tingkatCounts[t] = (tingkatCounts[t] || 0) + (k._count?.siswaFormal || 0);
+              if (k.isActive) activeKelasCount++;
+              if (k.kapasitas) totalKapasitasCount += Number(k.kapasitas);
             });
             const totalSantri = Object.values(tingkatCounts).reduce((a, b) => a + b, 0);
 
+            const sortTingkat = (a: string, b: string) => {
+              const numA = parseInt(a.replace(/\D/g, ''), 10);
+              const numB = parseInt(b.replace(/\D/g, ''), 10);
+              if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+              if (!isNaN(numA)) return -1;
+              if (!isNaN(numB)) return 1;
+              return a.localeCompare(b);
+            };
+
+            const sortedTingkatEntries = Object.entries(tingkatCounts).sort(([a], [b]) => sortTingkat(a, b));
+            const maxSantriCount = Math.max(...Object.values(tingkatCounts), 1);
+
             return (
               <div className="space-y-6 mt-6">
-                {/* Cards: Total Santri menurut Tingkat */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                  <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 p-4 shadow-sm flex flex-col justify-between">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-indigo-100 tracking-wide">Total Santri</span>
-                      <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center">
-                        <Users className="w-4 h-4 text-white" />
-                      </div>
-                    </div>
-                    <span className="text-2xl font-bold text-white mt-3">
-                      {totalSantri.toLocaleString('id-ID')}
-                    </span>
+                {/* 1. Filter Section (Diatas Card Sesuai RBAC) */}
+                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+                  <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm border-b border-slate-100 pb-3">
+                    <Filter className="w-4 h-4 text-indigo-600" />
+                    <span>Filter Wilayah & Cabang (RBAC)</span>
                   </div>
-                  {Object.entries(tingkatCounts).map(([tingkat, total]) => (
-                    <div key={tingkat} className="group rounded-2xl bg-white border border-slate-200 p-4 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all duration-200 flex flex-col justify-between">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-slate-500 truncate" title={tingkat}>
-                          {/^\d+$/.test(tingkat) ? `Tingkat ${tingkat}` : tingkat}
-                        </span>
-                        <div className="w-8 h-8 shrink-0 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
-                          <GraduationCap className="w-4 h-4" />
-                        </div>
-                      </div>
-                      <div className="flex items-baseline gap-1 mt-3">
-                        <span className="text-2xl font-bold text-slate-800">
-                          {total.toLocaleString('id-ID')}
-                        </span>
-                        <span className="text-xs text-slate-400 font-medium">santri</span>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Lembaga Muadalah</label>
+                      <select
+                        value={filterMuadalah}
+                        onChange={e => { setFilterMuadalah(e.target.value); setCurrentPage(1); }}
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
+                      >
+                        <option value="">-- Semua Lembaga --</option>
+                        {muadalahList.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name} ({m.code})
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                  ))}
-                  {Object.keys(tingkatCounts).length === 0 && (
-                    <div className="col-span-full py-4 text-center text-xs font-mono text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
-                      Belum ada data tingkat siswa.
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Wilayah</label>
+                      <select
+                        value={filterWilayah}
+                        onChange={e => handleFilterWilayahChange(e.target.value)}
+                        disabled={!isAdmin}
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
+                      >
+                        {isAdmin ? (
+                          <>
+                            <option value="">-- Semua Wilayah --</option>
+                            {wilayahs.map((w: any) => (
+                              <option key={w.id} value={w.id}>{w.name}</option>
+                            ))}
+                          </>
+                        ) : (
+                          <option value={filterWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
+                        )}
+                      </select>
                     </div>
-                  )}
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Cabang</label>
+                      <select
+                        value={filterCabang}
+                        onChange={e => handleFilterCabangChange(e.target.value)}
+                        disabled={user?.scope === 'CABANG'}
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
+                      >
+                        <option value="">-- Semua Cabang --</option>
+                        {filteredFilterCabangList.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Filter Section */}
-                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Lembaga Muadalah</label>
-                    <select
-                      value={filterMuadalah}
-                      onChange={e => { setFilterMuadalah(e.target.value); setCurrentPage(1); }}
-                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
-                    >
-                      <option value="">-- Semua Lembaga --</option>
-                      {muadalahList.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} ({m.code})
-                        </option>
-                      ))}
-                    </select>
+                {/* 2. Top Summary Cards (Termasuk Card Jumlah Kelas/Rombel) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Card 1: Total Santri */}
+                  <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-700 p-5 shadow-sm flex flex-col justify-between text-white">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-indigo-100 tracking-wide uppercase">Total Santri</span>
+                      <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+                        <Users className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <span className="text-3xl font-bold">{totalSantri.toLocaleString('id-ID')}</span>
+                      <span className="text-xs text-indigo-200 ml-2">Santri Terdaftar</span>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Wilayah</label>
-                    <select
-                      value={filterWilayah}
-                      onChange={e => handleFilterWilayahChange(e.target.value)}
-                      disabled={!isAdmin}
-                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
-                    >
-                      {isAdmin ? (
-                        <>
-                          <option value="">-- Semua Wilayah --</option>
-                          {wilayahs.map((w: any) => (
-                            <option key={w.id} value={w.id}>{w.name}</option>
-                          ))}
-                        </>
-                      ) : (
-                        <option value={filterWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
-                      )}
-                    </select>
+                  {/* Card 2: Jumlah Kelas / Rombel (DITAMBAHKAN SESUAI REQUEST) */}
+                  <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:border-indigo-200 transition-all">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">Jumlah Kelas / Rombel</span>
+                      <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <School className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <span className="text-3xl font-bold text-slate-800">{totalKelasCount.toLocaleString('id-ID')}</span>
+                      <span className="text-xs text-slate-500 ml-2">Rombongan Belajar</span>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Cabang</label>
-                    <select
-                      value={filterCabang}
-                      onChange={e => handleFilterCabangChange(e.target.value)}
-                      disabled={user?.scope === 'CABANG'}
-                      className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
-                    >
-                      <option value="">-- Semua Cabang --</option>
-                      {filteredFilterCabangList.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
+                  {/* Card 3: Kelas Aktif */}
+                  <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:border-indigo-200 transition-all">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">Kelas Aktif</span>
+                      <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <span className="text-3xl font-bold text-slate-800">{activeKelasCount.toLocaleString('id-ID')}</span>
+                      <span className="text-xs text-emerald-600 font-medium ml-2">
+                        {totalKelasCount > 0 ? `${Math.round((activeKelasCount / totalKelasCount) * 100)}% Aktif` : '0%'}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Card 4: Total Kapasitas */}
+                  <div className="rounded-2xl bg-white border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:border-indigo-200 transition-all">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-500 tracking-wide uppercase">Total Kapasitas</span>
+                      <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                        <GraduationCap className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <span className="text-3xl font-bold text-slate-800">{totalKapasitasCount.toLocaleString('id-ID')}</span>
+                      <span className="text-xs text-slate-500 ml-2">Kursi Santri</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Bar Chart: Jumlah Santri menurut Tingkat (DIGANTI DARI CARD MENJADI BAR CHART) */}
+                <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5 text-indigo-600" />
+                        <h3 className="text-base font-semibold text-slate-800">Jumlah Santri Menurut Tingkat</h3>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">Grafik batang distribusi jumlah santri berdasarkan tingkat kelas formal</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full border border-indigo-100">
+                        {sortedTingkatEntries.length} Tingkat Kelas
+                      </span>
+                    </div>
+                  </div>
+
+                  {sortedTingkatEntries.length === 0 ? (
+                    <div className="py-12 text-center text-xs font-mono text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+                      Belum ada data tingkat siswa.
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Bar Chart Container */}
+                      <div className="h-64 flex items-end justify-around gap-2 sm:gap-6 pt-8 pb-2 border-b border-slate-200">
+                        {sortedTingkatEntries.map(([tingkat, count]) => {
+                          const heightPercent = maxSantriCount > 0 ? Math.max(Math.round((count / maxSantriCount) * 100), 8) : 8;
+                          const formattedTingkat = /^\d+$/.test(tingkat) ? `Tingkat ${tingkat}` : tingkat;
+                          const percentageOfTotal = totalSantri > 0 ? Math.round((count / totalSantri) * 100) : 0;
+
+                          return (
+                            <div key={tingkat} className="group relative flex-1 flex flex-col items-center h-full justify-end max-w-[90px]">
+                              {/* Hover Tooltip */}
+                              <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-slate-900 text-white text-xs py-1.5 px-3 rounded-lg shadow-lg z-20 whitespace-nowrap flex flex-col items-center">
+                                <span className="font-semibold">{formattedTingkat}</span>
+                                <span className="text-indigo-300 font-mono">{count.toLocaleString('id-ID')} santri ({percentageOfTotal}%)</span>
+                                <div className="w-2 h-2 bg-slate-900 rotate-45 -mb-1 mt-0.5" />
+                              </div>
+
+                              {/* Value Label Above Bar */}
+                              <span className="text-xs font-bold text-slate-700 mb-2 group-hover:text-indigo-600 transition-colors">
+                                {count.toLocaleString('id-ID')}
+                              </span>
+
+                              {/* Bar Element with Gradient */}
+                              <div 
+                                style={{ height: `${heightPercent}%` }}
+                                className="w-full bg-gradient-to-t from-indigo-600 via-indigo-500 to-indigo-400 rounded-t-xl group-hover:from-indigo-500 group-hover:to-indigo-300 transition-all duration-300 shadow-sm group-hover:shadow-md cursor-pointer relative overflow-hidden"
+                              >
+                                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </div>
+
+                              {/* Tingkat Label Below Bar */}
+                              <span className="mt-3 text-xs font-semibold text-slate-600 truncate max-w-full text-center group-hover:text-indigo-600 transition-colors" title={formattedTingkat}>
+                                {/^\d+$/.test(tingkat) ? `Tkg ${tingkat}` : tingkat}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">

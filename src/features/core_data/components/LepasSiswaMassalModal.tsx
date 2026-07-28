@@ -44,27 +44,65 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
 
   const lepasMassalMutation = useLepasMassalSiswa();
 
-  const handleLepas = () => {
-    if (selectedIds.length === 0) return;
-    lepasMassalMutation.mutate({
-      studentIds: selectedIds,
-      statusAkhir,
-      catatan
-    }, {
-      onSuccess: () => {
-        showToast('success', `Berhasil melepas ${selectedIds.length} siswa`);
-        onClose();
-      },
-      onError: (error: any) => {
-        showToast('error', error.response?.data?.message || 'Gagal melepas siswa massal');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState({ processed: 0, total: 0, currentBatch: 0, totalBatches: 0 });
+
+  const handleLepas = async () => {
+    const validSelectedIds = selectedIds.filter(id => typeof id === 'string' && id.trim().length > 0);
+    if (validSelectedIds.length === 0) {
+      showToast('error', 'Pilih minimal satu siswa untuk dilepas');
+      return;
+    }
+
+    const BATCH_SIZE = 200;
+    const total = validSelectedIds.length;
+    const chunks: string[][] = [];
+    for (let i = 0; i < total; i += BATCH_SIZE) {
+      chunks.push(validSelectedIds.slice(i, i + BATCH_SIZE));
+    }
+
+    setIsProcessing(true);
+    setProgress({ processed: 0, total, currentBatch: 1, totalBatches: chunks.length });
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index];
+      setProgress({
+        processed: successCount,
+        total,
+        currentBatch: index + 1,
+        totalBatches: chunks.length
+      });
+
+      try {
+        await lepasMassalMutation.mutateAsync({
+          studentIds: chunk,
+          statusAkhir,
+          catatan
+        });
+        successCount += chunk.length;
+      } catch (err) {
+        failedCount += chunk.length;
       }
-    });
+    }
+
+    setIsProcessing(false);
+
+    if (failedCount === 0) {
+      showToast('success', `Berhasil melepas ${successCount.toLocaleString()} siswa ke pool.`);
+      onClose();
+    } else {
+      showToast('warning', `Selesai: ${successCount.toLocaleString()} siswa berhasil dilepas, ${failedCount.toLocaleString()} siswa gagal.`);
+      onClose();
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={isProcessing ? undefined : onClose} />
 
         <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
           <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
@@ -77,12 +115,34 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
                   Pilih siswa aktif cabang untuk dikembalikan ke pool atau dikeluarkan.
                 </p>
               </div>
-              <button onClick={onClose} className="text-slate-400 hover:text-slate-500 p-1 rounded-lg hover:bg-slate-50 transition-colors">
-                <X className="h-5 w-5" />
-              </button>
+              {!isProcessing && (
+                <button onClick={onClose} className="text-slate-400 hover:text-slate-500 p-1 rounded-lg hover:bg-slate-50 transition-colors">
+                  <X className="h-5 w-5" />
+                </button>
+              )}
             </div>
 
-            {releasableStudents.length === 0 ? (
+            {isProcessing ? (
+              <div className="my-6 p-6 bg-amber-50 rounded-xl border border-amber-200 space-y-4 text-center">
+                <div className="flex justify-between items-center text-sm font-semibold text-amber-900">
+                  <span>Memproses Pelepasan Siswa...</span>
+                  <span>{Math.round((progress.processed / (progress.total || 1)) * 100)}%</span>
+                </div>
+                <div className="w-full bg-amber-200 rounded-full h-3 overflow-hidden shadow-inner">
+                  <div 
+                    className="bg-amber-600 h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.round((progress.processed / (progress.total || 1)) * 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-amber-700 font-medium">
+                  <span>{progress.processed.toLocaleString()} / {progress.total.toLocaleString()} siswa selesai</span>
+                  <span>Antrean {progress.currentBatch} dari {progress.totalBatches} (200 / batch)</span>
+                </div>
+                <p className="text-xs text-amber-600 animate-pulse pt-2 border-t border-amber-200/60">
+                  Harap tunggu, sistem sedang melepas siswa secara bertahap...
+                </p>
+              </div>
+            ) : releasableStudents.length === 0 ? (
               <div className="my-6 p-6 text-center bg-slate-50 rounded-xl border border-slate-200">
                 <AlertCircle className="w-8 h-8 text-slate-400 mx-auto mb-2" />
                 <h4 className="text-sm font-semibold text-slate-800">Tidak Ada Siswa Aktif Cabang</h4>
@@ -186,19 +246,20 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
           <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 rounded-b-2xl border-t border-slate-100">
             <button
               type="button"
+              disabled={isProcessing}
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 disabled:opacity-50 transition-colors"
             >
               Batal
             </button>
-            {releasableStudents.length > 0 && (
+            {releasableStudents.length > 0 && !isProcessing && (
               <button
                 type="button"
-                disabled={selectedIds.length === 0 || lepasMassalMutation.isPending}
+                disabled={selectedIds.length === 0}
                 onClick={handleLepas}
                 className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-xl hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
               >
-                {lepasMassalMutation.isPending ? 'Memproses...' : `Lepas ${selectedIds.length} Siswa`}
+                Lepas {selectedIds.length} Siswa
               </button>
             )}
           </div>

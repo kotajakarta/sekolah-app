@@ -47,25 +47,62 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
     }
   };
 
-  const handleTarik = () => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState({ processed: 0, total: 0, currentBatch: 0, totalBatches: 0 });
+
+  const handleTarik = async () => {
     if (!selectedCabangId) {
       showToast('error', 'Pilih cabang tujuan terlebih dahulu');
       return;
     }
-    if (selectedStudentIds.length === 0) {
+    const validStudentIds = selectedStudentIds.filter(id => typeof id === 'string' && id.trim().length > 0);
+    if (validStudentIds.length === 0) {
       showToast('error', 'Pilih setidaknya satu siswa');
       return;
     }
     
-    tarikMassalMutation.mutate({ 
-      studentIds: selectedStudentIds, 
-      cabangId: selectedCabangId 
-    }, {
-      onSuccess: (data) => {
-        if (data?.message) showToast('info', data.message);
-        onClose();
+    const BATCH_SIZE = 200;
+    const total = validStudentIds.length;
+    const chunks: string[][] = [];
+    for (let i = 0; i < total; i += BATCH_SIZE) {
+      chunks.push(validStudentIds.slice(i, i + BATCH_SIZE));
+    }
+
+    setIsProcessing(true);
+    setProgress({ processed: 0, total, currentBatch: 1, totalBatches: chunks.length });
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index];
+      setProgress({
+        processed: successCount,
+        total,
+        currentBatch: index + 1,
+        totalBatches: chunks.length
+      });
+
+      try {
+        await tarikMassalMutation.mutateAsync({
+          studentIds: chunk,
+          cabangId: selectedCabangId
+        });
+        successCount += chunk.length;
+      } catch (err) {
+        failedCount += chunk.length;
       }
-    });
+    }
+
+    setIsProcessing(false);
+
+    if (failedCount === 0) {
+      showToast('success', `Berhasil memproses penarikan ${successCount.toLocaleString()} siswa.`);
+      onClose();
+    } else {
+      showToast('warning', `Selesai: ${successCount.toLocaleString()} siswa berhasil diproses, ${failedCount.toLocaleString()} gagal.`);
+      onClose();
+    }
   };
 
   const selectedStudentsData = poolStudents?.filter(s => selectedStudentIds.includes(s.id)) || [];
@@ -152,7 +189,27 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-            {isLoadingPool ? (
+            {isProcessing ? (
+              <div className="my-6 p-6 bg-blue-50 rounded-xl border border-blue-200 space-y-4 text-center">
+                <div className="flex justify-between items-center text-sm font-semibold text-blue-900">
+                  <span>Memproses Penarikan Siswa...</span>
+                  <span>{Math.round((progress.processed / (progress.total || 1)) * 100)}%</span>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-3 overflow-hidden shadow-inner">
+                  <div 
+                    className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${Math.round((progress.processed / (progress.total || 1)) * 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-blue-700 font-medium">
+                  <span>{progress.processed.toLocaleString()} / {progress.total.toLocaleString()} siswa selesai</span>
+                  <span>Antrean {progress.currentBatch} dari {progress.totalBatches} (200 / batch)</span>
+                </div>
+                <p className="text-xs text-blue-600 animate-pulse pt-2 border-t border-blue-200/60">
+                  Harap tunggu, sistem sedang memproses penarikan secara bertahap...
+                </p>
+              </div>
+            ) : isLoadingPool ? (
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
               </div>
@@ -181,7 +238,7 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredStudents.map((student) => (
                       <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-normal">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <input
                             type="checkbox"
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
@@ -189,14 +246,14 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
                             onChange={() => toggleStudentSelection(student.id)}
                           />
                         </td>
-                        <td className="px-6 py-4 whitespace-normal">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-gray-900">{student.biodata?.fullName}</div>
-                          <div className="text-xs text-gray-500">{student.biodata?.phone || '-'}</div>
+                          <div className="text-xs text-gray-500">NIK: {student.biodata?.nik || '-'}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-normal text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {student.wilayah?.name || '-'}
                         </td>
-                        <td className="px-6 py-4 whitespace-normal text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap">
                           {student.statusPool === 'AKTIF_CABANG' ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
                               Di Cabang: {student.cabang?.name || '-'}
@@ -216,18 +273,21 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
           </div>
 
           <div className="bg-white px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-gray-200">
+            {!isProcessing && (
+              <button
+                type="button"
+                disabled={!selectedCabangId || selectedStudentIds.length === 0}
+                onClick={handleTarik}
+                className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm sm:ml-3 sm:w-auto disabled:opacity-50 ${buttonColor}`}
+              >
+                {buttonText}
+              </button>
+            )}
             <button
               type="button"
-              disabled={!selectedCabangId || selectedStudentIds.length === 0 || tarikMassalMutation.isPending}
-              onClick={handleTarik}
-              className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm sm:ml-3 sm:w-auto disabled:opacity-50 ${buttonColor}`}
-            >
-              {tarikMassalMutation.isPending ? 'Memproses...' : buttonText}
-            </button>
-            <button
-              type="button"
+              disabled={isProcessing}
               onClick={onClose}
-              className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+              className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto disabled:opacity-50"
             >
               Batal
             </button>

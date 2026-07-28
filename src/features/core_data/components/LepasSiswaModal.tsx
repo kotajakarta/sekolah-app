@@ -27,7 +27,9 @@ export default function LepasSiswaModal({ student, onClose }: LepasSiswaModalPro
         onClose();
       },
       onError: (error: any) => {
-        showToast('error', error.response?.data?.message || 'Gagal melepas siswa');
+        const rawMsg = error.response?.data?.message;
+        const msg = Array.isArray(rawMsg) ? rawMsg.join(', ') : (rawMsg || 'Gagal melepas siswa');
+        showToast('error', msg);
       }
     });
   };

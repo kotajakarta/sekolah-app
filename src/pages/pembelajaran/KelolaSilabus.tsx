@@ -18,7 +18,7 @@ interface SilabusItem {
   urutanBab: number;
   section: string;
   urutanSection: number;
-  tanggalTarget: string;
+  tanggalTarget?: string;
 }
 
 const TINGKAT_OPTIONS = ['Non Muadalah', '7', '8', '9', '10', '11', '12'];
@@ -93,7 +93,7 @@ export default function KelolaSilabus() {
   useEffect(() => {
     if (fetchedSilabus) {
       setItems(fetchedSilabus.length > 0
-        ? fetchedSilabus.map(s => ({ ...s, tanggalTarget: s.tanggalTarget.slice(0, 10) }))
+        ? fetchedSilabus.map(s => ({ ...s, tanggalTarget: s.tanggalTarget ? s.tanggalTarget.slice(0, 10) : '' }))
         : [emptyItem(1, 1)]
       );
     }
@@ -106,7 +106,7 @@ export default function KelolaSilabus() {
         tingkat: selectedTingkat,
         tahunAjaran,
         semester,
-        items: items.filter(i => i.bab.trim() && i.section.trim() && i.tanggalTarget)
+        items: items.filter(i => i.bab.trim() && i.section.trim())
       });
     },
     onSuccess: () => {
@@ -140,8 +140,8 @@ export default function KelolaSilabus() {
 
   const handleDownloadTemplate = () => {
     const worksheet = XLSX.utils.json_to_sheet([
-      { Bab: 'Bab 1', Section: '1.1 Pengenalan', 'Tanggal Target': '2026-07-11' },
-      { Bab: 'Bab 1', Section: '1.2 Lanjutan', 'Tanggal Target': '2026-07-18' }
+      { Bab: 'Bab 1', Section: '1.1 Pengenalan' },
+      { Bab: 'Bab 1', Section: '1.2 Lanjutan' }
     ]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Template Silabus');
@@ -155,7 +155,11 @@ export default function KelolaSilabus() {
       return;
     }
     const worksheet = XLSX.utils.json_to_sheet(
-      exportable.map(i => ({ Bab: i.bab, Section: i.section, 'Tanggal Target': i.tanggalTarget }))
+      exportable.map(i => {
+        const row: Record<string, any> = { Bab: i.bab, Section: i.section };
+        if (i.tanggalTarget) row['Tanggal Target'] = i.tanggalTarget;
+        return row;
+      })
     );
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Silabus');
@@ -209,7 +213,7 @@ export default function KelolaSilabus() {
           }
           urutanSection++;
 
-          const tanggalTarget = parseTanggal(row[tanggalKey || 'Tanggal Target']);
+          const tanggalTarget = tanggalKey && row[tanggalKey] ? parseTanggal(row[tanggalKey]) : '';
           parsed.push({ bab, urutanBab, section, urutanSection, tanggalTarget });
         });
 
@@ -230,7 +234,7 @@ export default function KelolaSilabus() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-slate-500">Susun Bab/Section dan tanggal target diajar per Mata Pelajaran &amp; Tingkat.</p>
+        <p className="text-xs text-slate-500">Susun Bab/Section per Mata Pelajaran &amp; Tingkat (tanggal target bersifat opsional).</p>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -329,7 +333,7 @@ export default function KelolaSilabus() {
                   <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-12">No</th>
                   <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Bab</th>
                   <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Section / Sub-Bab</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-44">Tanggal Target Diajar</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-48">Tanggal Target (Opsional)</th>
                   <th className="px-3 py-2 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-12">Aksi</th>
                 </tr>
               </thead>

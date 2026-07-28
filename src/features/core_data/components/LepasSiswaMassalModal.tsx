@@ -3,6 +3,7 @@ import { Student } from '../hooks/useGetStudents';
 import { useLepasMassalSiswa } from '../hooks/usePoolStudents';
 import { X, Search, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface LepasSiswaMassalModalProps {
   students: Student[];
@@ -11,6 +12,7 @@ interface LepasSiswaMassalModalProps {
 
 export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaMassalModalProps) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusAkhir, setStatusAkhir] = useState('TERSEDIA');
   const [catatan, setCatatan] = useState('');
@@ -50,7 +52,11 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
       catatan
     }, {
       onSuccess: () => {
+        showToast('success', `Berhasil melepas ${selectedIds.length} siswa`);
         onClose();
+      },
+      onError: (error: any) => {
+        showToast('error', error.response?.data?.message || 'Gagal melepas siswa massal');
       }
     });
   };

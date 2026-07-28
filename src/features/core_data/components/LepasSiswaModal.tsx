@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Student } from '../hooks/useGetStudents';
 import { useLepasSiswa } from '../hooks/usePoolStudents';
 import { X } from 'lucide-react';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface LepasSiswaModalProps {
   student: Student;
@@ -11,17 +12,22 @@ interface LepasSiswaModalProps {
 export default function LepasSiswaModal({ student, onClose }: LepasSiswaModalProps) {
   const [statusAkhir, setStatusAkhir] = useState('TERSEDIA');
   const [catatan, setCatatan] = useState('');
-  
+  const { showToast } = useToast();
+
   const lepasSiswaMutation = useLepasSiswa();
 
   const handleLepas = () => {
-    lepasSiswaMutation.mutate({ 
-      studentId: student.id, 
+    lepasSiswaMutation.mutate({
+      studentId: student.id,
       statusAkhir,
       catatan
     }, {
       onSuccess: () => {
+        showToast('success', 'Berhasil melepas siswa');
         onClose();
+      },
+      onError: (error: any) => {
+        showToast('error', error.response?.data?.message || 'Gagal melepas siswa');
       }
     });
   };

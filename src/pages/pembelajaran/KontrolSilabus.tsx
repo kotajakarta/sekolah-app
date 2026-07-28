@@ -71,6 +71,9 @@ const formatTanggal = (date: string) =>
 const formatTanggalShort = (date: string) =>
   new Date(`${date}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
 
+const todayStr = () => new Date().toISOString().slice(0, 10);
+const isFutureDate = (date: string) => date > todayStr();
+
 export const PEMBELAJARAN_DEPENDENT_KEYS = [['pembelajaran-ringkasan'], ['laporan-pembelajaran']];
 
 export default function KontrolSilabus() {
@@ -248,6 +251,7 @@ export default function KontrolSilabus() {
 
   const handleAssign = (date: string, silabusId: string) => {
     if (!selectedMapel) return;
+    if (silabusId && isFutureDate(date)) return; // hanya boleh mengisi materi untuk hari ini atau sebelumnya
     const key = `${selectedMapel}__${date}`;
     if (!silabusId) {
       setExecutions(prev => {
@@ -275,7 +279,7 @@ export default function KontrolSilabus() {
   };
 
   const handleStatusChange = (date: string, status: ExecutedSession['status']) => {
-    if (!selectedMapel) return;
+    if (!selectedMapel || isFutureDate(date)) return;
     const key = `${selectedMapel}__${date}`;
     setExecutions(prev => {
       if (!prev[key]) return prev;
@@ -288,7 +292,7 @@ export default function KontrolSilabus() {
   };
 
   const handleGuruChange = (date: string, guruId: string) => {
-    if (!selectedMapel) return;
+    if (!selectedMapel || isFutureDate(date)) return;
     const key = `${selectedMapel}__${date}`;
     const selectedGuru = guruOptions.find(g => g.id === guruId);
     setExecutions(prev => {
@@ -346,6 +350,7 @@ export default function KontrolSilabus() {
     setExecutions(prev => {
       const next = { ...prev };
       datesInView.forEach(d => {
+        if (isFutureDate(d)) return;
         const key = `${selectedMapel}__${d}`;
         if (next[key] && next[key].silabusId) {
           next[key] = { ...next[key], status };
@@ -496,10 +501,14 @@ export default function KontrolSilabus() {
                 const bareLibur = !assigned ? liburByDate.get(date) : undefined;
                 const liburPending = (markLiburMutation.isPending && markLiburMutation.variables === date)
                   || (clearLiburMutation.isPending && clearLiburMutation.variables === date);
+                const future = isFutureDate(date);
                 return (
                   <div key={date} className="p-2.5 flex flex-col lg:flex-row lg:items-center gap-2">
                     <div className="lg:w-44 shrink-0">
                       <p className="text-sm font-semibold text-gray-800 capitalize">{formatTanggal(date)}</p>
+                      {future && (
+                        <p className="text-[10px] text-gray-400 font-medium">Tanggal mendatang</p>
+                      )}
                     </div>
 
                     <div className="shrink-0 flex flex-row lg:flex-col items-center lg:items-stretch gap-1.5">
@@ -532,8 +541,9 @@ export default function KontrolSilabus() {
                         <select
                           value={assigned?.silabusId || ''}
                           onChange={e => handleAssign(date, e.target.value)}
-                          title="Materi Silabus"
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                          disabled={future && !assigned}
+                          title={future && !assigned ? 'Tidak dapat mengisi materi untuk tanggal mendatang' : 'Materi Silabus'}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15 disabled:opacity-50 disabled:bg-gray-50"
                         >
                           <option value="">-- Pilih Materi --</option>
                           {mapelSilabusList.map(o => {
@@ -558,7 +568,7 @@ export default function KontrolSilabus() {
                       <select
                         value={assigned?.guruId || ''}
                         onChange={e => handleGuruChange(date, e.target.value)}
-                        disabled={!assigned || !assigned.silabusId}
+                        disabled={!assigned || !assigned.silabusId || future}
                         title="Pengajar"
                         className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15 disabled:opacity-50"
                       >
@@ -576,7 +586,9 @@ export default function KontrolSilabus() {
                       {STATUS_OPTIONS.map(opt => {
                         const isLiburOption = opt.key === 'LIBUR';
                         const active = assigned ? assigned.status === opt.key : (isLiburOption && !!bareLibur);
-                        const disabled = assigned ? false : (!isLiburOption || liburPending);
+                        const disabled = assigned
+                          ? future
+                          : (!isLiburOption || liburPending || (future && !bareLibur));
                         const handleClick = () => {
                           if (assigned) {
                             handleStatusChange(date, opt.key);
@@ -591,7 +603,11 @@ export default function KontrolSilabus() {
                             key={opt.key}
                             type="button"
                             disabled={disabled}
-                            title={!assigned && isLiburOption ? (bareLibur ? 'Batalkan penanda Libur' : 'Tandai tanggal ini Libur tanpa memilih materi') : undefined}
+                            title={
+                              future && !bareLibur
+                                ? 'Tidak dapat diisi untuk tanggal mendatang'
+                                : (!assigned && isLiburOption ? (bareLibur ? 'Batalkan penanda Libur' : 'Tandai tanggal ini Libur tanpa memilih materi') : undefined)
+                            }
                             onClick={handleClick}
                             className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all text-center disabled:opacity-40 disabled:cursor-not-allowed ${active ? opt.activeBg : opt.hoverBg}`}
                           >

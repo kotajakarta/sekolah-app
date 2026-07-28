@@ -361,7 +361,6 @@ export default function KontrolSilabus() {
             <div className="divide-y divide-gray-100">
               {saturdays.map(date => {
                 const assigned = assignedByDate.get(date);
-                const options = mapelRows.filter(r => !r.tanggalDiajar || r.silabusId === assigned?.silabusId);
                 return (
                   <div key={date} className="p-2.5 flex flex-col lg:flex-row lg:items-center gap-2">
                     <div className="lg:w-44 shrink-0">
@@ -404,9 +403,15 @@ export default function KontrolSilabus() {
                         className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
                       >
                         <option value="">-- Pilih Materi --</option>
-                        {options.map(o => (
-                          <option key={o.silabusId} value={o.silabusId}>{o.bab} — {o.section}</option>
-                        ))}
+                        {mapelRows.map(o => {
+                          const elsewhere = o.tanggalDiajar && o.tanggalDiajar !== date;
+                          const doneMark = o.status === 'COMPLETED' ? ' ✓' : '';
+                          return (
+                            <option key={o.silabusId} value={o.silabusId}>
+                              {o.bab} — {o.section}{doneMark}{elsewhere ? ` (sudah di ${formatTanggal(o.tanggalDiajar as string)})` : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
 

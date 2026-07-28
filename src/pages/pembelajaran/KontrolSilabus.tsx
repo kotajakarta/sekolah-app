@@ -13,15 +13,23 @@ interface Kelas {
   cabangId: string;
 }
 
-interface PelaksanaanRow {
+interface SilabusItem {
   silabusId: string;
   mataPelajaranId: string;
   mataPelajaranName: string;
   bab: string;
   section: string;
   tanggalTarget: string;
+  defaultGuruId: string | null;
+  defaultGuruName: string | null;
+}
+
+interface ExecutedSession {
+  id?: string;
+  silabusId: string | null;
+  mataPelajaranId: string;
   status: 'PENDING' | 'COMPLETED' | 'LIBUR';
-  tanggalDiajar: string | null;
+  tanggalDiajar: string;
   catatan: string;
   guruId: string | null;
   guruName: string | null;
@@ -46,8 +54,6 @@ const STATUS_OPTIONS = [
   { key: 'LIBUR', label: 'Libur', activeBg: 'bg-gray-200 text-gray-700 border-gray-300', hoverBg: 'hover:bg-gray-100 text-gray-600 border-gray-300' },
 ] as const;
 
-// Sesi diajarkan setiap hari Sabtu — tabel Kontrol Silabus dibangun per-tanggal Sabtu
-// dalam bulan yang sedang dilihat, bukan per-section, supaya sesuai jadwal riil di lapangan.
 function getSaturdaysInMonth(year: number, month: number): string[] {
   const dates: string[] = [];
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -62,8 +68,9 @@ function getSaturdaysInMonth(year: number, month: number): string[] {
 const formatTanggal = (date: string) =>
   new Date(`${date}T00:00:00`).toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' });
 
-// Query lain yang ikut basi setiap kali progres silabus/absensi berubah, supaya Dashboard &
-// Laporan tidak menampilkan angka lama setelah user menyimpan di sini.
+const formatTanggalShort = (date: string) =>
+  new Date(`${date}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+
 export const PEMBELAJARAN_DEPENDENT_KEYS = [['pembelajaran-ringkasan'], ['laporan-pembelajaran']];
 
 export default function KontrolSilabus() {
@@ -78,9 +85,10 @@ export default function KontrolSilabus() {
   const [selectedKelas, setSelectedKelas] = useState<string>('');
   const [selectedMapel, setSelectedMapel] = useState<string>('');
 
-  const [rows, setRows] = useState<PelaksanaanRow[]>([]);
+  const [silabusItems, setSilabusItems] = useState<SilabusItem[]>([]);
+  const [executions, setExecutions] = useState<Record<string, ExecutedSession>>({});
   const [isSavedSuccessfully, setIsSavedSuccessfully] = useState(false);
-  const [absensiSilabusId, setAbsensiSilabusId] = useState<string | null>(null);
+  const [absensiTarget, setAbsensiTarget] = useState<{ silabusId: string; tanggal: string } | null>(null);
   const [viewDate, setViewDate] = useState(() => {
     const d = new Date();
     return { year: d.getFullYear(), month: d.getMonth() };
@@ -105,13 +113,9 @@ export default function KontrolSilabus() {
     setSelectedKelas('');
   };
 
-  // Tahun Ajaran & Semester mengikuti Pengaturan Akademik aktif (tidak bisa dipilih bebas)
   const { data: pengaturanAkademik } = useQuery({
     queryKey: ['pengaturan-akademik'],
-    queryFn: async () => {
-      const res = await apiClient.get('/pengaturan/akademik');
-      return res.data;
-    }
+    queryFn: async () => (await apiClient.get('/pengaturan/akademik')).data
   });
   const tahunAjaran = pengaturanAkademik?.tahunAjaran || '';
   const semester = pengaturanAkademik?.semesterAktif || '';
@@ -150,7 +154,12 @@ export default function KontrolSilabus() {
 
   const isReady = !!selectedKelas && !!tahunAjaran && !!semester;
 
-  const { data: pelaksanaanData, isLoading, refetch, isError } = useQuery<{ items: PelaksanaanRow[]; guruOptions: GuruOption[]; liburMarkers: LiburMarker[] }>({
+  const { data: pelaksanaanData, isLoading, refetch, isError } = useQuery<{
+    items: SilabusItem[];
+    executions: ExecutedSession[];
+    guruOptions: GuruOption[];
+    liburMarkers: LiburMarker[];
+  }>({
     queryKey: ['pelaksanaan-silabus', selectedKelas, tahunAjaran, semester],
     queryFn: async () => {
       const res = await apiClient.get('/pembelajaran/pelaksanaan', {
@@ -165,20 +174,27 @@ export default function KontrolSilabus() {
 
   useEffect(() => {
     if (pelaksanaanData) {
-      // Backend mengirim tanggalDiajar sebagai ISO datetime penuh (mis. "2026-07-11T00:00:00.000Z"),
-      // sementara tabel ini pakai string tanggal polos 'YYYY-MM-DD' sebagai key (Sabtu hasil generate,
-      // key Map, dsb). Tanpa dipotong ke 10 karakter, satu tanggal yang sama akan punya DUA representasi
-      // berbeda yang tidak pernah cocok satu sama lain — menghasilkan baris kosong + baris "Invalid Date".
-      setRows(pelaksanaanData.items.map(r => ({ ...r, tanggalDiajar: r.tanggalDiajar ? r.tanggalDiajar.slice(0, 10) : null })));
-      setLiburRows(pelaksanaanData.liburMarkers.map(l => ({ ...l, tanggalDiajar: l.tanggalDiajar.slice(0, 10) })));
-      // Pertahankan pilihan mapel & bulan yang sedang dilihat kalau masih valid — kalau direset
-      // tiap kali refetch (mis. setelah Simpan), tabel mendadak kosong dan terlihat seperti
-      // data hilang padahal tersimpan.
-      setSelectedMapel(prev => (prev && pelaksanaanData.items.some(r => r.mataPelajaranId === prev) ? prev : ''));
+      const items = pelaksanaanData.items || [];
+      const execsRaw = pelaksanaanData.executions || [];
+      setSilabusItems(items);
+
+      const map: Record<string, ExecutedSession> = {};
+      execsRaw.forEach(e => {
+        if (e.tanggalDiajar) {
+          const tgl = e.tanggalDiajar.slice(0, 10);
+          map[`${e.mataPelajaranId}__${tgl}`] = {
+            ...e,
+            tanggalDiajar: tgl
+          };
+        }
+      });
+      setExecutions(map);
+      setLiburRows((pelaksanaanData.liburMarkers || []).map(l => ({ ...l, tanggalDiajar: l.tanggalDiajar.slice(0, 10) })));
+
+      setSelectedMapel(prev => (prev && items.some(i => i.mataPelajaranId === prev) ? prev : ''));
     }
   }, [pelaksanaanData]);
 
-  // Setiap perubahan progres/libur/absensi ikut menyegarkan Dashboard & Laporan.
   const invalidateDependents = () => {
     PEMBELAJARAN_DEPENDENT_KEYS.forEach(queryKey => queryClient.invalidateQueries({ queryKey }));
   };
@@ -210,13 +226,17 @@ export default function KontrolSilabus() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const logs = rows.map(r => ({
-        silabusId: r.silabusId,
-        status: r.status,
-        tanggalDiajar: r.tanggalDiajar || null,
-        catatan: r.catatan,
-        guruId: r.guruId || null
-      }));
+      const logs = Object.entries(executions).map(([key, sess]) => {
+        const [mataPelajaranId, tanggalDiajar] = key.split('__');
+        return {
+          silabusId: sess.silabusId,
+          mataPelajaranId,
+          tanggalDiajar,
+          status: sess.status,
+          catatan: sess.catatan,
+          guruId: sess.guruId || null
+        };
+      });
       return apiClient.post('/pembelajaran/pelaksanaan/bulk', { kelasId: selectedKelas, logs });
     },
     onSuccess: () => {
@@ -226,64 +246,88 @@ export default function KontrolSilabus() {
     }
   });
 
-  const handleStatusChange = (silabusId: string, status: PelaksanaanRow['status']) => {
-    setRows(prev => prev.map(r => r.silabusId === silabusId ? { ...r, status } : r));
-    setIsSavedSuccessfully(false);
-  };
-
-  const handleGuruChange = (silabusId: string, guruId: string) => {
-    setRows(prev => prev.map(r => r.silabusId === silabusId ? { ...r, guruId: guruId || null } : r));
-    setIsSavedSuccessfully(false);
-  };
-
-  // Menempelkan satu materi silabus ke tanggal Sabtu tertentu (mengosongkan tanggal lama
-  // materi itu kalau sebelumnya sudah menempel di tanggal lain).
-  // PENTING: bentrok tanggal hanya dibersihkan DI DALAM mapel yang sama. Mapel berbeda memang
-  // wajar berbagi hari Sabtu yang sama, jadi menghapus lintas mapel akan merusak jadwal mapel
-  // lain yang sudah tersimpan (karena tombol Simpan mengirim seluruh baris semua mapel).
   const handleAssign = (date: string, silabusId: string) => {
-    setRows(prev => {
-      const target = prev.find(r => r.silabusId === silabusId);
-      if (!target) return prev;
-      return prev.map(r => {
-        if (r.silabusId === silabusId) return { ...r, tanggalDiajar: date };
-        if (r.mataPelajaranId === target.mataPelajaranId && r.tanggalDiajar === date) {
-          return { ...r, tanggalDiajar: null };
-        }
-        return r;
+    if (!selectedMapel) return;
+    const key = `${selectedMapel}__${date}`;
+    if (!silabusId) {
+      setExecutions(prev => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
       });
+    } else {
+      const item = silabusItems.find(i => i.silabusId === silabusId);
+      setExecutions(prev => ({
+        ...prev,
+        [key]: {
+          silabusId,
+          mataPelajaranId: selectedMapel,
+          tanggalDiajar: date,
+          status: prev[key]?.status || 'PENDING',
+          catatan: prev[key]?.catatan || '',
+          guruId: prev[key]?.guruId || item?.defaultGuruId || null,
+          guruName: prev[key]?.guruName || item?.defaultGuruName || null,
+          hasAbsensi: prev[key]?.hasAbsensi || false
+        }
+      }));
+    }
+    setIsSavedSuccessfully(false);
+  };
+
+  const handleStatusChange = (date: string, status: ExecutedSession['status']) => {
+    if (!selectedMapel) return;
+    const key = `${selectedMapel}__${date}`;
+    setExecutions(prev => {
+      if (!prev[key]) return prev;
+      return {
+        ...prev,
+        [key]: { ...prev[key], status }
+      };
     });
     setIsSavedSuccessfully(false);
   };
 
-  const handleUnassign = (silabusId: string) => {
-    setRows(prev => prev.map(r => r.silabusId === silabusId ? { ...r, tanggalDiajar: null } : r));
+  const handleGuruChange = (date: string, guruId: string) => {
+    if (!selectedMapel) return;
+    const key = `${selectedMapel}__${date}`;
+    const selectedGuru = guruOptions.find(g => g.id === guruId);
+    setExecutions(prev => {
+      if (!prev[key]) return prev;
+      return {
+        ...prev,
+        [key]: { ...prev[key], guruId: guruId || null, guruName: selectedGuru?.name || null }
+      };
+    });
     setIsSavedSuccessfully(false);
   };
 
-  // Daftar mapel yang benar-benar punya silabus di kelas ini (data-driven, bukan semua mapel aktif global)
   const mapelOptions = Array.from(
-    new Map(rows.map(r => [r.mataPelajaranId, r.mataPelajaranName])).entries()
+    new Map(silabusItems.map(i => [i.mataPelajaranId, i.mataPelajaranName])).entries()
   ).map(([id, name]) => ({ id, name }));
 
-  const mapelRows = selectedMapel ? rows.filter(r => r.mataPelajaranId === selectedMapel) : [];
-  const unassignedSections = mapelRows.filter(r => !r.tanggalDiajar);
-  const assignedByDate = new Map(mapelRows.filter(r => r.tanggalDiajar).map(r => [r.tanggalDiajar as string, r]));
+  const mapelSilabusList = selectedMapel ? silabusItems.filter(i => i.mataPelajaranId === selectedMapel) : [];
+
+  const assignedSilabusIds = new Set(
+    Object.entries(executions)
+      .filter(([k, v]) => k.startsWith(selectedMapel + '__') && !!v.silabusId)
+      .map(([, v]) => v.silabusId as string)
+  );
+  const unassignedSections = mapelSilabusList.filter(i => !assignedSilabusIds.has(i.silabusId));
 
   const mapelLiburRows = selectedMapel ? liburRows.filter(l => l.mataPelajaranId === selectedMapel) : [];
   const liburByDate = new Map(mapelLiburRows.map(l => [l.tanggalDiajar, l]));
 
   const saturdays = getSaturdaysInMonth(viewDate.year, viewDate.month);
-  // Data lama (sebelum tabel ini jadi per-Sabtu) bisa punya tanggalDiajar yang bukan hari Sabtu
-  // (mis. dulu default ke "hari ini" saat disimpan). Baris tanggal itu tetap harus tampil & bisa
-  // diedit, bukan hilang begitu saja — jadi gabungkan dengan daftar Sabtu, bukan dibuang. Tanggal
-  // yang ditandai Libur tanpa materi juga ikut digabung supaya tetap terlihat di bulan itu.
   const monthPrefix = `${viewDate.year}-${String(viewDate.month + 1).padStart(2, '0')}`;
+  
+  const mapelExecDates = Object.keys(executions)
+    .filter(k => k.startsWith(selectedMapel + '__'))
+    .map(k => k.split('__')[1])
+    .filter(d => d.startsWith(monthPrefix) && !saturdays.includes(d));
+
   const extraDates = Array.from(
     new Set([
-      ...mapelRows
-        .filter(r => r.tanggalDiajar && r.tanggalDiajar.startsWith(monthPrefix) && !saturdays.includes(r.tanggalDiajar))
-        .map(r => r.tanggalDiajar as string),
+      ...mapelExecDates,
       ...mapelLiburRows
         .filter(l => l.tanggalDiajar.startsWith(monthPrefix) && !saturdays.includes(l.tanggalDiajar))
         .map(l => l.tanggalDiajar)
@@ -294,10 +338,21 @@ export default function KontrolSilabus() {
   const goPrevMonth = () => setViewDate(v => v.month === 0 ? { year: v.year - 1, month: 11 } : { year: v.year, month: v.month - 1 });
   const goNextMonth = () => setViewDate(v => v.month === 11 ? { year: v.year + 1, month: 0 } : { year: v.year, month: v.month + 1 });
 
-  const assignedInView = datesInView.map(d => assignedByDate.get(d)).filter((r): r is PelaksanaanRow => !!r);
-  const markAll = (status: PelaksanaanRow['status']) => {
-    const ids = new Set(assignedInView.map(r => r.silabusId));
-    setRows(prev => prev.map(r => ids.has(r.silabusId) ? { ...r, status } : r));
+  const assignedInView = datesInView
+    .map(d => executions[`${selectedMapel}__${d}`])
+    .filter((e): e is ExecutedSession => !!e && !!e.silabusId);
+
+  const markAll = (status: ExecutedSession['status']) => {
+    setExecutions(prev => {
+      const next = { ...prev };
+      datesInView.forEach(d => {
+        const key = `${selectedMapel}__${d}`;
+        if (next[key] && next[key].silabusId) {
+          next[key] = { ...next[key], status };
+        }
+      });
+      return next;
+    });
     setIsSavedSuccessfully(false);
   };
 
@@ -387,7 +442,7 @@ export default function KontrolSilabus() {
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-center flex items-center justify-center gap-2 text-sm">
           <AlertCircle className="w-4 h-4" /> Gagal memuat silabus.
         </div>
-      ) : rows.length === 0 ? (
+      ) : silabusItems.length === 0 ? (
         <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-sm text-gray-400">
           Belum ada silabus yang diinput Admin Pusat untuk tingkat kelas ini pada periode aktif.
         </div>
@@ -436,7 +491,8 @@ export default function KontrolSilabus() {
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <div className="divide-y divide-gray-100">
               {datesInView.map(date => {
-                const assigned = assignedByDate.get(date);
+                const key = `${selectedMapel}__${date}`;
+                const assigned = executions[key];
                 const bareLibur = !assigned ? liburByDate.get(date) : undefined;
                 const liburPending = (markLiburMutation.isPending && markLiburMutation.variables === date)
                   || (clearLiburMutation.isPending && clearLiburMutation.variables === date);
@@ -449,14 +505,14 @@ export default function KontrolSilabus() {
                     <div className="shrink-0 flex flex-row lg:flex-col items-center lg:items-stretch gap-1.5">
                       <button
                         type="button"
-                        onClick={() => assigned && setAbsensiSilabusId(assigned.silabusId)}
-                        disabled={!assigned || assigned.status === 'LIBUR'}
-                        title={!assigned ? 'Pilih materi dahulu' : assigned.status === 'LIBUR' ? 'Libur — tidak ada sesi' : 'Isi absensi untuk materi ini'}
+                        onClick={() => assigned?.silabusId && setAbsensiTarget({ silabusId: assigned.silabusId, tanggal: date })}
+                        disabled={!assigned || !assigned.silabusId || assigned.status === 'LIBUR'}
+                        title={!assigned || !assigned.silabusId ? 'Pilih materi dahulu' : assigned.status === 'LIBUR' ? 'Libur — tidak ada sesi' : 'Isi absensi untuk materi ini'}
                         className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded text-white bg-blue-800 hover:bg-blue-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <ClipboardList className="w-3.5 h-3.5" /> Absensi
                       </button>
-                      {assigned && assigned.status !== 'LIBUR' && (
+                      {assigned && assigned.silabusId && assigned.status !== 'LIBUR' && (
                         <span
                           className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-center ${
                             assigned.hasAbsensi ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'
@@ -475,24 +531,22 @@ export default function KontrolSilabus() {
                       ) : (
                         <select
                           value={assigned?.silabusId || ''}
-                          onChange={e => {
-                            const val = e.target.value;
-                            if (!val) {
-                              if (assigned) handleUnassign(assigned.silabusId);
-                            } else {
-                              handleAssign(date, val);
-                            }
-                          }}
+                          onChange={e => handleAssign(date, e.target.value)}
                           title="Materi Silabus"
                           className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
                         >
                           <option value="">-- Pilih Materi --</option>
-                          {mapelRows.map(o => {
-                            const elsewhere = o.tanggalDiajar && o.tanggalDiajar !== date;
-                            const doneMark = o.status === 'COMPLETED' ? ' ✓' : '';
+                          {mapelSilabusList.map(o => {
+                            const otherDates = Object.entries(executions)
+                              .filter(([k, v]) => k.startsWith(selectedMapel + '__') && !k.endsWith('__' + date) && v.silabusId === o.silabusId)
+                              .map(([k]) => formatTanggalShort(k.split('__')[1]));
+
+                            const hasCompleted = Object.values(executions).some(v => v.silabusId === o.silabusId && v.status === 'COMPLETED');
+                            const doneMark = hasCompleted ? ' ✓' : '';
+
                             return (
                               <option key={o.silabusId} value={o.silabusId}>
-                                {o.bab} — {o.section}{doneMark}{elsewhere ? ` (sudah di ${formatTanggal(o.tanggalDiajar as string)})` : ''}
+                                {o.bab} — {o.section}{doneMark}{otherDates.length > 0 ? ` (Sudah di ${otherDates.join(', ')})` : ''}
                               </option>
                             );
                           })}
@@ -503,8 +557,8 @@ export default function KontrolSilabus() {
                     <div className="shrink-0 w-full lg:w-40">
                       <select
                         value={assigned?.guruId || ''}
-                        onChange={e => assigned && handleGuruChange(assigned.silabusId, e.target.value)}
-                        disabled={!assigned}
+                        onChange={e => handleGuruChange(date, e.target.value)}
+                        disabled={!assigned || !assigned.silabusId}
                         title="Pengajar"
                         className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15 disabled:opacity-50"
                       >
@@ -525,7 +579,7 @@ export default function KontrolSilabus() {
                         const disabled = assigned ? false : (!isLiburOption || liburPending);
                         const handleClick = () => {
                           if (assigned) {
-                            handleStatusChange(assigned.silabusId, opt.key);
+                            handleStatusChange(date, opt.key);
                             return;
                           }
                           if (!isLiburOption) return;
@@ -568,13 +622,17 @@ export default function KontrolSilabus() {
         </div>
       )}
 
-      {absensiSilabusId && (
+      {absensiTarget && (
         <AbsensiSilabusModal
           kelasId={selectedKelas}
           kelasName={classes.find(c => c.id === selectedKelas)?.name || ''}
-          silabusId={absensiSilabusId}
-          onClose={() => setAbsensiSilabusId(null)}
-          onSaved={() => setRows(prev => prev.map(r => r.silabusId === absensiSilabusId ? { ...r, hasAbsensi: true } : r))}
+          silabusId={absensiTarget.silabusId}
+          tanggal={absensiTarget.tanggal}
+          onClose={() => setAbsensiTarget(null)}
+          onSaved={() => {
+            const key = `${selectedMapel}__${absensiTarget.tanggal}`;
+            setExecutions(prev => prev[key] ? { ...prev, [key]: { ...prev[key], hasAbsensi: true } } : prev);
+          }}
         />
       )}
     </div>

@@ -32,28 +32,33 @@ interface Props {
   kelasId: string;
   kelasName: string;
   silabusId: string;
+  tanggal?: string;
   onClose: () => void;
   onSaved?: () => void;
 }
 
-export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, onClose, onSaved }: Props) {
+export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tanggal: propTanggal, onClose, onSaved }: Props) {
   const queryClient = useQueryClient();
   const [rows, setRows] = useState<AbsensiSilabusRow[]>([]);
-  const [tanggal, setTanggal] = useState(todayStr());
+  const [tanggal, setTanggal] = useState(propTanggal || todayStr());
   const [isSavedSuccessfully, setIsSavedSuccessfully] = useState(false);
 
   const { data, isLoading, isError } = useQuery<AbsensiSilabusResponse>({
-    queryKey: ['absensi-silabus', kelasId, silabusId],
-    queryFn: async () => (await apiClient.get('/pembelajaran/absensi-mapel', { params: { kelasId, silabusId } })).data
+    queryKey: ['absensi-silabus', kelasId, silabusId, propTanggal],
+    queryFn: async () => (await apiClient.get('/pembelajaran/absensi-mapel', { params: { kelasId, silabusId, tanggal: propTanggal } })).data
   });
 
   useEffect(() => {
     if (data) {
       setRows(data.students);
-      setTanggal(data.tanggalDefault ? data.tanggalDefault.slice(0, 10) : todayStr());
+      if (propTanggal) {
+        setTanggal(propTanggal);
+      } else if (data.tanggalDefault) {
+        setTanggal(data.tanggalDefault.slice(0, 10));
+      }
       setIsSavedSuccessfully(false);
     }
-  }, [data]);
+  }, [data, propTanggal]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -62,10 +67,8 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, onC
     },
     onSuccess: () => {
       setIsSavedSuccessfully(true);
-      queryClient.invalidateQueries({ queryKey: ['absensi-silabus', kelasId, silabusId] });
-      // Dashboard & Laporan ikut disegarkan. Sengaja TIDAK meng-invalidate ['pelaksanaan-silabus']
-      // supaya tabel Kontrol Silabus di belakang modal tidak ter-refetch dan membuang perubahan
-      // yang belum disimpan — penanda "Sudah Absensi" cukup di-patch lewat onSaved().
+      queryClient.invalidateQueries({ queryKey: ['absensi-silabus', kelasId, silabusId, propTanggal] });
+      // Dashboard & Laporan ikut disegarkan.
       queryClient.invalidateQueries({ queryKey: ['pembelajaran-ringkasan'] });
       queryClient.invalidateQueries({ queryKey: ['laporan-pembelajaran'] });
       onSaved?.();

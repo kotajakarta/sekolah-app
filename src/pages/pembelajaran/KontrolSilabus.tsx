@@ -160,7 +160,11 @@ export default function KontrolSilabus() {
 
   useEffect(() => {
     if (pelaksanaanData) {
-      setRows(pelaksanaanData.items);
+      // Backend mengirim tanggalDiajar sebagai ISO datetime penuh (mis. "2026-07-11T00:00:00.000Z"),
+      // sementara tabel ini pakai string tanggal polos 'YYYY-MM-DD' sebagai key (Sabtu hasil generate,
+      // key Map, dsb). Tanpa dipotong ke 10 karakter, satu tanggal yang sama akan punya DUA representasi
+      // berbeda yang tidak pernah cocok satu sama lain — menghasilkan baris kosong + baris "Invalid Date".
+      setRows(pelaksanaanData.items.map(r => ({ ...r, tanggalDiajar: r.tanggalDiajar ? r.tanggalDiajar.slice(0, 10) : null })));
       setLiburRows(pelaksanaanData.liburMarkers.map(l => ({ ...l, tanggalDiajar: l.tanggalDiajar.slice(0, 10) })));
       setIsSavedSuccessfully(false);
       setSelectedMapel('');

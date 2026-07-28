@@ -37,6 +37,8 @@ interface RingkasanResponse {
   belumMulai: number;
   statusDistribution: { optimal: number; sesuaiJalur: number; berisiko: number };
   breakdownTotal: number;
+  kelasOptions: Array<{ id: string; name: string }>;
+  selectedKelasId: string | null;
   pemantauanMingguan: MapelWeekRow[];
 }
 
@@ -54,10 +56,11 @@ const currentMonthValue = () => {
 
 export default function Ringkasan() {
   const [monthFilter, setMonthFilter] = useState(currentMonthValue());
+  const [kelasFilter, setKelasFilter] = useState('');
 
   const { data, isLoading, isError } = useQuery<RingkasanResponse>({
-    queryKey: ['pembelajaran-ringkasan', monthFilter],
-    queryFn: async () => (await apiClient.get('/pembelajaran/ringkasan', { params: { month: monthFilter } })).data
+    queryKey: ['pembelajaran-ringkasan', monthFilter, kelasFilter],
+    queryFn: async () => (await apiClient.get('/pembelajaran/ringkasan', { params: { month: monthFilter, kelasId: kelasFilter || undefined } })).data
   });
 
   if (isLoading) {
@@ -162,7 +165,20 @@ export default function Ringkasan() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg p-3">
-        <h3 className="text-xs font-bold text-gray-800 mb-2">Pemantauan Mingguan &mdash; {data.periodeLabel}</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <h3 className="text-xs font-bold text-gray-800">Pemantauan Mingguan &mdash; {data.periodeLabel}</h3>
+          <div className="flex items-center gap-2">
+            <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Kelas:</label>
+            <select
+              value={kelasFilter}
+              onChange={e => setKelasFilter(e.target.value)}
+              className="px-2.5 py-1 border border-gray-300 rounded text-xs font-semibold text-gray-700 bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+            >
+              <option value="">-- Semua Kelas --</option>
+              {data.kelasOptions.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+            </select>
+          </div>
+        </div>
         {data.pemantauanMingguan.length === 0 ? (
           <div className="p-6 text-center text-sm text-gray-400">Belum ada data untuk periode ini.</div>
         ) : (

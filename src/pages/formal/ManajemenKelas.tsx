@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useGetCabang, useGetGuru } from '../../features/core_data/hooks/useMasterData';
-import { Plus, Edit2, CheckCircle, CheckCircle2, XCircle, Loader2, Upload, Download, Trash2, Eye, Users, GraduationCap, School, BarChart3, Filter } from 'lucide-react';
+import { Plus, Edit2, CheckCircle, CheckCircle2, XCircle, Loader2, Upload, Download, Trash2, Eye, Users, GraduationCap, School, BarChart3, Filter, Send, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
 import Papa from 'papaparse';
@@ -12,6 +12,8 @@ import KenaikanKelasModal from './KenaikanKelasModal';
 import ConfirmModal from '../../components/ConfirmModal';
 import GrupDaimiTab from './GrupDaimiTab';
 import DetailRombel from './DetailRombel';
+import PermohonanKelasModal from '../../features/permohonan/PermohonanKelasModal';
+import PermohonanKelasTab from '../../features/permohonan/PermohonanKelasTab';
 import { useToast } from '../../contexts/ToastContext';
 
 interface Cabang {
@@ -52,7 +54,8 @@ interface Kelas {
 }
 
 export default function ManajemenKelas() {
-  const [activeTab, setActiveTab] = useState<'kelas' | 'grup-daimi'>('kelas');
+  const [activeTab, setActiveTab] = useState<'kelas' | 'grup-daimi' | 'permohonan'>('kelas');
+  const [isAjukanKelasModalOpen, setIsAjukanKelasModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -377,13 +380,24 @@ export default function ManajemenKelas() {
                     <Users className="w-4 h-4 mr-2" />
                     Kenaikan Kelas
                   </button>
-                  <button 
-                    onClick={openAddModal}
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Tambah Kelas
-                  </button>
+                  {user?.scope === 'WILAYAH' && (
+                    <button 
+                      onClick={() => setIsAjukanKelasModalOpen(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      Ajukan Kelas Baru
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button 
+                      onClick={openAddModal}
+                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Tambah Kelas Direct
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -412,10 +426,22 @@ export default function ManajemenKelas() {
               >
                 Grup Daimi
               </button>
+              <button
+                onClick={() => setActiveTab('permohonan')}
+                className={`pb-4 px-1 text-sm font-medium border-b-2 transition-all flex items-center gap-1.5 ${
+                  activeTab === 'permohonan'
+                    ? 'border-indigo-600 text-indigo-600 font-semibold'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
+              >
+                <FileText className="w-4 h-4 text-indigo-500" /> Permohonan Kelas Baru
+              </button>
             </nav>
           </div>
 
-          {activeTab === 'kelas' ? (() => {
+          {activeTab === 'permohonan' ? (
+            <PermohonanKelasTab isAdmin={isAdmin} />
+          ) : activeTab === 'kelas' ? (() => {
             const tingkatCounts: Record<string, number> = {};
             let totalKelasCount = filteredKelasList.length;
             let activeKelasCount = 0;
@@ -923,6 +949,12 @@ export default function ManajemenKelas() {
         onConfirm={executeDeleteAll}
         title="Konfirmasi Hapus Semua Kelas"
         message="PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA data kelas? Aksi ini akan menghapus seluruh data kelas secara permanen dan tidak dapat dibatalkan."
+      />
+
+      <PermohonanKelasModal
+        isOpen={isAjukanKelasModalOpen}
+        onClose={() => setIsAjukanKelasModalOpen(false)}
+        wilayahId={user?.wilayahId}
       />
     </div>
   );

@@ -13,7 +13,13 @@ import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
 
+import PermohonanCabangModal from '../../features/permohonan/PermohonanCabangModal';
+import PermohonanCabangTab from '../../features/permohonan/PermohonanCabangTab';
+import { Send, FileText } from 'lucide-react';
+
 export default function DataCabang() {
+  const [activeTab, setActiveTab] = useState<'cabang' | 'permohonan'>('cabang');
+  const [isAjukanModalOpen, setIsAjukanModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -199,6 +205,15 @@ export default function DataCabang() {
           >
             Hulasa
           </button>
+          {user?.scope === 'WILAYAH' && (
+            <button 
+              onClick={() => setIsAjukanModalOpen(true)}
+              className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Ajukan Cabang Baru
+            </button>
+          )}
           {isAdmin && (
             <>
               <button 
@@ -219,119 +234,140 @@ export default function DataCabang() {
           )}
         </div>
       </div>
-      
-      <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden flex flex-col">
-        {/* Toolbar: Search & Filter */}
-        <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row gap-4 justify-between items-center">
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="Cari cabang..."
-              className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-blue-500 bg-white"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+
+      {/* Tab Navigation */}
+      <div className="border-b border-slate-200">
+        <nav className="-mb-px flex space-x-6">
+          <button
+            onClick={() => setActiveTab('cabang')}
+            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === 'cabang'
+                ? 'border-indigo-600 text-indigo-600 font-semibold'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            <Building2 className="w-4 h-4" /> Data Cabang
+          </button>
+          <button
+            onClick={() => setActiveTab('permohonan')}
+            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-all flex items-center gap-2 ${
+              activeTab === 'permohonan'
+                ? 'border-indigo-600 text-indigo-600 font-semibold'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+          >
+            <FileText className="w-4 h-4" /> Permohonan Cabang Baru
+          </button>
+        </nav>
+      </div>
+
+      {activeTab === 'permohonan' ? (
+        <PermohonanCabangTab isAdmin={isAdmin} />
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden flex flex-col">
+          {/* Toolbar: Search & Filter */}
+          <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row gap-4 justify-between items-center">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Cari cabang..."
+                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-blue-500 bg-white"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            {isAdmin && (
+              <div className="w-full sm:w-auto">
+                <select
+                  className="w-full sm:w-auto pl-3 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-blue-500 bg-white"
+                  value={filterWilayah}
+                  onChange={(e) => setFilterWilayah(e.target.value)}
+                >
+                  <option value="ALL">Semua Wilayah</option>
+                  {uniqueWilayah.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
-          {isAdmin && (
-            <div className="w-full sm:w-auto">
-              <select
-                className="w-full sm:w-auto pl-3 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-blue-500 bg-white"
-                value={filterWilayah}
-                onChange={(e) => setFilterWilayah(e.target.value)}
-              >
-                <option value="ALL">Semua Wilayah</option>
-                {uniqueWilayah.map((w) => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
-              </select>
+
+          {/* Table */}
+          {isLoading ? (
+            <div className="p-8 text-center text-slate-500 text-sm">{t('common.loading')}</div>
+          ) : isError ? (
+            <div className="p-8 text-center text-red-500 text-sm">{t('common.error_loading')}</div>
+          ) : filteredAndSortedCabang.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-xs font-semibold text-slate-500 bg-slate-50/50">
+                      <th className="px-6 py-3 cursor-pointer select-none hover:text-slate-700" onClick={() => toggleSort('name')}>
+                        {t('cabang.table.name')} <SortIcon field="name" />
+                      </th>
+                      <th className="px-6 py-3 cursor-pointer select-none hover:text-slate-700" onClick={() => toggleSort('wilayah')}>
+                        {t('cabang.table.wilayah')} <SortIcon field="wilayah" />
+                      </th>
+                      <th className="px-6 py-3 text-right">{t('common.actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-sm font-sans">
+                    {filteredAndSortedCabang.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item) => (
+                      <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="px-6 py-4 font-medium text-slate-800">{item.name}</td>
+                        <td className="px-6 py-4 text-slate-600">{item.wilayah?.name || '-'}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button 
+                            onClick={() => setProfileCabangId(item.id)} 
+                            className="text-xs font-medium text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg mr-2 transition-colors inline-flex items-center gap-1"
+                          >
+                            Profile
+                          </button>
+                          {isAdmin && (
+                            <>
+                              <button onClick={() => handleEdit(item)} className="text-indigo-600 hover:text-blue-900 mr-4">
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => confirmDelete(item.id)} className="text-red-600 hover:text-red-900">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination 
+                currentPage={currentPage} 
+                totalPages={Math.ceil(filteredAndSortedCabang.length / itemsPerPage)} 
+                onPageChange={setCurrentPage} 
+                totalItems={filteredAndSortedCabang.length} 
+                itemsPerPage={itemsPerPage} 
+              />
+            </>
+          ) : (
+            <div className="p-12 text-center flex flex-col items-center justify-center">
+              <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 ring-1 ring-slate-100">
+                <Building2 className="w-6 h-6 text-slate-400" />
+              </div>
+              <h3 className="text-sm font-medium text-slate-800">Tidak ada data cabang yang sesuai</h3>
+              <p className="text-sm text-slate-500 mt-1.5 max-w-sm">
+                Coba sesuaikan kata kunci pencarian atau filter wilayah.
+              </p>
             </div>
           )}
         </div>
+      )}
 
-        {isLoading ? (
-          <div className="p-8 text-center text-slate-500">{t('common.loading')}</div>
-        ) : isError ? (
-          <div className="p-8 text-center text-red-500">{t('common.failed')}</div>
-        ) : filteredAndSortedCabang && filteredAndSortedCabang.length > 0 ? (<>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50/80 border-b border-slate-200">
-                <tr>
-                  <th 
-                    scope="col" 
-                    className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest cursor-pointer hover:bg-slate-100 transition-colors select-none"
-                    onClick={() => toggleSort('name')}
-                  >
-                    {t('cabang.branch_name')}
-                    <SortIcon field="name" />
-                  </th>
-                  <th 
-                    scope="col" 
-                    className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest cursor-pointer hover:bg-slate-100 transition-colors select-none"
-                    onClick={() => toggleSort('wilayah')}
-                  >
-                    {t('cabang.region')}
-                    <SortIcon field="wilayah" />
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">
-                    Jumlah Santri
-                  </th>
-                  <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
-                {filteredAndSortedCabang.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer" onClick={() => setProfileCabangId(item.id)}>
-                      {item.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                      {item.wilayah?.name || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                      {item._count?.students || 0} Santri
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button onClick={() => setProfileCabangId(item.id)} className="text-emerald-600 hover:text-emerald-900 mr-4 font-semibold px-2 py-1 rounded bg-emerald-50 hover:bg-emerald-100 transition-colors">
-                        Profile
-                      </button>
-                      {isAdmin && (
-                        <>
-                          <button onClick={() => handleEdit(item)} className="text-indigo-600 hover:text-blue-900 mr-4">
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => confirmDelete(item.id)} className="text-red-600 hover:text-red-900">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Pagination 
-            currentPage={currentPage} 
-            totalPages={Math.ceil(filteredAndSortedCabang.length / itemsPerPage)} 
-            onPageChange={setCurrentPage} 
-            totalItems={filteredAndSortedCabang.length} 
-            itemsPerPage={itemsPerPage} 
-          />
-        </>
-        ) : (
-          <div className="p-12 text-center flex flex-col items-center justify-center">
-            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 ring-1 ring-slate-100">
-              <Building2 className="w-6 h-6 text-slate-400" />
-            </div>
-            <h3 className="text-sm font-medium text-slate-800">Tidak ada data cabang yang sesuai</h3>
-            <p className="text-sm text-slate-500 mt-1.5 max-w-sm">
-              Coba sesuaikan kata kunci pencarian atau filter wilayah.
-            </p>
-          </div>
-        )}
-      </div>
+      <PermohonanCabangModal
+        isOpen={isAjukanModalOpen}
+        onClose={() => setIsAjukanModalOpen(false)}
+        wilayahId={user?.wilayahId}
+      />
 
       <CabangModal 
         isOpen={isModalOpen}

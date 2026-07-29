@@ -1,17 +1,52 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, CheckCircle2, XCircle, Search, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle, Search, RefreshCw, Filter } from 'lucide-react';
 import apiClient from '../../lib/apiClient';
+import AdvancedFilterBar, { FilterState } from '../../components/AdvancedFilterBar';
+import Pagination from '../../components/Pagination';
+import { useAuth } from '../../hooks/useAuth';
 
 interface ResiduStudent {
   id: string;
-  fullName: string;
+  wilayahId: string | null;
+  cabangId: string | null;
+  biodata?: {
+    fullName: string;
+  };
+  siswaFormal?: {
+    kelasId: string;
+    kelas?: {
+      tingkat: string;
+      lembagaMuadalah?: {
+        id: string;
+      };
+    };
+  };
+  dataDaimi?: {
+    grup?: {
+      jenis: string;
+    };
+  };
+  grupDaimi?: string;
   nisn: string | null;
   flags: Record<string, 'VALID' | 'EMPTY' | 'DUPLICATE'>;
 }
 
 export default function DataResidu() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'VALID' | 'EMPTY' | 'DUPLICATE'>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const { user } = useAuth();
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
+    wilayahId: user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? user?.wilayahId || '' : '',
+    cabangId: user?.scope === 'CABANG' ? user?.cabangId || '' : '',
+    kelasId: '',
+    lembagaMuadalahId: '',
+    jenisDaimi: '',
+    tingkat: ''
+  });
 
   const { data: students, isLoading, isError, refetch } = useQuery<ResiduStudent[]>({
     queryKey: ['students-residu'],
@@ -21,11 +56,43 @@ export default function DataResidu() {
     }
   });
 
+  // Filter students based on all criteria
   const filteredStudents = (students || []).filter(s => {
-    if (!searchQuery) return true;
+    // RBAC Divisi scoping
+    if (user?.divisi === 'FORMAL' && !s.siswaFormal) return false;
+    if (user?.divisi === 'PESANTREN' && !s.dataDaimi && !s.grupDaimi) return false;
+
+    // Advanced filters
+    if (advancedFilters.wilayahId && s.wilayahId !== advancedFilters.wilayahId) return false;
+    if (advancedFilters.cabangId && s.cabangId !== advancedFilters.cabangId) return false;
+    if (advancedFilters.kelasId && s.siswaFormal?.kelasId !== advancedFilters.kelasId) return false;
+    if (advancedFilters.lembagaMuadalahId && s.siswaFormal?.kelas?.lembagaMuadalah?.id !== advancedFilters.lembagaMuadalahId) return false;
+    if (advancedFilters.jenisDaimi && s.dataDaimi?.grup?.jenis !== advancedFilters.jenisDaimi) return false;
+    if (advancedFilters.tingkat && s.siswaFormal?.kelas?.tingkat !== advancedFilters.tingkat) return false;
+
+    // Search query
     const q = searchQuery.toLowerCase();
-    return s.fullName?.toLowerCase().includes(q) || s.nisn?.toLowerCase().includes(q);
+    if (q) {
+      const fullName = s.biodata?.fullName || '';
+      const nisn = s.nisn || '';
+      if (!fullName.toLowerCase().includes(q) && !nisn.toLowerCase().includes(q)) return false;
+    }
+
+    // Status filter
+    if (statusFilter !== 'ALL') {
+      const hasDuplicate = Object.values(s.flags).includes('DUPLICATE');
+      const hasEmpty = Object.values(s.flags).includes('EMPTY');
+      
+      if (statusFilter === 'DUPLICATE' && !hasDuplicate) return false;
+      if (statusFilter === 'EMPTY' && !hasEmpty) return false;
+      if (statusFilter === 'VALID' && (hasDuplicate || hasEmpty)) return false;
+    }
+
+    return true;
   });
+
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+  const currentStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const columns = [
     { key: 'nisn', label: 'NISN' },
@@ -82,27 +149,58 @@ export default function DataResidu() {
         </div>
       </div>
 
-      {/* Legend & Search */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-4 text-sm font-medium text-slate-600">
-          <div className="flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-500" /> Valid</div>
-          <div className="flex items-center gap-1.5"><XCircle className="w-4 h-4 text-rose-500" /> Kosong</div>
-          <div className="flex items-center gap-1.5"><AlertTriangle className="w-4 h-4 text-amber-500" /> Duplikat</div>
+      <AdvancedFilterBar
+        onFilterChange={(newFilters) => {
+          setAdvancedFilters(newFilters);
+          setCurrentPage(1);
+        }}
+        userScope={user?.scope || ''}
+        userWilayahId={user?.wilayahId}
+        userCabangId={user?.cabangId}
+        showDaimiFilter={true}
+        showTingkatFilter={true}
+      />
+
+      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => { setStatusFilter('ALL'); setCurrentPage(1); }}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'ALL' ? 'bg-slate-100 text-slate-800' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            Semua
+          </button>
+          <button
+            onClick={() => { setStatusFilter('VALID'); setCurrentPage(1); }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'VALID' ? 'bg-emerald-50 text-emerald-700' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            <CheckCircle2 className="w-4 h-4" /> Valid
+          </button>
+          <button
+            onClick={() => { setStatusFilter('EMPTY'); setCurrentPage(1); }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'EMPTY' ? 'bg-rose-50 text-rose-700' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            <XCircle className="w-4 h-4" /> Kosong
+          </button>
+          <button
+            onClick={() => { setStatusFilter('DUPLICATE'); setCurrentPage(1); }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statusFilter === 'DUPLICATE' ? 'bg-amber-50 text-amber-700' : 'text-slate-500 hover:bg-slate-50'}`}
+          >
+            <AlertTriangle className="w-4 h-4" /> Duplikat
+          </button>
         </div>
 
-        <div className="relative w-full sm:w-72">
+        <div className="relative w-full md:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             placeholder="Cari nama atau NISN..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
             className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 text-sm"
           />
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
         {isLoading ? (
           <div className="p-12 text-center text-slate-500 flex flex-col items-center">
@@ -127,12 +225,14 @@ export default function DataResidu() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredStudents.length > 0 ? (
-                  filteredStudents.map((student, idx) => (
+                {currentStudents.length > 0 ? (
+                  currentStudents.map((student, idx) => (
                     <tr key={student.id} className="hover:bg-slate-50/80 transition-colors group">
-                      <td className="px-4 py-3 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">{idx + 1}</td>
+                      <td className="px-4 py-3 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0] font-medium text-slate-600 text-center">
+                        {(currentPage - 1) * itemsPerPage + idx + 1}
+                      </td>
                       <td className="px-4 py-3 sticky left-[52px] bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0] font-medium text-slate-900">
-                        {student.fullName}
+                        {student.biodata?.fullName || '-'}
                       </td>
                       {columns.map(col => (
                         <td key={col.key} className="px-4 py-3 text-center">
@@ -153,6 +253,14 @@ export default function DataResidu() {
           </div>
         )}
       </div>
+      
+      {totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      )}
     </div>
   );
 }

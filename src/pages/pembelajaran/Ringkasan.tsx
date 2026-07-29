@@ -9,6 +9,18 @@ import {
 } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 
+interface ClassWeekDetail {
+  kelasId: string;
+  kelasName: string;
+  guruName?: string | null;
+  status: 'PENDING' | 'COMPLETED' | 'LIBUR' | null;
+  hadir: number;
+  sakit: number;
+  izin: number;
+  alpa: number;
+  total: number;
+}
+
 interface WeekCell {
   hadir: number;
   sakit: number;
@@ -18,6 +30,7 @@ interface WeekCell {
   status: 'PENDING' | 'COMPLETED' | 'LIBUR' | null;
   guruNames: string[];
   kelasNames?: string[];
+  details?: ClassWeekDetail[];
 }
 
 interface MapelWeekRow {
@@ -502,36 +515,54 @@ export default function Ringkasan() {
 
                   {data.pemantauanMingguan.map(mapel => {
                     const cell = mapel.weeks[weekIdx];
-                    const meta = cellMeta(cell.status);
+                    const hasDetails = cell.details && cell.details.length > 0;
                     return (
-                      <div key={mapel.mataPelajaranId} className="bg-slate-50 border border-slate-200 rounded-xl p-3 hover:border-slate-300 transition-colors">
-                        <div className="flex items-center justify-between gap-1 mb-1">
+                      <div key={mapel.mataPelajaranId} className="bg-slate-50 border border-slate-200 rounded-xl p-3 hover:border-slate-300 transition-colors space-y-2">
+                        <div className="flex items-center justify-between gap-1 border-b border-slate-200/60 pb-1.5">
                           <span className="text-xs font-bold text-slate-800 truncate" title={mapel.mataPelajaranName}>
                             {mapel.mataPelajaranName}
                           </span>
-                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${meta.bg} ${meta.text}`}>
-                            {meta.label}
-                          </span>
+                          {hasDetails && cell.details!.length > 1 && (
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-slate-200 text-slate-700 rounded-full shrink-0">
+                              {cell.details!.length} kelas
+                            </span>
+                          )}
                         </div>
 
-                        {cell.kelasNames && cell.kelasNames.length > 0 && (
-                          <p className="text-[10px] font-semibold text-brand truncate mb-0.5" title={cell.kelasNames.join(', ')}>
-                            {cell.kelasNames.join(', ')}
-                          </p>
-                        )}
+                        {hasDetails ? (
+                          <div className="space-y-2 divide-y divide-slate-200/60 pt-0.5">
+                            {cell.details!.map((detail, dIdx) => {
+                              const detailMeta = cellMeta(detail.status);
+                              return (
+                                <div key={detail.kelasId || dIdx} className={dIdx > 0 ? 'pt-2' : ''}>
+                                  <div className="flex items-center justify-between gap-1 mb-0.5">
+                                    <span className="text-[11px] font-bold text-brand truncate" title={detail.kelasName}>
+                                      {detail.kelasName}
+                                    </span>
+                                    <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md border shrink-0 ${detailMeta.bg} ${detailMeta.text}`}>
+                                      {detailMeta.label}
+                                    </span>
+                                  </div>
 
-                        {cell.guruNames?.length > 0 && (
-                          <p className="text-[10px] text-slate-500 truncate mb-1.5" title={cell.guruNames.join(', ')}>
-                            {cell.guruNames.join(', ')}
-                          </p>
-                        )}
+                                  {detail.guruName && (
+                                    <p className="text-[10px] text-slate-500 truncate mb-1" title={detail.guruName}>
+                                      {detail.guruName}
+                                    </p>
+                                  )}
 
-                        <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-600">
-                          <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded">H: {cell.hadir}</span>
-                          <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 rounded">A: {cell.alpa}</span>
-                          <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded">I: {cell.izin}</span>
-                          <span className="px-1.5 py-0.5 bg-sky-100 text-sky-800 rounded">S: {cell.sakit}</span>
-                        </div>
+                                  <div className="flex items-center gap-1 text-[9px] font-semibold text-slate-600">
+                                    <span className="px-1.5 py-0.5 bg-emerald-150 text-emerald-800 bg-emerald-100 rounded">H: {detail.hadir}</span>
+                                    <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 rounded">A: {detail.alpa}</span>
+                                    <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded">I: {detail.izin}</span>
+                                    <span className="px-1.5 py-0.5 bg-sky-100 text-sky-800 rounded">S: {detail.sakit}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-slate-400 italic py-1">Belum ada data</div>
+                        )}
                       </div>
                     );
                   })}

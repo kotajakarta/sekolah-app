@@ -99,6 +99,11 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
       showToast('info', t('siswa.form.alert_not_image'));
       return;
     }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Ukuran file maksimal adalah 2MB! Silakan pilih file yang lebih kecil.');
+      e.target.value = '';
+      return;
+    }
     try {
       setIsCompressing(true);
       const compressedBase64 = await compressImage(file, 150);

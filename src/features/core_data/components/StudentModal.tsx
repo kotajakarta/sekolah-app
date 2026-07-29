@@ -14,6 +14,7 @@ import NotificationModal from '../../../components/NotificationModal';
 import { useToast } from '../../../contexts/ToastContext';
 import AktivitasBelajarTab from './AktivitasBelajarTab';
 import RiwayatNilaiTab from './RiwayatNilaiTab';
+import imageCompression from 'browser-image-compression';
 
 export type TabType = 'SANTRI' | 'ORANG_TUA' | 'ALAMAT' | 'AKTIVITAS_BELAJAR' | 'RIWAYAT_NILAI';
 
@@ -57,10 +58,38 @@ const FileCard = ({
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    let fileToUpload = file;
+
+    if (file.type.startsWith('image/')) {
+      const options = {
+        maxSizeMB: 2,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+      try {
+        setIsCompressing(true);
+        fileToUpload = await imageCompression(file, options);
+      } catch (error) {
+        console.error('Compression error:', error);
+        alert('Terjadi kesalahan saat mengompres gambar.');
+        setIsCompressing(false);
+        e.target.value = '';
+        return;
+      }
+    }
+
+    if (fileToUpload.size > 2 * 1024 * 1024) {
+      alert('Ukuran file maksimal adalah 2MB! Silakan pilih file yang lebih kecil.');
+      setIsCompressing(false);
+      e.target.value = '';
+      return;
+    }
+
     setIsCompressing(true);
     try {
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('file', fileToUpload);
       const url = studentId 
         ? `/students/${studentId}/upload/${jenis}`
         : `/students/upload-temp/${jenis}`;
@@ -68,6 +97,7 @@ const FileCard = ({
       onUploaded(res.data.url);
     } catch (err: any) {
       console.error('Upload error:', err.response?.data?.message || err.message);
+      alert(err.response?.data?.message || err.message);
     } finally {
       setIsCompressing(false);
       e.target.value = '';
@@ -272,6 +302,18 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
         .then((r) => r.json()).then((d) => setVillages(d)).catch(console.error);
     } else { setVillages([]); }
   }, [formData.alamatKecId]);
+
+  useEffect(() => {
+    if (formData.noGlodemy && formData.tanggalMasuk) {
+      const year = new Date(formData.tanggalMasuk).getFullYear();
+      if (!isNaN(year)) {
+        const autoNisLokal = `${formData.noGlodemy}${year}`;
+        if (formData.nisLokal !== autoNisLokal) {
+          setFormData(prev => ({ ...prev, nisLokal: autoNisLokal }));
+        }
+      }
+    }
+  }, [formData.noGlodemy, formData.tanggalMasuk, formData.nisLokal]);
 
   useEffect(() => {
     if (student) {

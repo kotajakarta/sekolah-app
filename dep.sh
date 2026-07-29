@@ -15,7 +15,7 @@ podman rm -f esantri-app 2>/dev/null || true
 
 echo "=== 3. Build Aplikasi ==="
 # Build menggunakan container sementara (ephemeral)
-podman run --rm -v "$APP_DIR":/app:Z -w /app docker.io/library/node:22-alpine sh -c "npm install -g npm@12.0.1 && npm run build"
+podman run --rm -v "$APP_DIR":/app:Z -w /app docker.io/library/node:22-alpine sh -c "npm install -g npm@12.0.1 && npm install && npm run build"
 
 echo "=== 4. Setup Quadlet Container ==="
 mkdir -p ~/.config/containers/systemd

@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { Loader2, ArrowRight, CheckCircle, ChevronLeft, Building, Upload, Image as ImageIcon, MapPin, User, FileText, Check } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import imageCompression from 'browser-image-compression';
 
 const PENDIDIKAN_OPTIONS = ['SD/Sederajat', 'SMP/Sederajat', 'SMA/Sederajat', 'D1', 'D2', 'D3', 'D4/S1', 'S2', 'S3', 'Tidak Bersekolah', 'Lainnya'];
 const PEKERJAAN_OPTIONS = ['Tidak Bekerja', 'Pensiunan', 'PNS', 'TNI/Polisi', 'Guru/Dosen', 'Pegawai Swasta', 'Wiraswasta', 'Pengacara/Jaksa/Hakim/Notaris', 'Seniman/Pelukis/Artis/Sejenis', 'Dokter/Bidan/Perawat', 'Pilot/Pramugara', 'Pedagang', 'Petani/Peternak', 'Nelayan', 'Buruh (Tani/Pabrik/Bangunan)', 'Sopir/Masinis/Kondektur', 'Politikus', 'Lainnya'];
@@ -44,11 +45,39 @@ const FileCard = ({
   const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setLocalPreview(URL.createObjectURL(file));
+
+    let fileToUpload = file;
+
+    if (file.type.startsWith('image/')) {
+      const options = {
+        maxSizeMB: 2,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+      try {
+        setIsCompressing(true);
+        fileToUpload = await imageCompression(file, options);
+      } catch (error) {
+        console.error('Compression error:', error);
+        alert('Terjadi kesalahan saat mengompres gambar.');
+        setIsCompressing(false);
+        e.target.value = '';
+        return;
+      }
+    }
+
+    if (fileToUpload.size > 2 * 1024 * 1024) {
+      alert('Ukuran file maksimal adalah 2MB! Silakan pilih file yang lebih kecil.');
+      setIsCompressing(false);
+      e.target.value = '';
+      return;
+    }
+
+    setLocalPreview(URL.createObjectURL(fileToUpload));
     setIsCompressing(true);
     try {
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('file', fileToUpload);
       const url = biodataId
         ? `/students/daftar-ulang/upload/${biodataId}/${jenis}`
         : `/students/daftar-ulang/upload-temp/${jenis}`;
@@ -154,6 +183,7 @@ export default function DaftarUlang() {
     fullName: '',
     tempatLahir: '',
     tanggalLahir: '',
+    tanggalMasuk: new Date().toISOString().split('T')[0],
     jenisKelamin: 'L',
     kewarganegaraan: 'WNI',
     namaAyah: '',
@@ -244,6 +274,7 @@ export default function DaftarUlang() {
           tanggalLahir: b.tanggalLahir ? new Date(b.tanggalLahir).toISOString().split('T')[0] : '',
           jenisKelamin: b.jenisKelamin || 'L',
           kewarganegaraan: b.kewarganegaraan || 'WNI',
+          tanggalMasuk: b.tanggalMasuk ? new Date(b.tanggalMasuk).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           namaAyah: b.namaAyah || '',
           statusHidupAyah: b.statusHidupAyah || 'Masih Hidup',
           nikAyah: b.nikAyah || '',
@@ -422,6 +453,7 @@ export default function DaftarUlang() {
                   <InputField label="No. Handphone" required><input name="phone" value={formData.phone} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="Tempat Lahir" required><input name="tempatLahir" value={formData.tempatLahir} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="Tanggal Lahir" required><input type="date" name="tanggalLahir" value={formData.tanggalLahir} onChange={handleChange} required className={inputCls} /></InputField>
+                  <InputField label="Tanggal Masuk Pesantren" required><input type="date" name="tanggalMasuk" value={formData.tanggalMasuk} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="Jenis Kelamin" required>
                     <select name="jenisKelamin" value={formData.jenisKelamin} onChange={handleChange} required className={selectCls}>
                       <option value="L">Laki-Laki</option>

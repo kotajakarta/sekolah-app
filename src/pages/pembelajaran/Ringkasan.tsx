@@ -17,6 +17,7 @@ interface WeekCell {
   total: number;
   status: 'PENDING' | 'COMPLETED' | 'LIBUR' | null;
   guruNames: string[];
+  kelasNames?: string[];
 }
 
 interface MapelWeekRow {
@@ -513,8 +514,14 @@ export default function Ringkasan() {
                           </span>
                         </div>
 
+                        {cell.kelasNames && cell.kelasNames.length > 0 && (
+                          <p className="text-[10px] font-semibold text-brand truncate mb-0.5" title={cell.kelasNames.join(', ')}>
+                            {cell.kelasNames.join(', ')}
+                          </p>
+                        )}
+
                         {cell.guruNames?.length > 0 && (
-                          <p className="text-[10px] text-slate-500 truncate mb-1.5">
+                          <p className="text-[10px] text-slate-500 truncate mb-1.5" title={cell.guruNames.join(', ')}>
                             {cell.guruNames.join(', ')}
                           </p>
                         )}

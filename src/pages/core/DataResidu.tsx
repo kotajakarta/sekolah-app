@@ -16,7 +16,7 @@ export default function DataResidu() {
   const { data: students, isLoading, isError, refetch } = useQuery<ResiduStudent[]>({
     queryKey: ['students-residu'],
     queryFn: async () => {
-      const res = await apiClient.get('/core/students/residu');
+      const res = await apiClient.get('/students/residu');
       return res.data;
     }
   });

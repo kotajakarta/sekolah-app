@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../lib/apiClient';
 import { useTranslation } from 'react-i18next';
-import { Filter, X } from 'lucide-react';
+import { Filter, X, FileSpreadsheet } from 'lucide-react';
 import { useGetCabang, useGetWilayah } from '../features/core_data/hooks/useMasterData';
 
 export interface FilterState {
@@ -21,6 +21,7 @@ interface AdvancedFilterBarProps {
   userCabangId?: string;
   showDaimiFilter?: boolean;
   showTingkatFilter?: boolean;
+  onOpenCustomExportModal?: () => void;
 }
 
 export default function AdvancedFilterBar({ 
@@ -29,7 +30,8 @@ export default function AdvancedFilterBar({
   userWilayahId, 
   userCabangId,
   showDaimiFilter = false,
-  showTingkatFilter = false
+  showTingkatFilter = false,
+  onOpenCustomExportModal
 }: AdvancedFilterBarProps) {
   const { t } = useTranslation();
   
@@ -145,6 +147,17 @@ export default function AdvancedFilterBar({
         </div>
         
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {onOpenCustomExportModal && (
+            <button
+              onClick={() => onOpenCustomExportModal()}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer mr-1"
+              title="Buka Modal Filter & Export Kolom Custom"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Filter Custom & Export</span>
+            </button>
+          )}
+
           {activeCount > 0 && (
             <button
               onClick={handleReset}

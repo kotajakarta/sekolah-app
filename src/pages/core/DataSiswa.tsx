@@ -9,6 +9,7 @@ import TarikSiswaMassalModal from '../../features/core_data/components/TarikSisw
 import StudentModal from '../../features/core_data/components/StudentModal';
 import StudentProfileModal from '../../features/core_data/components/StudentProfileModal';
 import KelengkapanSiswaModal from '../../features/core_data/components/KelengkapanSiswaModal';
+import CustomFilterExportModal from '../../features/core_data/components/CustomFilterExportModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
@@ -44,9 +45,9 @@ export default function DataSiswa() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const itemsPerPage = 10;
-  
+
   const { user } = useAuth();
-  
+
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
     wilayahId: user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? user?.wilayahId || '' : '',
     cabangId: user?.scope === 'CABANG' ? user?.cabangId || '' : '',
@@ -69,6 +70,7 @@ export default function DataSiswa() {
   const [isLepasMassalOpen, setIsLepasMassalOpen] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isConfirmDeleteAllOpen, setIsConfirmDeleteAllOpen] = useState(false);
+  const [isCustomExportOpen, setIsCustomExportOpen] = useState(false);
   const [notification, setNotification] = useState<{
     isOpen: boolean;
     type: 'success' | 'error';
@@ -117,8 +119,8 @@ export default function DataSiswa() {
     const q = searchQuery.toLowerCase();
     if (q) {
       return s.biodata?.fullName?.toLowerCase().includes(q) ||
-             s.biodata?.nik?.toLowerCase().includes(q) ||
-             s.biodata?.nisn?.toLowerCase().includes(q);
+        s.biodata?.nik?.toLowerCase().includes(q) ||
+        s.biodata?.nisn?.toLowerCase().includes(q);
     }
     return true;
   });
@@ -275,7 +277,7 @@ export default function DataSiswa() {
             Export XLSX
           </button>
           {isAdmin && students && students.length > 0 && (
-            <button 
+            <button
               onClick={() => setIsConfirmDeleteAllOpen(true)}
               className="inline-flex items-center justify-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
             >
@@ -284,15 +286,15 @@ export default function DataSiswa() {
             </button>
           )}
           {(user?.scope === 'CABANG' || user?.scope === 'WILAYAH' || user?.scope === 'GLOBAL') && (
-            <button 
+            <button
               onClick={() => setIsTarikModalOpen(true)}
               className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
             >
               <UserPlus className="w-4 h-4 mr-2" />
-              Tarik Data Siswa
+              Tarik Data Santri
             </button>
           )}
-          <button 
+          <button
             onClick={() => setIsLepasMassalOpen(true)}
             className="inline-flex items-center justify-center px-4 py-2 border border-amber-200 shadow-sm text-sm font-medium rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
           >
@@ -305,14 +307,15 @@ export default function DataSiswa() {
           </button>
         </div>
       </div>
-      
-      <AdvancedFilterBar 
-        onFilterChange={setAdvancedFilters} 
-        userScope={user?.scope || ''} 
-        userWilayahId={user?.wilayahId} 
+
+      <AdvancedFilterBar
+        onFilterChange={setAdvancedFilters}
+        userScope={user?.scope || ''}
+        userWilayahId={user?.wilayahId}
         userCabangId={user?.cabangId}
         showDaimiFilter={true}
         showTingkatFilter={true}
+        onOpenCustomExportModal={() => setIsCustomExportOpen(true)}
       />
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
@@ -358,161 +361,159 @@ export default function DataSiswa() {
                   .map((student, idx) => {
                     const progress = calculateProgress(student);
                     return (
-                    <tr key={student.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
-                        {(currentPage - 1) * itemsPerPage + idx + 1}
-                      </td>
-                      <td className="px-3 py-3 whitespace-nowrap text-center">
-                        {student.biodata?.fotoUrl ? (
-                          <div className="relative inline-block">
-                            <img
-                              src={student.biodata.fotoUrl.startsWith('/') ? `/api/v1${student.biodata.fotoUrl}` : student.biodata.fotoUrl}
-                              alt="Foto Siswa"
-                              className={`w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 ${
-                                student.biodata?.jenisKelamin === 'PEREMPUAN' ? 'blur-sm' : ''
-                              }`}
-                            />
-                            {student.biodata?.jenisKelamin === 'PEREMPUAN' && (
-                              <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white drop-shadow-sm pointer-events-none">🔒</span>
+                      <tr key={student.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
+                          {(currentPage - 1) * itemsPerPage + idx + 1}
+                        </td>
+                        <td className="px-3 py-3 whitespace-nowrap text-center">
+                          {student.biodata?.fotoUrl ? (
+                            <div className="relative inline-block">
+                              <img
+                                src={student.biodata.fotoUrl.startsWith('/') ? `/api/v1${student.biodata.fotoUrl}` : student.biodata.fotoUrl}
+                                alt="Foto Siswa"
+                                className={`w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 ${student.biodata?.jenisKelamin === 'PEREMPUAN' ? 'blur-sm' : ''
+                                  }`}
+                              />
+                              {student.biodata?.jenisKelamin === 'PEREMPUAN' && (
+                                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white drop-shadow-sm pointer-events-none">🔒</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
+                              <User className="w-5 h-5 text-slate-400" />
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-slate-800">{student.biodata?.fullName}</div>
+                          <div className="text-xs text-slate-500">
+                            NIK: {student.biodata?.nik || '-'}
+                            {student.biodata?.nisn ? ` | NISN: ${student.biodata.nisn}` : ''}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                          {student.wilayah?.name || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                          {student.cabang?.name || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-700">
+                          <div className="flex flex-wrap gap-1 items-center">
+                            {student.siswaFormal?.kelas ? (
+                              <>
+                                {student.siswaFormal.kelas.tingkat && student.siswaFormal.kelas.tingkat !== 'Non Muadalah' && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 border border-green-200">
+                                    {student.siswaFormal.kelas.tingkat}
+                                  </span>
+                                )}
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
+                                  {student.siswaFormal.kelas.name}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-slate-400 font-normal">Belum ada kelas</span>
                             )}
                           </div>
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
-                            <User className="w-5 h-5 text-slate-400" />
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-slate-800">{student.biodata?.fullName}</div>
-                        <div className="text-xs text-slate-500">
-                          NIK: {student.biodata?.nik || '-'} 
-                          {student.biodata?.nisn ? ` | NISN: ${student.biodata.nisn}` : ''}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                        {student.wilayah?.name || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                        {student.cabang?.name || '-'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-700">
-                        <div className="flex flex-wrap gap-1 items-center">
-                          {student.siswaFormal?.kelas ? (
-                            <>
-                              {student.siswaFormal.kelas.tingkat && student.siswaFormal.kelas.tingkat !== 'Non Muadalah' && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 border border-green-200">
-                                  {student.siswaFormal.kelas.tingkat}
-                                </span>
-                              )}
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
-                                {student.siswaFormal.kelas.name}
+                          {student.dataDaimi?.grup?.jenis ? (
+                            <div className="mt-1">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                Daimi: {student.dataDaimi.grup.jenis}
                               </span>
-                            </>
-                          ) : (
-                            <span className="text-slate-400 font-normal">Belum ada kelas</span>
-                          )}
-                        </div>
-                        {student.dataDaimi?.grup?.jenis ? (
-                          <div className="mt-1">
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                              Daimi: {student.dataDaimi.grup.jenis}
+                            </div>
+                          ) : student.grupDaimi ? (
+                            <div className="mt-1">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                Daimi: {student.grupDaimi}
+                              </span>
+                            </div>
+                          ) : null}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${progress === 100 ? 'bg-green-500' :
+                                    progress >= 75 ? 'bg-emerald-500' :
+                                      progress >= 50 ? 'bg-amber-500' :
+                                        'bg-rose-500'
+                                  }`}
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-600">{progress}%</span>
+                            {progress < 100 && (
+                              <button
+                                onClick={() => setSelectedStudentForKelengkapan(student)}
+                                className="text-amber-500 hover:text-amber-600 transition-colors p-0.5 rounded hover:bg-amber-50 focus:outline-none"
+                                title="Lihat data yang kurang"
+                              >
+                                <AlertCircle className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-col gap-1">
+                            <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 w-fit ${student.statusPool === 'AKTIF_CABANG' ? 'bg-green-100 text-green-800' :
+                                student.statusPool === 'TERSEDIA' ? 'bg-blue-100 text-blue-800' :
+                                  student.statusPool === 'MUTASI' ? 'bg-amber-100 text-amber-800' :
+                                    'bg-slate-100 text-slate-800'
+                              }`}>
+                              {student.statusPool.replace('_', ' ')}
                             </span>
+                            {!student.isActive && (
+                              <span className="inline-flex rounded-full px-2 text-[10px] font-semibold leading-4 bg-red-100 text-red-700 w-fit">
+                                Tidak Aktif
+                              </span>
+                            )}
                           </div>
-                        ) : student.grupDaimi ? (
-                          <div className="mt-1">
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                              Daimi: {student.grupDaimi}
-                            </span>
-                          </div>
-                        ) : null}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full transition-all duration-300 ${
-                                progress === 100 ? 'bg-green-500' :
-                                progress >= 75 ? 'bg-emerald-500' :
-                                progress >= 50 ? 'bg-amber-500' :
-                                'bg-rose-500'
-                              }`}
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-semibold text-slate-600">{progress}%</span>
-                          {progress < 100 && (
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-1.5">
+                          <button
+                            onClick={() => setStudentToView(student)}
+                            className="inline-flex items-center justify-center p-1.5 border border-slate-200 shadow-sm rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors"
+                            title="Profil Siswa"
+                          >
+                            <User className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(student)}
+                            className="inline-flex items-center justify-center p-1.5 border border-indigo-200 shadow-sm rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                            title={t('common.edit') || "Edit"}
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </button>
+                          {student.statusPool === 'AKTIF_CABANG' && (
                             <button
-                              onClick={() => setSelectedStudentForKelengkapan(student)}
-                              className="text-amber-500 hover:text-amber-600 transition-colors p-0.5 rounded hover:bg-amber-50 focus:outline-none"
-                              title="Lihat data yang kurang"
+                              onClick={() => setStudentToLepas(student)}
+                              className="inline-flex items-center justify-center p-1.5 border border-amber-200 shadow-sm rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors"
+                              title="Lepas Siswa"
                             >
-                              <AlertCircle className="w-4 h-4" />
+                              <UserMinus className="h-3.5 w-3.5" />
                             </button>
                           )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex flex-col gap-1">
-                          <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 w-fit ${
-                            student.statusPool === 'AKTIF_CABANG' ? 'bg-green-100 text-green-800' :
-                            student.statusPool === 'TERSEDIA' ? 'bg-blue-100 text-blue-800' :
-                            student.statusPool === 'MUTASI' ? 'bg-amber-100 text-amber-800' :
-                            'bg-slate-100 text-slate-800'
-                          }`}>
-                            {student.statusPool.replace('_', ' ')}
-                          </span>
-                          {!student.isActive && (
-                            <span className="inline-flex rounded-full px-2 text-[10px] font-semibold leading-4 bg-red-100 text-red-700 w-fit">
-                              Tidak Aktif
-                            </span>
+                          {isAdmin && (
+                            <button
+                              onClick={() => setStudentToDelete(student)}
+                              className="inline-flex items-center justify-center p-1.5 border border-red-200 shadow-sm rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                              title="Hapus Siswa"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-1.5">
-                        <button
-                          onClick={() => setStudentToView(student)}
-                          className="inline-flex items-center justify-center p-1.5 border border-slate-200 shadow-sm rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors"
-                          title="Profil Siswa"
-                        >
-                          <User className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(student)}
-                          className="inline-flex items-center justify-center p-1.5 border border-indigo-200 shadow-sm rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                          title={t('common.edit') || "Edit"}
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                        {student.statusPool === 'AKTIF_CABANG' && (
-                          <button
-                            onClick={() => setStudentToLepas(student)}
-                            className="inline-flex items-center justify-center p-1.5 border border-amber-200 shadow-sm rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors"
-                            title="Lepas Siswa"
-                          >
-                            <UserMinus className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                        {isAdmin && (
-                          <button
-                            onClick={() => setStudentToDelete(student)}
-                            className="inline-flex items-center justify-center p-1.5 border border-red-200 shadow-sm rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                            title="Hapus Siswa"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </td>
-                  </tr>
-                )})}
+                        </td>
+                      </tr>
+                    )
+                  })}
               </tbody>
             </table>
           </div>
-          <Pagination 
-            currentPage={currentPage} 
+          <Pagination
+            currentPage={currentPage}
             totalPages={Math.ceil(filteredStudents.length / itemsPerPage)}
-            onPageChange={setCurrentPage} 
+            onPageChange={setCurrentPage}
             totalItems={filteredStudents.length}
-            itemsPerPage={itemsPerPage} 
+            itemsPerPage={itemsPerPage}
           />
         </>
         ) : (
@@ -600,6 +601,12 @@ export default function DataSiswa() {
         type={notification.type}
         title={notification.title}
         message={notification.message}
+      />
+
+      <CustomFilterExportModal
+        isOpen={isCustomExportOpen}
+        onClose={() => setIsCustomExportOpen(false)}
+        students={students || []}
       />
     </div>
   );

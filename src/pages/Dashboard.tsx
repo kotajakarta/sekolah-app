@@ -8,6 +8,8 @@ import {
 import { Link } from 'react-router-dom';
 import apiClient from '../lib/apiClient';
 import Pagination from '../components/Pagination';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../hooks/useAuth';
 
 interface DashboardStats {
   totalSantri: number;
@@ -30,6 +32,8 @@ interface DashboardStats {
     total: number;
     percent: number;
   } | null;
+  kelengkapanSiswa?: { total: number; lengkap: number; percent: number; };
+  kelengkapanGuru?: { total: number; lengkap: number; percent: number; };
 }
 
 const getActivityIcon = (title: string) => {
@@ -39,9 +43,15 @@ const getActivityIcon = (title: string) => {
 
 export default function Dashboard() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [statsData, setStatsData] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Global filters
+  const [globalWilayah, setGlobalWilayah] = useState('');
+  const [globalCabang, setGlobalCabang] = useState('');
+  const [globalJenisKelamin, setGlobalJenisKelamin] = useState('');
 
   // Ketersediaan Guru Mapel Umum filter & pagination states
   const [selectedWilayahFilter, setSelectedWilayahFilter] = useState('');
@@ -51,8 +61,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchStats = async () => {
+      setIsLoading(true);
       try {
-        const res = await apiClient.get<DashboardStats>('/dashboard/stats');
+        const params = new URLSearchParams();
+        if (globalWilayah) params.append('wilayahId', globalWilayah);
+        if (globalCabang) params.append('cabangId', globalCabang);
+        if (globalJenisKelamin) params.append('jenisKelamin', globalJenisKelamin);
+
+        const res = await apiClient.get<DashboardStats>(`/dashboard/stats?${params.toString()}`);
         setStatsData(res.data);
       } catch (err: any) {
         setError(t('common.failed') || 'Failed to load data');
@@ -62,7 +78,36 @@ export default function Dashboard() {
       }
     };
     fetchStats();
-  }, [t]);
+  }, [t, globalWilayah, globalCabang, globalJenisKelamin]);
+
+  // Fetch Master Data for global filters
+  const { data: wilayahs = [] } = useQuery({
+    queryKey: ['master-data', 'wilayah'],
+    queryFn: async () => {
+      const res = await apiClient.get('/master-data/wilayah');
+      return res.data;
+    },
+    enabled: user?.scope === 'GLOBAL'
+  });
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['master-data', 'cabang'],
+    queryFn: async () => {
+      const res = await apiClient.get('/master-data/cabang');
+      return res.data;
+    },
+    enabled: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH'
+  });
+
+  const filteredBranches = useMemo(() => {
+    if (user?.scope === 'WILAYAH') {
+      return branches.filter((b: any) => b.wilayahId === user.wilayahId);
+    }
+    if (globalWilayah) {
+      return branches.filter((b: any) => b.wilayahId === globalWilayah);
+    }
+    return branches;
+  }, [branches, globalWilayah, user]);
 
   // Extract unique Wilayah options
   const wilayahOptions = useMemo(() => {
@@ -130,6 +175,65 @@ export default function Dashboard() {
 
   return (
     <div className="font-sans text-slate-900 pb-10">
+
+      {/* Global Filters */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm mb-4">
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="flex items-center gap-2 text-slate-600 font-semibold text-sm">
+            <Filter className="w-4 h-4 text-brand" /> {t('dashboard.filters') || 'Filter Global'}
+          </div>
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <select
+              value={globalWilayah}
+              onChange={e => {
+                setGlobalWilayah(e.target.value);
+                setGlobalCabang('');
+              }}
+              disabled={user?.scope !== 'GLOBAL'}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
+            >
+              {user?.scope === 'GLOBAL' ? (
+                <>
+                  <option value="">-- {t('penugasan.semua_wilayah')} --</option>
+                  {wilayahs.map((w: any) => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </>
+              ) : (
+                <option value={globalWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
+              )}
+            </select>
+            
+            <select
+              value={globalCabang}
+              onChange={e => setGlobalCabang(e.target.value)}
+              disabled={user?.scope === 'CABANG'}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
+            >
+              {user?.scope === 'CABANG' ? (
+                <option value={globalCabang}>{user?.cabangName || 'Cabang Terkunci'}</option>
+              ) : (
+                <>
+                  <option value="">-- {t('penugasan.semua_cabang')} --</option>
+                  {filteredBranches.map((b: any) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </>
+              )}
+            </select>
+
+            <select
+              value={globalJenisKelamin}
+              onChange={e => setGlobalJenisKelamin(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:outline-none text-sm bg-slate-50/50"
+            >
+              <option value="">-- Semua Jenis Kelamin --</option>
+              <option value="L">Laki-laki</option>
+              <option value="P">Perempuan</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
       {/* Top Grid: stat cards + System Status (spans both rows) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
@@ -220,6 +324,45 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* Progres Kelengkapan Data */}
+          {(statsData.kelengkapanSiswa || statsData.kelengkapanGuru) && (
+            <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Progres Kelengkapan Data</span>
+              
+              {statsData.kelengkapanSiswa && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-medium text-slate-600">Siswa (Biodata)</span>
+                    <span className="text-[11px] font-bold text-slate-900">{statsData.kelengkapanSiswa.percent}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                      style={{ width: `${statsData.kelengkapanSiswa.percent}%` }}
+                    />
+                  </div>
+                  <div className="text-[10px] text-slate-400 text-right">{statsData.kelengkapanSiswa.lengkap} / {statsData.kelengkapanSiswa.total} Lengkap</div>
+                </div>
+              )}
+              
+              {statsData.kelengkapanGuru && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-medium text-slate-600">Guru (Kontak & KTP)</span>
+                    <span className="text-[11px] font-bold text-slate-900">{statsData.kelengkapanGuru.percent}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
+                    <div
+                      className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                      style={{ width: `${statsData.kelengkapanGuru.percent}%` }}
+                    />
+                  </div>
+                  <div className="text-[10px] text-slate-400 text-right">{statsData.kelengkapanGuru.lengkap} / {statsData.kelengkapanGuru.total} Lengkap</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Distribusi Grup Daimi */}
@@ -264,7 +407,11 @@ export default function Dashboard() {
                     <span className="text-xs font-semibold text-slate-500 mb-1">{item.value}</span>
                     <div className="w-full max-w-6 bg-slate-100 rounded-t-md flex flex-col justify-end overflow-hidden" style={{ height: '5.5rem' }}>
                       <div
-                        className="w-full bg-brand rounded-t-md transition-all duration-300"
+                        className={`w-full rounded-t-md transition-all duration-300 ${
+                          ['7', '8', '9'].includes(item.name) ? 'bg-blue-500' :
+                          ['10', '11', '12'].includes(item.name) ? 'bg-emerald-500' :
+                          'bg-slate-400'
+                        }`}
                         style={{ height: `${percent}%` }}
                       />
                     </div>

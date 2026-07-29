@@ -5,9 +5,9 @@ import apiClient from '../../lib/apiClient';
 import { Loader2, ArrowRight, CheckCircle, ChevronLeft, Building, Upload, Image as ImageIcon, MapPin, User, FileText, Check } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 
-const PENDIDIKAN_OPTIONS = ['SD/Sederajat','SMP/Sederajat','SMA/Sederajat','D1','D2','D3','D4/S1','S2','S3','Tidak Bersekolah','Lainnya'];
-const PEKERJAAN_OPTIONS = ['Tidak Bekerja','Pensiunan','PNS','TNI/Polisi','Guru/Dosen','Pegawai Swasta','Wiraswasta','Pengacara/Jaksa/Hakim/Notaris','Seniman/Pelukis/Artis/Sejenis','Dokter/Bidan/Perawat','Pilot/Pramugara','Pedagang','Petani/Peternak','Nelayan','Buruh (Tani/Pabrik/Bangunan)','Sopir/Masinis/Kondektur','Politikus','Lainnya'];
-const PENGHASILAN_OPTIONS = ['dibawah 800.000','800.001 - 1.200.000','1.200.001 - 1.800.000','1.800.001 - 2.500.000','2.500.001 - 3.500.000','3.500.001 - 4.800.000','4.800.001 - 6.500.000','6.500.001 - 10.000.000','10.000.001 - 20.000.000','diatas 20.000.001'];
+const PENDIDIKAN_OPTIONS = ['SD/Sederajat', 'SMP/Sederajat', 'SMA/Sederajat', 'D1', 'D2', 'D3', 'D4/S1', 'S2', 'S3', 'Tidak Bersekolah', 'Lainnya'];
+const PEKERJAAN_OPTIONS = ['Tidak Bekerja', 'Pensiunan', 'PNS', 'TNI/Polisi', 'Guru/Dosen', 'Pegawai Swasta', 'Wiraswasta', 'Pengacara/Jaksa/Hakim/Notaris', 'Seniman/Pelukis/Artis/Sejenis', 'Dokter/Bidan/Perawat', 'Pilot/Pramugara', 'Pedagang', 'Petani/Peternak', 'Nelayan', 'Buruh (Tani/Pabrik/Bangunan)', 'Sopir/Masinis/Kondektur', 'Politikus', 'Lainnya'];
+const PENGHASILAN_OPTIONS = ['dibawah 800.000', '800.001 - 1.200.000', '1.200.001 - 1.800.000', '1.800.001 - 2.500.000', '2.500.001 - 3.500.000', '3.500.001 - 4.800.000', '4.800.001 - 6.500.000', '6.500.001 - 10.000.000', '10.000.001 - 20.000.000', 'diatas 20.000.001'];
 
 const inputCls = "block w-full rounded-xl border border-gray-300 bg-white py-3 px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-600/10 transition-all duration-200 shadow-sm";
 const selectCls = inputCls + " appearance-none cursor-pointer";
@@ -22,9 +22,9 @@ const InputField = ({ label, required = false, children, colSpan = false }: { la
 );
 
 // File card untuk daftar ulang (upload via API publik, tidak perlu login)
-const FileCard = ({ 
+const FileCard = ({
   label, value, biodataId, jenis, onUploaded, isCompressing, setIsCompressing, accept
-}: { 
+}: {
   label: string; value: string; biodataId?: string; jenis: string;
   onUploaded: (url: string) => void;
   isCompressing: boolean; setIsCompressing: (v: boolean) => void;
@@ -110,20 +110,19 @@ const StepIndicator = ({ currentStep }: { currentStep: number }) => {
     <div className="w-full max-w-3xl mx-auto mb-10">
       <div className="flex items-center justify-between relative">
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0"></div>
-        <div 
+        <div
           className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-indigo-600 rounded-full z-0 transition-all duration-500"
           style={{ width: `${((currentStep - 1) / 3) * 100}%` }}
         ></div>
-        
+
         {steps.map((s) => {
           const isActive = currentStep >= s.id;
           const isCurrent = currentStep === s.id;
           const Icon = s.icon;
           return (
             <div key={s.id} className="relative z-10 flex flex-col items-center gap-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 font-bold ${
-                isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-white border-2 border-gray-300 text-gray-400'
-              } ${isCurrent ? 'ring-4 ring-indigo-100' : ''}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 font-bold ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-white border-2 border-gray-300 text-gray-400'
+                } ${isCurrent ? 'ring-4 ring-indigo-100' : ''}`}>
                 <Icon className="w-4 h-4" />
               </div>
               <span className={`text-xs font-semibold ${isActive ? 'text-indigo-900' : 'text-gray-400'} hidden sm:block absolute -bottom-6 whitespace-nowrap`}>
@@ -276,7 +275,7 @@ export default function DaftarUlang() {
           alamatKelName: b.alamatKelName || '',
           alamatJalan: b.alamatJalan || '',
         }));
-        showToast('success', 'Data siswa ditemukan, silakan lengkapi data yang kurang.');
+        showToast('success', 'Data santri ditemukan, silakan lengkapi data yang kurang.');
       } else {
         setStudentId(null);
         setBiodataId(null);
@@ -330,7 +329,7 @@ export default function DaftarUlang() {
       </header>
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-6 py-12 flex flex-col items-center">
-        
+
         {step > 1 && <StepIndicator currentStep={step} />}
 
         {step === 1 && (
@@ -339,7 +338,7 @@ export default function DaftarUlang() {
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-violet-900 opacity-90 z-0"></div>
               <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-500 rounded-full blur-3xl opacity-50 z-0"></div>
               <div className="absolute top-10 left-10 w-32 h-32 bg-violet-400 rounded-full blur-3xl opacity-30 z-0"></div>
-              
+
               <div className="relative z-10">
                 <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-white/10">
                   <User className="w-6 h-6 text-white" />
@@ -353,14 +352,14 @@ export default function DaftarUlang() {
                 <p className="text-xs font-medium text-indigo-200">Dilindungi oleh enkripsi standar industri</p>
               </div>
             </div>
-            
+
             <div className="w-full md:w-7/12 p-10 md:p-14 flex items-center bg-white">
               <div className="w-full max-w-sm mx-auto">
                 <div className="mb-8">
                   <h3 className="text-2xl font-bold text-gray-900">Verifikasi Identitas</h3>
                   <p className="text-sm text-gray-500 mt-2">Masukkan NIK dan Kode Daftar Ulang yang valid.</p>
                 </div>
-                
+
                 <form onSubmit={(e) => { e.preventDefault(); verifyMutation.mutate(); }} className="space-y-6">
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-2">Nomor Induk Kependudukan</label>
@@ -385,7 +384,7 @@ export default function DaftarUlang() {
                       placeholder="Contoh: DAFTAR2026"
                     />
                   </div>
-                  
+
                   <button
                     type="submit"
                     disabled={verifyMutation.isPending || !nik || !kodeDaftarUlang}
@@ -402,12 +401,12 @@ export default function DaftarUlang() {
         {step === 2 && (
           <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl shadow-gray-200/60 border border-gray-100 overflow-hidden relative">
             <div className="h-2 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-            
+
             <div className="px-8 pt-8 pb-4 border-b border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Lengkapi Data Diri</h2>
               <p className="text-gray-500 text-sm mt-1">Pastikan seluruh data yang dimasukkan sesuai dengan dokumen resmi.</p>
             </div>
-            
+
             <form className="p-8 space-y-10" onSubmit={(e) => { e.preventDefault(); setStep(3); }}>
               <div>
                 <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-5 flex items-center gap-2">
@@ -419,12 +418,12 @@ export default function DaftarUlang() {
                   <InputField label="Nomor KK" required><input name="noKk" value={formData.noKk} onChange={handleChange} required maxLength={16} placeholder="Masukkan 16 digit Nomor KK" className={inputCls} /></InputField>
                   <InputField label="Anak Ke-" required><input type="number" name="anakKe" value={formData.anakKe} onChange={handleChange} required min={1} className={inputCls} /></InputField>
                   <InputField label="Jumlah Saudara" required><input type="number" name="jumlahSaudara" value={formData.jumlahSaudara} onChange={handleChange} required min={0} className={inputCls} /></InputField>
-                  <InputField label="NISN"><input name="nisn" value={formData.nisn} onChange={handleChange} className={inputCls} /></InputField>
+                  <InputField label="NISN" required><input name="nisn" value={formData.nisn} onChange={handleChange} required placeholder="Masukkan NISN" className={inputCls} /></InputField>
                   <InputField label="No. Handphone" required><input name="phone" value={formData.phone} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="Tempat Lahir" required><input name="tempatLahir" value={formData.tempatLahir} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="Tanggal Lahir" required><input type="date" name="tanggalLahir" value={formData.tanggalLahir} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="Jenis Kelamin" required>
-                    <select name="jenisKelamin" value={formData.jenisKelamin} onChange={handleChange} className={selectCls}>
+                    <select name="jenisKelamin" value={formData.jenisKelamin} onChange={handleChange} required className={selectCls}>
                       <option value="L">Laki-Laki</option>
                       <option value="P">Perempuan</option>
                     </select>
@@ -433,7 +432,7 @@ export default function DaftarUlang() {
               </div>
 
               <hr className="border-gray-100" />
-              
+
               <div>
                 <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-5 flex items-center gap-2">
                   <Building className="w-4 h-4" /> Data Orang Tua
@@ -441,30 +440,30 @@ export default function DaftarUlang() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-5 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
                     <h4 className="text-sm font-bold text-gray-800">Biodata Ayah</h4>
-                    <InputField label="Nama Ayah"><input name="namaAyah" value={formData.namaAyah} onChange={handleChange} className={inputCls} /></InputField>
-                    <InputField label="Status Hidup Ayah">
-                      <select name="statusHidupAyah" value={formData.statusHidupAyah} onChange={handleChange} className={selectCls}>
+                    <InputField label="Nama Ayah" required><input name="namaAyah" value={formData.namaAyah} onChange={handleChange} required className={inputCls} /></InputField>
+                    <InputField label="Status Hidup Ayah" required>
+                      <select name="statusHidupAyah" value={formData.statusHidupAyah} onChange={handleChange} required className={selectCls}>
                         <option value="Masih Hidup">Masih Hidup</option>
                         <option value="Wafat">Wafat</option>
                       </select>
                     </InputField>
-                    <InputField label="NIK Ayah"><input name="nikAyah" value={formData.nikAyah} onChange={handleChange} maxLength={16} placeholder="Masukkan 16 digit NIK Ayah" className={inputCls} /></InputField>
-                    <InputField label="Tempat Lahir Ayah"><input name="tempatLahirAyah" value={formData.tempatLahirAyah} onChange={handleChange} className={inputCls} /></InputField>
-                    <InputField label="Tanggal Lahir Ayah"><input type="date" name="tanggalLahirAyah" value={formData.tanggalLahirAyah} onChange={handleChange} className={inputCls} /></InputField>
-                    <InputField label="Pekerjaan Ayah">
-                      <select name="pekerjaanAyah" value={formData.pekerjaanAyah} onChange={handleChange} className={selectCls}>
+                    <InputField label="NIK Ayah" required={formData.statusHidupAyah !== 'Wafat'}><input name="nikAyah" value={formData.nikAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} maxLength={16} placeholder="Masukkan 16 digit NIK Ayah" className={inputCls} /></InputField>
+                    <InputField label="Tempat Lahir Ayah" required={formData.statusHidupAyah !== 'Wafat'}><input name="tempatLahirAyah" value={formData.tempatLahirAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} className={inputCls} /></InputField>
+                    <InputField label="Tanggal Lahir Ayah" required={formData.statusHidupAyah !== 'Wafat'}><input type="date" name="tanggalLahirAyah" value={formData.tanggalLahirAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} className={inputCls} /></InputField>
+                    <InputField label="Pekerjaan Ayah" required={formData.statusHidupAyah !== 'Wafat'}>
+                      <select name="pekerjaanAyah" value={formData.pekerjaanAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} className={selectCls}>
                         <option value="">Pilih Pekerjaan</option>
                         {PEKERJAAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </InputField>
-                    <InputField label="Pendidikan Ayah">
-                      <select name="pendidikanAyah" value={formData.pendidikanAyah} onChange={handleChange} className={selectCls}>
+                    <InputField label="Pendidikan Ayah" required={formData.statusHidupAyah !== 'Wafat'}>
+                      <select name="pendidikanAyah" value={formData.pendidikanAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} className={selectCls}>
                         <option value="">Pilih Pendidikan</option>
                         {PENDIDIKAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </InputField>
-                    <InputField label="Rata-rata Penghasilan Ayah">
-                      <select name="penghasilanAyah" value={formData.penghasilanAyah} onChange={handleChange} className={selectCls}>
+                    <InputField label="Rata-rata Penghasilan Ayah" required={formData.statusHidupAyah !== 'Wafat'}>
+                      <select name="penghasilanAyah" value={formData.penghasilanAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} className={selectCls}>
                         <option value="">Pilih Penghasilan</option>
                         {PENGHASILAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
@@ -472,30 +471,30 @@ export default function DaftarUlang() {
                   </div>
                   <div className="space-y-5 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
                     <h4 className="text-sm font-bold text-gray-800">Biodata Ibu</h4>
-                    <InputField label="Nama Ibu"><input name="namaIbu" value={formData.namaIbu} onChange={handleChange} className={inputCls} /></InputField>
-                    <InputField label="Status Hidup Ibu">
-                      <select name="statusHidupIbu" value={formData.statusHidupIbu} onChange={handleChange} className={selectCls}>
+                    <InputField label="Nama Ibu" required><input name="namaIbu" value={formData.namaIbu} onChange={handleChange} required className={inputCls} /></InputField>
+                    <InputField label="Status Hidup Ibu" required>
+                      <select name="statusHidupIbu" value={formData.statusHidupIbu} onChange={handleChange} required className={selectCls}>
                         <option value="Masih Hidup">Masih Hidup</option>
                         <option value="Wafat">Wafat</option>
                       </select>
                     </InputField>
-                    <InputField label="NIK Ibu"><input name="nikIbu" value={formData.nikIbu} onChange={handleChange} maxLength={16} placeholder="Masukkan 16 digit NIK Ibu" className={inputCls} /></InputField>
-                    <InputField label="Tempat Lahir Ibu"><input name="tempatLahirIbu" value={formData.tempatLahirIbu} onChange={handleChange} className={inputCls} /></InputField>
-                    <InputField label="Tanggal Lahir Ibu"><input type="date" name="tanggalLahirIbu" value={formData.tanggalLahirIbu} onChange={handleChange} className={inputCls} /></InputField>
-                    <InputField label="Pekerjaan Ibu">
-                      <select name="pekerjaanIbu" value={formData.pekerjaanIbu} onChange={handleChange} className={selectCls}>
+                    <InputField label="NIK Ibu" required={formData.statusHidupIbu !== 'Wafat'}><input name="nikIbu" value={formData.nikIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} maxLength={16} placeholder="Masukkan 16 digit NIK Ibu" className={inputCls} /></InputField>
+                    <InputField label="Tempat Lahir Ibu" required={formData.statusHidupIbu !== 'Wafat'}><input name="tempatLahirIbu" value={formData.tempatLahirIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} className={inputCls} /></InputField>
+                    <InputField label="Tanggal Lahir Ibu" required={formData.statusHidupIbu !== 'Wafat'}><input type="date" name="tanggalLahirIbu" value={formData.tanggalLahirIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} className={inputCls} /></InputField>
+                    <InputField label="Pekerjaan Ibu" required={formData.statusHidupIbu !== 'Wafat'}>
+                      <select name="pekerjaanIbu" value={formData.pekerjaanIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} className={selectCls}>
                         <option value="">Pilih Pekerjaan</option>
                         {PEKERJAAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </InputField>
-                    <InputField label="Pendidikan Ibu">
-                      <select name="pendidikanIbu" value={formData.pendidikanIbu} onChange={handleChange} className={selectCls}>
+                    <InputField label="Pendidikan Ibu" required={formData.statusHidupIbu !== 'Wafat'}>
+                      <select name="pendidikanIbu" value={formData.pendidikanIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} className={selectCls}>
                         <option value="">Pilih Pendidikan</option>
                         {PENDIDIKAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </InputField>
-                    <InputField label="Rata-rata Penghasilan Ibu">
-                      <select name="penghasilanIbu" value={formData.penghasilanIbu} onChange={handleChange} className={selectCls}>
+                    <InputField label="Rata-rata Penghasilan Ibu" required={formData.statusHidupIbu !== 'Wafat'}>
+                      <select name="penghasilanIbu" value={formData.penghasilanIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} className={selectCls}>
                         <option value="">Pilih Penghasilan</option>
                         {PENGHASILAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
@@ -516,12 +515,12 @@ export default function DaftarUlang() {
         {step === 3 && (
           <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl shadow-gray-200/60 border border-gray-100 overflow-hidden relative">
             <div className="h-2 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-            
+
             <div className="px-8 pt-8 pb-4 border-b border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Alamat & Dokumen</h2>
               <p className="text-gray-500 text-sm mt-1">Lengkapi informasi domisili serta unggah dokumen pelengkap.</p>
             </div>
-            
+
             <form className="p-8 space-y-10" onSubmit={(e) => { e.preventDefault(); submitMutation.mutate(); }}>
               <div>
                 <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-5 flex items-center gap-2">
@@ -567,13 +566,18 @@ export default function DaftarUlang() {
               </div>
 
               <hr className="border-gray-100" />
-              
+
               <div>
-                <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-5 flex items-center gap-2">
-                  <FileText className="w-4 h-4" /> Dokumen Pendukung
+                <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-5 flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <FileText className="w-4 h-4" /> Dokumen Pendukung (Opsional)
+                  </span>
+                  <span className="text-[11px] font-normal text-slate-500 normal-case italic bg-slate-100 px-2.5 py-1 rounded-lg">
+                    *Upload berkas bersifat opsional
+                  </span>
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  <FileCard 
+                  <FileCard
                     label="Pas Foto" value={formData.fotoUrl}
                     biodataId={biodataId || undefined}
                     jenis="passfoto"
@@ -581,7 +585,7 @@ export default function DaftarUlang() {
                     isCompressing={isCompressing} setIsCompressing={setIsCompressing}
                     accept="image/*"
                   />
-                  <FileCard 
+                  <FileCard
                     label="Ijazah" value={formData.ijazahUrl}
                     biodataId={biodataId || undefined}
                     jenis="ijazah"
@@ -589,7 +593,7 @@ export default function DaftarUlang() {
                     isCompressing={isCompressing} setIsCompressing={setIsCompressing}
                     accept="image/*,application/pdf"
                   />
-                  <FileCard 
+                  <FileCard
                     label="Kartu Keluarga" value={formData.kkUrl}
                     biodataId={biodataId || undefined}
                     jenis="kk"

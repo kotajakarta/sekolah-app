@@ -9,7 +9,7 @@ import { Sidebar } from './components/Layout/Sidebar';
 import MobileBottomNav from './components/Layout/MobileBottomNav';
 import HeaderSearch from './components/Layout/HeaderSearch';
 import { GlobalSearch } from './components/Layout/GlobalSearch';
-import { Bell, Search, UserCircle, LogOut, Loader2, Sparkles, LifeBuoy, CheckCircle } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, Loader2, Sparkles, LifeBuoy, CheckCircle, Globe, ChevronDown, Check } from 'lucide-react';
 import { useAuth, AuthProvider } from './hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import Select from 'react-select';
@@ -87,7 +87,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const MainLayout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const mainRef = useRef<HTMLDivElement>(null);
 
@@ -107,9 +107,9 @@ const MainLayout = () => {
   };
 
   const languageOptions = [
-    { value: 'id', label: 'ID' },
-    { value: 'en', label: 'EN' },
-    { value: 'tr', label: 'TR' },
+    { value: 'id', label: 'ID', flag: '🇮🇩', name: 'Bahasa Indonesia' },
+    { value: 'en', label: 'EN', flag: '🇬🇧', name: 'English' },
+    { value: 'tr', label: 'TR', flag: '🇹🇷', name: 'Türkçe' },
   ];
 
   const currentLang = languageOptions.find(opt => opt.value === i18n.resolvedLanguage) || languageOptions[0];
@@ -120,6 +120,9 @@ const MainLayout = () => {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
+  const [isLangOpen, setIsLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+
   // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -128,6 +131,9 @@ const MainLayout = () => {
       }
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setIsNotifOpen(false);
+      }
+      if (langRef.current && !langRef.current.contains(event.target as Node)) {
+        setIsLangOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -229,8 +235,47 @@ const MainLayout = () => {
 
             <button onClick={() => navigate('/dashboard/faq')} className="flex items-center gap-2 hover:text-gray-900 transition-colors">
               <LifeBuoy className="w-4 h-4" />
-              <span className="hidden sm:inline">Support</span>
+              <span className="hidden sm:inline">{t('nav.support') || "Support"}</span>
             </button>
+
+            {/* Language Selector Dropdown */}
+            <div className="relative" ref={langRef}>
+              <button
+                onClick={() => setIsLangOpen(!isLangOpen)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors border border-slate-200 shadow-sm cursor-pointer"
+                title={t('nav.select_language') || "Pilih Bahasa"}
+              >
+                <Globe className="w-3.5 h-3.5 text-slate-500" />
+                <span>{currentLang.flag} {currentLang.label}</span>
+                <ChevronDown className="w-3 h-3 text-slate-400" />
+              </button>
+
+              {isLangOpen && (
+                <div className="absolute right-0 mt-2.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs text-left">
+                  <div className="px-3.5 py-1.5 font-bold text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-100">
+                    {t('nav.select_language') || "Pilih Bahasa"}
+                  </div>
+                  {languageOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        changeLanguage(opt.value);
+                        setIsLangOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2 flex items-center justify-between hover:bg-indigo-50/60 transition-colors ${
+                        i18n.resolvedLanguage === opt.value ? 'font-bold text-indigo-600 bg-indigo-50/40' : 'text-slate-700'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>{opt.flag}</span>
+                        <span>{opt.name}</span>
+                      </span>
+                      {i18n.resolvedLanguage === opt.value && <Check className="w-3.5 h-3.5 text-indigo-600" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Notification Center */}
             <div className="relative" ref={notifRef}>

@@ -173,7 +173,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">No. Telepon / WhatsApp</label>
+                  <label className="block text-sm font-medium text-slate-700">{t('guru.form.phone')}</label>
                   <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                 </div>
 

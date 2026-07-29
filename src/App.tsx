@@ -31,6 +31,7 @@ import DataSiswaMuadalah from './pages/formal/DataSiswaMuadalah';
 import PoolSiswa from './pages/core/PoolSiswa';
 import PoolGuru from './pages/core/PoolGuru';
 import DataSiswa from './pages/core/DataSiswa';
+import DataResidu from './pages/core/DataResidu';
 import DaftarUlangSiswa from './pages/core/DaftarUlangSiswa';
 import PermintaanTarikData from './pages/core/PermintaanTarikData';
 import DataGuru from './pages/core/DataGuru';
@@ -437,6 +438,7 @@ export default function App() {
               <Route path="umum/pengumuman" element={<PengumumanUmum />} />
               <Route path="umum/kalender" element={<KalenderAkademikUmum />} />
               <Route path="core/siswa" element={<DataSiswa />} />
+              <Route path="core/siswa-residu" element={<DataResidu />} />
               <Route path="core/daftar-ulang" element={<DaftarUlangSiswa />} />
               <Route path="core/permintaan-tarik" element={<PermintaanTarikData />} />
               <Route path="core/pool" element={<PoolSiswa />} />

@@ -60,6 +60,7 @@ export function useNavEntries(): NavEntry[] {
 
     const santriItems = [
       { to: '/dashboard/core/siswa', label: t('sidebar.data_santri') || 'Data Semua Santri', show: true },
+      { to: '/dashboard/core/siswa-residu', label: 'Data Residu', show: true },
       { to: '/dashboard/core/daftar-ulang', label: t('sidebar.daftar_ulang') || 'Daftar Ulang', show: user?.scope === 'GLOBAL' },
       { to: '/dashboard/formal/siswa', label: t('sidebar.santri_muadalah') || 'Santri Muadalah', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
       { to: '/dashboard/core/pool', label: t('sidebar.pool_santri') || 'Pool Santri', show: user?.scope === 'GLOBAL' },

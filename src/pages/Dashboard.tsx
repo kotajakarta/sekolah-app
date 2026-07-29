@@ -49,7 +49,9 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
 
   // Global filters
+  const [globalJenisRegion, setGlobalJenisRegion] = useState('wilayah');
   const [globalWilayah, setGlobalWilayah] = useState('');
+  const [globalLembagaMuadalah, setGlobalLembagaMuadalah] = useState('');
   const [globalCabang, setGlobalCabang] = useState('');
   const [globalJenisKelamin, setGlobalJenisKelamin] = useState('');
 
@@ -64,7 +66,8 @@ export default function Dashboard() {
       setIsLoading(true);
       try {
         const params = new URLSearchParams();
-        if (globalWilayah) params.append('wilayahId', globalWilayah);
+        if (globalJenisRegion === 'wilayah' && globalWilayah) params.append('wilayahId', globalWilayah);
+        if (globalJenisRegion === 'lembaga' && globalLembagaMuadalah) params.append('lembagaMuadalahId', globalLembagaMuadalah);
         if (globalCabang) params.append('cabangId', globalCabang);
         if (globalJenisKelamin) params.append('jenisKelamin', globalJenisKelamin);
 
@@ -78,7 +81,7 @@ export default function Dashboard() {
       }
     };
     fetchStats();
-  }, [t, globalWilayah, globalCabang, globalJenisKelamin]);
+  }, [t, globalJenisRegion, globalWilayah, globalLembagaMuadalah, globalCabang, globalJenisKelamin]);
 
   // Fetch Master Data for global filters
   const { data: wilayahs = [] } = useQuery({
@@ -87,7 +90,16 @@ export default function Dashboard() {
       const res = await apiClient.get('/master-data/wilayah');
       return res.data;
     },
-    enabled: user?.scope === 'GLOBAL'
+    enabled: user?.scope === 'GLOBAL' && globalJenisRegion === 'wilayah'
+  });
+
+  const { data: muadalahs = [] } = useQuery({
+    queryKey: ['master-data', 'lembaga-muadalah'],
+    queryFn: async () => {
+      const res = await apiClient.get('/formal/muadalah');
+      return res.data.filter((m: any) => m.isActive);
+    },
+    enabled: user?.scope === 'GLOBAL' && globalJenisRegion === 'lembaga'
   });
 
   const { data: branches = [] } = useQuery({
@@ -182,27 +194,59 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 text-slate-600 font-semibold text-sm">
             <Filter className="w-4 h-4 text-brand" /> {t('dashboard.filters') || 'Filter Global'}
           </div>
-          <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-3">
             <select
-              value={globalWilayah}
+              value={globalJenisRegion}
               onChange={e => {
-                setGlobalWilayah(e.target.value);
+                setGlobalJenisRegion(e.target.value);
+                setGlobalWilayah('');
+                setGlobalLembagaMuadalah('');
                 setGlobalCabang('');
               }}
               disabled={user?.scope !== 'GLOBAL'}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
             >
-              {user?.scope === 'GLOBAL' ? (
-                <>
-                  <option value="">-- {t('penugasan.semua_wilayah')} --</option>
-                  {wilayahs.map((w: any) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </>
-              ) : (
-                <option value={globalWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
-              )}
+              <option value="wilayah">Wilayah</option>
+              <option value="lembaga">Lembaga Muadalah</option>
             </select>
+
+            {globalJenisRegion === 'wilayah' ? (
+              <select
+                value={globalWilayah}
+                onChange={e => {
+                  setGlobalWilayah(e.target.value);
+                  setGlobalCabang('');
+                }}
+                disabled={user?.scope !== 'GLOBAL'}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
+              >
+                {user?.scope === 'GLOBAL' ? (
+                  <>
+                    <option value="">-- {t('penugasan.semua_wilayah')} --</option>
+                    {wilayahs.map((w: any) => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </>
+                ) : (
+                  <option value={globalWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
+                )}
+              </select>
+            ) : (
+              <select
+                value={globalLembagaMuadalah}
+                onChange={e => {
+                  setGlobalLembagaMuadalah(e.target.value);
+                  setGlobalCabang('');
+                }}
+                disabled={user?.scope !== 'GLOBAL'}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
+              >
+                <option value="">-- Semua Lembaga --</option>
+                {muadalahs.map((m: any) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            )}
             
             <select
               value={globalCabang}
@@ -277,33 +321,9 @@ export default function Dashboard() {
 
         {/* System Status & Incidents — spans both rows on the right */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col lg:row-span-2">
-          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">{t('dashboard.system_status')}</span>
-          {hasIncidents ? (
-            <>
-              <div className="text-3xl font-bold text-rose-600 tracking-tight">
-                {statsData.cabangMissingSubjectsCount} {statsData.cabangMissingSubjectsCount! > 1 ? t('dashboard.issues') : t('dashboard.issue')}
-              </div>
-              <div className="max-h-40 overflow-y-auto custom-scrollbar mt-3 space-y-3">
-                {statsData.ketersediaanGuru!.filter(k => k.status !== 'hijau').map((cabang, idx) => (
-                  <div key={idx} className="border-b border-slate-100 pb-2.5 last:border-0 last:pb-0">
-                    <p className="text-sm font-bold text-slate-800">{cabang.cabangName}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {t('dashboard.missing')}: <span className="text-rose-600 font-medium">{cabang.missingSubjects.join(', ')}</span>
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center text-slate-400 py-6">
-              <CheckCircle2 className="w-7 h-7 mb-1.5 text-emerald-500" />
-              <p className="text-xs text-center">{t('dashboard.all_good')}</p>
-            </div>
-          )}
-
           {/* Progres Cetak Rapor — TA/Semester aktif */}
           {statsData.raporCetakProgress && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
+            <div className="pb-4">
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('dashboard.progres_cetak')}</span>
                 <span className="text-[11px] font-medium text-slate-400">
@@ -327,7 +347,7 @@ export default function Dashboard() {
 
           {/* Progres Kelengkapan Data */}
           {(statsData.kelengkapanSiswa || statsData.kelengkapanGuru) && (
-            <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
+            <div className={`pt-4 ${statsData.raporCetakProgress ? 'border-t border-slate-100 mt-4' : ''} space-y-4`}>
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Progres Kelengkapan Data</span>
               
               {statsData.kelengkapanSiswa && (

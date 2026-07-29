@@ -227,7 +227,7 @@ const MainLayout = () => {
               </span>
             )}
 
-            <button onClick={() => navigate('/faq')} className="flex items-center gap-2 hover:text-gray-900 transition-colors">
+            <button onClick={() => navigate('/dashboard/faq')} className="flex items-center gap-2 hover:text-gray-900 transition-colors">
               <LifeBuoy className="w-4 h-4" />
               <span className="hidden sm:inline">Support</span>
             </button>
@@ -262,7 +262,7 @@ const MainLayout = () => {
                       <button
                         onClick={() => {
                           setIsNotifOpen(false);
-                          navigate('/core/cabang?tab=permohonan');
+                          navigate('/dashboard/core/cabang?tab=permohonan');
                         }}
                         className="w-full text-left px-4 py-3 hover:bg-slate-50/50 flex items-start gap-2.5 transition-colors"
                       >
@@ -278,7 +278,7 @@ const MainLayout = () => {
                       <button
                         onClick={() => {
                           setIsNotifOpen(false);
-                          navigate('/formal/kelas?tab=permohonan');
+                          navigate('/dashboard/formal/kelas?tab=permohonan');
                         }}
                         className="w-full text-left px-4 py-3 hover:bg-slate-50/50 flex items-start gap-2.5 transition-colors"
                       >

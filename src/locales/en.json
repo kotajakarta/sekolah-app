@@ -138,22 +138,59 @@
     "no_data_desc": "Registered regions will appear here."
   },
   "guru": {
-    "title": "Teacher Data",
-    "subtitle": "Manage information of teachers teaching at the institution.",
+    "title": "Teachers & Instructors Data",
+    "subtitle": "Manage teacher information, positions, regions, branches, and teaching assignments.",
     "add_button": "Add Teacher",
-    "name": "Name",
+    "name": "Teacher Name",
     "nip": "NIP",
     "no_data_title": "No Teacher Data Yet",
-    "no_data_desc": "Registered teachers will appear here."
+    "no_data_desc": "Registered teachers will appear here.",
+    "tarik_btn": "Pull Teacher Data",
+    "add_title": "Add New Teacher",
+    "edit_title": "Edit Teacher Data",
+    "form": {
+      "jabatan": "Main Position"
+    }
   },
   "siswa": {
-    "title": "Student Data",
-    "subtitle": "Manage student information.",
+    "title": "All Students Data",
+    "subtitle": "Manage student biodata, parent info, and documents.",
     "add_button": "Add Student",
-    "name": "Name",
+    "name": "Student Name",
     "nisn": "NISN",
     "gender": "Gender",
     "no_data_title": "No Student Data Yet",
-    "no_data_desc": "Registered students will appear here."
+    "no_data_desc": "Registered students will appear here.",
+    "export_xlsx": "Export XLSX",
+    "tarik_data": "Pull Student Data",
+    "lepas_massal": "Bulk Release",
+    "search_placeholder": "Search name, NIK, or NISN...",
+    "profile_title": "Student Profile",
+    "print_cv": "Print CV",
+    "class_history": "Class History",
+    "academic_history": "Learning Activity History",
+    "academic_empty": "No learning activity history yet for this student.",
+    "edit_modal_title": "Edit Student Data",
+    "add_modal_title": "Add New Student",
+    "table": {
+      "photo": "Photo",
+      "academic": "Academic",
+      "completeness": "Completeness",
+      "status": "Status"
+    }
+  },
+  "formal": {
+    "siswa_title": "Formal & Muadalah Student Data",
+    "siswa_subtitle": "List of formal students and school data verification completeness.",
+    "already_verval": "Verified ?",
+    "edit_academic": "Edit Academic",
+    "edit_academic_title": "Edit Academic Data"
+  },
+  "absensi": {
+    "siswa_title": "Daily Student Attendance",
+    "siswa_subtitle": "Manage and record student attendance per program and class group.",
+    "select_program": "-- Select Attendance Program --",
+    "select_kelas": "-- Select Class --",
+    "save_attendance": "Save Student Attendance"
   }
 }

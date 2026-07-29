@@ -38,9 +38,19 @@ export default function KelolaProgramAbsensi() {
     isActive: true
   });
 
+  const DAYS_LIST = [
+    { value: 0, label: 'Ahad' },
+    { value: 1, label: 'Senin' },
+    { value: 2, label: 'Selasa' },
+    { value: 3, label: 'Rabu' },
+    { value: 4, label: 'Kamis' },
+    { value: 5, label: 'Jumat' },
+    { value: 6, label: 'Sabtu' },
+  ];
+
   const [bulkFormData, setBulkFormData] = useState({
     namePrefix: 'Absensi Pelajaran',
-    dayOfWeek: 6, // Sabtu
+    daysOfWeek: [1, 2, 3, 4, 5, 6], // Default Senin - Sabtu
     startMonth: '2026-07',
     endMonth: '2027-06'
   });
@@ -400,20 +410,62 @@ export default function KelolaProgramAbsensi() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Nama Hari *</label>
-                <select
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm"
-                  value={bulkFormData.dayOfWeek}
-                  onChange={e => setBulkFormData({ ...bulkFormData, dayOfWeek: Number(e.target.value) })}
-                >
-                  <option value={0}>Ahad</option>
-                  <option value={1}>Senin</option>
-                  <option value={2}>Selasa</option>
-                  <option value={3}>Rabu</option>
-                  <option value={4}>Kamis</option>
-                  <option value={5}>Jumat</option>
-                  <option value={6}>Sabtu</option>
-                </select>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700">Pilih Nama Hari * ({bulkFormData.daysOfWeek.length} Hari Terpilih)</label>
+                  <div className="flex items-center gap-2 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setBulkFormData(prev => ({ ...prev, daysOfWeek: [1, 2, 3, 4, 5, 6] }))}
+                      className="text-indigo-600 font-semibold hover:underline"
+                    >
+                      Senin-Sabtu
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setBulkFormData(prev => ({ ...prev, daysOfWeek: [0, 1, 2, 3, 4, 5, 6] }))}
+                      className="text-indigo-600 font-semibold hover:underline"
+                    >
+                      Semua Hari
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                  {DAYS_LIST.map((day) => {
+                    const isChecked = bulkFormData.daysOfWeek.includes(day.value);
+                    return (
+                      <label
+                        key={day.value}
+                        onClick={() => {
+                          setBulkFormData(prev => {
+                            const isSelected = prev.daysOfWeek.includes(day.value);
+                            const nextDays = isSelected
+                              ? prev.daysOfWeek.filter(d => d !== day.value)
+                              : [...prev.daysOfWeek, day.value].sort((a, b) => a - b);
+                            return { ...prev, daysOfWeek: nextDays };
+                          });
+                        }}
+                        className={`flex items-center gap-2 p-2 rounded-lg border text-xs cursor-pointer select-none transition-all ${
+                          isChecked
+                            ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-bold shadow-xs'
+                            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="h-4 w-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                        />
+                        <span>{day.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {bulkFormData.daysOfWeek.length === 0 && (
+                  <p className="text-[11px] text-rose-500 mt-1 font-semibold">* Silakan centang minimal 1 hari.</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -448,8 +500,8 @@ export default function KelolaProgramAbsensi() {
                 </button>
                 <button
                   type="submit"
-                  disabled={bulkGenerateMutation.isPending}
-                  className="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg disabled:opacity-50"
+                  disabled={bulkGenerateMutation.isPending || bulkFormData.daysOfWeek.length === 0}
+                  className="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {bulkGenerateMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Generasikan

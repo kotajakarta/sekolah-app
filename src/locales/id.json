@@ -138,22 +138,59 @@
     "no_data_desc": "Wilayah yang terdaftar akan muncul di sini."
   },
   "guru": {
-    "title": "Data Guru",
-    "subtitle": "Kelola informasi guru yang mengajar di lembaga.",
+    "title": "Data Guru & Ustadz",
+    "subtitle": "Kelola informasi guru, jabatan, wilayah, cabang, dan penugasan mengajar.",
     "add_button": "Tambah Guru",
-    "name": "Nama",
+    "name": "Nama Guru",
     "nip": "NIP",
     "no_data_title": "Belum Ada Data Guru",
-    "no_data_desc": "Guru yang terdaftar akan muncul di sini."
+    "no_data_desc": "Guru yang terdaftar akan muncul di sini.",
+    "tarik_btn": "Tarik Data Guru",
+    "add_title": "Tambah Guru Baru",
+    "edit_title": "Edit Data Guru",
+    "form": {
+      "jabatan": "Jabatan Utama"
+    }
   },
   "siswa": {
-    "title": "Data Siswa",
-    "subtitle": "Kelola informasi siswa.",
-    "add_button": "Tambah Siswa",
-    "name": "Nama",
+    "title": "Data Semua Santri",
+    "subtitle": "Kelola informasi biodata, data orang tua, dan dokumen santri.",
+    "add_button": "Tambah Santri",
+    "name": "Nama Santri",
     "nisn": "NISN",
     "gender": "Jenis Kelamin",
-    "no_data_title": "Belum Ada Data Siswa",
-    "no_data_desc": "Siswa yang terdaftar akan muncul di sini."
+    "no_data_title": "Belum Ada Data Santri",
+    "no_data_desc": "Santri yang terdaftar akan muncul di sini.",
+    "export_xlsx": "Export XLSX",
+    "tarik_data": "Tarik Data Santri",
+    "lepas_massal": "Lepas Massal",
+    "search_placeholder": "Cari nama, NIK, atau NISN...",
+    "profile_title": "Profil Santri",
+    "print_cv": "Cetak CV",
+    "class_history": "Riwayat Kelas",
+    "academic_history": "Riwayat Aktivitas Belajar",
+    "academic_empty": "Belum ada riwayat aktivitas belajar untuk siswa ini.",
+    "edit_modal_title": "Edit Data Santri",
+    "add_modal_title": "Tambah Santri Baru",
+    "table": {
+      "photo": "Foto",
+      "academic": "Akademik",
+      "completeness": "Kelengkapan",
+      "status": "Status"
+    }
+  },
+  "formal": {
+    "siswa_title": "Data Siswa Formal & Muadalah",
+    "siswa_subtitle": "Daftar siswa formal dan kelengkapan verval data madrasah/sekolah.",
+    "already_verval": "Sudah Verval ?",
+    "edit_academic": "Edit Akademik",
+    "edit_academic_title": "Edit Data Akademik"
+  },
+  "absensi": {
+    "siswa_title": "Absensi Santri Harian",
+    "siswa_subtitle": "Kelola dan catat kehadiran santri per program absensi dan rombel kelas.",
+    "select_program": "-- Pilih Program Absensi --",
+    "select_kelas": "-- Pilih Kelas --",
+    "save_attendance": "Simpan Absensi Santri"
   }
 }

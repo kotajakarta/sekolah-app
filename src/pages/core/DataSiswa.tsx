@@ -274,7 +274,7 @@ export default function DataSiswa() {
             className="inline-flex items-center justify-center px-4 py-2 border border-emerald-200 shadow-sm text-sm font-medium rounded-xl text-emerald-700 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <FileSpreadsheet className="w-4 h-4 mr-2" />
-            Export XLSX
+            {t('siswa.export_xlsx') || 'Export XLSX'}
           </button>
           {isAdmin && students && students.length > 0 && (
             <button
@@ -282,7 +282,7 @@ export default function DataSiswa() {
               className="inline-flex items-center justify-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Hapus Semua
+              {t('common.delete_all') || 'Hapus Semua'}
             </button>
           )}
           {(user?.scope === 'CABANG' || user?.scope === 'WILAYAH' || user?.scope === 'GLOBAL') && (
@@ -291,7 +291,7 @@ export default function DataSiswa() {
               className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
             >
               <UserPlus className="w-4 h-4 mr-2" />
-              Tarik Data Santri
+              {t('siswa.tarik_data') || 'Tarik Data Santri'}
             </button>
           )}
           <button
@@ -299,7 +299,7 @@ export default function DataSiswa() {
             className="inline-flex items-center justify-center px-4 py-2 border border-amber-200 shadow-sm text-sm font-medium rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
           >
             <UserMinus className="w-4 h-4 mr-2" />
-            Lepas Massal
+            {t('siswa.lepas_massal') || 'Lepas Massal'}
           </button>
           <button onClick={handleAdd} className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
             <Plus className="w-4 h-4 mr-2" />
@@ -324,7 +324,7 @@ export default function DataSiswa() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Cari nama, NIK, atau NISN..."
+              placeholder={t('siswa.search_placeholder') || 'Cari nama, NIK, atau NISN...'}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -345,13 +345,13 @@ export default function DataSiswa() {
               <thead className="bg-slate-50/80 border-b border-slate-200">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
-                  <th scope="col" className="px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">Foto</th>
+                  <th scope="col" className="px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">{t('siswa.table.photo') || 'Foto'}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.name')} & NIK</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('wilayah.region_name')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Akademik</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Kelengkapan</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Status</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.table.academic') || 'Akademik'}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.table.completeness') || 'Kelengkapan'}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.table.status') || 'Status'}</th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
                 </tr>
               </thead>

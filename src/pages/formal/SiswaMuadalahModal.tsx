@@ -3,6 +3,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { X, Loader2 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import { useTranslation } from 'react-i18next';
 
 interface SiswaMuadalahModalProps {
   student: any;
@@ -10,6 +11,7 @@ interface SiswaMuadalahModalProps {
 }
 
 export default function SiswaMuadalahModal({ student, onClose }: SiswaMuadalahModalProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   
@@ -86,7 +88,7 @@ export default function SiswaMuadalahModal({ student, onClose }: SiswaMuadalahMo
             <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-gray-200">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold leading-6 text-gray-900">
-                  Edit Data Akademik
+                  {t('formal.edit_academic_title') || 'Edit Data Akademik'}
                 </h3>
                 <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-500">
                   <X className="h-5 w-5" />

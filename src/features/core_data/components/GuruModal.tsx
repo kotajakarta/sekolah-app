@@ -151,7 +151,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
         <div className="relative transform rounded-xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl flex flex-col max-h-[90vh]">
           <div className="bg-white px-6 py-4 border-b border-slate-200 rounded-t-xl flex justify-between items-center">
             <h3 className="text-lg font-semibold text-slate-900">
-              {guru ? t('common.edit') + ' ' + t('guru.form.title') : t('common.add') + ' ' + t('guru.form.title')}
+              {guru ? (t('guru.edit_title') || 'Edit Data Guru') : (t('guru.add_title') || 'Tambah Guru Baru')}
             </h3>
             <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-500">
               <X className="h-5 w-5" />

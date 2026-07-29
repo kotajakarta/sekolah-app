@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 import { Activity, Loader2, Save, AlertCircle, CheckCircle, Search, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Program {
@@ -36,6 +37,7 @@ const STATUS_OPTIONS = [
 ] as const;
 
 export default function AbsensiSiswa() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isGlobal = user?.scope === 'GLOBAL';
   const isWilayah = user?.scope === 'WILAYAH';
@@ -220,10 +222,10 @@ export default function AbsensiSiswa() {
       <div className="mb-4 sm:mb-6">
         <h1 className="text-lg sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
           <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
-          Absensi Kehadiran Siswa
+          {t('absensi.siswa_title') || 'Absensi Kehadiran Siswa'}
         </h1>
         <p className="hidden sm:block text-sm text-slate-500 mt-1">
-          Pilih wilayah, cabang, program absensi, dan kelas untuk mulai mengisi kehadiran siswa pekanan.
+          {t('absensi.siswa_subtitle') || 'Pilih wilayah, cabang, program absensi, dan kelas untuk mulai mengisi kehadiran siswa pekanan.'}
         </p>
       </div>
 

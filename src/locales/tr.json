@@ -138,22 +138,59 @@
     "no_data_desc": "Kayıtlı bölgeler burada görünecektir."
   },
   "guru": {
-    "title": "Öğretmen Verileri",
-    "subtitle": "Kurumda ders veren öğretmenlerin bilgilerini yönetin.",
+    "title": "Öğretmenler & Eğitmenler",
+    "subtitle": "Öğretmen bilgilerini, unvanlarını, bölgeleri, şubeleri ve ders görevlerini yönetin.",
     "add_button": "Öğretmen Ekle",
-    "name": "İsim",
+    "name": "Öğretmen Adı",
     "nip": "NIP",
     "no_data_title": "Henüz Öğretmen Verisi Yok",
-    "no_data_desc": "Kayıtlı öğretmenler burada görünecektir."
+    "no_data_desc": "Kayıtlı öğretmenler burada görünecektir.",
+    "tarik_btn": "Öğretmen Verisi Çek",
+    "add_title": "Yeni Öğretmen Ekle",
+    "edit_title": "Öğretmen Düzenle",
+    "form": {
+      "jabatan": "Ana Görev / Unvan"
+    }
   },
   "siswa": {
-    "title": "Öğrenci Verileri",
-    "subtitle": "Öğrenci bilgilerini yönetin.",
+    "title": "Tüm Öğrenci Verileri",
+    "subtitle": "Öğrenci kimlik, veli ve belge bilgilerini yönetin.",
     "add_button": "Öğrenci Ekle",
-    "name": "İsim",
+    "name": "Öğrenci Adı",
     "nisn": "NISN",
     "gender": "Cinsiyet",
     "no_data_title": "Henüz Öğrenci Verisi Yok",
-    "no_data_desc": "Kayıtlı öğrenciler burada görünecektir."
+    "no_data_desc": "Kayıtlı öğrenciler burada görünecektir.",
+    "export_xlsx": "XLSX Dışa Aktar",
+    "tarik_data": "Öğrenci Verisi Çek",
+    "lepas_massal": "Toplu Serbest Bırak",
+    "search_placeholder": "İsim, NIK veya NISN ara...",
+    "profile_title": "Öğrenci Profili",
+    "print_cv": "Özgeçmiş Yazdır",
+    "class_history": "Sınıf Geçmişi",
+    "academic_history": "Öğrenme Aktivitesi Geçmişi",
+    "academic_empty": "Bu öğrenci için henüz ders geçmişi yok.",
+    "edit_modal_title": "Öğrenci Verisini Düzenle",
+    "add_modal_title": "Yeni Öğrenci Ekle",
+    "table": {
+      "photo": "Fotoğraf",
+      "academic": "Akademik",
+      "completeness": "Eksiksizlik",
+      "status": "Durum"
+    }
+  },
+  "formal": {
+    "siswa_title": "Formal & Muadalah Öğrenci Verileri",
+    "siswa_subtitle": "Formal öğrenciler ve veri doğrulama durumu listesi.",
+    "already_verval": "Doğrulandı mı ?",
+    "edit_academic": "Akademik Düzenle",
+    "edit_academic_title": "Akademik Verileri Düzenle"
+  },
+  "absensi": {
+    "siswa_title": "Günlük Öğrenci Yoklaması",
+    "siswa_subtitle": "Öğrenci yoklama kayıtlarını ve sınıfları yönetin.",
+    "select_program": "-- Yoklama Programı Seçin --",
+    "select_kelas": "-- Sınıf Seçin --",
+    "save_attendance": "Yoklamayı Kaydet"
   }
 }

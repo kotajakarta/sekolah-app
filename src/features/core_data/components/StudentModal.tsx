@@ -407,7 +407,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
             </div>
             <div>
               <h2 className="text-sm font-bold text-white leading-tight">
-                {isEditMode ? 'Edit Data Santri' : 'Tambah Santri Baru'}
+                {isEditMode ? (t('siswa.edit_modal_title') || 'Edit Data Santri') : (t('siswa.add_modal_title') || 'Tambah Santri Baru')}
               </h2>
               {isEditMode && student?.biodata?.fullName && (
                 <p className="text-xs text-slate-400 mt-0.5 leading-tight">{student.biodata.fullName}</p>

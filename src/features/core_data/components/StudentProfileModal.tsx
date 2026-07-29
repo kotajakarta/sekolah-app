@@ -44,7 +44,7 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
           <div className="bg-white px-6 py-4 border-b border-slate-200/60 rounded-t-2xl flex justify-between items-center sticky top-0 z-10">
             <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <User className="w-5 h-5 text-indigo-500" />
-              Profil Siswa
+              {t('siswa.profile_title') || 'Profil Santri'}
             </h3>
             <div className="flex items-center gap-2">
               <button
@@ -52,14 +52,14 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
                 className="inline-flex items-center px-3 py-1.5 border border-slate-200 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors"
               >
                 <Printer className="h-4 w-4 mr-1.5 text-slate-500" />
-                Cetak CV
+                {t('siswa.print_cv') || 'Cetak CV'}
               </button>
               <button
                 onClick={() => setIsClassHistoryOpen(true)}
                 className="inline-flex items-center px-3 py-1.5 border border-slate-200 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors"
               >
                 <History className="h-4 w-4 mr-1.5 text-slate-500" />
-                Riwayat Kelas
+                {t('siswa.class_history') || 'Riwayat Kelas'}
               </button>
               <button
                 onClick={onEdit}

@@ -111,7 +111,7 @@ export default function DataSiswaMuadalah() {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">NIS (Lokal)</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Kelas</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Lembaga Muadalah</th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-32">Sudah Verval ?</th>
+                  <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-32">{t('formal.already_verval') || 'Sudah Verval ?'}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
                 </tr>
@@ -153,7 +153,7 @@ export default function DataSiswaMuadalah() {
                         className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-xs font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors mr-2"
                       >
                         <Edit2 className="h-3.5 w-3.5 mr-1" />
-                        {t('common.edit')} Akademik
+                        {t('formal.edit_academic') || 'Edit Akademik'}
                       </button>
                     </td>
                   </tr>

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useGetGuru, useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useMasterData';
+import { useTranslation } from 'react-i18next';
 import { Plus, Trash2, Loader2, BookOpen, UserCheck, AlertCircle, BarChart3, Building2, MapPin, X } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
@@ -39,6 +40,7 @@ interface Assignment {
 }
 
 export default function PenugasanGuru() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -311,10 +313,10 @@ export default function PenugasanGuru() {
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            Penugasan Mengajar Guru
+            {t('penugasan.title')}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Kelola pembagian tugas mengajar guru per mata pelajaran dan kelas yang spesifik.
+            {t('penugasan.subtitle')}
           </p>
         </div>
         <div className="flex gap-2">
@@ -323,14 +325,14 @@ export default function PenugasanGuru() {
             className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[13px] font-semibold rounded-lg flex items-center gap-1.5 transition-all shadow-sm active:scale-[0.98]"
           >
             <BarChart3 className="w-4 h-4 text-blue-600" />
-            Ringkasan & Progres
+            {t('penugasan.ringkasan_btn')}
           </button>
           <button
             onClick={() => setIsModalOpen(true)}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold rounded-lg flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" strokeWidth={2.5} />
-            Tambah Penugasan
+            {t('penugasan.tambah_btn')}
           </button>
         </div>
       </div>
@@ -342,11 +344,11 @@ export default function PenugasanGuru() {
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-500" />
               <h2 className="text-sm font-bold text-rose-800 uppercase tracking-wider">
-                Mata Pelajaran Kurang Guru
+                {t('penugasan.mapel_kurang_title')}
               </h2>
             </div>
             <span className="text-[11px] font-bold bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full">
-              {mapelKurangGuru.length} Mapel Butuh Guru
+              {mapelKurangGuru.length} {t('penugasan.mapel_butuh')}
             </span>
           </div>
           <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[220px] overflow-y-auto custom-scrollbar">
@@ -357,11 +359,11 @@ export default function PenugasanGuru() {
                     {mapel.name}
                   </span>
                   <span className="text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-100 px-1.5 py-0.5 rounded-md flex-shrink-0">
-                    {missingClasses.length} Kelas
+                    {missingClasses.length} {t('penugasan.kelas')}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1 line-clamp-2" title={missingClasses.map(c => c.name).join(', ')}>
-                  Belum ada di: <span className="font-medium text-slate-700">{missingClasses.map(c => c.name).join(', ')}</span>
+                  {t('penugasan.belum_ada_di')} <span className="font-medium text-slate-700">{missingClasses.map(c => c.name).join(', ')}</span>
                 </p>
               </div>
             ))}
@@ -375,7 +377,7 @@ export default function PenugasanGuru() {
       } gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm`}>
         {user?.scope === 'GLOBAL' && (
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Filter Wilayah</label>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{t('penugasan.filter_wilayah')}</label>
             <select
               value={filterWilayah}
               onChange={(e) => {
@@ -384,7 +386,7 @@ export default function PenugasanGuru() {
               }}
               className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
             >
-              <option value="">Semua Wilayah</option>
+              <option value="">{t('penugasan.semua_wilayah')}</option>
               {wilayahs.map(w => (
                 <option key={w.id} value={w.id}>{w.name}</option>
               ))}
@@ -393,13 +395,13 @@ export default function PenugasanGuru() {
         )}
         {user?.scope !== 'CABANG' && (
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Filter Cabang</label>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{t('penugasan.filter_cabang')}</label>
             <select
               value={filterCabang}
               onChange={(e) => setFilterCabang(e.target.value)}
               className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
             >
-              <option value="">Semua Cabang</option>
+              <option value="">{t('penugasan.semua_cabang')}</option>
               {cabangList
                 .filter(c => {
                   if (user?.scope === 'WILAYAH') return c.wilayahId === user.wilayahId;
@@ -413,32 +415,32 @@ export default function PenugasanGuru() {
           </div>
         )}
         <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Cari Guru</label>
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{t('penugasan.cari_guru')}</label>
           <input
             type="text"
             value={filterGuru}
             onChange={(e) => setFilterGuru(e.target.value)}
-            placeholder="Ketik nama guru..."
+            placeholder={t('penugasan.cari_guru_ph')}
             className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Cari Mata Pelajaran</label>
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{t('penugasan.cari_mapel')}</label>
           <input
             type="text"
             value={filterMapel}
             onChange={(e) => setFilterMapel(e.target.value)}
-            placeholder="Ketik nama mapel..."
+            placeholder={t('penugasan.cari_mapel_ph')}
             className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Cari Kelas</label>
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">{t('penugasan.cari_kelas')}</label>
           <input
             type="text"
             value={filterKelas}
             onChange={(e) => setFilterKelas(e.target.value)}
-            placeholder="Ketik nama kelas..."
+            placeholder={t('penugasan.cari_kelas_ph')}
             className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -454,12 +456,12 @@ export default function PenugasanGuru() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
-                  <th className="px-6 py-4">Nama Guru</th>
-                  <th className="px-6 py-4">Mata Pelajaran</th>
-                  <th className="px-6 py-4">Kelas</th>
-                  <th className="px-6 py-4">Cabang</th>
-                  <th className="px-6 py-4">Wilayah</th>
-                  <th className="px-6 py-4 text-center w-24">Aksi</th>
+                  <th className="px-6 py-4">{t('penugasan.nama_guru')}</th>
+                  <th className="px-6 py-4">{t('penugasan.mata_pelajaran')}</th>
+                  <th className="px-6 py-4">{t('penugasan.kelas')}</th>
+                  <th className="px-6 py-4">{t('penugasan.cabang')}</th>
+                  <th className="px-6 py-4">{t('penugasan.wilayah')}</th>
+                  <th className="px-6 py-4 text-center w-24">{t('common.action')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
@@ -467,21 +469,21 @@ export default function PenugasanGuru() {
                   filteredAssignments.map((asg) => (
                     <tr key={asg.id} className="hover:bg-slate-50/30 transition-colors">
                       <td className="px-6 py-4 font-semibold text-slate-900">
-                        {asg.staff?.name || 'Staf tidak ditemukan'}
+                        {asg.staff?.name || t('penugasan.staf_not_found')}
                       </td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center gap-1 text-[13px] text-slate-700 font-medium">
                           <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-                          {asg.mataPelajaran?.name || 'Mapel tidak ditemukan'}
+                          {asg.mataPelajaran?.name || t('penugasan.mapel_not_found')}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[11px] font-bold border border-blue-100">
-                          {asg.kelas?.name || 'Kelas tidak ditemukan'}
+                          {asg.kelas?.name || t('penugasan.kelas_not_found')}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-slate-600">
-                        {asg.kelas?.cabang?.name || 'Pusat'}
+                        {asg.kelas?.cabang?.name || t('penugasan.pusat')}
                       </td>
                       <td className="px-6 py-4 text-slate-600">
                         {asg.kelas?.cabang?.wilayah?.name || '-'}
@@ -490,7 +492,7 @@ export default function PenugasanGuru() {
                         <button
                           onClick={() => handleOpenDelete(asg.id)}
                           className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Hapus Penugasan"
+                          title={t('penugasan.hapus_btn')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -501,7 +503,7 @@ export default function PenugasanGuru() {
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
                       <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                      Belum ada penugasan guru yang terdaftar.
+                      {t('penugasan.empty_state')}
                     </td>
                   </tr>
                 )}
@@ -518,7 +520,7 @@ export default function PenugasanGuru() {
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <UserCheck className="w-5 h-5 text-blue-600" />
-                Tambah Penugasan Guru
+                {t('penugasan.tambah_title')}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -533,7 +535,7 @@ export default function PenugasanGuru() {
                 {/* Select Guru */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Guru Pengajar
+                    {t('penugasan.guru_pengajar')}
                   </label>
                   <select
                     required
@@ -541,7 +543,7 @@ export default function PenugasanGuru() {
                     onChange={(e) => setFormData({ ...formData, staffId: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   >
-                    <option value="">-- Pilih Guru --</option>
+                    <option value="">{t('penugasan.pilih_guru')}</option>
                     {guruList.map((g) => (
                       <option key={g.id} value={g.id}>
                         {g.name} ({g.position})
@@ -553,7 +555,7 @@ export default function PenugasanGuru() {
                 {/* Select Kelas */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Kelas Penempatan
+                    {t('penugasan.kelas_penempatan')}
                   </label>
                   <select
                     required
@@ -561,7 +563,7 @@ export default function PenugasanGuru() {
                     onChange={(e) => setFormData({ ...formData, kelasId: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   >
-                    <option value="">-- Pilih Kelas --</option>
+                    <option value="">{t('penugasan.pilih_kelas')}</option>
                     {kelasList.map((k) => (
                       <option key={k.id} value={k.id}>
                         {k.name} {k.cabang?.name ? `(${k.cabang.name})` : ''}
@@ -573,7 +575,7 @@ export default function PenugasanGuru() {
                 {/* Select Mata Pelajaran */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Mata Pelajaran
+                    {t('penugasan.mata_pelajaran')}
                   </label>
                   <select
                     required
@@ -581,7 +583,7 @@ export default function PenugasanGuru() {
                     onChange={(e) => setFormData({ ...formData, mataPelajaranId: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   >
-                    <option value="">-- Pilih Mata Pelajaran --</option>
+                    <option value="">{t('penugasan.pilih_mapel')}</option>
                     {mapelList.map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.name} [{m.grupMapel}]
@@ -597,7 +599,7 @@ export default function PenugasanGuru() {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
                 >
-                  Batal
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -605,7 +607,7 @@ export default function PenugasanGuru() {
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow transition-colors flex items-center gap-1.5"
                 >
                   {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                  Simpan Penugasan
+                  {createMutation.isPending ? t('common.saving') : t('common.save')}
                 </button>
               </div>
             </form>
@@ -618,8 +620,8 @@ export default function PenugasanGuru() {
         isOpen={isConfirmDeleteOpen}
         onClose={() => setIsConfirmDeleteOpen(false)}
         onConfirm={() => assignmentToDelete && deleteMutation.mutate(assignmentToDelete)}
-        title="Batalkan Penugasan Guru"
-        message="Apakah Anda yakin ingin membatalkan/menghapus tugas mengajar guru ini? Aksi ini bersifat permanen."
+        title={t('penugasan.confirm_delete_title')}
+        message={t('penugasan.confirm_delete_msg')}
       />
 
       {/* Summary & Progress Modal */}
@@ -630,7 +632,7 @@ export default function PenugasanGuru() {
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-blue-600" />
-                Ringkasan & Progres Penugasan Guru
+                {t('penugasan.ringkasan_title')}
               </h3>
               <button
                 onClick={() => {
@@ -650,7 +652,7 @@ export default function PenugasanGuru() {
             } gap-4`}>
               {user?.scope === 'GLOBAL' && (
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Filter Wilayah</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">{t('penugasan.filter_wilayah')}</label>
                   <select
                     value={summaryWilayah}
                     onChange={(e) => {
@@ -659,7 +661,7 @@ export default function PenugasanGuru() {
                     }}
                     className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
                   >
-                    <option value="">Semua Wilayah</option>
+                    <option value="">{t('penugasan.semua_wilayah')}</option>
                     {wilayahs.map(w => (
                       <option key={w.id} value={w.id}>{w.name}</option>
                     ))}
@@ -668,14 +670,14 @@ export default function PenugasanGuru() {
               )}
               {user?.scope !== 'CABANG' && (
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Filter Cabang</label>
+                  <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">{t('penugasan.filter_cabang')}</label>
                   <select
                     value={summaryCabang}
                     disabled={user?.scope === 'GLOBAL' && !summaryWilayah}
                     onChange={(e) => setSummaryCabang(e.target.value)}
                     className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white disabled:bg-slate-100 disabled:cursor-not-allowed"
                   >
-                    <option value="">Semua Cabang</option>
+                    <option value="">{t('penugasan.semua_cabang')}</option>
                     {cabangList
                       .filter(c => {
                         if (user?.scope === 'WILAYAH') return c.wilayahId === user.wilayahId;
@@ -694,14 +696,14 @@ export default function PenugasanGuru() {
             <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-1">
               {/* Section 1: Progress Stats */}
               <div className="space-y-4">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Progres Pemenuhan Guru (Mapel Wajib)</h4>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('penugasan.progres_title')}</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Wilayah Progress */}
                   <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wide">
                       <MapPin className="w-3.5 h-3.5 text-indigo-500" />
-                      Progres Per Wilayah
+                      {t('penugasan.progres_wilayah')}
                     </div>
                     {modalWilayahProgress.length > 0 ? (
                       <div className="space-y-3">
@@ -725,7 +727,7 @@ export default function PenugasanGuru() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-slate-400 italic">Tidak ada data wilayah</p>
+                      <p className="text-xs text-slate-400 italic">{t('penugasan.no_data_wilayah')}</p>
                     )}
                   </div>
 
@@ -733,7 +735,7 @@ export default function PenugasanGuru() {
                   <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wide">
                       <Building2 className="w-3.5 h-3.5 text-blue-500" />
-                      Progres Per Cabang
+                      {t('penugasan.progres_cabang')}
                     </div>
                     {modalCabangProgress.length > 0 ? (
                       <div className="space-y-3 max-h-[180px] overflow-y-auto custom-scrollbar pr-1">
@@ -757,7 +759,7 @@ export default function PenugasanGuru() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-slate-400 italic">Tidak ada data cabang</p>
+                      <p className="text-xs text-slate-400 italic">{t('penugasan.no_data_cabang')}</p>
                     )}
                   </div>
                 </div>
@@ -765,7 +767,7 @@ export default function PenugasanGuru() {
 
               {/* Section 2: Missing Subjects Details */}
               <div className="space-y-3">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Detail Kekurangan Guru Per Mata Pelajaran</h4>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('penugasan.detail_kekurangan')}</h4>
                 {filteredMapelKurangGuru.length > 0 ? (
                   <div className="space-y-3">
                     {filteredMapelKurangGuru.map(({ mapel, missingClasses }) => (
@@ -776,7 +778,7 @@ export default function PenugasanGuru() {
                             {mapel.name}
                           </span>
                           <span className="text-xs font-bold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
-                            {missingClasses.length} Kelas Kekurangan
+                            {missingClasses.length} {t('penugasan.kelas_kekurangan')}
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -791,7 +793,7 @@ export default function PenugasanGuru() {
                   </div>
                 ) : (
                   <div className="p-6 text-center bg-green-50 rounded-xl border border-green-100 text-green-700 text-sm font-medium">
-                    Semua kelas sudah memiliki guru untuk seluruh mata pelajaran wajib!
+                    {t('penugasan.semua_kelas_terisi')}
                   </div>
                 )}
               </div>
@@ -807,7 +809,7 @@ export default function PenugasanGuru() {
                 }}
                 className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-all"
               >
-                Tutup
+                {t('common.close')}
               </button>
             </div>
           </div>

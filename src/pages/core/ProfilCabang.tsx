@@ -256,7 +256,7 @@ export default function ProfilCabang() {
   // Helpers to get teacher phone by ID
   const getTeacherPhone = (id: string) => {
     const teacher = profile?.staffList?.find((t: any) => t.id === id);
-    return teacher?.phone ? teacher.phone : 'Belum memiliki no. telp';
+    return teacher?.phone ? teacher.phone : t('profil_cabang.no_phone');
   };
 
   if (loading) {
@@ -283,9 +283,9 @@ export default function ProfilCabang() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
             <Building className="w-7 h-7 text-blue-600" />
-            Profil Cabang: {profile.name}
+            {t('profil_cabang.title')}: {profile.name}
           </h1>
-          <p className="text-sm text-slate-500 mt-1">Kelola data pimpinan, operasional, foto aset, dan data santri aktif</p>
+          <p className="text-sm text-slate-500 mt-1">{t('profil_cabang.subtitle')}</p>
         </div>
       </div>
 
@@ -308,7 +308,7 @@ export default function ProfilCabang() {
           }`}
         >
           <Building className="w-4 h-4" />
-          Profil & Alamat
+          {t('profil_cabang.tab_profil')}
         </button>
         <button
           type="button"
@@ -320,7 +320,7 @@ export default function ProfilCabang() {
           }`}
         >
           <Camera className="w-4 h-4" />
-          Foto Aset Cabang
+          {t('profil_cabang.tab_foto')}
         </button>
         <button
           type="button"
@@ -332,7 +332,7 @@ export default function ProfilCabang() {
           }`}
         >
           <Users className="w-4 h-4" />
-          Data Santri
+          {t('profil_cabang.tab_santri')}
         </button>
       </div>
 
@@ -348,31 +348,31 @@ export default function ProfilCabang() {
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
                   <Building className="w-4 h-4 text-slate-500" />
-                  Informasi Identitas & Kapasitas
+                  {t('profil_cabang.info_identitas')}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 uppercase">Nama Cabang (Glodemy)</label>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase">{t('profil_cabang.name_glodemy')}</label>
                     <input 
                       type="text" 
                       value={nameGlodemy} 
                       readOnly
                       className="mt-1.5 block w-full rounded-lg border border-slate-200 bg-slate-50 py-2 px-3 text-sm text-slate-500 cursor-not-allowed focus:outline-none" 
-                      placeholder="Nama Glodemy"
+                      placeholder={t('profil_cabang.name_glodemy')}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 uppercase">Nama Cabang (Resmi)</label>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase">{t('profil_cabang.name_resmi')}</label>
                     <input 
                       type="text" 
                       value={nameResmi} 
                       onChange={(e) => setNameResmi(e.target.value)} 
                       className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
-                      placeholder="Masukkan nama resmi"
+                      placeholder={t('profil_cabang.name_resmi_ph')}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 uppercase">Kapasitas Santri (Maksimal)</label>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase">{t('profil_cabang.kapasitas')}</label>
                     <input 
                       type="number" 
                       value={kapasitasSantri} 
@@ -382,7 +382,7 @@ export default function ProfilCabang() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 uppercase">Total Santri (Terdaftar)</label>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase">{t('profil_cabang.total_santri')}</label>
                     <input 
                       type="number" 
                       value={profile.totalSantriOtomatis || 0} 
@@ -398,51 +398,51 @@ export default function ProfilCabang() {
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
                   <Users className="w-4 h-4 text-slate-500" />
-                  Struktur Pimpinan
+                  {t('profil_cabang.struktur_pimpinan')}
                 </h4>
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 uppercase">Ketua Cabang</label>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase">{t('profil_cabang.ketua_cabang')}</label>
                       <select 
                         value={ketuaCabangId} 
                         onChange={(e) => setKetuaCabangId(e.target.value)}
                         className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white focus:border-blue-500 focus:outline-none"
                       >
-                        <option value="">-- Pilih Ketua Cabang --</option>
+                        <option value="">{t('profil_cabang.pilih_ketua_cabang')}</option>
                         {profile.staffList?.map((t: any) => (
                           <option key={t.id} value={t.id}>{t.name} ({t.position})</option>
                         ))}
                       </select>
-                      <p className="text-[11px] text-slate-400 mt-1">Telp: {getTeacherPhone(ketuaCabangId)}</p>
+                      <p className="text-[11px] text-slate-400 mt-1">{t('profil_cabang.telp')} {getTeacherPhone(ketuaCabangId)}</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 uppercase">Ketua Pendidikan Muadalah</label>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase">{t('profil_cabang.ketua_muadalah')}</label>
                       <select 
                         value={ketuaMuadalahId} 
                         onChange={(e) => setKetuaMuadalahId(e.target.value)}
                         className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white focus:border-blue-500 focus:outline-none"
                       >
-                        <option value="">-- Pilih Ketua Muadalah --</option>
+                        <option value="">{t('profil_cabang.pilih_ketua_muadalah')}</option>
                         {profile.staffList?.map((t: any) => (
                           <option key={t.id} value={t.id}>{t.name} ({t.position})</option>
                         ))}
                       </select>
-                      <p className="text-[11px] text-slate-400 mt-1">Telp: {getTeacherPhone(ketuaMuadalahId)}</p>
+                      <p className="text-[11px] text-slate-400 mt-1">{t('profil_cabang.telp')} {getTeacherPhone(ketuaMuadalahId)}</p>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 uppercase">Ketua Pendidikan Isler</label>
+                      <label className="block text-xs font-semibold text-slate-600 uppercase">{t('profil_cabang.ketua_isler')}</label>
                       <select 
                         value={ketuaIslerId} 
                         onChange={(e) => setKetuaIslerId(e.target.value)}
                         className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white focus:border-blue-500 focus:outline-none"
                       >
-                        <option value="">-- Pilih Ketua Isler --</option>
+                        <option value="">{t('profil_cabang.pilih_ketua_isler')}</option>
                         {profile.staffList?.map((t: any) => (
                           <option key={t.id} value={t.id}>{t.name} ({t.position})</option>
                         ))}
                       </select>
-                      <p className="text-[11px] text-slate-400 mt-1">Telp: {getTeacherPhone(ketuaIslerId)}</p>
+                      <p className="text-[11px] text-slate-400 mt-1">{t('profil_cabang.telp')} {getTeacherPhone(ketuaIslerId)}</p>
                     </div>
                   </div>
                 </div>
@@ -452,7 +452,7 @@ export default function ProfilCabang() {
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-slate-500" />
-                  Alamat Kantor Cabang
+                  {t('profil_cabang.alamat_kantor')}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Provinsi */}
@@ -571,37 +571,37 @@ export default function ProfilCabang() {
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                 <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
                   <Shield className="w-4 h-4 text-slate-500" />
-                  Status Aset Operasional
+                  {t('profil_cabang.status_aset')}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 uppercase">Status Tanah</label>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase">{t('profil_cabang.status_tanah')}</label>
                     <select
                       value={statusTanah}
                       onChange={(e) => setStatusTanah(e.target.value)}
                       className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white focus:outline-none"
                     >
-                      <option value="">-- Pilih Status Tanah --</option>
-                      <option value="WAKAF">Wakaf</option>
-                      <option value="KERJASAMA">Kerjasama</option>
-                      <option value="SEWA">Sewa</option>
-                      <option value="MILIK_SENDIRI">Milik Sendiri</option>
-                      <option value="PINJAM_PAKAI">Pinjam Pakai</option>
+                      <option value="">{t('profil_cabang.pilih_status_tanah')}</option>
+                      <option value="WAKAF">{t('profil_cabang.status_wakaf')}</option>
+                      <option value="KERJASAMA">{t('profil_cabang.status_kerjasama')}</option>
+                      <option value="SEWA">{t('profil_cabang.status_sewa')}</option>
+                      <option value="MILIK_SENDIRI">{t('profil_cabang.status_milik_sendiri')}</option>
+                      <option value="PINJAM_PAKAI">{t('profil_cabang.status_pinjam_pakai')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 uppercase">Status Bangunan</label>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase">{t('profil_cabang.status_bangunan')}</label>
                     <select
                       value={statusBangunan}
                       onChange={(e) => setStatusBangunan(e.target.value)}
                       className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white focus:outline-none"
                     >
-                      <option value="">-- Pilih Status Bangunan --</option>
-                      <option value="WAKAF">Wakaf</option>
-                      <option value="KERJASAMA">Kerjasama</option>
-                      <option value="SEWA">Sewa</option>
-                      <option value="MILIK_SENDIRI">Milik Sendiri</option>
-                      <option value="PINJAM_PAKAI">Pinjam Pakai</option>
+                      <option value="">{t('profil_cabang.pilih_status_bangunan')}</option>
+                      <option value="WAKAF">{t('profil_cabang.status_wakaf')}</option>
+                      <option value="KERJASAMA">{t('profil_cabang.status_kerjasama')}</option>
+                      <option value="SEWA">{t('profil_cabang.status_sewa')}</option>
+                      <option value="MILIK_SENDIRI">{t('profil_cabang.status_milik_sendiri')}</option>
+                      <option value="PINJAM_PAKAI">{t('profil_cabang.status_pinjam_pakai')}</option>
                     </select>
                   </div>
                 </div>
@@ -614,22 +614,22 @@ export default function ProfilCabang() {
               <div>
                 <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
                   <Camera className="w-4 h-4 text-slate-500" />
-                  Galeri Foto Aset Cabang
+                  {t('profil_cabang.galeri_foto')}
                 </h4>
-                <p className="text-xs text-slate-400 mt-1">Unggah dokumentasi foto bangunan fisik dan operasional kantor cabang Anda.</p>
+                <p className="text-xs text-slate-400 mt-1">{t('profil_cabang.galeri_desc')}</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {[
-                  { id: 'fotoPlang', label: 'Papan Nama/Plang Cabang', value: fotoPlang },
-                  { id: 'fotoGedung', label: 'Gedung Tampak Depan', value: fotoGedung },
-                  { id: 'fotoHalaman', label: 'Halaman Cabang', value: fotoHalaman },
-                  { id: 'fotoDenah', label: 'Denah Lokasi/Gedung', value: fotoDenah },
-                  { id: 'fotoMushala', label: 'Mushala / Masjid', value: fotoMushala },
-                  { id: 'fotoKelas', label: 'Ruang Kelas', value: fotoKelas },
-                  { id: 'fotoRuangTidur', label: 'Ruang Tidur / Asrama', value: fotoRuangTidur },
-                  { id: 'fotoRuangMakan', label: 'Ruang Makan', value: fotoRuangMakan },
-                  { id: 'fotoKamarMandi', label: 'Kamar Mandi / Toilet', value: fotoKamarMandi },
+                  { id: 'fotoPlang', label: t('profil_cabang.foto_plang'), value: fotoPlang },
+                  { id: 'fotoGedung', label: t('profil_cabang.foto_gedung'), value: fotoGedung },
+                  { id: 'fotoHalaman', label: t('profil_cabang.foto_halaman'), value: fotoHalaman },
+                  { id: 'fotoDenah', label: t('profil_cabang.foto_denah'), value: fotoDenah },
+                  { id: 'fotoMushala', label: t('profil_cabang.foto_mushala'), value: fotoMushala },
+                  { id: 'fotoKelas', label: t('profil_cabang.foto_kelas'), value: fotoKelas },
+                  { id: 'fotoRuangTidur', label: t('profil_cabang.foto_ruang_tidur'), value: fotoRuangTidur },
+                  { id: 'fotoRuangMakan', label: t('profil_cabang.foto_ruang_makan'), value: fotoRuangMakan },
+                  { id: 'fotoKamarMandi', label: t('profil_cabang.foto_kamar_mandi'), value: fotoKamarMandi },
                 ].map((ph) => (
                   <div key={ph.id} className="border border-slate-200 rounded-2xl p-4 flex flex-col items-center bg-slate-50/50 hover:bg-slate-50 transition-colors">
                     <span className="text-xs font-bold text-slate-700 text-center mb-3 block">{ph.label}</span>
@@ -640,7 +640,7 @@ export default function ProfilCabang() {
                         <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                           <label className="cursor-pointer text-white text-xs font-semibold bg-blue-600/90 px-3 py-1.5 rounded-lg flex items-center gap-1">
                             <Camera className="w-3.5 h-3.5" />
-                            Ganti Foto
+                            {t('profil_cabang.ganti_foto')}
                             <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e, ph.id)} />
                           </label>
                         </div>
@@ -648,7 +648,7 @@ export default function ProfilCabang() {
                     ) : (
                       <label className="cursor-pointer w-full h-32 border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl flex flex-col items-center justify-center gap-2 bg-white mb-3 hover:bg-blue-50/30 transition-all">
                         <ImageIcon className="w-8 h-8 text-slate-300" />
-                        <span className="text-[11px] font-semibold text-slate-500">Unggah Foto</span>
+                        <span className="text-[11px] font-semibold text-slate-500">{t('profil_cabang.unggah_foto')}</span>
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhotoUpload(e, ph.id)} />
                       </label>
                     )}
@@ -668,12 +668,12 @@ export default function ProfilCabang() {
               {saveMutation.isPending || isCompressing ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{isCompressing ? 'Memproses Gambar...' : 'Menyimpan...'}</span>
+                  <span>{isCompressing ? t('profil_cabang.memproses_gambar') : t('profil_cabang.menyimpan')}</span>
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  <span>Simpan Perubahan</span>
+                  <span>{t('profil_cabang.simpan_perubahan')}</span>
                 </>
               )}
             </button>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 import { UserCheck, Loader2, Save, AlertCircle, CheckCircle, Search, Info } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 
@@ -23,6 +24,7 @@ interface KehadiranGuruRow {
 }
 
 export default function AbsensiGuru() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isGlobal = user?.scope === 'GLOBAL';
   const isWilayah = user?.scope === 'WILAYAH';
@@ -188,10 +190,10 @@ export default function AbsensiGuru() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
           <UserCheck className="w-6 h-6 text-emerald-600" />
-          Absensi Kehadiran Guru / Ustadz
+          {t('absensi_guru.title')}
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Pilih wilayah, cabang, dan program absensi untuk mulai mengisi kehadiran Ustadz & Guru.
+          {t('absensi_guru.subtitle')}
         </p>
       </div>
 
@@ -200,7 +202,7 @@ export default function AbsensiGuru() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">
-              Wilayah
+              {t('absensi_guru.wilayah')}
             </label>
             <select
               value={selectedWilayah}
@@ -210,20 +212,20 @@ export default function AbsensiGuru() {
             >
               {isGlobal ? (
                 <>
-                  <option value="">-- Semua Wilayah --</option>
+                  <option value="">{t('absensi_guru.semua_wilayah')}</option>
                   {wilayahs.map((w: any) => (
                     <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
                 </>
               ) : (
-                <option value={selectedWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
+                <option value={selectedWilayah}>{user?.wilayahName || t('absensi_guru.wilayah_terkunci')}</option>
               )}
             </select>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">
-              Cabang
+              {t('absensi_guru.cabang')}
             </label>
             <select
               value={selectedCabang}
@@ -232,10 +234,10 @@ export default function AbsensiGuru() {
               className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
             >
               {isCabang ? (
-                <option value={selectedCabang}>{user?.cabangName || 'Cabang Terkunci'}</option>
+                <option value={selectedCabang}>{user?.cabangName || t('absensi_guru.cabang_terkunci')}</option>
               ) : (
                 <>
-                  <option value="">-- Semua Cabang --</option>
+                  <option value="">{t('absensi_guru.semua_cabang')}</option>
                   {filteredBranches.map((b: any) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
@@ -246,7 +248,7 @@ export default function AbsensiGuru() {
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">
-              Program Absensi
+              {t('absensi_guru.program')}
             </label>
             <select
               value={selectedProgram}
@@ -254,7 +256,7 @@ export default function AbsensiGuru() {
               className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none text-sm bg-white font-medium"
             >
               {programs.length === 0 ? (
-                <option value="">Tidak ada program aktif</option>
+                <option value="">{t('absensi_guru.no_program')}</option>
               ) : (
                 programs.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
@@ -269,7 +271,7 @@ export default function AbsensiGuru() {
       {!selectedProgram ? (
         <div className="bg-slate-50 border border-dashed border-slate-300/80 rounded p-12 text-center text-slate-400 flex flex-col items-center justify-center">
           <Info className="w-8 h-8 mb-2 text-slate-300" />
-          <p className="font-medium text-slate-600">Silakan pilih Program Absensi untuk memuat data guru.</p>
+          <p className="font-medium text-slate-600">{t('absensi_guru.select_program_msg')}</p>
         </div>
       ) : loadingKehadiran ? (
         <div className="bg-white border border-slate-200 rounded p-12 flex justify-center items-center">
@@ -277,7 +279,7 @@ export default function AbsensiGuru() {
         </div>
       ) : isError ? (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded p-6 text-center flex items-center justify-center gap-2">
-          <AlertCircle className="w-5 h-5" /> Gagal memuat data absensi guru. Pastikan koneksi server terhubung dengan baik.
+          <AlertCircle className="w-5 h-5" /> {t('absensi_guru.error_load')}
         </div>
       ) : (
         <div className="space-y-4">
@@ -288,7 +290,7 @@ export default function AbsensiGuru() {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                 <input
                   type="text"
-                  placeholder="Cari guru..."
+                  placeholder={t('absensi_guru.search_ph')}
                   value={searchQuery}
                   onChange={e => { setSearchQuery(e.target.value); setPage(1); }}
                   className="pl-9 pr-4 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none w-48"
@@ -296,10 +298,10 @@ export default function AbsensiGuru() {
               </div>
 
               <div className="flex items-center gap-2 border-l border-slate-200 pl-4 text-xs font-semibold text-slate-600">
-                <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded">Hadir: {hadirCount}</span>
-                <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded">Sakit: {sakitCount}</span>
-                <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded">Izin: {izinCount}</span>
-                <span className="px-2 py-1 bg-rose-50 text-rose-700 rounded">Alpa: {alpaCount}</span>
+                <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded">{t('absensi_guru.status_hadir')}: {hadirCount}</span>
+                <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded">{t('absensi_guru.status_sakit')}: {sakitCount}</span>
+                <span className="px-2 py-1 bg-amber-50 text-amber-700 rounded">{t('absensi_guru.status_izin')}: {izinCount}</span>
+                <span className="px-2 py-1 bg-rose-50 text-rose-700 rounded">{t('absensi_guru.status_alpa')}: {alpaCount}</span>
               </div>
             </div>
 
@@ -309,7 +311,7 @@ export default function AbsensiGuru() {
                 onClick={() => handleSetAllStatus('HADIR')}
                 className="px-3 py-1.5 text-xs font-semibold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
               >
-                Set Semua Hadir
+                {t('absensi_guru.set_all_hadir')}
               </button>
 
               <button
@@ -321,17 +323,17 @@ export default function AbsensiGuru() {
                 {saveMutation.isPending ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Menyimpan...
+                    {t('common.saving')}
                   </>
                 ) : isSavedSuccessfully ? (
                   <>
                     <CheckCircle className="w-3.5 h-3.5" />
-                    Tersimpan
+                    {t('absensi_guru.saved')}
                   </>
                 ) : (
                   <>
                     <Save className="w-3.5 h-3.5" />
-                    Simpan Absensi Guru
+                    {t('absensi_guru.save_btn')}
                   </>
                 )}
               </button>
@@ -345,23 +347,23 @@ export default function AbsensiGuru() {
                 <thead className="bg-[#fbfbfb]">
                   <tr className="text-xs font-bold text-slate-500 uppercase tracking-wider text-left border-b border-slate-200">
                     <th className="px-4 py-3 w-12 text-center">No</th>
-                    <th className="px-4 py-3 min-w-[200px]">Nama Guru / Ustadz</th>
-                    <th className="px-4 py-3 min-w-[140px]">Jabatan / Posisi</th>
-                    <th className="px-4 py-3 min-w-[220px] text-center">Status Kehadiran</th>
-                    <th className="px-4 py-3 min-w-[200px]">Catatan Keterangan</th>
+                    <th className="px-4 py-3 min-w-[200px]">{t('absensi_guru.nama_guru')}</th>
+                    <th className="px-4 py-3 min-w-[140px]">{t('absensi_guru.jabatan')}</th>
+                    <th className="px-4 py-3 min-w-[220px] text-center">{t('absensi_guru.status_kehadiran')}</th>
+                    <th className="px-4 py-3 min-w-[200px]">{t('absensi_guru.catatan')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-150 text-xs bg-white">
                   {rows.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                        Belum ada data guru pada cabang ini.
+                        {t('absensi_guru.no_data_cabang')}
                       </td>
                     </tr>
                   ) : paginatedRows.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                        Tidak ada data guru yang cocok dengan pencarian.
+                        {t('absensi_guru.no_data_search')}
                       </td>
                     </tr>
                   ) : (
@@ -428,7 +430,7 @@ export default function AbsensiGuru() {
                         <td className="px-4 py-3">
                           <input
                             type="text"
-                            placeholder="Catatan..."
+                            placeholder={t('absensi_guru.catatan_ph')}
                             value={r.catatan}
                             onChange={e => handleCatatanChange(r.guruId, e.target.value)}
                             className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-slate-50/40 focus:bg-white transition-colors"

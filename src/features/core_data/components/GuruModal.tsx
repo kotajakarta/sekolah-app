@@ -238,7 +238,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Mata Pelajaran Umum (Multi-Pilih)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('guru.form.mapel_umum')}</label>
                   <Select
                     isMulti
                     options={mapelOptions}
@@ -249,11 +249,11 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
                         mapelUmum: selected.map(item => item.value)
                       });
                     }}
-                    placeholder="Pilih pelajaran (bisa lebih dari satu)..."
+                    placeholder={t('guru.form.mapel_umum_ph')}
                     className="text-sm"
                   />
                   <p className="text-[11px] text-slate-500 mt-1">
-                    *Pilih mapel umum jika guru ini ditugaskan mengajarkannya. Akan direkap di Dashboard.
+                    {t('guru.form.mapel_umum_desc')}
                   </p>
                 </div>
 

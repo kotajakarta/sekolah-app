@@ -98,11 +98,11 @@ export default function DataGuru() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['guru'] });
-      showToast('success', 'Berhasil menghapus semua data guru');
+      showToast('success', t('guru.delete_all_success'));
       setIsConfirmDeleteAllOpen(false);
     },
     onError: (error: any) => {
-      showToast('error', error.response?.data?.message || 'Gagal menghapus semua data guru');
+      showToast('error', error.response?.data?.message || t('guru.delete_all_failed'));
       setIsConfirmDeleteAllOpen(false);
     }
   });
@@ -190,9 +190,9 @@ export default function DataGuru() {
                   <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.name')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.form.jabatan')}</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Wilayah</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Cabang</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Tugas</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.table_wilayah')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.table_cabang')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.table_tugas')}</th>
                   <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
                 </tr>
               </thead>
@@ -226,7 +226,7 @@ export default function DataGuru() {
                             <>
                               {teacherAssignments.map((asg: any) => (
                                 <span key={asg.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-150">
-                                  {asg.mataPelajaran?.name || 'Mapel'} ({asg.kelas?.name || 'Kelas'})
+                                  {asg.mataPelajaran?.name || t('guru.mapel')} ({asg.kelas?.name || t('guru.kelas')})
                                 </span>
                               ))}
                               {teacherAssignments.length === 0 && (
@@ -310,16 +310,16 @@ export default function DataGuru() {
         isOpen={isConfirmDeleteAllOpen}
         onClose={() => setIsConfirmDeleteAllOpen(false)}
         onConfirm={() => deleteAllMutation.mutate()}
-        title="Konfirmasi Hapus Semua Guru"
-        message="PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA data guru? Aksi ini akan menghapus data guru secara permanen."
+        title={t('guru.confirm_delete_all_title')}
+        message={t('guru.confirm_delete_all_msg')}
       />
 
       <ConfirmModal
         isOpen={isConfirmDeleteOpen}
         onClose={() => { setIsConfirmDeleteOpen(false); setGuruIdToDelete(null); }}
         onConfirm={confirmDelete}
-        title="Konfirmasi Hapus Guru"
-        message="Apakah Anda yakin ingin menghapus data guru ini secara permanen?"
+        title={t('guru.confirm_delete_title')}
+        message={t('guru.confirm_delete_msg')}
       />
     </div>
   );

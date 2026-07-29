@@ -49,6 +49,7 @@ const FileCard = ({
   isCompressing: boolean; setIsCompressing: (v: boolean) => void;
   accept?: string;
 }) => {
+  const { t } = useTranslation();
   const isImage = value && /\.(png|jpe?g|webp)$/i.test(value);
   const isPdf = value && /\.pdf$/i.test(value);
   const previewUrl = value ? (value.startsWith('http') ? value : `/api/v1${value.startsWith('/') ? '' : '/'}${value}`) : null;
@@ -89,7 +90,7 @@ const FileCard = ({
             <div className="w-full h-full bg-red-50 flex flex-col items-center justify-center gap-1">
               <FileText className="w-7 h-7 text-red-500" />
               <span className="text-[10px] text-red-600 font-medium">PDF</span>
-              <a href={previewUrl} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-600 underline">Lihat</a>
+              <a href={previewUrl} target="_blank" rel="noreferrer" className="text-[10px] text-indigo-600 underline">{t('siswa.form.lihat_pdf')}</a>
             </div>
           ) : (
             <div className="w-full h-full bg-slate-100 flex items-center justify-center">
@@ -104,9 +105,9 @@ const FileCard = ({
       )}
       <label className={`w-full cursor-pointer rounded-lg border py-1.5 px-3 text-xs font-semibold text-center transition-all duration-150 ${value ? 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300'} ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
         {isCompressing ? (
-          <span className="flex items-center justify-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> Mengupload...</span>
+          <span className="flex items-center justify-center gap-1.5"><Loader2 className="w-3 h-3 animate-spin" /> {t('siswa.form.upload_uploading')}</span>
         ) : (
-          <span className="flex items-center justify-center gap-1.5"><Upload className="w-3 h-3" />{value ? 'Ganti' : 'Upload'}</span>
+          <span className="flex items-center justify-center gap-1.5"><Upload className="w-3 h-3" />{value ? t('siswa.form.upload_ganti') : t('siswa.form.upload_btn')}</span>
         )}
         <input type="file" accept={accept || 'image/*,application/pdf'} className="hidden" onChange={handleChange} disabled={isCompressing} />
       </label>
@@ -357,17 +358,17 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
       setNotification({
         isOpen: true,
         type: 'success',
-        title: 'Berhasil!',
-        message: 'Data siswa berhasil disimpan'
+        title: t('siswa.form.save_success_title'),
+        message: t('siswa.form.save_success_msg')
       });
     },
     onError: (error: any) => {
-      const msg = error.response?.data?.message || error.message || 'Terjadi kesalahan internal.';
+      const msg = error.response?.data?.message || error.message || 'Internal error.';
       setNotification({
         isOpen: true,
         type: 'error',
-        title: 'Gagal Menyimpan',
-        message: `Terjadi kesalahan saat menyimpan data:\n${msg}\n\nSilakan hubungi administrator jika masalah berlanjut.`
+        title: t('siswa.form.save_error_title'),
+        message: `${t('siswa.form.save_error_msg')}\n${msg}\n\n${t('siswa.form.save_error_contact')}`
       });
     }
   });
@@ -378,11 +379,11 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
   };
 
   const tabs: { id: TabType; label: string; shortLabel: string; icon: React.ReactNode; show: boolean }[] = [
-    { id: 'SANTRI',           label: 'Data Santri',       shortLabel: 'Santri',      icon: <User className="w-4 h-4" />,      show: true },
-    { id: 'ORANG_TUA',        label: 'Data Orang Tua',    shortLabel: 'Orang Tua',   icon: <Users className="w-4 h-4" />,     show: true },
-    { id: 'ALAMAT',           label: 'Data Alamat',       shortLabel: 'Alamat',      icon: <MapPin className="w-4 h-4" />,    show: true },
-    { id: 'AKTIVITAS_BELAJAR',label: 'Aktivitas Belajar', shortLabel: 'Aktivitas',   icon: <BookOpen className="w-4 h-4" />,  show: !!student },
-    { id: 'RIWAYAT_NILAI',    label: 'Riwayat Nilai',     shortLabel: 'Nilai',       icon: <ClipboardList className="w-4 h-4" />, show: !!student },
+    { id: 'SANTRI',           label: t('siswa.form.tab_santri'),    shortLabel: t('siswa.form.tab_santri_short'),    icon: <User className="w-4 h-4" />,      show: true },
+    { id: 'ORANG_TUA',        label: t('siswa.form.tab_ortu'),      shortLabel: t('siswa.form.tab_ortu_short'),      icon: <Users className="w-4 h-4" />,     show: true },
+    { id: 'ALAMAT',           label: t('siswa.form.tab_alamat'),    shortLabel: t('siswa.form.tab_alamat_short'),    icon: <MapPin className="w-4 h-4" />,    show: true },
+    { id: 'AKTIVITAS_BELAJAR',label: t('siswa.form.tab_aktivitas'), shortLabel: t('siswa.form.tab_aktivitas_short'), icon: <BookOpen className="w-4 h-4" />,  show: !!student },
+    { id: 'RIWAYAT_NILAI',    label: t('siswa.form.tab_nilai'),     shortLabel: t('siswa.form.tab_nilai_short'),     icon: <ClipboardList className="w-4 h-4" />, show: !!student },
   ];
 
   const isEditMode = !!student;
@@ -452,11 +453,11 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
 
             {/* Document status indicators */}
             <div className="mt-auto pt-3 border-t border-slate-200 px-1">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Dokumen</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">{t('siswa.form.sidebar_dokumen')}</p>
               {[
-                { label: 'Foto', value: formData.fotoUrl },
-                { label: 'Ijazah', value: formData.ijazahUrl },
-                { label: 'KK', value: formData.kkUrl },
+                { label: t('siswa.form.doc_foto'), value: formData.fotoUrl },
+                { label: t('siswa.form.doc_ijazah'), value: formData.ijazahUrl },
+                { label: t('siswa.form.doc_kk'), value: formData.kkUrl },
               ].map(doc => (
                 <div key={doc.label} className="flex items-center justify-between py-1">
                   <span className="text-[11px] text-slate-500">{doc.label}</span>
@@ -479,37 +480,37 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                   
                   {/* Upload Documents Row */}
                   <div>
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Berkas & Dokumen</h3>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">{t('siswa.form.section_berkas')}</h3>
                     <div className="grid grid-cols-3 gap-3">
                       <FileCard 
-                        label="Foto" 
+                        label={t('siswa.form.foto_label')} 
                         icon={<Camera className="w-3.5 h-3.5" />} 
                         value={formData.fotoUrl}
                         studentId={student?.id}
                         jenis="passfoto"
-                        onUploaded={(url) => { setFormData(prev => ({ ...prev, fotoUrl: url })); showToast('success', 'Foto berhasil diupload'); }}
+                        onUploaded={(url) => { setFormData(prev => ({ ...prev, fotoUrl: url })); showToast('success', t('siswa.form.upload_success_foto')); }}
                         isCompressing={isCompressing}
                         setIsCompressing={setIsCompressing}
                         accept="image/*"
                       />
                       <FileCard 
-                        label="Ijazah" 
+                        label={t('siswa.form.ijazah_label')} 
                         icon={<FileText className="w-3.5 h-3.5" />} 
                         value={formData.ijazahUrl}
                         studentId={student?.id}
                         jenis="ijazah"
-                        onUploaded={(url) => { setFormData(prev => ({ ...prev, ijazahUrl: url })); showToast('success', 'Ijazah berhasil diupload'); }}
+                        onUploaded={(url) => { setFormData(prev => ({ ...prev, ijazahUrl: url })); showToast('success', t('siswa.form.upload_success_ijazah')); }}
                         isCompressing={isCompressing}
                         setIsCompressing={setIsCompressing}
                         accept="image/*,application/pdf"
                       />
                       <FileCard 
-                        label="Kartu Keluarga" 
+                        label={t('siswa.form.kk_label')} 
                         icon={<Home className="w-3.5 h-3.5" />} 
                         value={formData.kkUrl}
                         studentId={student?.id}
                         jenis="kk"
-                        onUploaded={(url) => { setFormData(prev => ({ ...prev, kkUrl: url })); showToast('success', 'KK berhasil diupload'); }}
+                        onUploaded={(url) => { setFormData(prev => ({ ...prev, kkUrl: url })); showToast('success', t('siswa.form.upload_success_kk')); }}
                         isCompressing={isCompressing}
                         setIsCompressing={setIsCompressing}
                         accept="image/*,application/pdf"
@@ -519,25 +520,25 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
 
                   {/* Personal Info */}
                   <div>
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Identitas Diri</h3>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">{t('siswa.form.section_identitas')}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="sm:col-span-2">
-                        <InputField label="Nama Lengkap" required>
+                        <InputField label={t('siswa.form.nama_lengkap')} required>
                           <input
                             type="text"
                             required
                             value={formData.fullName}
                             onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                             className={inputCls}
-                            placeholder="Nama lengkap santri..."
+                            placeholder={t('siswa.form.nama_lengkap_ph')}
                           />
                         </InputField>
                       </div>
                       <InputField label={t('siswa.form.nik')}>
-                        <input type="text" value={formData.nik} onChange={(e) => setFormData({ ...formData, nik: e.target.value })} className={inputCls} placeholder="16 digit NIK" />
+                        <input type="text" value={formData.nik} onChange={(e) => setFormData({ ...formData, nik: e.target.value })} className={inputCls} placeholder={t('siswa.form.nik_ph')} />
                       </InputField>
-                      <InputField label="NISN">
-                        <input type="text" value={formData.nisn} onChange={(e) => setFormData({ ...formData, nisn: e.target.value })} className={inputCls} placeholder="Nomor Induk Siswa Nasional" />
+                      <InputField label={t('siswa.form.nisn_label')}>
+                        <input type="text" value={formData.nisn} onChange={(e) => setFormData({ ...formData, nisn: e.target.value })} className={inputCls} placeholder={t('siswa.form.nisn_ph')} />
                       </InputField>
                       <InputField label={`${t('siswa.form.nis_lokal')} / NISM`}>
                         <input type="text" value={formData.nisLokal} onChange={(e) => setFormData({ ...formData, nisLokal: e.target.value })} className={inputCls} />
@@ -546,7 +547,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                         <input type="text" value={formData.noGlodemy} onChange={(e) => setFormData({ ...formData, noGlodemy: e.target.value })} className={inputCls} />
                       </InputField>
                       <InputField label={t('siswa.form.birth_place')}>
-                        <input type="text" value={formData.tempatLahir} onChange={(e) => setFormData({ ...formData, tempatLahir: e.target.value })} className={inputCls} placeholder="Kota tempat lahir" />
+                        <input type="text" value={formData.tempatLahir} onChange={(e) => setFormData({ ...formData, tempatLahir: e.target.value })} className={inputCls} placeholder={t('siswa.form.birth_place_ph')} />
                       </InputField>
                       <InputField label={t('siswa.form.birth_date')}>
                         <input type="date" value={formData.tanggalLahir} onChange={(e) => setFormData({ ...formData, tanggalLahir: e.target.value })} className={inputCls} />
@@ -584,13 +585,13 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           }}
                         />
                       </InputField>
-                      <InputField label="Nomor KK">
-                        <input type="text" value={formData.noKk} onChange={(e) => setFormData({ ...formData, noKk: e.target.value })} className={inputCls} placeholder="16 digit Nomor KK" />
+                      <InputField label={t('siswa.form.no_kk')}>
+                        <input type="text" value={formData.noKk} onChange={(e) => setFormData({ ...formData, noKk: e.target.value })} className={inputCls} placeholder={t('siswa.form.no_kk_ph')} />
                       </InputField>
-                      <InputField label="Anak Ke-">
+                      <InputField label={t('siswa.form.anak_ke')}>
                         <input type="number" min={1} value={formData.anakKe} onChange={(e) => setFormData({ ...formData, anakKe: e.target.value })} className={inputCls} />
                       </InputField>
-                      <InputField label="Jumlah Saudara">
+                      <InputField label={t('siswa.form.jumlah_saudara')}>
                         <input type="number" min={0} value={formData.jumlahSaudara} onChange={(e) => setFormData({ ...formData, jumlahSaudara: e.target.value })} className={inputCls} />
                       </InputField>
                     </div>
@@ -598,7 +599,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
 
                   {/* Academic Registration */}
                   <div>
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Registrasi Akademik</h3>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">{t('siswa.form.section_registrasi')}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {!student && user?.scope === 'GLOBAL' && (
                         <InputField label={t('siswa.form.wilayah_daftar')} required>
@@ -621,16 +622,16 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                       <InputField label={t('siswa.form.tgl_masuk')}>
                         <input type="date" value={formData.tanggalMasuk} onChange={(e) => setFormData({ ...formData, tanggalMasuk: e.target.value })} className={inputCls} />
                       </InputField>
-                      <InputField label="Jenis Siswa">
+                      <InputField label={t('siswa.form.jenis_siswa')}>
                         <select value={formData.jenisSiswa} onChange={(e) => setFormData({ ...formData, jenisSiswa: e.target.value })} className={selectCls}>
-                          <option value="">Pilih Jenis Siswa</option>
-                          <option value="MUADALAH">Muadalah</option>
-                          <option value="NON_MUADALAH">Non Muadalah</option>
+                          <option value="">{t('siswa.form.jenis_siswa_ph')}</option>
+                          <option value="MUADALAH">{t('siswa.form.jenis_muadalah')}</option>
+                          <option value="NON_MUADALAH">{t('siswa.form.jenis_non_muadalah')}</option>
                         </select>
                       </InputField>
-                      <InputField label="Grup Daimi">
+                      <InputField label={t('siswa.form.grup_daimi')}>
                         <select value={formData.grupDaimi} onChange={(e) => setFormData({ ...formData, grupDaimi: e.target.value })} className={selectCls}>
-                          <option value="">Pilih Grup Daimi</option>
+                          <option value="">{t('siswa.form.grup_daimi_ph')}</option>
                           {grupDaimiList?.map((grup: any) => (
                             <option key={grup.id} value={grup.name}>
                               {grup.name}{grup.jenis ? ` (${grup.jenis})` : ''}
@@ -638,13 +639,13 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           ))}
                         </select>
                       </InputField>
-                      <InputField label="Status Hafidz">
+                      <InputField label={t('siswa.form.status_hafidz')}>
                         <select value={formData.statusHafidz} onChange={(e) => setFormData({ ...formData, statusHafidz: e.target.value })} className={selectCls}>
-                          <option value="">Pilih Status Hafidz</option>
-                          <option value="BELUM_MULAI">Belum Mulai</option>
-                          <option value="SEDANG_BERLANGSUNG">Sedang Berlangsung</option>
-                          <option value="SUDAH_SETOR_30_JUZ">Sudah Setor 30 Juz</option>
-                          <option value="SUDAH_KHATAMAN_KUBRO">Sudah Khataman Kubro</option>
+                          <option value="">{t('siswa.form.status_hafidz_ph')}</option>
+                          <option value="BELUM_MULAI">{t('siswa.form.hafidz_belum')}</option>
+                          <option value="SEDANG_BERLANGSUNG">{t('siswa.form.hafidz_berlangsung')}</option>
+                          <option value="SUDAH_SETOR_30_JUZ">{t('siswa.form.hafidz_30juz')}</option>
+                          <option value="SUDAH_KHATAMAN_KUBRO">{t('siswa.form.hafidz_khataman')}</option>
                         </select>
                       </InputField>
                     </div>
@@ -666,16 +667,16 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                         <h3 className="text-sm font-bold text-slate-700">{t('siswa.form.ayah_title')}</h3>
                       </div>
                       <InputField label={t('siswa.form.nama_ayah')}>
-                        <input type="text" value={formData.namaAyah} onChange={(e) => setFormData({ ...formData, namaAyah: e.target.value })} className={inputCls} placeholder="Nama lengkap ayah" />
+                        <input type="text" value={formData.namaAyah} onChange={(e) => setFormData({ ...formData, namaAyah: e.target.value })} className={inputCls} placeholder={t('siswa.form.nama_ayah_ph')} />
                       </InputField>
-                      <InputField label="NIK Ayah">
-                        <input type="text" value={formData.nikAyah} onChange={(e) => setFormData({ ...formData, nikAyah: e.target.value })} className={inputCls} placeholder="16 digit NIK" maxLength={16} />
+                      <InputField label={t('siswa.form.nik_ayah')}>
+                        <input type="text" value={formData.nikAyah} onChange={(e) => setFormData({ ...formData, nikAyah: e.target.value })} className={inputCls} placeholder={t('siswa.form.nik_ph')} maxLength={16} />
                       </InputField>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <InputField label="Tempat Lahir Ayah">
-                          <input type="text" value={formData.tempatLahirAyah} onChange={(e) => setFormData({ ...formData, tempatLahirAyah: e.target.value })} className={inputCls} placeholder="Kota lahir" />
+                        <InputField label={t('siswa.form.tempat_lahir_ayah')}>
+                          <input type="text" value={formData.tempatLahirAyah} onChange={(e) => setFormData({ ...formData, tempatLahirAyah: e.target.value })} className={inputCls} placeholder={t('siswa.form.tempat_lahir_ayah_ph')} />
                         </InputField>
-                        <InputField label="Tanggal Lahir Ayah">
+                        <InputField label={t('siswa.form.tgl_lahir_ayah')}>
                           <input type="date" value={formData.tanggalLahirAyah} onChange={(e) => setFormData({ ...formData, tanggalLahirAyah: e.target.value })} className={inputCls} />
                         </InputField>
                       </div>
@@ -688,19 +689,19 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                       </InputField>
                       <InputField label={t('siswa.form.pendidikan_ayah')}>
                         <select value={formData.pendidikanAyah} onChange={(e) => setFormData({ ...formData, pendidikanAyah: e.target.value })} className={selectCls}>
-                          <option value="">Pilih Pendidikan</option>
+                          <option value="">{t('siswa.form.pilih_pendidikan')}</option>
                           {PENDIDIKAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
                       </InputField>
                       <InputField label={t('siswa.form.pekerjaan_ayah')}>
                         <select value={formData.pekerjaanAyah} onChange={(e) => setFormData({ ...formData, pekerjaanAyah: e.target.value })} className={selectCls}>
-                          <option value="">Pilih Pekerjaan</option>
+                          <option value="">{t('siswa.form.pilih_pekerjaan')}</option>
                           {PEKERJAAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
                       </InputField>
-                      <InputField label="Rata-rata Penghasilan Ayah">
+                      <InputField label={t('siswa.form.penghasilan_ayah')}>
                         <select value={formData.penghasilanAyah} onChange={(e) => setFormData({ ...formData, penghasilanAyah: e.target.value })} className={selectCls}>
-                          <option value="">Pilih Penghasilan</option>
+                          <option value="">{t('siswa.form.pilih_penghasilan')}</option>
                           {PENGHASILAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
                       </InputField>
@@ -718,16 +719,16 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                         <h3 className="text-sm font-bold text-slate-700">{t('siswa.form.ibu_title')}</h3>
                       </div>
                       <InputField label={t('siswa.form.nama_ibu')}>
-                        <input type="text" value={formData.namaIbu} onChange={(e) => setFormData({ ...formData, namaIbu: e.target.value })} className={inputCls} placeholder="Nama lengkap ibu" />
+                        <input type="text" value={formData.namaIbu} onChange={(e) => setFormData({ ...formData, namaIbu: e.target.value })} className={inputCls} placeholder={t('siswa.form.nama_ibu_ph')} />
                       </InputField>
-                      <InputField label="NIK Ibu">
-                        <input type="text" value={formData.nikIbu} onChange={(e) => setFormData({ ...formData, nikIbu: e.target.value })} className={inputCls} placeholder="16 digit NIK" maxLength={16} />
+                      <InputField label={t('siswa.form.nik_ibu')}>
+                        <input type="text" value={formData.nikIbu} onChange={(e) => setFormData({ ...formData, nikIbu: e.target.value })} className={inputCls} placeholder={t('siswa.form.nik_ph')} maxLength={16} />
                       </InputField>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <InputField label="Tempat Lahir Ibu">
-                          <input type="text" value={formData.tempatLahirIbu} onChange={(e) => setFormData({ ...formData, tempatLahirIbu: e.target.value })} className={inputCls} placeholder="Kota lahir" />
+                        <InputField label={t('siswa.form.tempat_lahir_ibu')}>
+                          <input type="text" value={formData.tempatLahirIbu} onChange={(e) => setFormData({ ...formData, tempatLahirIbu: e.target.value })} className={inputCls} placeholder={t('siswa.form.tempat_lahir_ibu_ph')} />
                         </InputField>
-                        <InputField label="Tanggal Lahir Ibu">
+                        <InputField label={t('siswa.form.tgl_lahir_ibu')}>
                           <input type="date" value={formData.tanggalLahirIbu} onChange={(e) => setFormData({ ...formData, tanggalLahirIbu: e.target.value })} className={inputCls} />
                         </InputField>
                       </div>
@@ -740,19 +741,19 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                       </InputField>
                       <InputField label={t('siswa.form.pendidikan_ibu')}>
                         <select value={formData.pendidikanIbu} onChange={(e) => setFormData({ ...formData, pendidikanIbu: e.target.value })} className={selectCls}>
-                          <option value="">Pilih Pendidikan</option>
+                          <option value="">{t('siswa.form.pilih_pendidikan')}</option>
                           {PENDIDIKAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
                       </InputField>
                       <InputField label={t('siswa.form.pekerjaan_ibu')}>
                         <select value={formData.pekerjaanIbu} onChange={(e) => setFormData({ ...formData, pekerjaanIbu: e.target.value })} className={selectCls}>
-                          <option value="">Pilih Pekerjaan</option>
+                          <option value="">{t('siswa.form.pilih_pekerjaan')}</option>
                           {PEKERJAAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
                       </InputField>
-                      <InputField label="Rata-rata Penghasilan Ibu">
+                      <InputField label={t('siswa.form.penghasilan_ibu')}>
                         <select value={formData.penghasilanIbu} onChange={(e) => setFormData({ ...formData, penghasilanIbu: e.target.value })} className={selectCls}>
-                          <option value="">Pilih Penghasilan</option>
+                          <option value="">{t('siswa.form.pilih_penghasilan')}</option>
                           {PENGHASILAN_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
                       </InputField>
@@ -765,9 +766,9 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
               {activeTab === 'ALAMAT' && (
                 <div className="p-6 space-y-6">
                   <div>
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Alamat Tempat Tinggal</h3>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">{t('siswa.form.section_alamat')}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <InputField label="Provinsi">
+                      <InputField label={t('siswa.form.provinsi')}>
                         <select
                           value={formData.alamatProvId}
                           onChange={(e) => {
@@ -777,11 +778,11 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           }}
                           className={selectCls}
                         >
-                          <option value="">-- Pilih Provinsi --</option>
+                          <option value="">{t('siswa.form.provinsi_ph')}</option>
                           {provinces.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>
                       </InputField>
-                      <InputField label="Kabupaten / Kota">
+                      <InputField label={t('siswa.form.kabupaten')}>
                         <select
                           value={formData.alamatKabId}
                           disabled={!formData.alamatProvId}
@@ -792,11 +793,11 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           }}
                           className={selectCls + ' disabled:opacity-50 disabled:cursor-not-allowed'}
                         >
-                          <option value="">-- Pilih Kota/Kabupaten --</option>
+                          <option value="">{t('siswa.form.kabupaten_ph')}</option>
                           {regencies.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                         </select>
                       </InputField>
-                      <InputField label="Kecamatan">
+                      <InputField label={t('siswa.form.kecamatan')}>
                         <select
                           value={formData.alamatKecId}
                           disabled={!formData.alamatKabId}
@@ -807,11 +808,11 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           }}
                           className={selectCls + ' disabled:opacity-50 disabled:cursor-not-allowed'}
                         >
-                          <option value="">-- Pilih Kecamatan --</option>
+                          <option value="">{t('siswa.form.kecamatan_ph')}</option>
                           {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                       </InputField>
-                      <InputField label="Kelurahan / Desa">
+                      <InputField label={t('siswa.form.kelurahan')}>
                         <select
                           value={formData.alamatKelId}
                           disabled={!formData.alamatKecId}
@@ -822,12 +823,12 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           }}
                           className={selectCls + ' disabled:opacity-50 disabled:cursor-not-allowed'}
                         >
-                          <option value="">-- Pilih Kelurahan/Desa --</option>
+                          <option value="">{t('siswa.form.kelurahan_ph')}</option>
                           {villages.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
                         </select>
                       </InputField>
                       <div className="sm:col-span-2">
-                        <InputField label="Alamat Jalan / Kampung">
+                        <InputField label={t('siswa.form.alamat_jalan')}>
                           <textarea
                             value={formData.alamatJalan}
                             onChange={(e) => {
@@ -837,24 +838,24 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                             }}
                             rows={2}
                             className={inputCls}
-                            placeholder="Nama Jalan, No. Rumah, RT/RW, Dusun..."
+                            placeholder={t('siswa.form.alamat_jalan_ph')}
                           />
                         </InputField>
                       </div>
                       <InputField label={t('siswa.form.phone')}>
-                        <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className={inputCls} placeholder="No. Telepon / WhatsApp" />
+                        <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className={inputCls} placeholder={t('siswa.form.phone_ph')} />
                       </InputField>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Kontak Darurat</h3>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">{t('siswa.form.section_darurat')}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <InputField label={t('siswa.form.darurat_nama')}>
-                        <input type="text" value={formData.kontakDaruratNama} onChange={(e) => setFormData({ ...formData, kontakDaruratNama: e.target.value })} className={inputCls} placeholder="Nama kontak darurat" />
+                        <input type="text" value={formData.kontakDaruratNama} onChange={(e) => setFormData({ ...formData, kontakDaruratNama: e.target.value })} className={inputCls} placeholder={t('siswa.form.darurat_nama_ph')} />
                       </InputField>
                       <InputField label={t('siswa.form.darurat_telp')}>
-                        <input type="text" value={formData.kontakDaruratTelp} onChange={(e) => setFormData({ ...formData, kontakDaruratTelp: e.target.value })} className={inputCls} placeholder="No. Telepon" />
+                        <input type="text" value={formData.kontakDaruratTelp} onChange={(e) => setFormData({ ...formData, kontakDaruratTelp: e.target.value })} className={inputCls} placeholder={t('siswa.form.darurat_telp_ph')} />
                       </InputField>
                       <InputField label={t('siswa.form.darurat_hub')}>
                         <input type="text" value={formData.kontakDaruratHubungan} onChange={(e) => setFormData({ ...formData, kontakDaruratHubungan: e.target.value })} className={inputCls} placeholder={t('siswa.form.darurat_hub_ph')} />
@@ -910,7 +911,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                 className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 shadow-sm shadow-indigo-200"
               >
                 {saveMutation.isPending
-                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Menyimpan...</>
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('siswa.form.saving')}</>
                   : <>{t('common.save')}</>
                 }
               </button>

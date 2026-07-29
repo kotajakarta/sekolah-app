@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useToast } from '../../contexts/ToastContext';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, XCircle, Clock, Building2, Loader2, Check, X, Eye } from 'lucide-react';
 
 interface PermohonanCabangItem {
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export default function PermohonanCabangTab({ isAdmin }: Props) {
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
@@ -71,7 +73,7 @@ export default function PermohonanCabangTab({ isAdmin }: Props) {
   if (isLoading) {
     return (
       <div className="p-8 text-center text-slate-500 text-xs flex items-center justify-center gap-2">
-        <Loader2 className="w-4 h-4 animate-spin text-brand" /> Memuat daftar permohonan cabang...
+        <Loader2 className="w-4 h-4 animate-spin text-brand" /> {t('common.loading')}
       </div>
     );
   }
@@ -80,7 +82,7 @@ export default function PermohonanCabangTab({ isAdmin }: Props) {
     <div className="space-y-4">
       {list.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500 text-xs">
-          Belum ada permohonan cabang baru.
+          {t('common.no_data')}
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
@@ -88,12 +90,12 @@ export default function PermohonanCabangTab({ isAdmin }: Props) {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Nama Usulan Cabang</th>
-                  <th className="px-4 py-3">Wilayah</th>
+                  <th className="px-4 py-3">{t('permohonan.status') || 'Status'}</th>
+                  <th className="px-4 py-3">{t('permohonan.usulan_nama') || 'Nama Usulan Cabang'}</th>
+                  <th className="px-4 py-3">{t('cabang.region') || 'Wilayah'}</th>
                   <th className="px-4 py-3">Lokasi / Kapasitas</th>
                   <th className="px-4 py-3">Pemohon</th>
-                  <th className="px-4 py-3 text-center">Aksi</th>
+                  <th className="px-4 py-3 text-center">{t('common.actions') || 'Aksi'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -102,17 +104,17 @@ export default function PermohonanCabangTab({ isAdmin }: Props) {
                     <td className="px-4 py-3">
                       {item.status === 'PENDING' && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          <Clock className="w-3 h-3" /> PENDING
+                          <Clock className="w-3 h-3" /> {t('permohonan.pending') || 'PENDING'}
                         </span>
                       )}
                       {item.status === 'APPROVED' && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3" /> APPROVED
+                          <CheckCircle2 className="w-3 h-3" /> {t('permohonan.approved') || 'APPROVED'}
                         </span>
                       )}
                       {item.status === 'REJECTED' && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                          <XCircle className="w-3 h-3" /> REJECTED
+                          <XCircle className="w-3 h-3" /> {t('permohonan.rejected') || 'REJECTED'}
                         </span>
                       )}
                     </td>
@@ -142,7 +144,7 @@ export default function PermohonanCabangTab({ isAdmin }: Props) {
                             }}
                             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors"
                           >
-                            <Check className="w-3.5 h-3.5" /> Approve
+                            <Check className="w-3.5 h-3.5" /> {t('permohonan.approve_btn') || 'Approve'}
                           </button>
                           <button
                             onClick={() => {
@@ -151,12 +153,12 @@ export default function PermohonanCabangTab({ isAdmin }: Props) {
                             }}
                             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg border border-rose-200 transition-colors"
                           >
-                            <X className="w-3.5 h-3.5" /> Tolak
+                            <X className="w-3.5 h-3.5" /> {t('permohonan.reject_btn') || 'Tolak'}
                           </button>
                         </div>
                       ) : (
                         <span className="text-slate-400 text-[11px]">
-                          {item.catatanAdmin ? `Catatan: ${item.catatanAdmin}` : '—'}
+                          {item.catatanAdmin ? `${t('permohonan.catatan_admin') || 'Catatan'}: ${item.catatanAdmin}` : '—'}
                         </span>
                       )}
                     </td>

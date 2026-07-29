@@ -207,7 +207,7 @@ export default function DataCabang() {
             onClick={() => setIsHulasaModalOpen(true)}
             className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
           >
-            Hulasa
+            {t('cabang.hulasa') || 'Hulasa'}
           </button>
           {user?.scope === 'WILAYAH' && (
             <button 
@@ -215,7 +215,7 @@ export default function DataCabang() {
               className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
             >
               <Send className="w-4 h-4 mr-2" />
-              Ajukan Cabang Baru
+              {t('permohonan.ajukan_cabang') || 'Ajukan Cabang Baru'}
             </button>
           )}
           {isAdmin && (
@@ -225,7 +225,7 @@ export default function DataCabang() {
                 className="inline-flex items-center justify-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Hapus Semua
+                {t('common.delete_all') || 'Hapus Semua'}
               </button>
               <button 
                 onClick={handleAdd}
@@ -250,7 +250,7 @@ export default function DataCabang() {
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
-            <Building2 className="w-4 h-4" /> Data Cabang
+            <Building2 className="w-4 h-4" /> {t('cabang.tab_data') || 'Data Cabang'}
           </button>
           <button
             onClick={() => setActiveTab('permohonan')}
@@ -260,7 +260,7 @@ export default function DataCabang() {
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
-            <FileText className="w-4 h-4" /> Permohonan Cabang Baru
+            <FileText className="w-4 h-4" /> {t('permohonan.cabang_title') || 'Permohonan Cabang Baru'}
           </button>
         </nav>
       </div>
@@ -275,7 +275,7 @@ export default function DataCabang() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input 
                 type="text" 
-                placeholder="Cari cabang..."
+                placeholder={t('cabang.search_placeholder') || 'Cari cabang...'}
                 className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-blue-500 bg-white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -288,7 +288,7 @@ export default function DataCabang() {
                   value={filterWilayah}
                   onChange={(e) => setFilterWilayah(e.target.value)}
                 >
-                  <option value="ALL">Semua Wilayah</option>
+                  <option value="ALL">{t('cabang.all_regions') || 'Semua Wilayah'}</option>
                   {uniqueWilayah.map(w => (
                     <option key={w.id} value={w.id}>{w.name}</option>
                   ))}
@@ -327,7 +327,7 @@ export default function DataCabang() {
                             onClick={() => setProfileCabangId(item.id)} 
                             className="text-xs font-medium text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg mr-2 transition-colors inline-flex items-center gap-1"
                           >
-                            Profile
+                            {t('cabang.profile') || 'Profil'}
                           </button>
                           {isAdmin && (
                             <>
@@ -358,9 +358,9 @@ export default function DataCabang() {
               <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 ring-1 ring-slate-100">
                 <Building2 className="w-6 h-6 text-slate-400" />
               </div>
-              <h3 className="text-sm font-medium text-slate-800">Tidak ada data cabang yang sesuai</h3>
+              <h3 className="text-sm font-medium text-slate-800">{t('cabang.empty_title') || 'Tidak ada data cabang yang sesuai'}</h3>
               <p className="text-sm text-slate-500 mt-1.5 max-w-sm">
-                Coba sesuaikan kata kunci pencarian atau filter wilayah.
+                {t('cabang.empty_desc') || 'Coba sesuaikan kata kunci pencarian atau filter wilayah.'}
               </p>
             </div>
           )}
@@ -391,8 +391,8 @@ export default function DataCabang() {
         isOpen={isConfirmDeleteAllOpen}
         onClose={() => setIsConfirmDeleteAllOpen(false)}
         onConfirm={executeDeleteAll}
-        title="Konfirmasi Hapus Semua Cabang"
-        message="PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA data cabang? Aksi ini akan menghapus seluruh data cabang secara permanen dan tidak dapat dibatalkan."
+        title={t('cabang.confirm_delete_all_title') || "Konfirmasi Hapus Semua Cabang"}
+        message={t('cabang.confirm_delete_all_msg') || "PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA data cabang? Aksi ini akan menghapus seluruh data cabang secara permanen dan tidak dapat dibatalkan."}
       />
 
       <HulasaCabangModal 

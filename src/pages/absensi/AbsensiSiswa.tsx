@@ -3,7 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
-import { Activity, Loader2, Save, AlertCircle, CheckCircle, Search, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Activity, Loader2, Save, AlertCircle, CheckCircle, Search, Info, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 
 interface Program {
   id: string;
@@ -11,6 +11,7 @@ interface Program {
   type: string;
   date: string;
   isActive: boolean;
+  isAttended?: boolean;
 }
 
 interface Kelas {
@@ -84,9 +85,12 @@ export default function AbsensiSiswa() {
 
   // 1. Get Active Programs
   const { data: programs, isLoading: loadingPrograms } = useQuery<Program[]>({
-    queryKey: ['absensi-programs-active'],
+    queryKey: ['absensi-programs-active', selectedCabang, selectedKelas],
     queryFn: async () => {
-      const res = await apiClient.get('/absensi/programs?activeOnly=true');
+      const params = new URLSearchParams({ activeOnly: 'true' });
+      if (selectedCabang) params.append('cabangId', selectedCabang);
+      if (selectedKelas) params.append('kelasId', selectedKelas);
+      const res = await apiClient.get(`/absensi/programs?${params.toString()}`);
       return res.data;
     }
   });
@@ -243,7 +247,9 @@ export default function AbsensiSiswa() {
             >
               <option value="">-- Pilih Program --</option>
               {(programs || []).map(p => (
-                <option key={p.id} value={p.id}>{p.name} ({new Date(p.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })})</option>
+                <option key={p.id} value={p.id}>
+                  {p.isAttended ? '✓ ' : ''}{p.name} ({new Date(p.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })})
+                </option>
               ))}
             </select>
           )}
@@ -307,11 +313,47 @@ export default function AbsensiSiswa() {
       </div>
 
       {/* Main Student Attendance Grid */}
-      {!selectedProgram ? (
-        <div className="bg-slate-50 border border-dashed border-slate-300/80 rounded-xl p-12 text-center text-slate-400 flex flex-col items-center justify-center">
-          <Info className="w-8 h-8 mb-2 text-slate-300" />
-          <p className="font-medium text-slate-600">Silakan pilih Program Absensi untuk memuat data siswa.</p>
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
+        <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
+          <div>
+            <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <Users className="w-4 h-4 text-indigo-600" />
+              Daftar Santri & Status Kehadiran
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Data santri akan muncul jika program, cabang, dan kelas telah dipilih.
+            </p>
+          </div>
+          {selectedProgram && selectedCabang && selectedKelas && programs && (
+            <div className="flex items-center">
+              {(() => {
+                const currentProgram = programs.find(p => p.id === selectedProgram);
+                if (currentProgram?.isAttended) {
+                  return (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
+                      Sudah Diabsen
+                    </span>
+                  );
+                } else {
+                  return (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+                      <AlertCircle className="w-3.5 h-3.5 mr-1.5" />
+                      Belum Diabsen
+                    </span>
+                  );
+                }
+              })()}
+            </div>
+          )}
         </div>
+
+        <div className="p-4 sm:p-6">
+          {!selectedProgram ? (
+            <div className="bg-slate-50 border border-dashed border-slate-300/80 rounded-xl p-12 text-center text-slate-400 flex flex-col items-center justify-center">
+              <Info className="w-8 h-8 mb-2 text-slate-300" />
+              <p className="font-medium text-slate-600">Silakan pilih Program Absensi untuk memuat data siswa.</p>
+            </div>
       ) : loadingKehadiran ? (
         <div className="bg-white border border-slate-200 rounded-xl p-12 flex justify-center items-center shadow-sm">
           <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
@@ -502,6 +544,8 @@ export default function AbsensiSiswa() {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
@@ -54,7 +55,16 @@ interface Kelas {
 }
 
 export default function ManajemenKelas() {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'kelas' | 'grup-daimi' | 'permohonan'>('kelas');
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get('tab');
+    if (tab === 'permohonan') {
+      setActiveTab('permohonan');
+    }
+  }, [location.search]);
   const [isAjukanKelasModalOpen, setIsAjukanKelasModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;

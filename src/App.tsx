@@ -165,12 +165,42 @@ const MainLayout = () => {
     refetchInterval: 60000
   });
 
+  // Fetch Permohonan Cabang (only if scope is GLOBAL)
+  const { data: permohonanCabang = [] } = useQuery<any[]>({
+    queryKey: ['permohonan-cabang'],
+    queryFn: async () => {
+      const res = await apiClient.get('/master-data/cabang/permohonan');
+      return res.data;
+    },
+    enabled: user?.scope === 'GLOBAL',
+    refetchInterval: 30000
+  });
+
+  // Fetch Permohonan Kelas (only if scope is GLOBAL)
+  const { data: permohonanKelas = [] } = useQuery<any[]>({
+    queryKey: ['permohonan-kelas'],
+    queryFn: async () => {
+      const res = await apiClient.get('/formal/kelas/permohonan');
+      return res.data;
+    },
+    enabled: user?.scope === 'GLOBAL',
+    refetchInterval: 30000
+  });
+
   const activeAnnouncements = announcements.filter((p: any) => p.isActive);
   const pendingBaps = user?.scope === 'CABANG'
     ? templates.filter((tmpl: any) => !baps.some((b: any) => b.templateId === tmpl.id))
     : [];
 
-  const totalWarnings = activeAnnouncements.length + pendingBaps.length;
+  const pendingPermohonanCabang = user?.scope === 'GLOBAL'
+    ? permohonanCabang.filter((p: any) => p.status === 'PENDING')
+    : [];
+
+  const pendingPermohonanKelas = user?.scope === 'GLOBAL'
+    ? permohonanKelas.filter((k: any) => k.status === 'PENDING')
+    : [];
+
+  const totalWarnings = activeAnnouncements.length + pendingBaps.length + pendingPermohonanCabang.length + pendingPermohonanKelas.length;
 
   return (
     <div className="bg-slate-50 flex w-full h-screen font-sans text-gray-800 overflow-hidden">
@@ -228,6 +258,38 @@ const MainLayout = () => {
                     )}
                   </div>
                   <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
+                    {pendingPermohonanCabang.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setIsNotifOpen(false);
+                          navigate('/core/cabang?tab=permohonan');
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-slate-50/50 flex items-start gap-2.5 transition-colors"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 mt-1 shrink-0 animate-pulse"></span>
+                        <div className="space-y-0.5">
+                          <p className="font-semibold text-slate-800">Pengajuan Cabang Baru</p>
+                          <p className="text-[10px] text-slate-500">Terdapat {pendingPermohonanCabang.length} pengajuan cabang baru dari Wilayah.</p>
+                        </div>
+                      </button>
+                    )}
+
+                    {pendingPermohonanKelas.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setIsNotifOpen(false);
+                          navigate('/formal/kelas?tab=permohonan');
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-slate-50/50 flex items-start gap-2.5 transition-colors"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-purple-500 mt-1 shrink-0 animate-pulse"></span>
+                        <div className="space-y-0.5">
+                          <p className="font-semibold text-slate-800">Pengajuan Kelas Baru</p>
+                          <p className="text-[10px] text-slate-500">Terdapat {pendingPermohonanKelas.length} pengajuan kelas baru dari Wilayah.</p>
+                        </div>
+                      </button>
+                    )}
+
                     {activeAnnouncements.length > 0 && (
                       <button
                         onClick={() => {

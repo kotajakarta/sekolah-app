@@ -48,8 +48,12 @@ export default function DataCabang() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get('tab');
+    if (tab === 'permohonan') {
+      setActiveTab('permohonan');
+    }
     if (cabang && cabang.length > 0) {
-      const searchParams = new URLSearchParams(location.search);
       const viewId = searchParams.get('viewId');
       if (viewId) {
         setProfileCabangId(viewId);

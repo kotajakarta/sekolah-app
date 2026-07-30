@@ -358,44 +358,37 @@ export default function Dashboard() {
                   Progres Kelengkapan Data {user?.scope === 'GLOBAL' ? '(Per Wilayah)' : user?.scope === 'WILAYAH' ? '(Per Cabang)' : '(Per Kelas)'}
                 </span>
               </div>
-              <div className="space-y-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                 {statsData.kelengkapanEntities.map((entity: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between py-1 border-b border-slate-50 last:border-0">
-                    <span className="text-[11px] font-medium text-slate-600 truncate max-w-[130px]" title={entity.name}>
-                      {entity.name}
-                    </span>
-                    <div className="flex flex-col space-y-1">
-                      <div className="flex items-center space-x-2">
-                        {entity.guru && <span className="text-[9px] w-8 text-slate-500">Siswa</span>}
-                        <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div key={idx} className="bg-slate-50/70 hover:bg-slate-50 transition-colors rounded-lg p-2.5 border border-slate-100 flex flex-col justify-center">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-bold text-slate-700 truncate w-full" title={entity.name}>
+                        {entity.name}
+                      </span>
+                    </div>
+                    
+                    <div className="flex flex-col space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[8.5px] font-medium text-slate-500 uppercase tracking-wider w-8">Siswa</span>
+                        <div className="flex-1 h-1 bg-slate-200/60 rounded-full overflow-hidden mx-2">
                           <div
-                            className={`h-full rounded-full transition-all duration-300 ${entity.siswa.percent === 100 ? 'bg-emerald-500' : entity.siswa.percent >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
+                            className={`h-full rounded-full ${entity.siswa.percent === 100 ? 'bg-emerald-500' : entity.siswa.percent >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
                             style={{ width: `${entity.siswa.percent}%` }}
                           />
                         </div>
-                        <span className="text-[9px] text-slate-400 w-10 text-right">
-                          {entity.siswa.lengkap}/{entity.siswa.total}
-                        </span>
-                        <span className={`text-[10px] font-bold w-7 text-right ${entity.siswa.percent === 100 ? 'text-emerald-600' : entity.siswa.percent >= 50 ? 'text-blue-600' : 'text-amber-600'}`}>
-                          {entity.siswa.percent}%
-                        </span>
+                        <span className="text-[9px] font-bold text-slate-700 w-6 text-right">{entity.siswa.percent}%</span>
                       </div>
                       
                       {entity.guru && (
-                        <div className="flex items-center space-x-2">
-                          <span className="text-[9px] w-8 text-slate-500">Guru</span>
-                          <div className="w-12 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[8.5px] font-medium text-slate-500 uppercase tracking-wider w-8">Guru</span>
+                          <div className="flex-1 h-1 bg-slate-200/60 rounded-full overflow-hidden mx-2">
                             <div
-                              className={`h-full rounded-full transition-all duration-300 ${entity.guru.percent === 100 ? 'bg-emerald-500' : entity.guru.percent >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
+                              className={`h-full rounded-full ${entity.guru.percent === 100 ? 'bg-emerald-500' : entity.guru.percent >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
                               style={{ width: `${entity.guru.percent}%` }}
                             />
                           </div>
-                          <span className="text-[9px] text-slate-400 w-10 text-right">
-                            {entity.guru.lengkap}/{entity.guru.total}
-                          </span>
-                          <span className={`text-[10px] font-bold w-7 text-right ${entity.guru.percent === 100 ? 'text-emerald-600' : entity.guru.percent >= 50 ? 'text-blue-600' : 'text-amber-600'}`}>
-                            {entity.guru.percent}%
-                          </span>
+                          <span className="text-[9px] font-bold text-slate-700 w-6 text-right">{entity.guru.percent}%</span>
                         </div>
                       )}
                     </div>

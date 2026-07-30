@@ -28,12 +28,13 @@ const PEKERJAAN_OPTIONS = ['Tidak Bekerja','Pensiunan','PNS','TNI/Polisi','Guru/
 const PENGHASILAN_OPTIONS = ['dibawah 800.000','800.001 - 1.200.000','1.200.001 - 1.800.000','1.800.001 - 2.500.000','2.500.001 - 3.500.000','3.500.001 - 4.800.000','4.800.001 - 6.500.000','6.500.001 - 10.000.000','10.000.001 - 20.000.000','diatas 20.000.001'];
 
 // Reusable styled input
-const InputField = ({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
+const InputField = ({ label, required = false, children, error }: { label: string; required?: boolean; children: React.ReactNode; error?: string }) => (
   <div>
-    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+    <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${error ? 'text-rose-500' : 'text-slate-500'}`}>
       {label}{required && <span className="text-rose-500 ml-0.5">*</span>}
     </label>
     {children}
+    {error && <p className="mt-1.5 text-xs font-medium text-rose-500 animate-in slide-in-from-top-1 opacity-100">{error}</p>}
   </div>
 );
 
@@ -225,6 +226,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>('SANTRI');
   const [viewImage, setViewImage] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
 
   const [formData, setFormData] = useState({
@@ -405,7 +407,19 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
       });
     },
     onError: (error: any) => {
+      setFieldErrors({});
       const msg = error.response?.data?.message || error.message || 'Internal error.';
+      
+      if (msg.includes('duplikat')) {
+        const fieldStr = msg.replace('Data ', '').replace(' yang Anda masukkan sudah terdaftar (duplikat).', '');
+        const fields = fieldStr.split(', ');
+        const newErrors: Record<string, string> = {};
+        fields.forEach((f: string) => {
+          newErrors[f] = 'Data sudah terdaftar (duplikat)';
+        });
+        setFieldErrors(newErrors);
+      }
+
       setNotification({
         isOpen: true,
         type: 'error',
@@ -576,11 +590,11 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           />
                         </InputField>
                       </div>
-                      <InputField label={t('siswa.form.nik')}>
-                        <input type="text" value={formData.nik} onChange={(e) => setFormData({ ...formData, nik: e.target.value })} className={inputCls} placeholder={t('siswa.form.nik_ph')} />
+                      <InputField label={t('siswa.form.nik')} error={fieldErrors['nik']}>
+                        <input type="text" value={formData.nik} onChange={(e) => { setFormData({ ...formData, nik: e.target.value }); setFieldErrors({ ...fieldErrors, nik: '' }); }} className={`${inputCls} ${fieldErrors['nik'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder={t('siswa.form.nik_ph')} />
                       </InputField>
-                      <InputField label={t('siswa.form.nisn_label')}>
-                        <input type="text" value={formData.nisn} onChange={(e) => setFormData({ ...formData, nisn: e.target.value })} className={inputCls} placeholder={t('siswa.form.nisn_ph')} />
+                      <InputField label={t('siswa.form.nisn_label')} error={fieldErrors['nisn']}>
+                        <input type="text" value={formData.nisn} onChange={(e) => { setFormData({ ...formData, nisn: e.target.value }); setFieldErrors({ ...fieldErrors, nisn: '' }); }} className={`${inputCls} ${fieldErrors['nisn'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder={t('siswa.form.nisn_ph')} />
                       </InputField>
                       <InputField label={`${t('siswa.form.nis_lokal')} / NISM`}>
                         <input type="text" value={formData.nisLokal} readOnly className={`${inputCls} bg-slate-100 cursor-not-allowed`} />

@@ -13,12 +13,13 @@ const PENGHASILAN_OPTIONS = ['dibawah 800.000', '800.001 - 1.200.000', '1.200.00
 const inputCls = "block w-full rounded-xl border border-gray-300 bg-white py-3 px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-600/10 transition-all duration-200 shadow-sm";
 const selectCls = inputCls + " appearance-none cursor-pointer";
 
-const InputField = ({ label, required = false, children, colSpan = false }: { label: string; required?: boolean; children: React.ReactNode; colSpan?: boolean }) => (
+const InputField = ({ label, required = false, children, colSpan = false, error }: { label: string; required?: boolean; children: React.ReactNode; colSpan?: boolean; error?: string }) => (
   <div className={colSpan ? "col-span-full" : ""}>
-    <label className="block text-[13px] font-semibold text-gray-700 mb-1.5 flex items-center gap-1">
+    <label className={`block text-[13px] font-semibold mb-1.5 flex items-center gap-1 ${error ? 'text-rose-500' : 'text-gray-700'}`}>
       {label}{required && <span className="text-rose-500">*</span>}
     </label>
     {children}
+    {error && <p className="mt-1.5 text-xs font-medium text-rose-500 animate-in slide-in-from-top-1 opacity-100">{error}</p>}
   </div>
 );
 
@@ -223,6 +224,7 @@ export default function DaftarUlang() {
   const [districts, setDistricts] = useState<any[]>([]);
   const [villages, setVillages] = useState<any[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
@@ -332,7 +334,20 @@ export default function DaftarUlang() {
       setStep(4); // Success step
     },
     onError: (err: any) => {
-      showToast('error', err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data');
+      setFieldErrors({});
+      const msg = err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data';
+      if (msg.includes('duplikat')) {
+        const fieldStr = msg.replace('Data ', '').replace(' yang Anda masukkan sudah terdaftar (duplikat).', '');
+        const fields = fieldStr.split(', ');
+        const newErrors: Record<string, string> = {};
+        fields.forEach((f: string) => {
+          newErrors[f] = 'Data sudah terdaftar (duplikat)';
+        });
+        setFieldErrors(newErrors);
+        showToast('error', 'Silakan periksa kembali data yang ditandai merah.');
+      } else {
+        showToast('error', msg);
+      }
     }
   });
 
@@ -445,11 +460,11 @@ export default function DaftarUlang() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                   <InputField label="Nama Lengkap" required><input name="fullName" value={formData.fullName} onChange={handleChange} required className={inputCls} /></InputField>
-                  <InputField label="NIK" required><input name="nik" value={formData.nik} readOnly className={inputCls + " bg-gray-100 text-gray-500 border-dashed"} /></InputField>
+                  <InputField label="NIK" required error={fieldErrors['nik']}><input name="nik" value={formData.nik} readOnly className={`${inputCls} bg-gray-100 text-gray-500 border-dashed ${fieldErrors['nik'] ? 'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500' : ''}`} /></InputField>
                   <InputField label="Nomor KK" required><input name="noKk" value={formData.noKk} onChange={handleChange} required maxLength={16} placeholder="Masukkan 16 digit Nomor KK" className={inputCls} /></InputField>
                   <InputField label="Anak Ke-" required><input type="number" name="anakKe" value={formData.anakKe} onChange={handleChange} required min={1} className={inputCls} /></InputField>
                   <InputField label="Jumlah Saudara" required><input type="number" name="jumlahSaudara" value={formData.jumlahSaudara} onChange={handleChange} required min={0} className={inputCls} /></InputField>
-                  <InputField label="NISN" required><input name="nisn" value={formData.nisn} onChange={handleChange} required placeholder="Masukkan NISN" className={inputCls} /></InputField>
+                  <InputField label="NISN" required error={fieldErrors['nisn']}><input name="nisn" value={formData.nisn} onChange={(e) => { handleChange(e); setFieldErrors({ ...fieldErrors, nisn: '' }); }} required placeholder="Masukkan NISN" className={`${inputCls} ${fieldErrors['nisn'] ? 'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500' : ''}`} /></InputField>
                   <InputField label="No. Handphone" required><input name="phone" value={formData.phone} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="Tempat Lahir" required><input name="tempatLahir" value={formData.tempatLahir} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="Tanggal Lahir" required><input type="date" name="tanggalLahir" value={formData.tanggalLahir} onChange={handleChange} required className={inputCls} /></InputField>

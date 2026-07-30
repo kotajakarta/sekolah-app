@@ -214,7 +214,7 @@ const MainLayout = () => {
       <PengumumanPopup />
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-14 bg-white border-b border-slate-200 flex items-center gap-3 px-3 lg:px-8 shrink-0 sticky top-0 z-10">
+        <header className="h-14 bg-white border-b border-slate-200 flex items-center gap-3 px-3 lg:px-8 shrink-0 sticky top-0 z-40 shadow-2xs">
           <HeaderSearch />
 
           <div className="flex items-center gap-3 sm:gap-5 text-sm font-medium text-gray-600 shrink-0 ml-auto">
@@ -252,7 +252,7 @@ const MainLayout = () => {
               </button>
 
               {isLangOpen && (
-                <div className="absolute right-0 mt-2.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 text-xs text-left">
+                <div className="absolute right-0 mt-2.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-[100] text-xs text-left">
                   <div className="px-3.5 py-1.5 font-bold text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-100">
                     {t('nav.select_language') || "Pilih Bahasa"}
                   </div>
@@ -294,7 +294,7 @@ const MainLayout = () => {
               </button>
 
               {isNotifOpen && (
-                <div className="absolute right-0 mt-2.5 w-80 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 text-left text-xs">
+                <div className="absolute right-0 mt-2.5 w-80 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-[100] text-left text-xs">
                   <div className="px-4 py-2 border-b border-slate-100 font-bold text-slate-700 flex justify-between items-center bg-slate-50/50 rounded-t-xl">
                     <span>Notifikasi & Tugas</span>
                     {totalWarnings > 0 && (
@@ -390,7 +390,7 @@ const MainLayout = () => {
               </button>
               
               {isDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-[100]">
                   <button
                     onClick={() => {
                       setIsDropdownOpen(false);

@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import {
   Building2, Plus, Edit2, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown,
-  Users, GraduationCap, Home, Send, FileText, X, Filter, Sparkles, MapPin
+  Users, GraduationCap, Home, Send, FileText, X, Filter, Sparkles, MapPin, Download
 } from 'lucide-react';
 import { useGetCabang, Cabang } from '../../features/core_data/hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
@@ -226,6 +227,75 @@ export default function DataCabang() {
     return <span className={`font-semibold ${isHighlight ? 'text-indigo-900' : 'text-slate-800'}`}>{val}</span>;
   };
 
+  const handleExportXLSX = () => {
+    if (!filteredAndSortedCabang || filteredAndSortedCabang.length === 0) {
+      showToast('error', 'Tidak ada data cabang untuk di-export');
+      return;
+    }
+
+    const exportData = filteredAndSortedCabang.map((item, idx) => {
+      const alamatFull = [item.alamatJalan, item.alamatKecName, item.alamatKabName, item.alamatProvName].filter(Boolean).join(', ') || '-';
+      const p = item.personel || {
+        pendidikLK: 0, pendidikPR: 0, kependidikanLK: 0, kependidikanPR: 0,
+        totalLK: 0, totalPR: 0, guruMatematika: 0, guruIndo: 0, guruInggris: 0,
+        guruIpa: 0, guruPkn: 0, totalGuruMapel: 0
+      };
+      const s = item.siswaStats || {
+        totalSiswa: item._count?.students || 0,
+        grup: { hazirlik: 0, hafizlik: 0, ibtidai: 0, ihzari: 0 },
+        tingkat: { tingkat7: 0, tingkat8: 0, tingkat9: 0, tingkat10: 0, tingkat11: 0, tingkat12: 0, lulus: 0, sekolahLain: 0 }
+      };
+
+      return {
+        'NO': idx + 1,
+        'Wilayah': item.wilayah?.name || '-',
+        'Nama Cabang (Glodemy)': item.nameGlodemy || item.name,
+        'Nama Cabang (Resmi)': item.nameResmi || item.name,
+        'Jenis': 'Muadalah',
+        'Alamat': alamatFull,
+        'Pimpinan Cabang': item.pimpinanCabang || '-',
+        'PJ. Muadalah': item.pjMuadalah || '-',
+        'Pendidik LK': p.pendidikLK,
+        'Pendidik PR': p.pendidikPR,
+        'Kependidikan LK': p.kependidikanLK,
+        'Kependidikan PR': p.kependidikanPR,
+        'Total Personel LK': p.totalLK,
+        'Total Personel PR': p.totalPR,
+        'Guru Matematika': p.guruMatematika,
+        'Guru B. Indonesia': p.guruIndo,
+        'Guru B. Inggris': p.guruInggris,
+        'Guru IPA': p.guruIpa,
+        'Guru PKN': p.guruPkn,
+        'Total Guru Mapel': p.totalGuruMapel,
+        'Status Tanah': item.statusTanah || '-',
+        'Status Bangunan': item.statusBangunan || '-',
+        'Kapasitas': item.kapasitasSantri || 0,
+        'Total Siswa': s.totalSiswa,
+        'Hazirlik': s.grup.hazirlik,
+        'Hafizlik': s.grup.hafizlik,
+        'Ibtidai': s.grup.ibtidai,
+        'Ihzari': s.grup.ihzari,
+        'Tingkat 7': s.tingkat.tingkat7,
+        'Tingkat 8': s.tingkat.tingkat8,
+        'Tingkat 9': s.tingkat.tingkat9,
+        'Tingkat 10': s.tingkat.tingkat10,
+        'Tingkat 11': s.tingkat.tingkat11,
+        'Tingkat 12': s.tingkat.tingkat12,
+        'Lulus': s.tingkat.lulus,
+        'Sekolah Lain': s.tingkat.sekolahLain,
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Cabang');
+    
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    XLSX.writeFile(workbook, `Data_Cabang_Pesantren_${dateStr}.xlsx`);
+    showToast('success', 'Data Cabang berhasil di-export ke XLSX');
+  };
+
   return (
     <div className="space-y-6 font-sans">
       {/* Header Bar */}
@@ -237,7 +307,14 @@ export default function DataCabang() {
           </h1>
           <p className="text-sm text-slate-500 mt-1">Rekapitulasi komprehensif identitas, personel, sarana prasarana, dan jumlah siswa per cabang</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button 
+            onClick={handleExportXLSX}
+            className="inline-flex items-center justify-center px-4 py-2 border border-emerald-300 shadow-sm text-sm font-semibold rounded-xl text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition-colors"
+          >
+            <Download className="w-4 h-4 mr-2 text-emerald-600" />
+            Export XLSX
+          </button>
           <button 
             onClick={() => setIsHulasaModalOpen(true)}
             className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-semibold rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"

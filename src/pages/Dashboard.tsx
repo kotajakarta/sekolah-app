@@ -14,6 +14,15 @@ import { useAuth } from '../hooks/useAuth';
 interface DashboardStats {
   totalSantri: number;
   totalKelas: number;
+  totalGuru?: number;
+  rbacIdentity?: {
+    operatorName: string;
+    scope: string;
+    wilayahName: string | null;
+    cabangName: string | null;
+    ketuaCabangName: string | null;
+    ketuaMuadalahName: string | null;
+  };
   cabangMissingSubjectsCount?: number;
   ketersediaanGuru?: {
     cabangId: string;
@@ -324,8 +333,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* System Status & Incidents — spans both rows on the right */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col lg:row-span-2">
+        {/* System Status & Incidents — spans rows on the right */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col lg:row-span-3">
           {/* Progres Cetak Rapor — TA/Semester aktif */}
           {statsData.raporCetakProgress && (
             <div className="pb-4">
@@ -397,6 +406,66 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Total Guru */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Guru / Ustadz</span>
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400">
+              <Users className="w-4 h-4 text-slate-400" />
+            </span>
+          </div>
+          <div className="text-3xl font-bold text-slate-900 tracking-tight">{statsData.totalGuru?.toLocaleString() || 0}</div>
+          <div className="h-10 w-full mt-4 flex items-end">
+             {[40, 60, 50, 70, 60, 80, 70, 90, 85, 95].map((val, idx) => (
+              <div
+                key={idx}
+                className="flex-1 bg-brand/15 hover:bg-brand/70 transition-colors duration-150 cursor-pointer rounded-sm mr-0.5 last:mr-0"
+                style={{ height: `${val}%` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* RBAC Identity */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Identitas User</span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider bg-slate-100 text-slate-600 uppercase">
+              {statsData.rbacIdentity?.scope || 'USER'}
+            </span>
+          </div>
+          <div className="flex-1 space-y-3 mt-1 overflow-y-auto custom-scrollbar">
+             <div className="flex flex-col">
+                <span className="text-[10px] uppercase font-semibold text-slate-400">Nama Pengguna</span>
+                <span className="text-sm font-medium text-slate-800">{statsData.rbacIdentity?.operatorName || '-'}</span>
+             </div>
+             {statsData.rbacIdentity?.wilayahName && (
+               <div className="flex flex-col">
+                  <span className="text-[10px] uppercase font-semibold text-slate-400">Wilayah</span>
+                  <span className="text-sm font-medium text-slate-800">{statsData.rbacIdentity.wilayahName}</span>
+               </div>
+             )}
+             {statsData.rbacIdentity?.cabangName && (
+               <div className="flex flex-col">
+                  <span className="text-[10px] uppercase font-semibold text-slate-400">Cabang</span>
+                  <span className="text-sm font-medium text-slate-800">{statsData.rbacIdentity.cabangName}</span>
+               </div>
+             )}
+             {statsData.rbacIdentity?.ketuaCabangName && (
+               <div className="flex flex-col">
+                  <span className="text-[10px] uppercase font-semibold text-slate-400">Ketua Cabang</span>
+                  <span className="text-sm font-medium text-slate-800">{statsData.rbacIdentity.ketuaCabangName}</span>
+               </div>
+             )}
+             {statsData.rbacIdentity?.ketuaMuadalahName && (
+               <div className="flex flex-col">
+                  <span className="text-[10px] uppercase font-semibold text-slate-400">Kepala Muadalah</span>
+                  <span className="text-sm font-medium text-slate-800">{statsData.rbacIdentity.ketuaMuadalahName}</span>
+               </div>
+             )}
+          </div>
         </div>
 
         {/* Distribusi Grup Daimi */}

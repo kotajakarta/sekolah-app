@@ -46,6 +46,7 @@ export function useNavEntries(): NavEntry[] {
     const showRombonganBelajar = user?.divisi === 'FORMAL' || user?.divisi === 'ALL';
 
     const kelembagaanItems = [
+      { to: '/dashboard/profile', label: t('sidebar.profil_saya') || 'Profil Saya', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
       { to: '/dashboard/profile-cabang', label: t('sidebar.profil_cabang') || 'Profil Cabang', show: user?.scope === 'CABANG' },
       { to: '/dashboard/formal/muadalah', label: t('sidebar.lembaga_muadalah') || 'Lembaga Muadalah', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
       { to: '/dashboard/core/cabang', label: t('sidebar.cabang') || 'Data Cabang', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },

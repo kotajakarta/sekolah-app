@@ -58,6 +58,11 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
     cabangId: user?.scope === 'CABANG' ? user.cabangId || '' : '',
     ifadahUrl: '',
     ktpUrl: '',
+    ijazahUrl: '',
+    jenisKelamin: '',
+    perguruanTinggi: '',
+    programStudi: '',
+    tahunLulus: '',
     phone: '',
     mapelUmum: [] as string[],
   });
@@ -86,13 +91,18 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
         cabangId: guru.cabangId || '',
         ifadahUrl: (guru as any).ifadahUrl || '',
         ktpUrl: (guru as any).ktpUrl || '',
+        ijazahUrl: (guru as any).ijazahUrl || '',
+        jenisKelamin: (guru as any).jenisKelamin || '',
+        perguruanTinggi: (guru as any).perguruanTinggi || '',
+        programStudi: (guru as any).programStudi || '',
+        tahunLulus: (guru as any).tahunLulus || '',
         phone: (guru as any).phone || '',
         mapelUmum: guru.mapelUmum || [],
       });
     }
   }, [guru]);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'ifadahUrl' | 'ktpUrl') => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'ifadahUrl' | 'ktpUrl' | 'ijazahUrl') => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -178,6 +188,15 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-slate-700">Jenis Kelamin</label>
+                  <select value={formData.jenisKelamin} onChange={(e) => setFormData({ ...formData, jenisKelamin: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <option value="">Pilih Jenis Kelamin</option>
+                    <option value="L">Laki-laki</option>
+                    <option value="P">Perempuan</option>
+                  </select>
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-slate-700">{t('guru.form.phone')}</label>
                   <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                 </div>
@@ -229,7 +248,32 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700">{t('guru.form.pendidikan')}</label>
-                  <input type="text" value={formData.pendidikanTerakhir} onChange={(e) => setFormData({ ...formData, pendidikanTerakhir: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                  <select value={formData.pendidikanTerakhir} onChange={(e) => setFormData({ ...formData, pendidikanTerakhir: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <option value="">Pilih Pendidikan Terakhir</option>
+                    <option value="SMA/SMK">SMA / SMK / Sederajat</option>
+                    <option value="D1">D1</option>
+                    <option value="D2">D2</option>
+                    <option value="D3">D3</option>
+                    <option value="D4">D4 / Sarjana Terapan</option>
+                    <option value="S1">S1</option>
+                    <option value="S2">S2</option>
+                    <option value="S3">S3</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Nama Perguruan Tinggi</label>
+                  <input type="text" value={formData.perguruanTinggi} onChange={(e) => setFormData({ ...formData, perguruanTinggi: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Kosongkan jika SMA" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Program Studi</label>
+                  <input type="text" value={formData.programStudi} onChange={(e) => setFormData({ ...formData, programStudi: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Kosongkan jika SMA" />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">Tahun Lulus</label>
+                  <input type="text" value={formData.tahunLulus} onChange={(e) => setFormData({ ...formData, tahunLulus: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Contoh: 2020" />
                 </div>
 
                 <div>
@@ -295,7 +339,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
 
             
               <h4 className="text-sm font-semibold text-slate-800 mt-6 border-b border-slate-100 pb-2 mb-4">{t('guru.form.berkas')}</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Ifadah */}
                 <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 flex flex-col items-center">
                   <h5 className="font-medium text-sm text-slate-800 mb-3">{t('guru.form.ifadah')}</h5>
@@ -339,6 +383,29 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
                   <label className="cursor-pointer bg-white border border-slate-300 px-3 py-1.5 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm w-full text-center">
                     <span>{formData.ktpUrl ? t('guru.form.change') : t('guru.form.upload')}</span>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'ktpUrl')} disabled={isCompressing} />
+                  </label>
+                </div>
+
+                {/* Ijazah */}
+                <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 flex flex-col items-center">
+                  <h5 className="font-medium text-sm text-slate-800 mb-3">Ijazah Terakhir</h5>
+                  {formData.ijazahUrl ? (
+                    <div className="relative w-32 h-24 mb-3 bg-white border border-slate-200 rounded flex items-center justify-center overflow-hidden group">
+                      <img src={formData.ijazahUrl} alt="Ijazah" className="object-contain w-full h-full" />
+                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button type="button" onClick={() => setViewImage(formData.ijazahUrl)} className="text-white p-2 hover:text-blue-300">
+                          <Eye className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-32 h-24 mb-3 bg-slate-200 border border-slate-300 rounded flex items-center justify-center text-slate-400">
+                      <ImageIcon className="w-8 h-8" />
+                    </div>
+                  )}
+                  <label className="cursor-pointer bg-white border border-slate-300 px-3 py-1.5 rounded-md text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm w-full text-center">
+                    <span>{formData.ijazahUrl ? t('guru.form.change') : t('guru.form.upload')}</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'ijazahUrl')} disabled={isCompressing} />
                   </label>
                 </div>
               </div>

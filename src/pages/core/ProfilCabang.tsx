@@ -322,27 +322,10 @@ export default function ProfilCabang() {
           <Camera className="w-4 h-4" />
           {t('profil_cabang.tab_foto')}
         </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('students')}
-          className={`pb-3 text-sm font-bold border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === 'students'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          {t('profil_cabang.tab_santri')}
-        </button>
       </div>
 
-      {activeTab === 'students' ? (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <DataSiswa />
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {activeTab === 'profile' && (
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {activeTab === 'profile' && (
             <>
               {/* Identity & Capacity */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
@@ -679,7 +662,6 @@ export default function ProfilCabang() {
             </button>
           </div>
         </form>
-      )}
     </div>
   );
 }

@@ -361,6 +361,12 @@ export default function Dashboard() {
                       {entity.name}
                     </span>
                     <div className="flex items-center space-x-3">
+                      <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${entity.percent === 100 ? 'bg-emerald-500' : entity.percent >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
+                          style={{ width: `${entity.percent}%` }}
+                        />
+                      </div>
                       <span className="text-[10px] text-slate-400">
                         {entity.lengkap}/{entity.total}
                       </span>

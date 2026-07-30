@@ -354,23 +354,19 @@ export default function Dashboard() {
                   Progres Kelengkapan Data {user?.scope === 'GLOBAL' ? '(Per Wilayah)' : user?.scope === 'WILAYAH' ? '(Per Cabang)' : '(Per Kelas)'}
                 </span>
               </div>
-              <div className="space-y-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-2">
                 {statsData.kelengkapanEntities.map((entity: any, idx: number) => (
-                  <div key={idx}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[11px] font-medium text-slate-600 truncate max-w-[180px]" title={entity.name}>
-                        {entity.name}
+                  <div key={idx} className="flex items-center justify-between py-1 border-b border-slate-50 last:border-0">
+                    <span className="text-[11px] font-medium text-slate-600 truncate max-w-[150px]" title={entity.name}>
+                      {entity.name}
+                    </span>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-[10px] text-slate-400">
+                        {entity.lengkap}/{entity.total}
                       </span>
-                      <span className="text-[11px] font-bold text-slate-900">{entity.percent}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${entity.percent === 100 ? 'bg-emerald-500' : entity.percent >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
-                        style={{ width: `${entity.percent}%` }}
-                      />
-                    </div>
-                    <div className="text-[10px] text-slate-400 text-right">
-                      {entity.lengkap} / {entity.total} Lengkap
+                      <span className={`text-[11px] font-bold w-8 text-right ${entity.percent === 100 ? 'text-emerald-600' : entity.percent >= 50 ? 'text-blue-600' : 'text-amber-600'}`}>
+                        {entity.percent}%
+                      </span>
                     </div>
                   </div>
                 ))}

@@ -17,7 +17,52 @@ export interface Cabang {
   id: string;
   name: string;
   wilayahId: string;
+  nameGlodemy?: string;
+  nameResmi?: string;
+  kapasitasSantri?: number;
+  totalSantriManual?: number;
+  alamatJalan?: string;
+  alamatKecName?: string;
+  alamatKabName?: string;
+  alamatProvName?: string;
+  statusTanah?: string;
+  statusBangunan?: string;
   wilayah?: Wilayah;
+  pimpinanCabang?: string;
+  pjMuadalah?: string;
+  personel?: {
+    pendidikLK: number;
+    pendidikPR: number;
+    kependidikanLK: number;
+    kependidikanPR: number;
+    totalLK: number;
+    totalPR: number;
+    guruMatematika: number;
+    guruIndo: number;
+    guruInggris: number;
+    guruIpa: number;
+    guruPkn: number;
+    totalGuruMapel: number;
+  };
+  siswaStats?: {
+    totalSiswa: number;
+    grup: {
+      hazirlik: number;
+      hafizlik: number;
+      ibtidai: number;
+      ihzari: number;
+    };
+    tingkat: {
+      tingkat7: number;
+      tingkat8: number;
+      tingkat9: number;
+      tingkat10: number;
+      tingkat11: number;
+      tingkat12: number;
+      lulus: number;
+      sekolahLain: number;
+    };
+  };
   _count?: {
     students: number;
   };

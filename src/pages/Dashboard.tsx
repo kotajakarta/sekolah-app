@@ -408,7 +408,7 @@ export default function Dashboard() {
         </div>
 
         {/* System Status & Incidents — spans rows on the right */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col lg:row-span-3">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col lg:row-span-2">
           {/* Progres Cetak Rapor — TA/Semester aktif */}
           {statsData.raporCetakProgress && (
             <div className="pb-4">
@@ -436,12 +436,15 @@ export default function Dashboard() {
           {/* Progres Kelengkapan Data */}
           {statsData.kelengkapanEntities && statsData.kelengkapanEntities.length > 0 && (
             <div className={`pt-4 ${statsData.raporCetakProgress ? 'border-t border-slate-100 mt-4' : ''}`}>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   Progres Kelengkapan Data {user?.scope === 'GLOBAL' ? '(Per Wilayah)' : user?.scope === 'WILAYAH' ? '(Per Cabang)' : '(Per Kelas)'}
                 </span>
+                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                  {statsData.kelengkapanEntities.length} Total
+                </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">
                 {statsData.kelengkapanEntities.map((entity: any, idx: number) => (
                   <div key={idx} className="bg-slate-50/70 hover:bg-slate-50 transition-colors rounded-lg p-2.5 border border-slate-100 flex flex-col justify-center">
                     <div className="flex items-center justify-between mb-2">

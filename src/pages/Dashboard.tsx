@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import {
   Users, LayoutDashboard, Loader2,
   Calendar, ChevronRight, Activity,
-  CheckCircle2, AlertCircle, FileText, Filter, Pencil, ArrowUpRight
+  CheckCircle2, AlertCircle, FileText, Filter, Pencil, ArrowUpRight,
+  ShieldCheck, Phone
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import apiClient from '../lib/apiClient';
@@ -203,6 +204,63 @@ export default function Dashboard() {
 
   return (
     <div className="font-sans text-slate-900 pb-10">
+
+      {/* Identitas Akses - Ultra Compact Banner */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl px-5 py-3 shadow-sm mb-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg font-bold uppercase text-[10px] tracking-wider border border-blue-100/80">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>{statsData.rbacIdentity?.scope || 'USER'}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5 border-l border-slate-200 pl-3">
+            <span className="text-slate-400 font-medium text-[11px]">Operator:</span>
+            <span className="font-semibold text-slate-800 text-[11px]">{statsData.rbacIdentity?.operatorName || '-'}</span>
+          </div>
+
+          {statsData.rbacIdentity?.wilayahName && (
+            <div className="flex items-center gap-1.5 border-l border-slate-200 pl-3">
+              <span className="text-slate-400 font-medium text-[11px]">Wilayah:</span>
+              <span className="font-semibold text-slate-800 text-[11px]">{statsData.rbacIdentity.wilayahName}</span>
+            </div>
+          )}
+
+          {statsData.rbacIdentity?.cabangName && (
+            <div className="flex items-center gap-1.5 border-l border-slate-200 pl-3">
+              <span className="text-slate-400 font-medium text-[11px]">Cabang:</span>
+              <span className="font-semibold text-slate-800 text-[11px]">{statsData.rbacIdentity.cabangName}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {statsData.rbacIdentity?.ketuaCabangName && (
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Ketua Cabang:</span>
+              <span className="font-semibold text-slate-800 text-[11px]">{statsData.rbacIdentity.ketuaCabangName}</span>
+              {statsData.rbacIdentity.ketuaCabangPhone && (
+                <a href={`tel:${statsData.rbacIdentity.ketuaCabangPhone}`} className="text-blue-600 hover:underline font-medium text-[10px] flex items-center gap-0.5 ml-1">
+                  <Phone className="w-2.5 h-2.5" />
+                  {statsData.rbacIdentity.ketuaCabangPhone}
+                </a>
+              )}
+            </div>
+          )}
+
+          {statsData.rbacIdentity?.ketuaMuadalahName && (
+            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Kepala Muadalah:</span>
+              <span className="font-semibold text-slate-800 text-[11px]">{statsData.rbacIdentity.ketuaMuadalahName}</span>
+              {statsData.rbacIdentity.ketuaMuadalahPhone && (
+                <a href={`tel:${statsData.rbacIdentity.ketuaMuadalahPhone}`} className="text-blue-600 hover:underline font-medium text-[10px] flex items-center gap-0.5 ml-1">
+                  <Phone className="w-2.5 h-2.5" />
+                  {statsData.rbacIdentity.ketuaMuadalahPhone}
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Global Filters */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm mb-4">
@@ -424,51 +482,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* RBAC Identity - compact */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Identitas Akses</span>
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 uppercase">
-              {statsData.rbacIdentity?.scope || 'USER'}
-            </span>
-          </div>
-          <div className="space-y-1.5 text-[11px]">
-            <div className="flex items-start gap-1.5">
-              <span className="text-slate-400 w-16 shrink-0 font-medium">Operator</span>
-              <span className="font-semibold text-slate-800 truncate">{statsData.rbacIdentity?.operatorName || '-'}</span>
-            </div>
-            {statsData.rbacIdentity?.wilayahName && (
-              <div className="flex items-start gap-1.5">
-                <span className="text-slate-400 w-16 shrink-0 font-medium">Wilayah</span>
-                <span className="font-semibold text-slate-800">{statsData.rbacIdentity.wilayahName}</span>
-              </div>
-            )}
-            {statsData.rbacIdentity?.cabangName && (
-              <div className="flex items-start gap-1.5">
-                <span className="text-slate-400 w-16 shrink-0 font-medium">Cabang</span>
-                <span className="font-semibold text-slate-800">{statsData.rbacIdentity.cabangName}</span>
-              </div>
-            )}
-            {statsData.rbacIdentity?.ketuaCabangName && (
-              <div className="border-t border-slate-100 pt-1.5 mt-1.5">
-                <div className="text-[9px] font-bold text-slate-400 uppercase mb-0.5">Ketua Cabang</div>
-                <div className="font-semibold text-slate-800">{statsData.rbacIdentity.ketuaCabangName}</div>
-                {statsData.rbacIdentity.ketuaCabangPhone && (
-                  <a href={`tel:${statsData.rbacIdentity.ketuaCabangPhone}`} className="text-blue-500 hover:underline text-[10px]">{statsData.rbacIdentity.ketuaCabangPhone}</a>
-                )}
-              </div>
-            )}
-            {statsData.rbacIdentity?.ketuaMuadalahName && (
-              <div className="border-t border-slate-100 pt-1.5 mt-1.5">
-                <div className="text-[9px] font-bold text-slate-400 uppercase mb-0.5">Kepala Muadalah</div>
-                <div className="font-semibold text-slate-800">{statsData.rbacIdentity.ketuaMuadalahName}</div>
-                {statsData.rbacIdentity.ketuaMuadalahPhone && (
-                  <a href={`tel:${statsData.rbacIdentity.ketuaMuadalahPhone}`} className="text-blue-500 hover:underline text-[10px]">{statsData.rbacIdentity.ketuaMuadalahPhone}</a>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+
 
         {/* Distribusi Grup Daimi */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">

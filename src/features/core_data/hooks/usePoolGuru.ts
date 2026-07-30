@@ -11,6 +11,19 @@ export interface Guru {
   wilayah?: { id: string; name: string };
   cabang?: { id: string; name: string };
   mapelUmum?: string[];
+  nik?: string;
+  tempatLahir?: string;
+  tanggalLahir?: string;
+  pendidikanTerakhir?: string;
+  jenisKelamin?: string;
+  perguruanTinggi?: string;
+  programStudi?: string;
+  tahunLulus?: string;
+  ifadahUrl?: string;
+  ktpUrl?: string;
+  ijazahUrl?: string;
+  phone?: string;
+  waliKelas?: string;
 }
 
 export const useGetPoolGuru = () => {

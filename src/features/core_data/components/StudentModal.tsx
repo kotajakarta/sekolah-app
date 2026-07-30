@@ -583,7 +583,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                         <input type="text" value={formData.nisn} onChange={(e) => setFormData({ ...formData, nisn: e.target.value })} className={inputCls} placeholder={t('siswa.form.nisn_ph')} />
                       </InputField>
                       <InputField label={`${t('siswa.form.nis_lokal')} / NISM`}>
-                        <input type="text" value={formData.nisLokal} onChange={(e) => setFormData({ ...formData, nisLokal: e.target.value })} className={inputCls} />
+                        <input type="text" value={formData.nisLokal} readOnly className={`${inputCls} bg-slate-100 cursor-not-allowed`} />
                       </InputField>
                       <InputField label={t('siswa.form.no_glodemy')}>
                         <input type="text" value={formData.noGlodemy} onChange={(e) => setFormData({ ...formData, noGlodemy: e.target.value })} className={inputCls} />

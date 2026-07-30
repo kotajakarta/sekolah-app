@@ -34,6 +34,7 @@ interface DashboardStats {
   } | null;
   kelengkapanSiswa?: { total: number; lengkap: number; percent: number; };
   kelengkapanGuru?: { total: number; lengkap: number; percent: number; };
+  kelengkapanEntities?: { name: string; total: number; lengkap: number; percent: number; }[];
 }
 
 const getActivityIcon = (title: string) => {
@@ -346,41 +347,34 @@ export default function Dashboard() {
           )}
 
           {/* Progres Kelengkapan Data */}
-          {(statsData.kelengkapanSiswa || statsData.kelengkapanGuru) && (
-            <div className={`pt-4 ${statsData.raporCetakProgress ? 'border-t border-slate-100 mt-4' : ''} space-y-4`}>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Progres Kelengkapan Data</span>
-              
-              {statsData.kelengkapanSiswa && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] font-medium text-slate-600">Siswa (Biodata)</span>
-                    <span className="text-[11px] font-bold text-slate-900">{statsData.kelengkapanSiswa.percent}%</span>
+          {statsData.kelengkapanEntities && statsData.kelengkapanEntities.length > 0 && (
+            <div className={`pt-4 ${statsData.raporCetakProgress ? 'border-t border-slate-100 mt-4' : ''}`}>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Progres Kelengkapan Data {user?.scope === 'GLOBAL' ? '(Per Wilayah)' : user?.scope === 'WILAYAH' ? '(Per Cabang)' : '(Per Kelas)'}
+                </span>
+              </div>
+              <div className="space-y-4 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+                {statsData.kelengkapanEntities.map((entity: any, idx: number) => (
+                  <div key={idx}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] font-medium text-slate-600 truncate max-w-[180px]" title={entity.name}>
+                        {entity.name}
+                      </span>
+                      <span className="text-[11px] font-bold text-slate-900">{entity.percent}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${entity.percent === 100 ? 'bg-emerald-500' : entity.percent >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
+                        style={{ width: `${entity.percent}%` }}
+                      />
+                    </div>
+                    <div className="text-[10px] text-slate-400 text-right">
+                      {entity.lengkap} / {entity.total} Lengkap
+                    </div>
                   </div>
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
-                    <div
-                      className="h-full bg-emerald-500 rounded-full transition-all duration-300"
-                      style={{ width: `${statsData.kelengkapanSiswa.percent}%` }}
-                    />
-                  </div>
-                  <div className="text-[10px] text-slate-400 text-right">{statsData.kelengkapanSiswa.lengkap} / {statsData.kelengkapanSiswa.total} Lengkap</div>
-                </div>
-              )}
-              
-              {statsData.kelengkapanGuru && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] font-medium text-slate-600">Guru (Kontak & KTP)</span>
-                    <span className="text-[11px] font-bold text-slate-900">{statsData.kelengkapanGuru.percent}%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
-                    <div
-                      className="h-full bg-blue-500 rounded-full transition-all duration-300"
-                      style={{ width: `${statsData.kelengkapanGuru.percent}%` }}
-                    />
-                  </div>
-                  <div className="text-[10px] text-slate-400 text-right">{statsData.kelengkapanGuru.lengkap} / {statsData.kelengkapanGuru.total} Lengkap</div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
           )}
         </div>

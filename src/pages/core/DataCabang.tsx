@@ -411,7 +411,7 @@ export default function DataCabang() {
                         </span>
                       </th>
                       
-                      <th colSpan={13} className="px-3 py-2.5 border-r border-slate-200 bg-purple-50 text-purple-950 font-bold tracking-wide">
+                      <th colSpan={14} className="px-3 py-2.5 border-r border-slate-200 bg-purple-50 text-purple-950 font-bold tracking-wide">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-100/90 text-purple-950 border border-purple-200/80">
                           <Users className="w-3.5 h-3.5" /> PERSONEL
                         </span>
@@ -481,8 +481,8 @@ export default function DataCabang() {
                       <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30 font-bold">TOTAL</th>
 
                       {/* Siswa Grup subheaders */}
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">HQ/TAHFIZ</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">TAHFIZ</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">HAZIRLIK</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">HAFIZLIK</th>
                       <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">IBTIDAI</th>
                       <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">IHZARI</th>
 

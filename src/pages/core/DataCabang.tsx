@@ -1,6 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Building2, Plus, Edit2, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  Building2, Plus, Edit2, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown,
+  Users, GraduationCap, Home, Send, FileText, X, Filter, Sparkles, MapPin
+} from 'lucide-react';
 import { useGetCabang, Cabang } from '../../features/core_data/hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
@@ -15,7 +18,6 @@ import { useToast } from '../../contexts/ToastContext';
 
 import PermohonanCabangModal from '../../features/permohonan/PermohonanCabangModal';
 import PermohonanCabangTab from '../../features/permohonan/PermohonanCabangTab';
-import { Send, FileText } from 'lucide-react';
 
 export default function DataCabang() {
   const [activeTab, setActiveTab] = useState<'cabang' | 'permohonan'>('cabang');
@@ -62,6 +64,28 @@ export default function DataCabang() {
       }
     }
   }, [cabang, location.search, navigate]);
+
+  // Overall Summary KPI Stats
+  const summaryStats = useMemo(() => {
+    if (!cabang || !Array.isArray(cabang)) return { totalCabang: 0, totalSantri: 0, totalPersonel: 0, totalKapasitas: 0 };
+    
+    let totalSantri = 0;
+    let totalPersonel = 0;
+    let totalKapasitas = 0;
+
+    cabang.forEach(c => {
+      totalSantri += c.siswaStats?.totalSiswa || c._count?.students || 0;
+      totalPersonel += (c.personel?.totalLK || 0) + (c.personel?.totalPR || 0);
+      totalKapasitas += c.kapasitasSantri || 0;
+    });
+
+    return {
+      totalCabang: cabang.length,
+      totalSantri,
+      totalPersonel,
+      totalKapasitas
+    };
+  }, [cabang]);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -146,6 +170,8 @@ export default function DataCabang() {
       const q = searchQuery.toLowerCase();
       result = result.filter(c => 
         c.name.toLowerCase().includes(q) || 
+        (c.nameGlodemy || '').toLowerCase().includes(q) ||
+        (c.nameResmi || '').toLowerCase().includes(q) ||
         (c.wilayah?.name || '').toLowerCase().includes(q)
       );
     }
@@ -159,8 +185,8 @@ export default function DataCabang() {
     result.sort((a, b) => {
       let aVal = '', bVal = '';
       if (sortField === 'name') {
-        aVal = a.name.toLowerCase();
-        bVal = b.name.toLowerCase();
+        aVal = (a.nameGlodemy || a.name).toLowerCase();
+        bVal = (b.nameGlodemy || b.name).toLowerCase();
       } else if (sortField === 'wilayah') {
         aVal = (a.wilayah?.name || '').toLowerCase();
         bVal = (b.wilayah?.name || '').toLowerCase();
@@ -189,30 +215,40 @@ export default function DataCabang() {
   };
 
   const SortIcon = ({ field }: { field: 'name' | 'wilayah' }) => {
-    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 text-slate-400 ml-1 inline" />;
+    if (sortField !== field) return <ArrowUpDown className="w-3.5 h-3.5 text-emerald-400 ml-1 inline opacity-60" />;
     return sortDirection === 'asc' ? 
-      <ArrowUp className="w-4 h-4 text-indigo-600 ml-1 inline" /> : 
-      <ArrowDown className="w-4 h-4 text-indigo-600 ml-1 inline" />;
+      <ArrowUp className="w-3.5 h-3.5 text-emerald-700 ml-1 inline font-bold" /> : 
+      <ArrowDown className="w-3.5 h-3.5 text-emerald-700 ml-1 inline font-bold" />;
+  };
+
+  const renderVal = (val: number | undefined, isHighlight: boolean = false) => {
+    if (!val || val === 0) return <span className="text-slate-300 font-normal">0</span>;
+    return <span className={`font-semibold ${isHighlight ? 'text-indigo-900' : 'text-slate-800'}`}>{val}</span>;
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
+      {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-800 tracking-tight">{t('cabang.title')}</h1>
-          <p className="text-sm text-slate-500 mt-1.5">{t('cabang.subtitle')}</p>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <Building2 className="w-7 h-7 text-indigo-600" />
+            {t('cabang.title') || 'Data Cabang Pesantren'}
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">Rekapitulasi komprehensif identitas, personel, sarana prasarana, dan jumlah siswa per cabang</p>
         </div>
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setIsHulasaModalOpen(true)}
-            className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+            className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-semibold rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
           >
-            {t('cabang.hulasa') || 'Hulasa'}
+            <Sparkles className="w-4 h-4 mr-2 text-indigo-600" />
+            {t('cabang.hulasa') || 'Hulasa Rekap'}
           </button>
           {user?.scope === 'WILAYAH' && (
             <button 
               onClick={() => setIsAjukanModalOpen(true)}
-              className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
             >
               <Send className="w-4 h-4 mr-2" />
               {t('permohonan.ajukan_cabang') || 'Ajukan Cabang Baru'}
@@ -222,41 +258,84 @@ export default function DataCabang() {
             <>
               <button 
                 onClick={confirmDeleteAll}
-                className="inline-flex items-center justify-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 border border-rose-200 shadow-sm text-sm font-semibold rounded-xl text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 {t('common.delete_all') || 'Hapus Semua'}
               </button>
               <button 
                 onClick={handleAdd}
-                className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-indigo-200 shadow-lg"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                {t('cabang.add_button')}
+                {t('cabang.add_button') || 'Tambah Cabang'}
               </button>
             </>
           )}
         </div>
       </div>
 
-      {/* Tab Navigation */}
+      {/* Summary KPI Bar */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Cabang</div>
+            <div className="text-2xl font-bold text-slate-900 mt-1">{summaryStats.totalCabang}</div>
+          </div>
+          <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+            <Building2 className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Santri</div>
+            <div className="text-2xl font-bold text-blue-600 mt-1">{summaryStats.totalSantri.toLocaleString()}</div>
+          </div>
+          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+            <GraduationCap className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Personel</div>
+            <div className="text-2xl font-bold text-purple-600 mt-1">{summaryStats.totalPersonel.toLocaleString()}</div>
+          </div>
+          <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
+            <Users className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Kapasitas Daya Tampung</div>
+            <div className="text-2xl font-bold text-emerald-600 mt-1">{summaryStats.totalKapasitas.toLocaleString()}</div>
+          </div>
+          <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+            <Home className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Tab */}
       <div className="border-b border-slate-200">
         <nav className="-mb-px flex space-x-6">
           <button
             onClick={() => setActiveTab('cabang')}
-            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-all flex items-center gap-2 ${
+            className={`pb-3 px-1 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
               activeTab === 'cabang'
-                ? 'border-indigo-600 text-indigo-600 font-semibold'
+                ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
-            <Building2 className="w-4 h-4" /> {t('cabang.tab_data') || 'Data Cabang'}
+            <Building2 className="w-4 h-4" /> {t('cabang.tab_data') || 'Data Cabang Lengkap'}
           </button>
           <button
             onClick={() => setActiveTab('permohonan')}
-            className={`pb-3 px-1 text-sm font-medium border-b-2 transition-all flex items-center gap-2 ${
+            className={`pb-3 px-1 text-sm font-semibold border-b-2 transition-all flex items-center gap-2 ${
               activeTab === 'permohonan'
-                ? 'border-indigo-600 text-indigo-600 font-semibold'
+                ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
@@ -268,23 +347,35 @@ export default function DataCabang() {
       {activeTab === 'permohonan' ? (
         <PermohonanCabangTab isAdmin={isAdmin} />
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden flex flex-col">
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col">
           {/* Toolbar: Search & Filter */}
-          <div className="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row gap-4 justify-between items-center">
-            <div className="relative w-full sm:w-72">
+          <div className="p-4 border-b border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row gap-4 justify-between items-center">
+            <div className="relative w-full sm:w-80">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input 
                 type="text" 
-                placeholder={t('cabang.search_placeholder') || 'Cari cabang...'}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-blue-500 bg-white"
+                placeholder={t('cabang.search_placeholder') || 'Cari nama cabang, wilayah, atau alamat...'}
+                className="w-full pl-9 pr-8 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
+
             {isAdmin && (
-              <div className="w-full sm:w-auto">
+              <div className="w-full sm:w-auto flex items-center gap-2">
+                <span className="text-xs font-semibold text-slate-500 flex items-center gap-1 shrink-0">
+                  <Filter className="w-3.5 h-3.5 text-indigo-600" /> Filter Wilayah:
+                </span>
                 <select
-                  className="w-full sm:w-auto pl-3 pr-8 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-blue-500 bg-white"
+                  className="px-3 py-2 text-sm border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
                   value={filterWilayah}
                   onChange={(e) => setFilterWilayah(e.target.value)}
                 >
@@ -297,97 +388,113 @@ export default function DataCabang() {
             )}
           </div>
 
-          {/* Table */}
+          {/* Premium Modern Table */}
           {isLoading ? (
-            <div className="p-8 text-center text-slate-500 text-sm">{t('common.loading')}</div>
+            <div className="p-12 text-center text-slate-500 text-sm flex items-center justify-center gap-2">
+              <span className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></span>
+              {t('common.loading')}
+            </div>
           ) : isError ? (
-            <div className="p-8 text-center text-red-500 text-sm">{t('common.error_loading')}</div>
+            <div className="p-12 text-center text-rose-500 text-sm font-medium">{t('common.error_loading')}</div>
           ) : filteredAndSortedCabang.length > 0 ? (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left border-collapse border border-slate-200">
-                  <thead className="bg-slate-50 font-bold uppercase tracking-wider text-slate-700 text-center select-none">
-                    {/* Row 1: Main Group Headers */}
+              <div className="overflow-x-auto relative">
+                <table className="w-full text-xs text-left border-collapse border-b border-slate-200">
+                  <thead className="sticky top-0 z-10 bg-white font-bold uppercase tracking-wider text-slate-800 text-center select-none shadow-xs">
+                    {/* Row 1: Category Header Badges */}
                     <tr className="border-b border-slate-200">
-                      <th rowSpan={3} className="px-3 py-2 border-r border-slate-200 bg-slate-100 w-12">NO</th>
-                      <th colSpan={5} className="px-3 py-2 border-r border-slate-200 bg-emerald-100/90 text-emerald-950 font-bold">
-                        IDENTITAS PESANTREN
+                      <th rowSpan={3} className="px-3 py-2.5 border-r border-slate-200 bg-slate-100 text-slate-600 w-12 sticky left-0 z-20 shadow-xs">NO</th>
+                      
+                      <th colSpan={5} className="px-3 py-2.5 border-r border-slate-200 bg-emerald-50 text-emerald-950 font-bold tracking-wide">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-100/90 text-emerald-950 border border-emerald-200/80">
+                          <Building2 className="w-3.5 h-3.5" /> IDENTITAS PESANTREN
+                        </span>
                       </th>
-                      <th colSpan={13} className="px-3 py-2 border-r border-slate-200 bg-purple-100/90 text-purple-950 font-bold">
-                        PERSONEL
+                      
+                      <th colSpan={13} className="px-3 py-2.5 border-r border-slate-200 bg-purple-50 text-purple-950 font-bold tracking-wide">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-100/90 text-purple-950 border border-purple-200/80">
+                          <Users className="w-3.5 h-3.5" /> PERSONEL
+                        </span>
                       </th>
-                      <th colSpan={3} className="px-3 py-2 border-r border-slate-200 bg-amber-100/90 text-amber-950 font-bold">
-                        SARANA - PRASARANA
+                      
+                      <th colSpan={3} className="px-3 py-2.5 border-r border-slate-200 bg-amber-50 text-amber-950 font-bold tracking-wide">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-100/90 text-amber-950 border border-amber-200/80">
+                          <Home className="w-3.5 h-3.5" /> SARANA - PRASARANA
+                        </span>
                       </th>
-                      <th colSpan={13} className="px-3 py-2 border-r border-slate-200 bg-sky-100/90 text-sky-950 font-bold">
-                        JUMLAH SISWA
+                      
+                      <th colSpan={13} className="px-3 py-2.5 border-r border-slate-200 bg-sky-50 text-sky-950 font-bold tracking-wide">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-100/90 text-sky-950 border border-sky-200/80">
+                          <GraduationCap className="w-3.5 h-3.5" /> JUMLAH SISWA
+                        </span>
                       </th>
-                      <th rowSpan={3} className="px-4 py-2 border-slate-200 bg-slate-100 w-24">AKSI</th>
+                      
+                      <th rowSpan={3} className="px-4 py-2.5 border-slate-200 bg-slate-100 text-slate-600 w-24">AKSI</th>
                     </tr>
 
                     {/* Row 2: Sub-group Headers */}
                     <tr className="border-b border-slate-200 text-[11px]">
                       {/* Identitas Pesantren */}
-                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-emerald-50 text-emerald-900 cursor-pointer hover:bg-emerald-100" onClick={() => toggleSort('wilayah')}>
+                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/60 text-emerald-900 cursor-pointer hover:bg-emerald-100/70 transition-colors" onClick={() => toggleSort('wilayah')}>
                         Wilayah <SortIcon field="wilayah" />
                       </th>
-                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-emerald-50 text-emerald-900 cursor-pointer hover:bg-emerald-100" onClick={() => toggleSort('name')}>
+                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/60 text-emerald-900 cursor-pointer hover:bg-emerald-100/70 transition-colors" onClick={() => toggleSort('name')}>
                         Nama Cabang (Glodemy) <SortIcon field="name" />
                       </th>
-                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-emerald-50 text-emerald-900">Nama Cabang (Resmi)</th>
-                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-emerald-50 text-emerald-900">Jenis</th>
-                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-emerald-50 text-emerald-900 min-w-[180px]">Alamat</th>
+                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/60 text-emerald-900">Nama Cabang (Resmi)</th>
+                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/60 text-emerald-900">Jenis</th>
+                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-emerald-50/60 text-emerald-900 min-w-[200px]">Alamat</th>
 
                       {/* Personel */}
-                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-purple-50 text-purple-900">Pimpinan Cabang</th>
-                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-purple-50 text-purple-900">PJ. Muadalah</th>
-                      <th colSpan={2} className="px-2 py-1.5 border-r border-slate-200 bg-purple-50 text-purple-900">Jumlah Tenaga Pendidik</th>
-                      <th colSpan={2} className="px-2 py-1.5 border-r border-slate-200 bg-purple-50 text-purple-900">Jumlah Tenaga Kependidikan</th>
-                      <th colSpan={2} className="px-2 py-1.5 border-r border-slate-200 bg-purple-50 text-purple-900">TOTAL</th>
-                      <th colSpan={6} className="px-2 py-1.5 border-r border-slate-200 bg-purple-50 text-purple-900">Guru Pelajaran Umum</th>
+                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-purple-50/60 text-purple-900">Pimpinan Cabang</th>
+                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-purple-50/60 text-purple-900">PJ. Muadalah</th>
+                      <th colSpan={2} className="px-2 py-1.5 border-r border-slate-200 bg-purple-50/60 text-purple-900">Jumlah Tenaga Pendidik</th>
+                      <th colSpan={2} className="px-2 py-1.5 border-r border-slate-200 bg-purple-50/60 text-purple-900">Jumlah Tenaga Kependidikan</th>
+                      <th colSpan={2} className="px-2 py-1.5 border-r border-slate-200 bg-purple-50/60 text-purple-900">TOTAL</th>
+                      <th colSpan={6} className="px-2 py-1.5 border-r border-slate-200 bg-purple-50/60 text-purple-900">Guru Pelajaran Umum</th>
 
                       {/* Sarana Prasarana */}
-                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-amber-50 text-amber-900">Status Tanah</th>
-                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-amber-50 text-amber-900">Status Bangunan</th>
-                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-amber-50 text-amber-900">Kapasitas</th>
+                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-amber-50/60 text-amber-900">Status Tanah</th>
+                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-amber-50/60 text-amber-900">Status Bangunan</th>
+                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-amber-50/60 text-amber-900">Kapasitas</th>
 
                       {/* Jumlah Siswa */}
-                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-sky-50 text-sky-900">Total Siswa</th>
-                      <th colSpan={4} className="px-2 py-1.5 border-r border-slate-200 bg-sky-50 text-sky-900">BERDASARKAN GRUP</th>
-                      <th colSpan={8} className="px-2 py-1.5 border-r border-slate-200 bg-sky-50 text-sky-900">BERDASARKAN TINGKAT</th>
+                      <th rowSpan={2} className="px-3 py-2 border-r border-slate-200 bg-sky-50/60 text-sky-900">Total Siswa</th>
+                      <th colSpan={4} className="px-2 py-1.5 border-r border-slate-200 bg-sky-50/60 text-sky-900">BERDASARKAN GRUP</th>
+                      <th colSpan={8} className="px-2 py-1.5 border-r border-slate-200 bg-sky-50/60 text-sky-900">BERDASARKAN TINGKAT</th>
                     </tr>
 
                     {/* Row 3: Detail Column Headers */}
                     <tr className="border-b border-slate-200 text-[10px] bg-slate-50">
                       {/* Personel subheaders */}
-                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/50">LK</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/50">PR</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/50">LK</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/50">PR</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/50">LK</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/50">PR</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/50">MATEMATIKA</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/50">B. INDONESIA</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/50">B. INGGRIS</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/50">IPA</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/50">PKN</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/50 font-bold">TOTAL</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30">LK</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30">PR</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30">LK</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30">PR</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30 font-bold">LK</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30 font-bold">PR</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30">MATEMATIKA</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30">B. INDONESIA</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30">B. INGGRIS</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30">IPA</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30">PKN</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-purple-50/30 font-bold">TOTAL</th>
 
                       {/* Siswa Grup subheaders */}
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/50">HQ/TAHFIZ</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/50">TAHFIZ</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/50">IBTIDAI</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/50">IHZARI</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">HQ/TAHFIZ</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">TAHFIZ</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">IBTIDAI</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">IHZARI</th>
 
                       {/* Siswa Tingkat subheaders */}
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/50">7</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/50">8</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/50">9</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/50">10</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/50">11</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/50">12</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/50">LULUS</th>
-                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/50">SEKOLAH LAIN</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">7</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">8</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">9</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">10</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">11</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">12</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">LULUS</th>
+                      <th className="px-2 py-1 border-r border-slate-200 bg-sky-50/30">SEKOLAH LAIN</th>
                     </tr>
                   </thead>
 
@@ -406,70 +513,77 @@ export default function DataCabang() {
                       };
 
                       return (
-                        <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-3 py-2.5 text-center font-medium text-slate-400 border-r border-slate-200">
+                        <tr key={item.id} className="hover:bg-slate-50/90 transition-colors">
+                          <td className="px-3 py-2.5 text-center font-medium text-slate-400 border-r border-slate-200 bg-slate-50/40 sticky left-0 z-10 shadow-xs">
                             {(currentPage - 1) * itemsPerPage + idx + 1}
                           </td>
                           {/* Identitas Pesantren */}
                           <td className="px-3 py-2.5 font-medium text-slate-700 border-r border-slate-200 whitespace-nowrap">{item.wilayah?.name || '-'}</td>
-                          <td className="px-3 py-2.5 font-semibold text-slate-900 border-r border-slate-200 whitespace-nowrap">{item.nameGlodemy || item.name}</td>
+                          <td className="px-3 py-2.5 font-bold text-slate-900 border-r border-slate-200 whitespace-nowrap">{item.nameGlodemy || item.name}</td>
                           <td className="px-3 py-2.5 text-slate-600 border-r border-slate-200 whitespace-nowrap">{item.nameResmi || item.name}</td>
                           <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Muadalah</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
+                              Muadalah
+                            </span>
                           </td>
-                          <td className="px-3 py-2.5 text-slate-500 border-r border-slate-200 max-w-xs truncate" title={alamatFull}>{alamatFull}</td>
+                          <td className="px-3 py-2.5 text-slate-500 border-r border-slate-200 max-w-xs truncate" title={alamatFull}>
+                            <span className="inline-flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                              {alamatFull}
+                            </span>
+                          </td>
 
                           {/* Personel */}
-                          <td className="px-3 py-2.5 text-slate-700 border-r border-slate-200 whitespace-nowrap">{item.pimpinanCabang || '-'}</td>
-                          <td className="px-3 py-2.5 text-slate-700 border-r border-slate-200 whitespace-nowrap">{item.pjMuadalah || '-'}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200 font-medium">{p.pendidikLK}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200 font-medium">{p.pendidikPR}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200 font-medium">{p.kependidikanLK}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200 font-medium">{p.kependidikanPR}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200 font-bold text-purple-700 bg-purple-50/40">{p.totalLK}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200 font-bold text-purple-700 bg-purple-50/40">{p.totalPR}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{p.guruMatematika}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{p.guruIndo}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{p.guruInggris}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{p.guruIpa}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{p.guruPkn}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200 font-bold text-slate-800 bg-slate-50">{p.totalGuruMapel}</td>
+                          <td className="px-3 py-2.5 text-slate-700 border-r border-slate-200 whitespace-nowrap font-medium">{item.pimpinanCabang || '-'}</td>
+                          <td className="px-3 py-2.5 text-slate-700 border-r border-slate-200 whitespace-nowrap font-medium">{item.pjMuadalah || '-'}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(p.pendidikLK)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(p.pendidikPR)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(p.kependidikanLK)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(p.kependidikanPR)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200 bg-purple-50/60">{renderVal(p.totalLK, true)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200 bg-purple-50/60">{renderVal(p.totalPR, true)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(p.guruMatematika)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(p.guruIndo)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(p.guruInggris)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(p.guruIpa)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(p.guruPkn)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200 bg-slate-100/70 font-bold">{renderVal(p.totalGuruMapel, true)}</td>
 
                           {/* Sarana Prasarana */}
                           <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{item.statusTanah || '-'}</td>
                           <td className="px-3 py-2.5 text-center border-r border-slate-200 whitespace-nowrap">{item.statusBangunan || '-'}</td>
-                          <td className="px-3 py-2.5 text-center border-r border-slate-200 font-medium">{item.kapasitasSantri || 0}</td>
+                          <td className="px-3 py-2.5 text-center border-r border-slate-200 font-semibold text-slate-800">{item.kapasitasSantri || 0}</td>
 
                           {/* Jumlah Siswa */}
-                          <td className="px-3 py-2.5 text-center border-r border-slate-200 font-bold text-blue-700 bg-blue-50/40">{s.totalSiswa}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{s.grup.hazirlik}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{s.grup.hafizlik}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{s.grup.ibtidai}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{s.grup.ihzari}</td>
+                          <td className="px-3 py-2.5 text-center border-r border-slate-200 bg-blue-50/60">{renderVal(s.totalSiswa, true)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(s.grup.hazirlik)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(s.grup.hafizlik)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(s.grup.ibtidai)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(s.grup.ihzari)}</td>
 
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{s.tingkat.tingkat7}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{s.tingkat.tingkat8}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{s.tingkat.tingkat9}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{s.tingkat.tingkat10}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{s.tingkat.tingkat11}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{s.tingkat.tingkat12}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{s.tingkat.lulus}</td>
-                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{s.tingkat.sekolahLain}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(s.tingkat.tingkat7)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(s.tingkat.tingkat8)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(s.tingkat.tingkat9)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(s.tingkat.tingkat10)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(s.tingkat.tingkat11)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(s.tingkat.tingkat12)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(s.tingkat.lulus)}</td>
+                          <td className="px-2 py-2.5 text-center border-r border-slate-200">{renderVal(s.tingkat.sekolahLain)}</td>
 
                           {/* Aksi */}
                           <td className="px-3 py-2.5 text-center font-medium whitespace-nowrap">
                             <button 
                               onClick={() => setProfileCabangId(item.id)} 
-                              className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded border border-indigo-200 transition-colors inline-flex items-center gap-1"
+                              className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200/80 transition-all inline-flex items-center gap-1 shadow-2xs"
                             >
                               {t('cabang.profile') || 'Profil'}
                             </button>
                             {isAdmin && (
-                              <div className="inline-flex items-center ml-2">
-                                <button onClick={() => handleEdit(item)} className="text-indigo-600 hover:text-indigo-900 p-1">
+                              <div className="inline-flex items-center ml-2 space-x-1">
+                                <button onClick={() => handleEdit(item)} title="Edit Cabang" className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors">
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </button>
-                                <button onClick={() => confirmDelete(item.id)} className="text-red-600 hover:text-red-900 p-1">
+                                <button onClick={() => confirmDelete(item.id)} title="Hapus Cabang" className="text-slate-400 hover:text-rose-600 p-1.5 hover:bg-rose-50 rounded-lg transition-colors">
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
@@ -494,56 +608,59 @@ export default function DataCabang() {
               <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 ring-1 ring-slate-100">
                 <Building2 className="w-6 h-6 text-slate-400" />
               </div>
-              <h3 className="text-sm font-medium text-slate-800">{t('cabang.empty_title') || 'Tidak ada data cabang yang sesuai'}</h3>
+              <h3 className="text-sm font-medium text-slate-800">{t('cabang.no_data') || 'Belum Ada Data Cabang'}</h3>
               <p className="text-sm text-slate-500 mt-1.5 max-w-sm">
-                {t('cabang.empty_desc') || 'Coba sesuaikan kata kunci pencarian atau filter wilayah.'}
+                {t('cabang.no_data_desc') || 'Data cabang belum ditambahkan atau tidak sesuai dengan kata kunci pencarian.'}
               </p>
             </div>
           )}
         </div>
       )}
 
-      <PermohonanCabangModal
-        isOpen={isAjukanModalOpen}
-        onClose={() => setIsAjukanModalOpen(false)}
-        wilayahId={user?.wilayahId}
-      />
-
+      {/* Modals */}
       <CabangModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         cabangToEdit={cabangToEdit}
       />
 
+      {isHulasaModalOpen && (
+        <HulasaCabangModal 
+          isOpen={isHulasaModalOpen}
+          onClose={() => setIsHulasaModalOpen(false)}
+          cabangList={cabang}
+        />
+      )}
+
+      {profileCabangId && (
+        <ProfileCabangModal
+          cabangId={profileCabangId}
+          onClose={() => setProfileCabangId(null)}
+        />
+      )}
+
       <ConfirmModal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
         onConfirm={executeDelete}
-        title={t('common.delete_confirm') || "Konfirmasi Hapus"}
-        message={t('cabang.delete_warning') || "Apakah Anda yakin ingin menghapus data cabang ini? Aksi ini tidak dapat dibatalkan."}
+        title={t('cabang.confirm_delete_title') || 'Konfirmasi Hapus Cabang'}
+        message={t('cabang.confirm_delete_message') || 'Apakah Anda yakin ingin menghapus cabang ini?'}
       />
 
       <ConfirmModal
         isOpen={isConfirmDeleteAllOpen}
         onClose={() => setIsConfirmDeleteAllOpen(false)}
         onConfirm={executeDeleteAll}
-        title={t('cabang.confirm_delete_all_title') || "Konfirmasi Hapus Semua Cabang"}
-        message={t('cabang.confirm_delete_all_msg') || "PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA data cabang? Aksi ini akan menghapus seluruh data cabang secara permanen dan tidak dapat dibatalkan."}
+        title={t('common.confirm_delete_all_title') || 'Konfirmasi Hapus Semua Cabang'}
+        message={t('common.confirm_delete_all_message') || 'Apakah Anda yakin ingin menghapus SEMUA data cabang? Aksi ini tidak dapat dibatalkan.'}
       />
 
-      <HulasaCabangModal 
-        isOpen={isHulasaModalOpen} 
-        onClose={() => setIsHulasaModalOpen(false)} 
-        cabangList={cabang} 
-      />
-
-      {profileCabangId && (
-        <ProfileCabangModal 
-          cabangId={profileCabangId} 
-          onClose={() => setProfileCabangId(null)} 
+      {isAjukanModalOpen && (
+        <PermohonanCabangModal
+          isOpen={isAjukanModalOpen}
+          onClose={() => setIsAjukanModalOpen(false)}
         />
       )}
     </div>
   );
 }
-

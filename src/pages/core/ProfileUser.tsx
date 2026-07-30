@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { UserCircle, Mail, Shield, ShieldCheck, Lock, Edit3, Save, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { UserCircle, Mail, Shield, ShieldCheck, Lock, Edit3, Save, CheckCircle2, AlertCircle, Loader2, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 
 export default function ProfileUser() {
@@ -13,9 +13,31 @@ export default function ProfileUser() {
   const [operatorName, setOperatorName] = useState(user?.operatorName || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  
+
+  // Wilayah muadalah fields
+  const [ketuaMuadalahName, setKetuaMuadalahName] = useState('');
+  const [ketuaMuadalahPhone, setKetuaMuadalahPhone] = useState('');
+
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Fetch wilayah profile if WILAYAH scope
+  const { data: wilayahData } = useQuery({
+    queryKey: ['wilayah', user?.wilayahId, 'profile'],
+    enabled: !!user?.wilayahId && user?.scope === 'WILAYAH',
+    queryFn: async () => {
+      const res = await apiClient.get('/master-data/wilayah');
+      const allWilayah = res.data;
+      return allWilayah.find((w: any) => w.id === user?.wilayahId) || null;
+    }
+  });
+
+  useEffect(() => {
+    if (wilayahData) {
+      setKetuaMuadalahName((wilayahData as any).ketuaMuadalahName || '');
+      setKetuaMuadalahPhone((wilayahData as any).ketuaMuadalahPhone || '');
+    }
+  }, [wilayahData]);
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
@@ -36,6 +58,20 @@ export default function ProfileUser() {
     }
   });
 
+  const wilayahMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiClient.put(`/master-data/wilayah/${user?.wilayahId}/profile`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      setSuccessMsg('Data muadalah wilayah berhasil diperbarui!');
+      setTimeout(() => setSuccessMsg(''), 5000);
+    },
+    onError: (err: any) => {
+      setErrorMsg(err.response?.data?.message || 'Gagal memperbarui data wilayah');
+    }
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSuccessMsg('');
@@ -46,16 +82,15 @@ export default function ProfileUser() {
       return;
     }
 
-    const payload: any = {
-      operatorName,
-      username,
-    };
-
-    if (password) {
-      payload.password = password;
-    }
+    const payload: any = { operatorName, username };
+    if (password) payload.password = password;
 
     mutation.mutate(payload);
+
+    // Save wilayah muadalah data if WILAYAH scope
+    if (user?.scope === 'WILAYAH' && user?.wilayahId) {
+      wilayahMutation.mutate({ ketuaMuadalahName, ketuaMuadalahPhone });
+    }
   };
 
   const isGlobalAdmin = user?.scope === 'GLOBAL';
@@ -76,7 +111,7 @@ export default function ProfileUser() {
               {user?.scope === 'GLOBAL' ? 'Administrator' : user?.scope}
             </div>
           </div>
-          
+
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -110,9 +145,7 @@ export default function ProfileUser() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Username
-                  </label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
                   <input
                     type="text"
                     disabled={!isGlobalAdmin}
@@ -122,16 +155,11 @@ export default function ProfileUser() {
                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent disabled:bg-slate-50 disabled:text-slate-500"
                   />
                   {!isGlobalAdmin && (
-                    <p className="text-xs text-slate-400 mt-1">
-                      Username hanya dapat diubah oleh Administrator.
-                    </p>
+                    <p className="text-xs text-slate-400 mt-1">Username hanya dapat diubah oleh Administrator.</p>
                   )}
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Nama Operator
-                  </label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nama Operator</label>
                   <input
                     type="text"
                     value={operatorName}
@@ -142,17 +170,50 @@ export default function ProfileUser() {
                 </div>
               </div>
 
+              {/* Wilayah Muadalah Info - Only for WILAYAH scope */}
+              {user?.scope === 'WILAYAH' && (
+                <div className="border-t border-slate-100 pt-6 space-y-4">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Data Pimpinan Muadalah Wilayah
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Nama Ketua Muadalah Wilayah
+                      </label>
+                      <input
+                        type="text"
+                        value={ketuaMuadalahName}
+                        onChange={(e) => setKetuaMuadalahName(e.target.value)}
+                        placeholder="Nama Ketua Muadalah"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        No. Telp / WhatsApp Ketua Muadalah
+                      </label>
+                      <input
+                        type="text"
+                        value={ketuaMuadalahPhone}
+                        onChange={(e) => setKetuaMuadalahPhone(e.target.value)}
+                        placeholder="Contoh: 08123456789"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="border-t border-slate-100 pt-6 space-y-4">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                   <Lock className="w-4 h-4" />
                   Ganti Password (Opsional)
                 </h3>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Password Baru
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Password Baru</label>
                     <input
                       type="password"
                       value={password}
@@ -161,11 +222,8 @@ export default function ProfileUser() {
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Konfirmasi Password Baru
-                    </label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Konfirmasi Password Baru</label>
                     <input
                       type="password"
                       value={confirmPassword}
@@ -205,10 +263,10 @@ export default function ProfileUser() {
               <div className="flex justify-end pt-4">
                 <button
                   type="submit"
-                  disabled={mutation.isPending}
+                  disabled={mutation.isPending || wilayahMutation.isPending}
                   className="inline-flex items-center justify-center px-6 py-2 border border-transparent shadow-sm text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors disabled:opacity-50"
                 >
-                  {mutation.isPending ? (
+                  {(mutation.isPending || wilayahMutation.isPending) ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
                     <Save className="w-4 h-4 mr-2" />

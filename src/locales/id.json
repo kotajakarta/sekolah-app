@@ -15,6 +15,7 @@
   "sidebar": {
     "dashboard": "Beranda",
     "kelembagaan": "Kelembagaan",
+    "profil_saya": "Profil Saya",
     "profil_cabang": "Profil Cabang",
     "lembaga_muadalah": "Lembaga Muadalah",
     "cabang": "Data Cabang",
@@ -205,6 +206,11 @@
       "berkas": "Berkas Pendukung (Opsional)",
       "ifadah": "Surat Ifadah / Keterangan Mengajar",
       "ktp": "KTP / Identitas",
+      "ijazah": "Ijazah Terakhir",
+      "jenis_kelamin": "Jenis Kelamin",
+      "perguruan_tinggi": "Nama Perguruan Tinggi",
+      "program_studi": "Program Studi",
+      "tahun_lulus": "Tahun Lulus",
       "change": "Ubah File",
       "upload": "Unggah File"
     },
@@ -259,6 +265,7 @@
       "tab_nilai_short": "Nilai",
       "section_berkas": "Berkas & Dokumen",
       "section_identitas": "Identitas Diri",
+      "section_akademik": "Informasi Akademik",
       "section_registrasi": "Registrasi Akademik",
       "section_alamat": "Alamat Tempat Tinggal",
       "section_darurat": "Kontak Darurat",

@@ -21,7 +21,9 @@ interface DashboardStats {
     wilayahName: string | null;
     cabangName: string | null;
     ketuaCabangName: string | null;
+    ketuaCabangPhone: string | null;
     ketuaMuadalahName: string | null;
+    ketuaMuadalahPhone: string | null;
   };
   cabangMissingSubjectsCount?: number;
   ketersediaanGuru?: {
@@ -296,16 +298,30 @@ export default function Dashboard() {
       {/* Top Grid: stat cards + System Status (spans both rows) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
 
-        {/* Total Santri */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('dashboard.stats_total_santri')}</span>
-            <span className="inline-flex items-center gap-0.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-              <ArrowUpRight className="w-3 h-3" /> 2.4%
-            </span>
+        {/* Total Santri + Total Guru (combined compact card) */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col">
+          <div className="flex gap-4 divide-x divide-slate-100">
+            {/* Santri */}
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{t('dashboard.stats_total_santri')}</span>
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                  <ArrowUpRight className="w-2.5 h-2.5" /> 2.4%
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-slate-900 tracking-tight">{statsData.totalSantri.toLocaleString()}</div>
+            </div>
+            {/* Guru */}
+            <div className="flex-1 pl-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Total Guru</span>
+                <Users className="w-3 h-3 text-slate-400" />
+              </div>
+              <div className="text-2xl font-bold text-slate-900 tracking-tight">{statsData.totalGuru?.toLocaleString() || 0}</div>
+            </div>
           </div>
-          <div className="text-3xl font-bold text-slate-900 tracking-tight">{statsData.totalSantri.toLocaleString()}</div>
-          <div className="flex items-end h-10 gap-0.5 w-full mt-4">
+          {/* Mini chart for santri */}
+          <div className="flex items-end h-8 gap-0.5 w-full mt-3">
             {[30, 50, 40, 70, 90, 65, 80, 55, 60, 85].map((val, idx) => (
               <div
                 key={idx}
@@ -408,63 +424,49 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Total Guru */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Guru / Ustadz</span>
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-400">
-              <Users className="w-4 h-4 text-slate-400" />
-            </span>
-          </div>
-          <div className="text-3xl font-bold text-slate-900 tracking-tight">{statsData.totalGuru?.toLocaleString() || 0}</div>
-          <div className="h-10 w-full mt-4 flex items-end">
-             {[40, 60, 50, 70, 60, 80, 70, 90, 85, 95].map((val, idx) => (
-              <div
-                key={idx}
-                className="flex-1 bg-brand/15 hover:bg-brand/70 transition-colors duration-150 cursor-pointer rounded-sm mr-0.5 last:mr-0"
-                style={{ height: `${val}%` }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* RBAC Identity */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Identitas User</span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold tracking-wider bg-slate-100 text-slate-600 uppercase">
+        {/* RBAC Identity - compact */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Identitas Akses</span>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 uppercase">
               {statsData.rbacIdentity?.scope || 'USER'}
             </span>
           </div>
-          <div className="flex-1 space-y-3 mt-1 overflow-y-auto custom-scrollbar">
-             <div className="flex flex-col">
-                <span className="text-[10px] uppercase font-semibold text-slate-400">Nama Pengguna</span>
-                <span className="text-sm font-medium text-slate-800">{statsData.rbacIdentity?.operatorName || '-'}</span>
-             </div>
-             {statsData.rbacIdentity?.wilayahName && (
-               <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-semibold text-slate-400">Wilayah</span>
-                  <span className="text-sm font-medium text-slate-800">{statsData.rbacIdentity.wilayahName}</span>
-               </div>
-             )}
-             {statsData.rbacIdentity?.cabangName && (
-               <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-semibold text-slate-400">Cabang</span>
-                  <span className="text-sm font-medium text-slate-800">{statsData.rbacIdentity.cabangName}</span>
-               </div>
-             )}
-             {statsData.rbacIdentity?.ketuaCabangName && (
-               <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-semibold text-slate-400">Ketua Cabang</span>
-                  <span className="text-sm font-medium text-slate-800">{statsData.rbacIdentity.ketuaCabangName}</span>
-               </div>
-             )}
-             {statsData.rbacIdentity?.ketuaMuadalahName && (
-               <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-semibold text-slate-400">Kepala Muadalah</span>
-                  <span className="text-sm font-medium text-slate-800">{statsData.rbacIdentity.ketuaMuadalahName}</span>
-               </div>
-             )}
+          <div className="space-y-1.5 text-[11px]">
+            <div className="flex items-start gap-1.5">
+              <span className="text-slate-400 w-16 shrink-0 font-medium">Operator</span>
+              <span className="font-semibold text-slate-800 truncate">{statsData.rbacIdentity?.operatorName || '-'}</span>
+            </div>
+            {statsData.rbacIdentity?.wilayahName && (
+              <div className="flex items-start gap-1.5">
+                <span className="text-slate-400 w-16 shrink-0 font-medium">Wilayah</span>
+                <span className="font-semibold text-slate-800">{statsData.rbacIdentity.wilayahName}</span>
+              </div>
+            )}
+            {statsData.rbacIdentity?.cabangName && (
+              <div className="flex items-start gap-1.5">
+                <span className="text-slate-400 w-16 shrink-0 font-medium">Cabang</span>
+                <span className="font-semibold text-slate-800">{statsData.rbacIdentity.cabangName}</span>
+              </div>
+            )}
+            {statsData.rbacIdentity?.ketuaCabangName && (
+              <div className="border-t border-slate-100 pt-1.5 mt-1.5">
+                <div className="text-[9px] font-bold text-slate-400 uppercase mb-0.5">Ketua Cabang</div>
+                <div className="font-semibold text-slate-800">{statsData.rbacIdentity.ketuaCabangName}</div>
+                {statsData.rbacIdentity.ketuaCabangPhone && (
+                  <a href={`tel:${statsData.rbacIdentity.ketuaCabangPhone}`} className="text-blue-500 hover:underline text-[10px]">{statsData.rbacIdentity.ketuaCabangPhone}</a>
+                )}
+              </div>
+            )}
+            {statsData.rbacIdentity?.ketuaMuadalahName && (
+              <div className="border-t border-slate-100 pt-1.5 mt-1.5">
+                <div className="text-[9px] font-bold text-slate-400 uppercase mb-0.5">Kepala Muadalah</div>
+                <div className="font-semibold text-slate-800">{statsData.rbacIdentity.ketuaMuadalahName}</div>
+                {statsData.rbacIdentity.ketuaMuadalahPhone && (
+                  <a href={`tel:${statsData.rbacIdentity.ketuaMuadalahPhone}`} className="text-blue-500 hover:underline text-[10px]">{statsData.rbacIdentity.ketuaMuadalahPhone}</a>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -499,35 +501,83 @@ export default function Dashboard() {
 
         {/* Kategori Siswa */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">{t('dashboard.kategori_siswa')}</h3>
-          <div className="flex items-end justify-between gap-3 h-40">
-            {statsData.chartKelas && statsData.chartKelas.length > 0 ? (
-              statsData.chartKelas.map((item, i) => {
-                const maxVal = Math.max(...statsData.chartKelas.map(d => d.value), 1);
-                const percent = (item.value / maxVal) * 100;
-                return (
-                  <div key={i} className="flex flex-col items-center flex-1 h-full justify-end">
-                    <span className="text-xs font-semibold text-slate-500 mb-1">{item.value}</span>
-                    <div className="w-full max-w-6 bg-slate-100 rounded-t-md flex flex-col justify-end overflow-hidden" style={{ height: '5.5rem' }}>
-                      <div
-                        className={`w-full rounded-t-md transition-all duration-300 ${
-                          ['7', '8', '9'].includes(item.name) ? 'bg-blue-500' :
-                          ['10', '11', '12'].includes(item.name) ? 'bg-emerald-500' :
-                          'bg-slate-400'
-                        }`}
-                        style={{ height: `${percent}%` }}
-                      />
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">{t('dashboard.kategori_siswa')}</h3>
+          {statsData.chartKelas && statsData.chartKelas.length > 0 ? (
+            <div className="flex gap-3">
+              {/* Wustha (7-9) */}
+              <div className="flex-1">
+                <div className="flex items-center gap-1 mb-1.5">
+                  <span className="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded uppercase tracking-wider">Wustha</span>
+                </div>
+                <div className="flex items-end justify-between gap-1.5 h-28">
+                  {statsData.chartKelas.filter(item => ['7','8','9'].includes(item.name)).map((item, i) => {
+                    const maxVal = Math.max(...statsData.chartKelas.map(d => d.value), 1);
+                    const percent = (item.value / maxVal) * 100;
+                    return (
+                      <div key={i} className="flex flex-col items-center flex-1 h-full justify-end">
+                        <span className="text-[10px] font-semibold text-slate-500 mb-0.5">{item.value}</span>
+                        <div className="w-full bg-slate-100 rounded-t-md flex flex-col justify-end overflow-hidden" style={{ height: '5rem' }}>
+                          <div className="w-full bg-blue-500 rounded-t-md transition-all duration-300" style={{ height: `${percent}%` }} />
+                        </div>
+                        <span className="text-[10px] font-medium text-slate-400 text-center mt-1">{item.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Divider */}
+              <div className="w-px bg-slate-200 self-stretch my-1"></div>
+              {/* Ulya (10-12) */}
+              <div className="flex-1">
+                <div className="flex items-center gap-1 mb-1.5">
+                  <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded uppercase tracking-wider">Ulya</span>
+                </div>
+                <div className="flex items-end justify-between gap-1.5 h-28">
+                  {statsData.chartKelas.filter(item => ['10','11','12'].includes(item.name)).map((item, i) => {
+                    const maxVal = Math.max(...statsData.chartKelas.map(d => d.value), 1);
+                    const percent = (item.value / maxVal) * 100;
+                    return (
+                      <div key={i} className="flex flex-col items-center flex-1 h-full justify-end">
+                        <span className="text-[10px] font-semibold text-slate-500 mb-0.5">{item.value}</span>
+                        <div className="w-full bg-slate-100 rounded-t-md flex flex-col justify-end overflow-hidden" style={{ height: '5rem' }}>
+                          <div className="w-full bg-emerald-500 rounded-t-md transition-all duration-300" style={{ height: `${percent}%` }} />
+                        </div>
+                        <span className="text-[10px] font-medium text-slate-400 text-center mt-1">{item.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Non Muadalah (Others) */}
+              {statsData.chartKelas.some(item => !['7','8','9','10','11','12'].includes(item.name)) && (
+                <>
+                  <div className="w-px bg-slate-200 self-stretch my-1"></div>
+                  <div className="flex-shrink-0">
+                    <div className="flex items-center gap-1 mb-1.5">
+                      <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded uppercase tracking-wider">Lainnya</span>
                     </div>
-                    <span className="text-[11px] font-medium text-slate-400 text-center uppercase tracking-tight mt-2 w-full truncate" title={item.name}>
-                      {item.name}
-                    </span>
+                    <div className="flex items-end justify-between gap-1.5 h-28">
+                      {statsData.chartKelas.filter(item => !['7','8','9','10','11','12'].includes(item.name)).map((item, i) => {
+                        const maxVal = Math.max(...statsData.chartKelas.map(d => d.value), 1);
+                        const percent = (item.value / maxVal) * 100;
+                        return (
+                          <div key={i} className="flex flex-col items-center flex-1 h-full justify-end">
+                            <span className="text-[10px] font-semibold text-slate-500 mb-0.5">{item.value}</span>
+                            <div className="w-full bg-slate-100 rounded-t-md flex flex-col justify-end overflow-hidden" style={{ height: '5rem' }}>
+                              <div className="w-full bg-slate-400 rounded-t-md transition-all duration-300" style={{ height: `${percent}%` }} />
+                            </div>
+                            <span className="text-[9px] font-medium text-slate-400 text-center mt-1 truncate max-w-12" title={item.name}>{item.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                );
-              })
-            ) : (
-              <div className="text-xs text-slate-400 py-4 text-center w-full">{t('common.no_data')}</div>
-            )}
-          </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="text-xs text-slate-400 py-4 text-center w-full">{t('common.no_data')}</div>
+          )}
         </div>
 
       </div>

@@ -4,9 +4,10 @@ import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useGetGuru, useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
-import { Plus, Trash2, Loader2, BookOpen, UserCheck, AlertCircle, BarChart3, Building2, MapPin, X } from 'lucide-react';
+import { Plus, Trash2, Loader2, BookOpen, UserCheck, AlertCircle, BarChart3, Building2, MapPin, X, LayoutDashboard } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
+import PenugasanDashboardTab from '../../features/formal/components/PenugasanDashboardTab';
 
 interface Assignment {
   id: string;
@@ -40,6 +41,7 @@ interface Assignment {
 }
 
 export default function PenugasanGuru() {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'data'>('dashboard');
   const { t } = useTranslation();
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -365,8 +367,47 @@ export default function PenugasanGuru() {
         </div>
       </div>
 
-      {/* Card Compact Data Mapel Kurang Guru */}
-      {!isLoading && mapelKurangGuru.length > 0 && (
+      {/* Tabs Switcher */}
+      <div className="mb-6 flex border-b border-slate-200 gap-2">
+        <button
+          onClick={() => setActiveTab('dashboard')}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all ${
+            activeTab === 'dashboard'
+              ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50 rounded-t-xl font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl'
+          }`}
+        >
+          <LayoutDashboard className="w-4 h-4" />
+          Dashboard Infografik Penugasan
+        </button>
+        <button
+          onClick={() => setActiveTab('data')}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all ${
+            activeTab === 'data'
+              ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50 rounded-t-xl font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl'
+          }`}
+        >
+          <BookOpen className="w-4 h-4" />
+          Matriks & Data Penugasan
+        </button>
+      </div>
+
+      {activeTab === 'dashboard' ? (
+        <PenugasanDashboardTab
+          assignments={assignments || []}
+          guruList={guruList || []}
+          kelasList={kelasList || []}
+          mapelList={mapelList || []}
+          isLoading={isLoading}
+          userScope={user?.scope}
+          userWilayahId={user?.wilayahId}
+          userCabangId={user?.cabangId}
+        />
+      ) : (
+        <>
+          {/* Card Compact Data Mapel Kurang Guru */}
+          {!isLoading && mapelKurangGuru.length > 0 && (
         <div className="mb-6 bg-white border border-rose-200 rounded-xl shadow-sm overflow-hidden">
           <div className="bg-rose-50/50 border-b border-rose-100 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -567,6 +608,8 @@ export default function PenugasanGuru() {
             </table>
           </div>
         </div>
+      )}
+        </>
       )}
 
       {/* Add Assignment Modal */}

@@ -6,6 +6,7 @@ import {
   Building2, MapPin
 } from 'lucide-react';
 import AdvancedFilterBar, { FilterState } from '../../../components/AdvancedFilterBar';
+import { useGetWilayah } from '../hooks/useMasterData';
 
 export interface ResiduStudent {
   id: string;
@@ -18,6 +19,11 @@ export interface ResiduStudent {
   cabang?: {
     id: string;
     name: string;
+    wilayahId?: string | null;
+    wilayah?: {
+      id: string;
+      name: string;
+    } | null;
   } | null;
   biodata?: {
     fullName: string;
@@ -95,6 +101,16 @@ export default function ResiduDashboardTab({
     jenisDaimi: '',
     tingkat: ''
   });
+
+  const { data: masterWilayah = [] } = useGetWilayah();
+
+  const wilayahLookup = useMemo(() => {
+    const map = new Map<string, string>();
+    (masterWilayah || []).forEach(w => {
+      if (w.id && w.name) map.set(w.id, w.name);
+    });
+    return map;
+  }, [masterWilayah]);
 
   // Filter students based on scope
   const filteredStudents = useMemo(() => {
@@ -176,7 +192,8 @@ export default function ResiduDashboardTab({
       });
 
       // Wilayah Stats
-      const wName = s.wilayah?.name || (s.wilayahId ? `Wilayah ID: ${s.wilayahId}` : 'Wilayah Belum Diset');
+      const targetWilayahId = s.wilayahId || (s.wilayah?.id) || (s.cabang?.wilayahId) || (s.cabang as any)?.wilayah?.id;
+      const wName = s.wilayah?.name || s.cabang?.wilayah?.name || (targetWilayahId ? wilayahLookup.get(targetWilayahId) : null) || 'Wilayah Belum Diset';
       if (!wilayahMap[wName]) {
         wilayahMap[wName] = {
           wilayahName: wName,

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Users, Plus, UserMinus, UserPlus, Edit2, Trash2, Search, User, AlertCircle, FileSpreadsheet } from 'lucide-react';
+import { Users, Plus, UserMinus, UserPlus, Edit2, Trash2, Search, User, AlertCircle, FileSpreadsheet, LayoutDashboard, BarChart3 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useGetStudents, Student } from '../../features/core_data/hooks/useGetStudents';
 import LepasSiswaModal from '../../features/core_data/components/LepasSiswaModal';
@@ -10,6 +10,7 @@ import StudentModal from '../../features/core_data/components/StudentModal';
 import StudentProfileModal from '../../features/core_data/components/StudentProfileModal';
 import KelengkapanSiswaModal from '../../features/core_data/components/KelengkapanSiswaModal';
 import CustomFilterExportModal from '../../features/core_data/components/CustomFilterExportModal';
+import SiswaDashboardTab from '../../features/core_data/components/SiswaDashboardTab';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
@@ -42,6 +43,7 @@ const calculateProgress = (student: any) => {
 };
 
 export default function DataSiswa() {
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'data'>('dashboard');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const itemsPerPage = 10;
@@ -93,6 +95,7 @@ export default function DataSiswa() {
       if (viewId) {
         const student = students.find((s: Student) => s.id === viewId);
         if (student) {
+          setActiveTab('data');
           setStudentToView(student);
           // Remove viewId from URL without reloading
           searchParams.delete('viewId');
@@ -308,226 +311,264 @@ export default function DataSiswa() {
         </div>
       </div>
 
-      <AdvancedFilterBar
-        onFilterChange={setAdvancedFilters}
-        userScope={user?.scope || ''}
-        userWilayahId={user?.wilayahId}
-        userCabangId={user?.cabangId}
-        showDaimiFilter={true}
-        showTingkatFilter={true}
-        onOpenCustomExportModal={() => setIsCustomExportOpen(true)}
-      />
+      {/* Tabs Switcher */}
+      <div className="flex border-b border-slate-200 gap-2">
+        <button
+          onClick={() => setActiveTab('dashboard')}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all ${
+            activeTab === 'dashboard'
+              ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50 rounded-t-xl font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl'
+          }`}
+        >
+          <LayoutDashboard className="w-4 h-4" />
+          Dashboard Analisis
+        </button>
+        <button
+          onClick={() => setActiveTab('data')}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all ${
+            activeTab === 'data'
+              ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50 rounded-t-xl font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          Data Semua Santri
+        </button>
+      </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-200/70 bg-slate-50/50">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder={t('siswa.search_placeholder') || 'Cari nama, NIK, atau NISN...'}
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white"
-            />
-          </div>
-        </div>
+      {activeTab === 'dashboard' ? (
+        <SiswaDashboardTab
+          students={students || []}
+          isLoading={isLoading}
+          userScope={user?.scope}
+          userWilayahId={user?.wilayahId}
+          userCabangId={user?.cabangId}
+        />
+      ) : (
+        <>
+          <AdvancedFilterBar
+            onFilterChange={setAdvancedFilters}
+            userScope={user?.scope || ''}
+            userWilayahId={user?.wilayahId}
+            userCabangId={user?.cabangId}
+            showDaimiFilter={true}
+            showTingkatFilter={true}
+            onOpenCustomExportModal={() => setIsCustomExportOpen(true)}
+          />
 
-        {isLoading ? (
-          <div className="p-8 text-center text-slate-500">{t('common.loading')}</div>
-        ) : isError ? (
-          <div className="p-8 text-center text-red-500">{t('common.failed')}</div>
-        ) : filteredStudents && filteredStudents.length > 0 ? (<>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50/80 border-b border-slate-200">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
-                  <th scope="col" className="px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">{t('siswa.table.photo') || 'Foto'}</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.name')} & NIK</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('wilayah.region_name')}</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.table.academic') || 'Akademik'}</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.table.completeness') || 'Kelengkapan'}</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.table.status') || 'Status'}</th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-slate-200">
-                {filteredStudents
-                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                  .map((student, idx) => {
-                    const progress = calculateProgress(student);
-                    return (
-                      <tr key={student.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
-                          {(currentPage - 1) * itemsPerPage + idx + 1}
-                        </td>
-                        <td className="px-3 py-3 whitespace-nowrap text-center">
-                          {student.biodata?.fotoUrl ? (
-                            <div className="relative inline-block">
-                              <img
-                                src={student.biodata.fotoUrl.startsWith('/') ? `/api/v1${student.biodata.fotoUrl}` : student.biodata.fotoUrl}
-                                alt="Foto Siswa"
-                                className={`w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 ${student.biodata?.jenisKelamin === 'PEREMPUAN' ? 'blur-sm' : ''
-                                  }`}
-                              />
-                              {student.biodata?.jenisKelamin === 'PEREMPUAN' && (
-                                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white drop-shadow-sm pointer-events-none">🔒</span>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-200/70 bg-slate-50/50">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder={t('siswa.search_placeholder') || 'Cari nama, NIK, atau NISN...'}
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white"
+                />
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="p-8 text-center text-slate-500">{t('common.loading')}</div>
+            ) : isError ? (
+              <div className="p-8 text-center text-red-500">{t('common.failed')}</div>
+            ) : filteredStudents && filteredStudents.length > 0 ? (<>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50/80 border-b border-slate-200">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
+                      <th scope="col" className="px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">{t('siswa.table.photo') || 'Foto'}</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.name')} & NIK</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('wilayah.region_name')}</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.table.academic') || 'Akademik'}</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.table.completeness') || 'Kelengkapan'}</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.table.status') || 'Status'}</th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-slate-200">
+                    {filteredStudents
+                      .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                      .map((student, idx) => {
+                        const progress = calculateProgress(student);
+                        return (
+                          <tr key={student.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
+                              {(currentPage - 1) * itemsPerPage + idx + 1}
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap text-center">
+                              {student.biodata?.fotoUrl ? (
+                                <div className="relative inline-block">
+                                  <img
+                                    src={student.biodata.fotoUrl.startsWith('/') ? `/api/v1${student.biodata.fotoUrl}` : student.biodata.fotoUrl}
+                                    alt="Foto Siswa"
+                                    className={`w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 ${student.biodata?.jenisKelamin === 'PEREMPUAN' ? 'blur-sm' : ''
+                                      }`}
+                                  />
+                                  {student.biodata?.jenisKelamin === 'PEREMPUAN' && (
+                                    <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-white drop-shadow-sm pointer-events-none">🔒</span>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
+                                  <User className="w-5 h-5 text-slate-400" />
+                                </div>
                               )}
-                            </div>
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
-                              <User className="w-5 h-5 text-slate-400" />
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-slate-800">{student.biodata?.fullName}</div>
-                          <div className="text-xs text-slate-500">
-                            NIK: {student.biodata?.nik || '-'}
-                            {student.biodata?.nisn ? ` | NISN: ${student.biodata.nisn}` : ''}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                          {student.wilayah?.name || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                          {student.cabang?.name || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-700">
-                          <div className="flex flex-wrap gap-1 items-center">
-                            {student.siswaFormal?.kelas ? (
-                              <>
-                                {student.siswaFormal.kelas.tingkat && student.siswaFormal.kelas.tingkat !== 'Non Muadalah' && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 border border-green-200">
-                                    {student.siswaFormal.kelas.tingkat}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-slate-800">{student.biodata?.fullName}</div>
+                              <div className="text-xs text-slate-500">
+                                NIK: {student.biodata?.nik || '-'}
+                                {student.biodata?.nisn ? ` | NISN: ${student.biodata.nisn}` : ''}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                              {student.wilayah?.name || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                              {student.cabang?.name || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-700">
+                              <div className="flex flex-wrap gap-1 items-center">
+                                {student.siswaFormal?.kelas ? (
+                                  <>
+                                    {student.siswaFormal.kelas.tingkat && student.siswaFormal.kelas.tingkat !== 'Non Muadalah' && (
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 border border-green-200">
+                                        {student.siswaFormal.kelas.tingkat}
+                                      </span>
+                                    )}
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
+                                      {student.siswaFormal.kelas.name}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-slate-400 font-normal">Belum ada kelas</span>
+                                )}
+                              </div>
+                              {student.dataDaimi?.grup?.jenis ? (
+                                <div className="mt-1">
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                    Daimi: {student.dataDaimi.grup.jenis}
+                                  </span>
+                                </div>
+                              ) : student.grupDaimi ? (
+                                <div className="mt-1">
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                    Daimi: {student.grupDaimi}
+                                  </span>
+                                </div>
+                              ) : null}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-300 ${progress === 100 ? 'bg-green-500' :
+                                        progress >= 75 ? 'bg-emerald-500' :
+                                          progress >= 50 ? 'bg-amber-500' :
+                                            'bg-rose-500'
+                                      }`}
+                                    style={{ width: `${progress}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-semibold text-slate-600">{progress}%</span>
+                                {progress < 100 && (
+                                  <button
+                                    onClick={() => setSelectedStudentForKelengkapan(student)}
+                                    className="text-amber-500 hover:text-amber-600 transition-colors p-0.5 rounded hover:bg-amber-50 focus:outline-none"
+                                    title="Lihat data yang kurang"
+                                  >
+                                    <AlertCircle className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex flex-col gap-1">
+                                <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 w-fit ${student.statusPool === 'AKTIF_CABANG' ? 'bg-green-100 text-green-800' :
+                                    student.statusPool === 'TERSEDIA' ? 'bg-blue-100 text-blue-800' :
+                                      student.statusPool === 'MUTASI' ? 'bg-amber-100 text-amber-800' :
+                                        'bg-slate-100 text-slate-800'
+                                  }`}>
+                                  {student.statusPool.replace('_', ' ')}
+                                </span>
+                                {!student.isActive && (
+                                  <span className="inline-flex rounded-full px-2 text-[10px] font-semibold leading-4 bg-red-100 text-red-700 w-fit">
+                                    Tidak Aktif
                                   </span>
                                 )}
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-800 border border-orange-200">
-                                  {student.siswaFormal.kelas.name}
-                                </span>
-                              </>
-                            ) : (
-                              <span className="text-slate-400 font-normal">Belum ada kelas</span>
-                            )}
-                          </div>
-                          {student.dataDaimi?.grup?.jenis ? (
-                            <div className="mt-1">
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                                Daimi: {student.dataDaimi.grup.jenis}
-                              </span>
-                            </div>
-                          ) : student.grupDaimi ? (
-                            <div className="mt-1">
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                                Daimi: {student.grupDaimi}
-                              </span>
-                            </div>
-                          ) : null}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all duration-300 ${progress === 100 ? 'bg-green-500' :
-                                    progress >= 75 ? 'bg-emerald-500' :
-                                      progress >= 50 ? 'bg-amber-500' :
-                                        'bg-rose-500'
-                                  }`}
-                                style={{ width: `${progress}%` }}
-                              />
-                            </div>
-                            <span className="text-xs font-semibold text-slate-600">{progress}%</span>
-                            {progress < 100 && (
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-1.5">
                               <button
-                                onClick={() => setSelectedStudentForKelengkapan(student)}
-                                className="text-amber-500 hover:text-amber-600 transition-colors p-0.5 rounded hover:bg-amber-50 focus:outline-none"
-                                title="Lihat data yang kurang"
+                                onClick={() => setStudentToView(student)}
+                                className="inline-flex items-center justify-center p-1.5 border border-slate-200 shadow-sm rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors"
+                                title="Profil Siswa"
                               >
-                                <AlertCircle className="w-4 h-4" />
+                                <User className="h-3.5 w-3.5" />
                               </button>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex flex-col gap-1">
-                            <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 w-fit ${student.statusPool === 'AKTIF_CABANG' ? 'bg-green-100 text-green-800' :
-                                student.statusPool === 'TERSEDIA' ? 'bg-blue-100 text-blue-800' :
-                                  student.statusPool === 'MUTASI' ? 'bg-amber-100 text-amber-800' :
-                                    'bg-slate-100 text-slate-800'
-                              }`}>
-                              {student.statusPool.replace('_', ' ')}
-                            </span>
-                            {!student.isActive && (
-                              <span className="inline-flex rounded-full px-2 text-[10px] font-semibold leading-4 bg-red-100 text-red-700 w-fit">
-                                Tidak Aktif
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-1.5">
-                          <button
-                            onClick={() => setStudentToView(student)}
-                            className="inline-flex items-center justify-center p-1.5 border border-slate-200 shadow-sm rounded-md text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-colors"
-                            title="Profil Siswa"
-                          >
-                            <User className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleEdit(student)}
-                            className="inline-flex items-center justify-center p-1.5 border border-indigo-200 shadow-sm rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                            title={t('common.edit') || "Edit"}
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
-                          {student.statusPool === 'AKTIF_CABANG' && (
-                            <button
-                              onClick={() => setStudentToLepas(student)}
-                              className="inline-flex items-center justify-center p-1.5 border border-amber-200 shadow-sm rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors"
-                              title="Lepas Siswa"
-                            >
-                              <UserMinus className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                          {isAdmin && (
-                            <button
-                              onClick={() => setStudentToDelete(student)}
-                              className="inline-flex items-center justify-center p-1.5 border border-red-200 shadow-sm rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                              title="Hapus Siswa"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-              </tbody>
-            </table>
+                              <button
+                                onClick={() => handleEdit(student)}
+                                className="inline-flex items-center justify-center p-1.5 border border-indigo-200 shadow-sm rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                                title={t('common.edit') || "Edit"}
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </button>
+                              {student.statusPool === 'AKTIF_CABANG' && (
+                                <button
+                                  onClick={() => setStudentToLepas(student)}
+                                  className="inline-flex items-center justify-center p-1.5 border border-amber-200 shadow-sm rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors"
+                                  title="Lepas Siswa"
+                                >
+                                  <UserMinus className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                              {isAdmin && (
+                                <button
+                                  onClick={() => setStudentToDelete(student)}
+                                  className="inline-flex items-center justify-center p-1.5 border border-red-200 shadow-sm rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                  title="Hapus Siswa"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(filteredStudents.length / itemsPerPage)}
+                onPageChange={setCurrentPage}
+                totalItems={filteredStudents.length}
+                itemsPerPage={itemsPerPage}
+              />
+            </>
+            ) : (
+              <div className="p-12 text-center flex flex-col items-center justify-center">
+                <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 ring-1 ring-slate-100">
+                  <Users className="w-6 h-6 text-slate-400" />
+                </div>
+                <h3 className="text-sm font-medium text-slate-800">{t('siswa.no_data_title')}</h3>
+                <p className="text-sm text-slate-500 mt-1.5 max-w-sm">
+                  {t('siswa.no_data_desc')}
+                </p>
+              </div>
+            )}
           </div>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={Math.ceil(filteredStudents.length / itemsPerPage)}
-            onPageChange={setCurrentPage}
-            totalItems={filteredStudents.length}
-            itemsPerPage={itemsPerPage}
-          />
         </>
-        ) : (
-          <div className="p-12 text-center flex flex-col items-center justify-center">
-            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 ring-1 ring-slate-100">
-              <Users className="w-6 h-6 text-slate-400" />
-            </div>
-            <h3 className="text-sm font-medium text-slate-800">{t('siswa.no_data_title')}</h3>
-            <p className="text-sm text-slate-500 mt-1.5 max-w-sm">
-              {t('siswa.no_data_desc')}
-            </p>
-          </div>
-        )}
-      </div>
+      )}
 
       {studentToLepas && (
         <LepasSiswaModal

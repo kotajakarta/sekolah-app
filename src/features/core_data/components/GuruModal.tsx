@@ -286,26 +286,6 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
                   </select>
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">{t('guru.form.mapel_umum')}</label>
-                  <Select
-                    isMulti
-                    options={mapelOptions}
-                    value={mapelOptions.filter(opt => formData.mapelUmum.includes(opt.value))}
-                    onChange={(selected) => {
-                      setFormData({
-                        ...formData,
-                        mapelUmum: selected.map(item => item.value)
-                      });
-                    }}
-                    placeholder={t('guru.form.mapel_umum_ph')}
-                    className="text-sm"
-                  />
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    {t('guru.form.mapel_umum_desc')}
-                  </p>
-                </div>
-
               </div>
 
               {!guru && (

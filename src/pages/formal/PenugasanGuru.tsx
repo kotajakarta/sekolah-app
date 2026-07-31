@@ -145,6 +145,34 @@ export default function PenugasanGuru() {
     return matchGuru && matchMapel && matchKelas && matchWilayah && matchCabang;
   });
 
+  const groupedAssignmentsByGuru = useMemo(() => {
+    const map = new Map<string, {
+      staffId: string;
+      staffName: string;
+      staffPosition?: string;
+      cabangName?: string;
+      wilayahName?: string;
+      items: Assignment[];
+    }>();
+
+    filteredAssignments.forEach((asg) => {
+      const staffId = asg.staffId || asg.staff?.id || 'unknown';
+      if (!map.has(staffId)) {
+        map.set(staffId, {
+          staffId,
+          staffName: asg.staff?.name || t('penugasan.staf_not_found') || 'Guru Tidak Ditemukan',
+          staffPosition: asg.staff?.position || '',
+          cabangName: asg.kelas?.cabang?.name || t('penugasan.pusat') || '-',
+          wilayahName: asg.kelas?.cabang?.wilayah?.name || '-',
+          items: []
+        });
+      }
+      map.get(staffId)!.items.push(asg);
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.staffName.localeCompare(b.staffName));
+  }, [filteredAssignments, t]);
+
   const mapelKurangGuru = useMemo(() => {
     if (loadingAssignments || loadingKelas || loadingMapel || !mapelList.length || !kelasList.length) return [];
 
@@ -453,57 +481,85 @@ export default function PenugasanGuru() {
       ) : (
         <div className="bg-white border border-slate-200/80 rounded-xl shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse border-b border-slate-200">
               <thead>
-                <tr className="bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider border-b border-slate-200">
-                  <th className="px-6 py-4">{t('penugasan.nama_guru')}</th>
-                  <th className="px-6 py-4">{t('penugasan.mata_pelajaran')}</th>
-                  <th className="px-6 py-4">{t('penugasan.kelas')}</th>
-                  <th className="px-6 py-4">{t('penugasan.cabang')}</th>
-                  <th className="px-6 py-4">{t('penugasan.wilayah')}</th>
-                  <th className="px-6 py-4 text-center w-24">{t('common.action')}</th>
+                <tr className="bg-slate-50/70 text-[11px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200 select-none">
+                  <th className="px-6 py-3.5 w-1/4">{t('penugasan.nama_guru') || 'Nama Guru'}</th>
+                  <th className="px-6 py-3.5 w-2/5">{t('penugasan.penugasan') || 'Penugasan (Mapel & Kelas)'}</th>
+                  <th className="px-6 py-3.5">{t('penugasan.cabang') || 'Cabang'}</th>
+                  <th className="px-6 py-3.5">{t('penugasan.wilayah') || 'Wilayah'}</th>
+                  <th className="px-6 py-3.5 text-center w-28">{t('common.action') || 'Aksi'}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
-                {filteredAssignments.length > 0 ? (
-                  filteredAssignments.map((asg) => (
-                    <tr key={asg.id} className="hover:bg-slate-50/30 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-slate-900">
-                        {asg.staff?.name || t('penugasan.staf_not_found')}
+              <tbody className="divide-y divide-slate-100 text-sm font-sans">
+                {groupedAssignmentsByGuru.length > 0 ? (
+                  groupedAssignmentsByGuru.map((group) => (
+                    <tr key={group.staffId} className="hover:bg-slate-50/80 transition-colors">
+                      {/* Nama Guru */}
+                      <td className="px-6 py-4 font-bold text-slate-900 align-top">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-slate-900">{group.staffName}</span>
+                          {group.staffPosition && (
+                            <span className="text-[11px] font-medium text-slate-500">{group.staffPosition}</span>
+                          )}
+                        </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1 text-[13px] text-slate-700 font-medium">
-                          <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-                          {asg.mataPelajaran?.name || t('penugasan.mapel_not_found')}
-                        </span>
+
+                      {/* Penugasan (Mapel & Kelas) */}
+                      <td className="px-6 py-4 align-top">
+                        <div className="flex flex-wrap gap-2 items-center">
+                          {group.items.map((asg) => (
+                            <span
+                              key={asg.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50/90 text-indigo-900 border border-indigo-200/80 text-xs font-semibold shadow-2xs group"
+                            >
+                              <BookOpen className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                              <span>
+                                {asg.mataPelajaran?.name || 'Mapel'} &bull; <span className="text-indigo-700 font-bold">{asg.kelas?.name || 'Kelas'}</span>
+                              </span>
+                              <button
+                                onClick={() => handleOpenDelete(asg.id)}
+                                className="ml-1 p-0.5 text-indigo-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors"
+                                title="Hapus penugasan mapel ini"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-50 text-blue-600 text-[11px] font-bold border border-blue-100">
-                          {asg.kelas?.name || t('penugasan.kelas_not_found')}
-                        </span>
+
+                      {/* Cabang */}
+                      <td className="px-6 py-4 text-slate-700 font-medium align-top whitespace-nowrap">
+                        {group.cabangName}
                       </td>
-                      <td className="px-6 py-4 text-slate-600">
-                        {asg.kelas?.cabang?.name || t('penugasan.pusat')}
+
+                      {/* Wilayah */}
+                      <td className="px-6 py-4 text-slate-600 font-medium align-top whitespace-nowrap">
+                        {group.wilayahName}
                       </td>
-                      <td className="px-6 py-4 text-slate-600">
-                        {asg.kelas?.cabang?.wilayah?.name || '-'}
-                      </td>
-                      <td className="px-6 py-4 text-center">
+
+                      {/* Aksi */}
+                      <td className="px-6 py-4 text-center align-top whitespace-nowrap">
                         <button
-                          onClick={() => handleOpenDelete(asg.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title={t('penugasan.hapus_btn')}
+                          onClick={() => {
+                            setFormData({ staffId: group.staffId, mataPelajaranId: '', kelasId: '' });
+                            setIsModalOpen(true);
+                          }}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors inline-flex items-center gap-1"
+                          title="Tambah penugasan baru untuk guru ini"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Plus className="w-3.5 h-3.5" />
+                          Tambah
                         </button>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
                       <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                      {t('penugasan.empty_state')}
+                      {t('penugasan.empty_state') || 'Belum ada data penugasan guru yang sesuai filter.'}
                     </td>
                   </tr>
                 )}

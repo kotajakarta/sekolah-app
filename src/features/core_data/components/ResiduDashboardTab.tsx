@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import {
   Users, CheckCircle2, XCircle, AlertTriangle,
   PieChart, BarChart3, ShieldAlert, FileText,
-  Search, Filter, Sparkles, AlertCircle, School, BookOpen
+  Search, Filter, Sparkles, AlertCircle, School, BookOpen,
+  Building2, MapPin
 } from 'lucide-react';
 import AdvancedFilterBar, { FilterState } from '../../../components/AdvancedFilterBar';
 
@@ -10,6 +11,14 @@ export interface ResiduStudent {
   id: string;
   wilayahId: string | null;
   cabangId: string | null;
+  wilayah?: {
+    id: string;
+    name: string;
+  } | null;
+  cabang?: {
+    id: string;
+    name: string;
+  } | null;
   biodata?: {
     fullName: string;
   };
@@ -111,6 +120,7 @@ export default function ResiduDashboardTab({
         hasDuplicateCount: 0,
         avgCompleteness: 0,
         fieldStats: [],
+        wilayahStats: [],
         criticalDocs: {
           nik: { valid: 0, empty: 0, duplicate: 0 },
           nisn: { valid: 0, empty: 0, duplicate: 0 },
@@ -132,6 +142,16 @@ export default function ResiduDashboardTab({
       fieldMap[k] = { valid: 0, empty: 0, duplicate: 0 };
     });
 
+    const wilayahMap: Record<string, {
+      wilayahName: string;
+      total: number;
+      fullyValid: number;
+      hasEmpty: number;
+      hasDuplicate: number;
+      totalValidFields: number;
+      totalFields: number;
+    }> = {};
+
     filteredStudents.forEach(s => {
       const flags = s.flags || {};
       const flagValues = Object.values(flags);
@@ -142,6 +162,7 @@ export default function ResiduDashboardTab({
       if (hasEmpty) hasEmptyCount++;
       if (hasDuplicate) hasDuplicateCount++;
 
+      // Field Stats
       Object.keys(FIELD_LABELS).forEach(key => {
         const flag = flags[key] || 'EMPTY';
         if (flag === 'VALID') {
@@ -152,6 +173,33 @@ export default function ResiduDashboardTab({
         } else {
           fieldMap[key].empty++;
         }
+      });
+
+      // Wilayah Stats
+      const wName = s.wilayah?.name || (s.wilayahId ? `Wilayah ID: ${s.wilayahId}` : 'Wilayah Belum Diset');
+      if (!wilayahMap[wName]) {
+        wilayahMap[wName] = {
+          wilayahName: wName,
+          total: 0,
+          fullyValid: 0,
+          hasEmpty: 0,
+          hasDuplicate: 0,
+          totalValidFields: 0,
+          totalFields: 0
+        };
+      }
+
+      const entry = wilayahMap[wName];
+      entry.total++;
+      if (!hasEmpty && !hasDuplicate) entry.fullyValid++;
+      if (hasEmpty) entry.hasEmpty++;
+      if (hasDuplicate) entry.hasDuplicate++;
+
+      const fieldsCount = Object.keys(FIELD_LABELS).length;
+      entry.totalFields += fieldsCount;
+
+      Object.keys(FIELD_LABELS).forEach(k => {
+        if (flags[k] === 'VALID') entry.totalValidFields++;
       });
     });
 
@@ -166,7 +214,22 @@ export default function ResiduDashboardTab({
       validPercent: Math.round(((fieldMap[key]?.valid || 0) / total) * 100),
       emptyPercent: Math.round(((fieldMap[key]?.empty || 0) / total) * 100),
       duplicatePercent: Math.round(((fieldMap[key]?.duplicate || 0) / total) * 100)
-    })).sort((a, b) => (b.empty + b.duplicate) - (a.empty + a.duplicate)); // sorted by highest residu/missing
+    })).sort((a, b) => (b.empty + b.duplicate) - (a.empty + a.duplicate));
+
+    const wilayahStats = Object.values(wilayahMap).map(w => {
+      const score = Math.round((w.totalValidFields / (w.totalFields || 1)) * 100);
+      const validPercent = Math.round((w.fullyValid / (w.total || 1)) * 100);
+      const emptyPercent = Math.round((w.hasEmpty / (w.total || 1)) * 100);
+      const duplicatePercent = Math.round((w.hasDuplicate / (w.total || 1)) * 100);
+
+      return {
+        ...w,
+        score,
+        validPercent,
+        emptyPercent,
+        duplicatePercent
+      };
+    }).sort((a, b) => b.total - a.total);
 
     return {
       total,
@@ -175,6 +238,7 @@ export default function ResiduDashboardTab({
       hasDuplicateCount,
       avgCompleteness,
       fieldStats,
+      wilayahStats,
       criticalDocs: {
         nik: fieldMap['nik'] || { valid: 0, empty: 0, duplicate: 0 },
         nisn: fieldMap['nisn'] || { valid: 0, empty: 0, duplicate: 0 },
@@ -311,6 +375,100 @@ export default function ResiduDashboardTab({
             </span>
           </div>
         </div>
+      </div>
+
+      {/* SECTION: DATA RESIDU PER WILAYAH */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+          <div>
+            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-indigo-600" />
+              Data & Analisis Residu Santri Per Wilayah
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Breakdown kelengkapan data, jumlah santri valid, dan residu (kosong/duplikat) di setiap wilayah kerja admin.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="px-3 py-1 bg-indigo-50 text-indigo-700 font-semibold rounded-full border border-indigo-100">
+              {stats.wilayahStats.length} Wilayah Terdaftar
+            </span>
+          </div>
+        </div>
+
+        {stats.wilayahStats.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left divide-y divide-slate-100">
+              <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider">
+                <tr>
+                  <th className="px-4 py-3">Nama Wilayah</th>
+                  <th className="px-4 py-3 text-center">Total Santri</th>
+                  <th className="px-4 py-3 text-center">100% Valid</th>
+                  <th className="px-4 py-3 text-center">Ada Data Kosong</th>
+                  <th className="px-4 py-3 text-center">Ada Duplikat</th>
+                  <th className="px-4 py-3 text-center">Skor Kelengkapan</th>
+                  <th className="px-4 py-3 text-center">Status Health</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {stats.wilayahStats.map((w) => (
+                  <tr key={w.wilayahName} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-4 py-3.5 font-bold text-slate-800">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                        <span>{w.wilayahName}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 text-center font-extrabold text-slate-800">
+                      {w.total} Santri
+                    </td>
+                    <td className="px-4 py-3.5 text-center">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                        {w.fullyValid} ({w.validPercent}%)
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-center">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded font-bold bg-rose-50 text-rose-700 border border-rose-100">
+                        {w.hasEmpty} ({w.emptyPercent}%)
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-center">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded font-bold bg-amber-50 text-amber-700 border border-amber-100">
+                        {w.hasDuplicate} ({w.duplicatePercent}%)
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-center min-w-[140px]">
+                      <div className="flex items-center gap-2 justify-center">
+                        <div className="w-16 bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              w.score >= 80 ? 'bg-emerald-500' : w.score >= 60 ? 'bg-amber-500' : 'bg-rose-500'
+                            }`}
+                            style={{ width: `${w.score}%` }}
+                          ></div>
+                        </div>
+                        <span className="font-extrabold text-slate-700">{w.score}%</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 text-center">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border ${
+                        w.score >= 80 ? 'bg-emerald-100 text-emerald-800 border-emerald-200' :
+                        w.score >= 60 ? 'bg-amber-100 text-amber-800 border-amber-200' :
+                        'bg-rose-100 text-rose-800 border-rose-200'
+                      }`}>
+                        {w.score >= 80 ? 'Sangat Baik' : w.score >= 60 ? 'Perlu Perhatian' : 'Kritis'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="py-8 text-center text-slate-500 text-sm">
+            Tidak ada data wilayah untuk ditampilkan.
+          </div>
+        )}
       </div>
 
       {/* Main Charts Row */}

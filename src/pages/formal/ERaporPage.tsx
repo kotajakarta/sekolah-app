@@ -101,8 +101,8 @@ export const ERaporPage: React.FC = () => {
   const { data: kelasList = [] } = useQuery<Kelas[]>({
     queryKey: ['kelas-list'],
     queryFn: async () => {
-      const res = await apiClient.get<Kelas[]>('/formal/kelas');
-      return res.data;
+      const res = await apiClient.get<any[]>('/formal/kelas');
+      return res.data.filter((k: any) => (k._count?.siswaFormal ?? 0) > 0);
     }
   });
 

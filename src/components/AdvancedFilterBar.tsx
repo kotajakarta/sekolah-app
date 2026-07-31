@@ -21,6 +21,7 @@ interface AdvancedFilterBarProps {
   userCabangId?: string;
   showDaimiFilter?: boolean;
   showTingkatFilter?: boolean;
+  availableTingkats?: string[];
   onOpenCustomExportModal?: () => void;
 }
 
@@ -31,6 +32,7 @@ export default function AdvancedFilterBar({
   userCabangId,
   showDaimiFilter = false,
   showTingkatFilter = false,
+  availableTingkats,
   onOpenCustomExportModal
 }: AdvancedFilterBarProps) {
   const { t } = useTranslation();
@@ -247,13 +249,12 @@ export default function AdvancedFilterBar({
                   className="w-full text-xs rounded-lg border border-slate-300 bg-slate-50 py-1.5 px-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">Semua Tingkat</option>
-                  <option value="Non Muadalah">Non Muadalah</option>
-                  <option value="7">7</option>
-                  <option value="8">8</option>
-                  <option value="9">9</option>
-                  <option value="10">10</option>
-                  <option value="11">11</option>
-                  <option value="12">12</option>
+                  {(availableTingkats && availableTingkats.length > 0
+                    ? availableTingkats
+                    : ['Non Muadalah', '7', '8', '9', '10', '11', '12']
+                  ).map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
                 </select>
               </div>
             )}

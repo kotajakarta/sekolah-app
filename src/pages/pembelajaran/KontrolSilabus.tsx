@@ -145,13 +145,14 @@ export default function KontrolSilabus() {
     queryKey: ['kontrol-silabus-classes', selectedWilayah, selectedCabang],
     queryFn: async () => {
       const res = await apiClient.get('/formal/kelas');
+      let filtered = res.data.filter((c: any) => c.isActive && (c._count?.siswaFormal ?? 0) > 0);
       if (selectedCabang) {
-        return res.data.filter((c: any) => c.cabangId === selectedCabang && c.isActive);
+        return filtered.filter((c: any) => c.cabangId === selectedCabang);
       } else if (selectedWilayah) {
         const branchIds = filteredBranches.map((b: any) => b.id);
-        return res.data.filter((c: any) => branchIds.includes(c.cabangId) && c.isActive);
+        return filtered.filter((c: any) => branchIds.includes(c.cabangId));
       }
-      return res.data.filter((c: any) => c.isActive);
+      return filtered;
     }
   });
 

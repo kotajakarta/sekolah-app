@@ -77,6 +77,7 @@ export default function ManajemenKelas() {
   const { t } = useTranslation();
 
   const [selectedKelasForDetail, setSelectedKelasForDetail] = useState<Kelas | null>(null);
+  const [modalSelectedWilayahId, setModalSelectedWilayahId] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isKenaikanModalOpen, setIsKenaikanModalOpen] = useState(false);
@@ -286,6 +287,7 @@ export default function ManajemenKelas() {
 
   const openAddModal = () => {
     setEditingKelas(null);
+    setModalSelectedWilayahId(user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? (user.wilayahId || '') : '');
     setFormData({ 
       name: '', 
       tingkat: 'Non Muadalah', 
@@ -305,6 +307,7 @@ export default function ManajemenKelas() {
 
   const openEditModal = (kelas: Kelas) => {
     setEditingKelas(kelas);
+    setModalSelectedWilayahId(kelas.cabang?.wilayahId || '');
     setFormData({ 
       name: kelas.name, 
       tingkat: kelas.tingkat || 'Non Muadalah', 
@@ -376,27 +379,22 @@ export default function ManajemenKelas() {
                     <Download className="w-4 h-4 mr-2" />
                     Export CSV
                   </button>
-                  <button 
-                    onClick={() => setIsImportModalOpen(true)}
-                    className="inline-flex items-center px-4 py-2 border border-slate-200 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Import CSV
-                  </button>
-                  <button 
-                    onClick={() => setIsKenaikanModalOpen(true)}
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-teal-600 hover:bg-teal-700"
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    Kenaikan Kelas
-                  </button>
-                  {user?.scope === 'WILAYAH' && (
+                  {isAdmin && (
                     <button 
-                      onClick={() => setIsAjukanKelasModalOpen(true)}
-                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="inline-flex items-center px-4 py-2 border border-slate-200 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50"
                     >
-                      <Send className="w-4 h-4 mr-2" />
-                      Ajukan Kelas Baru
+                      <Upload className="w-4 h-4 mr-2" />
+                      Import CSV
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button 
+                      onClick={() => setIsKenaikanModalOpen(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-teal-600 hover:bg-teal-700"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Kenaikan Kelas
                     </button>
                   )}
                   {isAdmin && (
@@ -795,26 +793,65 @@ export default function ManajemenKelas() {
               <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {user?.scope !== 'CABANG' && (
-                    <div className="sm:col-span-2">
-                      <label className="block text-sm font-medium text-slate-700 mb-1">{t('cabang.branch_name')}</label>
-                      {loadingCabang ? (
-                        <div className="text-sm text-slate-500 flex items-center"><Loader2 className="w-4 h-4 animate-spin mr-1"/> {t('common.loading')}</div>
-                      ) : (
-                        <select
-                          required
-                          value={formData.cabangId}
-                          onChange={(e) => setFormData({ ...formData, cabangId: e.target.value })}
-                          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none bg-white text-sm"
-                        >
-                          <option value="">-- {t('common.select')} --</option>
-                          {cabangList?.filter(c => user?.scope === 'WILAYAH' ? c.wilayahId === user.wilayahId : true).map(cabang => (
-                            <option key={cabang.id} value={cabang.id}>
-                              {cabang.name} {cabang.wilayah ? `(${cabang.wilayah.name})` : ''}
-                            </option>
-                          ))}
-                        </select>
+                    <>
+                      {user?.scope === 'GLOBAL' && (
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 mb-1">Filter Wilayah</label>
+                          <select
+                            value={modalSelectedWilayahId}
+                            onChange={(e) => {
+                              const wId = e.target.value;
+                              setModalSelectedWilayahId(wId);
+                              if (wId) {
+                                const currentC = cabangList?.find(c => c.id === formData.cabangId);
+                                if (currentC && currentC.wilayahId !== wId) {
+                                  setFormData(prev => ({ ...prev, cabangId: '' }));
+                                }
+                              }
+                            }}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none bg-white text-sm"
+                          >
+                            <option value="">-- Semua Wilayah --</option>
+                            {(wilayahs || []).map((w: any) => (
+                              <option key={w.id} value={w.id}>{w.name}</option>
+                            ))}
+                          </select>
+                        </div>
                       )}
-                    </div>
+                      <div className={user?.scope === 'GLOBAL' ? '' : 'sm:col-span-2'}>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">{t('cabang.branch_name')} <span className="text-rose-500">*</span></label>
+                        {loadingCabang ? (
+                          <div className="text-sm text-slate-500 flex items-center"><Loader2 className="w-4 h-4 animate-spin mr-1"/> {t('common.loading')}</div>
+                        ) : (
+                          <select
+                            required
+                            value={formData.cabangId}
+                            onChange={(e) => {
+                              const cId = e.target.value;
+                              setFormData({ ...formData, cabangId: cId });
+                              const selectedC = cabangList?.find(c => c.id === cId);
+                              if (selectedC?.wilayahId) {
+                                setModalSelectedWilayahId(selectedC.wilayahId);
+                              }
+                            }}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none bg-white text-sm"
+                          >
+                            <option value="">-- {t('common.select')} --</option>
+                            {cabangList
+                              ?.filter(c => {
+                                if (user?.scope === 'WILAYAH') return c.wilayahId === user.wilayahId;
+                                if (modalSelectedWilayahId) return c.wilayahId === modalSelectedWilayahId;
+                                return true;
+                              })
+                              .map(cabang => (
+                                <option key={cabang.id} value={cabang.id}>
+                                  {cabang.name} {cabang.wilayah ? `(${cabang.wilayah.name})` : ''}
+                                </option>
+                              ))}
+                          </select>
+                        )}
+                      </div>
+                    </>
                   )}
 
                   <div>

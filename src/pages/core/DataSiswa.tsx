@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Users, Plus, UserMinus, UserPlus, Edit2, Trash2, Search, User, AlertCircle, FileSpreadsheet, LayoutDashboard, BarChart3 } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -63,6 +63,16 @@ export default function DataSiswa() {
   const queryClient = useQueryClient();
 
   const { data: students, isLoading, isError } = useGetStudents();
+
+  const availableTingkats = useMemo(() => {
+    const set = new Set<string>();
+    (students || []).forEach((s: any) => {
+      const tingkat = s.siswaFormal?.kelas?.tingkat;
+      if (tingkat) set.add(String(tingkat));
+    });
+    const order = ['Non Muadalah', '7', '8', '9', '10', '11', '12'];
+    return order.filter(t => set.has(t));
+  }, [students]);
   const [studentToLepas, setStudentToLepas] = useState<Student | null>(null);
   const [studentToEdit, setStudentToEdit] = useState<Student | null>(null);
   const [studentToView, setStudentToView] = useState<Student | null>(null);
@@ -354,6 +364,7 @@ export default function DataSiswa() {
             userCabangId={user?.cabangId}
             showDaimiFilter={true}
             showTingkatFilter={true}
+            availableTingkats={availableTingkats}
             onOpenCustomExportModal={() => setIsCustomExportOpen(true)}
           />
 

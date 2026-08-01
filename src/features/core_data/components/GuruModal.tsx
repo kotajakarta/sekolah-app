@@ -110,7 +110,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      alert('Ukuran file maksimal adalah 2MB! Silakan pilih file yang lebih kecil.');
+      showToast('info', t('guru.form.alert_file_size'));
       e.target.value = '';
       return;
     }
@@ -188,11 +188,11 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Jenis Kelamin</label>
+                  <label className="block text-sm font-medium text-slate-700">{t('guru.form.jenis_kelamin')}</label>
                   <select value={formData.jenisKelamin} onChange={(e) => setFormData({ ...formData, jenisKelamin: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    <option value="">Pilih Jenis Kelamin</option>
-                    <option value="L">Laki-laki</option>
-                    <option value="P">Perempuan</option>
+                    <option value="">{t('guru.form.jenis_kelamin_ph')}</option>
+                    <option value="L">{t('guru.form.laki_laki')}</option>
+                    <option value="P">{t('guru.form.perempuan')}</option>
                   </select>
                 </div>
 
@@ -249,12 +249,12 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
                 <div>
                   <label className="block text-sm font-medium text-slate-700">{t('guru.form.pendidikan')}</label>
                   <select value={formData.pendidikanTerakhir} onChange={(e) => setFormData({ ...formData, pendidikanTerakhir: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                    <option value="">Pilih Pendidikan Terakhir</option>
-                    <option value="SMA/SMK">SMA / SMK / Sederajat</option>
+                    <option value="">{t('guru.form.pendidikan_ph')}</option>
+                    <option value="SMA/SMK">{t('guru.form.pendidikan_sma')}</option>
                     <option value="D1">D1</option>
                     <option value="D2">D2</option>
                     <option value="D3">D3</option>
-                    <option value="D4">D4 / Sarjana Terapan</option>
+                    <option value="D4">{t('guru.form.pendidikan_d4')}</option>
                     <option value="S1">S1</option>
                     <option value="S2">S2</option>
                     <option value="S3">S3</option>
@@ -262,18 +262,18 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Nama Perguruan Tinggi</label>
-                  <input type="text" value={formData.perguruanTinggi} onChange={(e) => setFormData({ ...formData, perguruanTinggi: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Kosongkan jika SMA" />
+                  <label className="block text-sm font-medium text-slate-700">{t('guru.form.perguruan_tinggi')}</label>
+                  <input type="text" value={formData.perguruanTinggi} onChange={(e) => setFormData({ ...formData, perguruanTinggi: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder={t('guru.form.perguruan_tinggi_ph')} />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Program Studi</label>
-                  <input type="text" value={formData.programStudi} onChange={(e) => setFormData({ ...formData, programStudi: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Kosongkan jika SMA" />
+                  <label className="block text-sm font-medium text-slate-700">{t('guru.form.program_studi')}</label>
+                  <input type="text" value={formData.programStudi} onChange={(e) => setFormData({ ...formData, programStudi: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder={t('guru.form.program_studi_ph')} />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700">Tahun Lulus</label>
-                  <input type="text" value={formData.tahunLulus} onChange={(e) => setFormData({ ...formData, tahunLulus: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Contoh: 2020" />
+                  <label className="block text-sm font-medium text-slate-700">{t('guru.form.tahun_lulus')}</label>
+                  <input type="text" value={formData.tahunLulus} onChange={(e) => setFormData({ ...formData, tahunLulus: e.target.value })} className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder={t('guru.form.tahun_lulus_ph')} />
                 </div>
 
                 <div>
@@ -368,7 +368,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
 
                 {/* Ijazah */}
                 <div className="border border-slate-200 rounded-lg p-4 bg-slate-50 flex flex-col items-center">
-                  <h5 className="font-medium text-sm text-slate-800 mb-3">Ijazah Terakhir</h5>
+                  <h5 className="font-medium text-sm text-slate-800 mb-3">{t('guru.form.ijazah')}</h5>
                   {formData.ijazahUrl ? (
                     <div className="relative w-32 h-24 mb-3 bg-white border border-slate-200 rounded flex items-center justify-center overflow-hidden group">
                       <img src={formData.ijazahUrl} alt="Ijazah" className="object-contain w-full h-full" />

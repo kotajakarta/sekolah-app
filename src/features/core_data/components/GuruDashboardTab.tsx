@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import AdvancedFilterBar, { FilterState } from '../../../components/AdvancedFilterBar';
 import { useGetWilayah } from '../hooks/useMasterData';
+import { useTranslation } from 'react-i18next';
 
 interface GuruDashboardTabProps {
   guru: any[];
@@ -24,6 +25,7 @@ export default function GuruDashboardTab({
   userWilayahId = '',
   userCabangId = ''
 }: GuruDashboardTabProps) {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState<FilterState>({
     wilayahId: userScope === 'WILAYAH' || userScope === 'CABANG' ? userWilayahId : '',
     cabangId: userScope === 'CABANG' ? userCabangId : '',
@@ -89,7 +91,7 @@ export default function GuruDashboardTab({
 
     filteredGuru.forEach(g => {
       // Position breakdown
-      const pos = g.position || 'Guru Mapel / Pengajar';
+      const pos = g.position || t('guru.dashboard.fallback_pengajar');
       positionMap[pos] = (positionMap[pos] || 0) + 1;
 
       if (pos.toLowerCase().includes('kepala') || pos.toLowerCase().includes('pimpinan')) {
@@ -102,14 +104,14 @@ export default function GuruDashboardTab({
       if (isAssigned) {
         assignedCount++;
         teacherAssignments.forEach((asg: any) => {
-          const mapelName = asg.mataPelajaran?.name || 'Lainnya';
+          const mapelName = asg.mataPelajaran?.name || t('guru.dashboard.fallback_lainnya');
           subjectMap[mapelName] = (subjectMap[mapelName] || 0) + 1;
         });
       }
 
       // Wilayah Breakdown
       const wId = g.wilayahId || (g.wilayah?.id) || (g.cabang?.wilayahId);
-      const wName = g.wilayah?.name || g.cabang?.wilayah?.name || (wId ? wilayahLookup.get(wId) : null) || 'Wilayah Belum Diset';
+      const wName = g.wilayah?.name || g.cabang?.wilayah?.name || (wId ? wilayahLookup.get(wId) : null) || t('guru.dashboard.fallback_wilayah_belum_diset');
 
       if (!wilayahMap[wName]) {
         wilayahMap[wName] = {
@@ -154,7 +156,7 @@ export default function GuruDashboardTab({
       subjectStats,
       wilayahStats
     };
-  }, [filteredGuru, assignments, wilayahLookup]);
+  }, [filteredGuru, assignments, wilayahLookup, t]);
 
   const maxPosVal = Math.max(...stats.positionStats.map(p => p.count), 1);
   const maxSubjectVal = Math.max(...stats.subjectStats.map(s => s.count), 1);
@@ -163,7 +165,7 @@ export default function GuruDashboardTab({
     return (
       <div className="py-16 text-center text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center">
         <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-        <p className="text-sm font-medium text-slate-600">Memuat data analisis & infografik guru...</p>
+        <p className="text-sm font-medium text-slate-600">{t('guru.dashboard.loading')}</p>
       </div>
     );
   }
@@ -185,7 +187,7 @@ export default function GuruDashboardTab({
           <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-300">Total Tenaga Pendidik</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-300">{t('guru.dashboard.total_tenaga_pendidik')}</span>
               <div className="p-2 bg-indigo-500/20 rounded-xl text-indigo-300 border border-indigo-400/20">
                 <GraduationCap className="w-5 h-5" />
               </div>
@@ -195,8 +197,8 @@ export default function GuruDashboardTab({
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-indigo-800/40 flex items-center justify-between text-xs text-indigo-200">
-            <span>Terpenugasi: <strong className="text-emerald-400">{stats.assignedCount}</strong></span>
-            <span>Belum Tugas: <strong className="text-amber-300">{stats.unassignedCount}</strong></span>
+            <span>{t('guru.dashboard.terpenugasi')}: <strong className="text-emerald-400">{stats.assignedCount}</strong></span>
+            <span>{t('guru.dashboard.belum_tugas')}: <strong className="text-amber-300">{stats.unassignedCount}</strong></span>
           </div>
         </div>
 
@@ -204,7 +206,7 @@ export default function GuruDashboardTab({
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between hover:border-emerald-200 transition-all">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Guru Terpenugasi</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">{t('guru.dashboard.guru_terpenugasi')}</span>
               <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600 border border-emerald-100">
                 <UserCheck className="w-5 h-5" />
               </div>
@@ -214,7 +216,7 @@ export default function GuruDashboardTab({
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500">Rasio Penugasan</span>
+            <span className="text-slate-500">{t('guru.dashboard.rasio_penugasan')}</span>
             <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
               {stats.total > 0 ? Math.round((stats.assignedCount / stats.total) * 100) : 0}%
             </span>
@@ -225,7 +227,7 @@ export default function GuruDashboardTab({
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between hover:border-amber-200 transition-all">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Belum Ada Tugas</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">{t('guru.dashboard.belum_ada_tugas')}</span>
               <div className="p-2 bg-amber-50 rounded-xl text-amber-600 border border-amber-100">
                 <AlertCircle className="w-5 h-5" />
               </div>
@@ -235,7 +237,7 @@ export default function GuruDashboardTab({
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500">Persentase</span>
+            <span className="text-slate-500">{t('guru.dashboard.persentase')}</span>
             <span className="font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
               {stats.total > 0 ? Math.round((stats.unassignedCount / stats.total) * 100) : 0}%
             </span>
@@ -246,7 +248,7 @@ export default function GuruDashboardTab({
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col justify-between hover:border-indigo-200 transition-all">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Pimpinan / Kepala</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">{t('guru.dashboard.pimpinan_kepala')}</span>
               <div className="p-2 bg-indigo-50 rounded-xl text-indigo-600 border border-indigo-100">
                 <Briefcase className="w-5 h-5" />
               </div>
@@ -256,7 +258,7 @@ export default function GuruDashboardTab({
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-            <span className="text-slate-500">Staff Manajemen</span>
+            <span className="text-slate-500">{t('guru.dashboard.staff_manajemen')}</span>
             <span className="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
               {stats.total > 0 ? Math.round((stats.pimpinanCount / stats.total) * 100) : 0}%
             </span>
@@ -270,14 +272,14 @@ export default function GuruDashboardTab({
           <div>
             <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-indigo-600" />
-              Infografik Distribusi Tenaga Pendidik Per Wilayah
+              {t('guru.dashboard.infografik_wilayah_title')}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Sebaran jumlah guru dan status penugasan di seluruh wilayah kerja
+              {t('guru.dashboard.infografik_wilayah_desc')}
             </p>
           </div>
           <span className="px-3 py-1 bg-indigo-50 text-indigo-700 font-semibold rounded-full text-xs border border-indigo-100">
-            {stats.wilayahStats.length} Wilayah Terdaftar
+            {stats.wilayahStats.length} {t('guru.dashboard.wilayah_terdaftar')}
           </span>
         </div>
 
@@ -286,11 +288,11 @@ export default function GuruDashboardTab({
             <table className="w-full text-xs text-left divide-y divide-slate-100">
               <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider">
                 <tr>
-                  <th className="px-4 py-3">Wilayah</th>
-                  <th className="px-4 py-3 text-center">Total Guru</th>
-                  <th className="px-4 py-3 text-center">Terpenugasi</th>
-                  <th className="px-4 py-3 text-center">Belum Ada Tugas</th>
-                  <th className="px-4 py-3 text-center">Persentase Penugasan</th>
+                  <th className="px-4 py-3">{t('guru.dashboard.table_wilayah')}</th>
+                  <th className="px-4 py-3 text-center">{t('guru.dashboard.table_total_guru')}</th>
+                  <th className="px-4 py-3 text-center">{t('guru.dashboard.table_terpenugasi')}</th>
+                  <th className="px-4 py-3 text-center">{t('guru.dashboard.table_belum_tugas')}</th>
+                  <th className="px-4 py-3 text-center">{t('guru.dashboard.table_persentase')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -303,16 +305,16 @@ export default function GuruDashboardTab({
                       </div>
                     </td>
                     <td className="px-4 py-3.5 text-center font-extrabold text-slate-800">
-                      {w.total} Guru
+                      {w.total} {t('guru.dashboard.guru_unit')}
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                        {w.assigned} Guru
+                        {w.assigned} {t('guru.dashboard.guru_unit')}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-bold bg-amber-50 text-amber-700 border border-amber-100">
-                        {w.unassigned} Guru
+                        {w.unassigned} {t('guru.dashboard.guru_unit')}
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-center min-w-[140px]">
@@ -333,7 +335,7 @@ export default function GuruDashboardTab({
           </div>
         ) : (
           <div className="py-8 text-center text-slate-500 text-sm">
-            Tidak ada data wilayah untuk ditampilkan.
+            {t('guru.dashboard.no_wilayah_data')}
           </div>
         )}
       </div>
@@ -348,10 +350,10 @@ export default function GuruDashboardTab({
               <div>
                 <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-indigo-600" />
-                  Infografik Jabatan & Peran Guru
+                  {t('guru.dashboard.infografik_jabatan_title')}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Sebaran komposisi posisi tenaga pendidik & pengajar
+                  {t('guru.dashboard.infografik_jabatan_desc')}
                 </p>
               </div>
             </div>
@@ -364,7 +366,7 @@ export default function GuruDashboardTab({
                     <div className="flex items-center justify-between text-xs">
                       <span className="font-bold text-slate-700">{p.name}</span>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-800">{p.count} Personel</span>
+                        <span className="font-bold text-slate-800">{p.count} {t('guru.dashboard.personel_unit')}</span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
                           {p.percent}%
                         </span>
@@ -383,8 +385,8 @@ export default function GuruDashboardTab({
           </div>
 
           <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Total Jabatan: <strong>{stats.positionStats.length} Kategori</strong></span>
-            <span>Total Staff: <strong>{stats.total} Orang</strong></span>
+            <span>{t('guru.dashboard.total_jabatan')}: <strong>{stats.positionStats.length} {t('guru.dashboard.kategori_unit')}</strong></span>
+            <span>{t('guru.dashboard.total_staff')}: <strong>{stats.total} {t('guru.dashboard.orang_unit')}</strong></span>
           </div>
         </div>
 
@@ -395,10 +397,10 @@ export default function GuruDashboardTab({
               <div>
                 <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                   <BookOpen className="w-5 h-5 text-emerald-600" />
-                  Sebaran Pengampuan Mata Pelajaran
+                  {t('guru.dashboard.sebaran_mapel_title')}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Jumlah guru pengampu per mata pelajaran formal
+                  {t('guru.dashboard.sebaran_mapel_desc')}
                 </p>
               </div>
             </div>
@@ -412,7 +414,7 @@ export default function GuruDashboardTab({
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-bold text-slate-800">{s.name}</span>
                         <span className="font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                          {s.count} Pengampu
+                          {s.count} {t('guru.dashboard.pengampu_unit')}
                         </span>
                       </div>
                       <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
@@ -427,14 +429,14 @@ export default function GuruDashboardTab({
               </div>
             ) : (
               <div className="py-8 text-center text-slate-400 text-xs">
-                Belum ada data penugasan mata pelajaran.
+                {t('guru.dashboard.no_mapel_data')}
               </div>
             )}
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500 flex justify-between">
-            <span>Total Mapel Aktif:</span>
-            <strong className="text-slate-800">{stats.subjectStats.length} Mata Pelajaran</strong>
+            <span>{t('guru.dashboard.total_mapel_aktif')}:</span>
+            <strong className="text-slate-800">{stats.subjectStats.length} {t('guru.dashboard.mapel_unit')}</strong>
           </div>
         </div>
 

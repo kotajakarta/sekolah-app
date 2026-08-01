@@ -184,7 +184,7 @@ export default function DataGuru() {
           }`}
         >
           <LayoutDashboard className="w-4 h-4" />
-          Dashboard Infografik Guru
+          {t('guru.tab_dashboard')}
         </button>
         <button
           onClick={() => setActiveTab('data')}
@@ -195,7 +195,7 @@ export default function DataGuru() {
           }`}
         >
           <Users className="w-4 h-4" />
-          Data Semua Guru
+          {t('guru.tab_data')}
         </button>
       </div>
 

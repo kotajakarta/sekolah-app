@@ -10,6 +10,15 @@ interface Kelas {
   tingkat: string;
   isActive: boolean;
   cabangId: string;
+  _count?: { siswaFormal: number };
+}
+
+interface Kehadiran {
+  hadir: number;
+  izin: number;
+  sakit: number;
+  alpa: number;
+  total: number;
 }
 
 interface SilabusItem {
@@ -21,6 +30,7 @@ interface SilabusItem {
   tanggalTarget: string | null;
   defaultGuruId: string | null;
   defaultGuruName: string | null;
+  kehadiran: Kehadiran | null;
 }
 
 interface ExecutedSession {
@@ -76,6 +86,7 @@ interface BabGroup {
   itemStatuses: ProgStatus[];
   status: ProgStatus;
   targetLabel: string;
+  percent: number;
 }
 
 interface MapelProgress {
@@ -148,13 +159,14 @@ export default function ProgresSilabus() {
     queryKey: ['progres-silabus-classes', selectedWilayah, selectedCabang],
     queryFn: async () => {
       const res = await apiClient.get('/formal/kelas');
+      const hasSiswa = (c: any) => (c._count?.siswaFormal || 0) > 0;
       if (selectedCabang) {
-        return res.data.filter((c: any) => c.cabangId === selectedCabang && c.isActive);
+        return res.data.filter((c: any) => c.cabangId === selectedCabang && c.isActive && hasSiswa(c));
       } else if (selectedWilayah) {
         const branchIds = filteredBranches.map((b: any) => b.id);
-        return res.data.filter((c: any) => branchIds.includes(c.cabangId) && c.isActive);
+        return res.data.filter((c: any) => branchIds.includes(c.cabangId) && c.isActive && hasSiswa(c));
       }
-      return res.data.filter((c: any) => c.isActive);
+      return res.data.filter((c: any) => c.isActive && hasSiswa(c));
     }
   });
 
@@ -216,7 +228,12 @@ export default function ProgresSilabus() {
           : dates[0] === dates[dates.length - 1]
             ? formatShort(dates[0])
             : `${formatShort(dates[0])} - ${formatShort(dates[dates.length - 1])}`;
-        return { bab, items: babItems, itemStatuses: statuses, status, targetLabel };
+        const selesaiCount = statuses.filter(s => s === 'SELESAI').length;
+        const berjalanCount = statuses.filter(s => s === 'SEDANG_BERJALAN').length;
+        const percent = statuses.length > 0
+          ? Math.round(((selesaiCount + berjalanCount * 0.5) / statuses.length) * 100)
+          : 0;
+        return { bab, items: babItems, itemStatuses: statuses, status, targetLabel, percent };
       });
 
       const completedBab = babGroups.filter(b => b.status === 'SELESAI').length;
@@ -397,6 +414,7 @@ export default function ProgresSilabus() {
                           <tr className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide text-left">
                             <th className="px-3 py-2">Struktur Kurikulum</th>
                             <th className="px-3 py-2">Target Waktu</th>
+                            <th className="px-3 py-2">Progres</th>
                             <th className="px-3 py-2">Status</th>
                             <th className="px-3 py-2 text-right">Aksi</th>
                           </tr>
@@ -414,6 +432,14 @@ export default function ProgresSilabus() {
                                   </td>
                                   <td className="px-3 py-2 text-gray-600 whitespace-nowrap">{b.targetLabel}</td>
                                   <td className="px-3 py-2">
+                                    <div className="flex items-center gap-2">
+                                      <div className="h-1.5 w-16 bg-gray-100 rounded-full overflow-hidden shrink-0">
+                                        <div className="h-full bg-blue-800 rounded-full" style={{ width: `${b.percent}%` }} />
+                                      </div>
+                                      <span className="text-xs font-bold text-blue-900">{b.percent}%</span>
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2">
                                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${STATUS_META[b.status].cls}`}>
                                       {STATUS_META[b.status].label}
                                     </span>
@@ -430,16 +456,41 @@ export default function ProgresSilabus() {
                                 </tr>
                                 {babOpen && (
                                   <tr>
-                                    <td colSpan={4} className="px-3 pb-3 bg-gray-50/60">
-                                      <div className="space-y-1 pt-1">
-                                        {b.items.map((item, idx) => (
-                                          <div key={item.silabusId} className="flex items-center justify-between gap-2 text-xs bg-white border border-gray-100 rounded px-2.5 py-1.5">
-                                            <span className="text-gray-700 truncate">{item.section}</span>
-                                            <span className={`shrink-0 px-1.5 py-0.5 rounded-full text-[9px] font-semibold border ${STATUS_META[b.itemStatuses[idx]].cls}`}>
-                                              {STATUS_META[b.itemStatuses[idx]].label}
-                                            </span>
-                                          </div>
-                                        ))}
+                                    <td colSpan={5} className="px-3 pb-3 bg-gray-50/60">
+                                      <div className="overflow-x-auto pt-1">
+                                        <table className="min-w-full text-xs">
+                                          <thead>
+                                            <tr className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide text-left">
+                                              <th className="px-2.5 py-1.5">Sesi / Sub-Bab</th>
+                                              <th className="px-2.5 py-1.5">Status</th>
+                                              <th className="px-2.5 py-1.5">Kehadiran</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-gray-100">
+                                            {b.items.map((item, idx) => (
+                                              <tr key={item.silabusId} className="bg-white">
+                                                <td className="px-2.5 py-1.5 text-gray-700">{item.section}</td>
+                                                <td className="px-2.5 py-1.5">
+                                                  <span className={`inline-flex px-1.5 py-0.5 rounded-full text-[9px] font-semibold border ${STATUS_META[b.itemStatuses[idx]].cls}`}>
+                                                    {STATUS_META[b.itemStatuses[idx]].label}
+                                                  </span>
+                                                </td>
+                                                <td className="px-2.5 py-1.5 text-gray-600 whitespace-nowrap">
+                                                  {item.kehadiran ? (
+                                                    <span>
+                                                      <span className="text-emerald-700 font-semibold">H:{item.kehadiran.hadir}</span>{' '}
+                                                      <span className="text-blue-700 font-semibold">I:{item.kehadiran.izin}</span>{' '}
+                                                      <span className="text-amber-700 font-semibold">S:{item.kehadiran.sakit}</span>{' '}
+                                                      <span className="text-red-700 font-semibold">A:{item.kehadiran.alpa}</span>
+                                                    </span>
+                                                  ) : (
+                                                    <span className="text-gray-300">-</span>
+                                                  )}
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
                                       </div>
                                     </td>
                                   </tr>

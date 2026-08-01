@@ -2,14 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import apiClient from '../../lib/apiClient';
-import { Loader2, Plus, Trash2, Save, Info, Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, Info, Download, Upload, FileSpreadsheet, Eye, Pencil, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import SilabusPreviewModal from './SilabusPreviewModal';
 
-interface Mapel {
-  id: string;
+interface SilabusSummaryItem {
+  mataPelajaranId: string;
   name: string;
   kodeMapel: string;
-  aktifPembelajaran: boolean;
+  jumlahItem: number;
+  hasSilabus: boolean;
 }
 
 interface SilabusItem {
@@ -53,6 +55,7 @@ export default function KelolaSilabus() {
 
   const [selectedMapel, setSelectedMapel] = useState('');
   const [selectedTingkat, setSelectedTingkat] = useState('');
+  const [previewMapel, setPreviewMapel] = useState<{ id: string; name: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: pengaturanAkademik } = useQuery({
@@ -70,12 +73,19 @@ export default function KelolaSilabus() {
     }
   }, [pengaturanAkademik]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { data: mapelList, isLoading: loadingMapel } = useQuery<Mapel[]>({
-    queryKey: ['mapel'],
-    queryFn: async () => (await apiClient.get('/formal/mapel')).data
+  // Scope (Tingkat+Tahun Ajaran+Semester) sudah cukup buat nampilin daftar mapel;
+  // pemilihan mapel spesifik cuma dibutuhkan begitu masuk mode edit silabus.
+  const isScopeReady = !!selectedTingkat && !!tahunAjaran && !!semester;
+
+  const { data: summaryList, isLoading: loadingSummary } = useQuery<SilabusSummaryItem[]>({
+    queryKey: ['silabus-summary', selectedTingkat, tahunAjaran, semester],
+    queryFn: async () => (await apiClient.get('/pembelajaran/silabus/summary', {
+      params: { tingkat: selectedTingkat, tahunAjaran, semester }
+    })).data,
+    enabled: isScopeReady
   });
 
-  const isReady = !!selectedMapel && !!selectedTingkat && !!tahunAjaran && !!semester;
+  const isReady = isScopeReady && !!selectedMapel;
 
   const { data: fetchedSilabus, isLoading: loadingSilabus } = useQuery<SilabusItem[]>({
     queryKey: ['silabus', selectedMapel, selectedTingkat, tahunAjaran, semester],
@@ -112,6 +122,7 @@ export default function KelolaSilabus() {
     onSuccess: () => {
       showToast('success', 'Silabus berhasil disimpan');
       queryClient.invalidateQueries({ queryKey: ['silabus', selectedMapel, selectedTingkat, tahunAjaran, semester] });
+      queryClient.invalidateQueries({ queryKey: ['silabus-summary', selectedTingkat, tahunAjaran, semester] });
       // Menambah/menghapus section mengubah daftar materi & pembagi persentase di modul lain.
       queryClient.invalidateQueries({ queryKey: ['pelaksanaan-silabus'] });
       queryClient.invalidateQueries({ queryKey: ['pembelajaran-ringkasan'] });
@@ -135,7 +146,7 @@ export default function KelolaSilabus() {
     setItems(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const mapelName = (mapelList || []).find(m => m.id === selectedMapel)?.name || 'Mapel';
+  const mapelName = (summaryList || []).find(m => m.mataPelajaranId === selectedMapel)?.name || 'Mapel';
   const exportFileName = () => `Silabus_${mapelName}_${selectedTingkat}_${tahunAjaran.replace('/', '-')}_${semester}.xlsx`.replace(/\s+/g, '_');
 
   const handleDownloadTemplate = () => {
@@ -234,58 +245,46 @@ export default function KelolaSilabus() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-slate-500">Susun Bab/Section per Mata Pelajaran &amp; Tingkat (tanggal target bersifat opsional).</p>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleDownloadTemplate}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" /> Unduh Template
-          </button>
-          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
-          <button
-            type="button"
-            onClick={handleImportClick}
-            disabled={!isReady}
-            title={!isReady ? 'Pilih Mapel, Tingkat, Tahun Ajaran, dan Semester dahulu' : 'Import dari Excel'}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Upload className="w-3.5 h-3.5" /> Import Excel
-          </button>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={!isReady || items.length === 0}
-            title={!isReady ? 'Pilih Mapel, Tingkat, Tahun Ajaran, dan Semester dahulu' : 'Export ke Excel'}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
-          </button>
-        </div>
+        <p className="text-xs text-slate-500">
+          {selectedMapel
+            ? 'Susun Bab/Section untuk mata pelajaran ini (tanggal target bersifat opsional).'
+            : 'Pilih Tingkat, Tahun Ajaran, dan Semester untuk melihat mapel mana yang silabusnya sudah/belum diisi.'}
+        </p>
+        {selectedMapel && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDownloadTemplate}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" /> Unduh Template
+            </button>
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
+            <button
+              type="button"
+              onClick={handleImportClick}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            >
+              <Upload className="w-3.5 h-3.5" /> Import Excel
+            </button>
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={items.length === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Mata Pelajaran</label>
-          {loadingMapel ? (
-            <div className="text-gray-400 text-sm flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Memuat...</div>
-          ) : (
-            <select
-              value={selectedMapel}
-              onChange={e => setSelectedMapel(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
-            >
-              <option value="">-- Pilih Mapel --</option>
-              {(mapelList || []).filter(m => m.aktifPembelajaran).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
-          )}
-        </div>
+      <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Tingkat</label>
           <select
             value={selectedTingkat}
-            onChange={e => setSelectedTingkat(e.target.value)}
+            onChange={e => { setSelectedTingkat(e.target.value); setSelectedMapel(''); }}
             className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
           >
             <option value="">-- Pilih Tingkat --</option>
@@ -296,7 +295,7 @@ export default function KelolaSilabus() {
           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Tahun Ajaran</label>
           <select
             value={tahunAjaran}
-            onChange={e => setTahunAjaran(e.target.value)}
+            onChange={e => { setTahunAjaran(e.target.value); setSelectedMapel(''); }}
             className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
           >
             {TAHUN_AJARAN_OPTIONS.map(ta => <option key={ta} value={ta}>{ta}</option>)}
@@ -306,7 +305,7 @@ export default function KelolaSilabus() {
           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Semester</label>
           <select
             value={semester}
-            onChange={e => setSemester(e.target.value)}
+            onChange={e => { setSemester(e.target.value); setSelectedMapel(''); }}
             className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
           >
             <option value="Ganjil">Ganjil</option>
@@ -315,96 +314,185 @@ export default function KelolaSilabus() {
         </div>
       </div>
 
-      {!isReady ? (
+      {!isScopeReady ? (
         <div className="bg-white border border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-400 flex flex-col items-center justify-center">
           <Info className="w-6 h-6 mb-1.5 text-gray-300" />
-          <p className="text-sm font-medium text-gray-600">Pilih Mata Pelajaran dan Tingkat untuk mulai menyusun silabus.</p>
+          <p className="text-sm font-medium text-gray-600">Pilih Tingkat, Tahun Ajaran, dan Semester untuk melihat daftar mata pelajaran.</p>
         </div>
-      ) : loadingSilabus ? (
-        <div className="bg-white border border-gray-200 rounded-lg p-8 flex justify-center items-center">
-          <Loader2 className="w-6 h-6 text-blue-800 animate-spin" />
-        </div>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
+      ) : !selectedMapel ? (
+        loadingSummary ? (
+          <div className="bg-white border border-gray-200 rounded-lg p-8 flex justify-center items-center">
+            <Loader2 className="w-6 h-6 text-blue-800 animate-spin" />
+          </div>
+        ) : !summaryList || summaryList.length === 0 ? (
+          <div className="bg-white border border-dashed border-gray-300 rounded-lg p-8 text-center text-gray-400 flex flex-col items-center justify-center">
+            <Info className="w-6 h-6 mb-1.5 text-gray-300" />
+            <p className="text-sm font-medium text-gray-600">Belum ada mata pelajaran aktif untuk pembelajaran.</p>
+          </div>
+        ) : (
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-12">No</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Bab</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Section / Sub-Bab</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-48">Tanggal Target (Opsional)</th>
-                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-12">Aksi</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Mata Pelajaran</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-32">Kode</th>
+                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-40">Status Silabus</th>
+                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-24">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {items.map((item, idx) => (
-                  <tr key={idx}>
-                    <td className="px-3 py-1.5 text-sm text-gray-400 font-medium">{idx + 1}</td>
-                    <td className="px-3 py-1.5">
-                      <input
-                        type="text"
-                        value={item.bab}
-                        onChange={e => updateItem(idx, { bab: e.target.value })}
-                        placeholder="Bab 1"
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
-                      />
+                {summaryList.map((m, idx) => (
+                  <tr key={m.mataPelajaranId} className="hover:bg-gray-50/60 transition-colors">
+                    <td className="px-3 py-2.5 text-sm text-gray-400 font-medium">{idx + 1}</td>
+                    <td className="px-3 py-2.5 text-sm font-semibold text-gray-800">{m.name}</td>
+                    <td className="px-3 py-2.5 text-sm font-mono text-gray-500">{m.kodeMapel}</td>
+                    <td className="px-3 py-2.5">
+                      {m.hasSilabus ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
+                          <CheckCircle2 className="w-3 h-3" /> Sudah Ada ({m.jumlahItem})
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 text-[11px] font-bold">
+                          <XCircle className="w-3 h-3" /> Belum Ada
+                        </span>
+                      )}
                     </td>
-                    <td className="px-3 py-1.5">
-                      <input
-                        type="text"
-                        value={item.section}
-                        onChange={e => updateItem(idx, { section: e.target.value })}
-                        placeholder="1.1 Pengenalan..."
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
-                      />
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <input
-                        type="date"
-                        value={item.tanggalTarget}
-                        onChange={e => updateItem(idx, { tanggalTarget: e.target.value })}
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
-                      />
-                    </td>
-                    <td className="px-3 py-1.5 text-center">
-                      <button
-                        onClick={() => removeRow(idx)}
-                        className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
-                        title="Hapus baris"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewMapel({ id: m.mataPelajaranId, name: m.name })}
+                          disabled={!m.hasSilabus}
+                          title={m.hasSilabus ? 'Lihat silabus' : 'Belum ada silabus untuk dilihat'}
+                          className="p-1.5 text-gray-500 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedMapel(m.mataPelajaranId)}
+                          title="Isi / edit silabus"
+                          className="p-1.5 text-gray-500 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        )
+      ) : (
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setSelectedMapel('')}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-800 hover:text-blue-900 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke Daftar Mapel
+          </button>
 
-          <div className="p-3 border-t border-gray-100">
-            <button
-              onClick={addRow}
-              className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-blue-800 border border-dashed border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" /> Tambah Baris
-            </button>
-          </div>
+          {loadingSilabus ? (
+            <div className="bg-white border border-gray-200 rounded-lg p-8 flex justify-center items-center">
+              <Loader2 className="w-6 h-6 text-blue-800 animate-spin" />
+            </div>
+          ) : (
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-100">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-12">No</th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Bab</th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Section / Sub-Bab</th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-48">Tanggal Target (Opsional)</th>
+                      <th className="px-3 py-2 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-12">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {items.map((item, idx) => (
+                      <tr key={idx}>
+                        <td className="px-3 py-1.5 text-sm text-gray-400 font-medium">{idx + 1}</td>
+                        <td className="px-3 py-1.5">
+                          <input
+                            type="text"
+                            value={item.bab}
+                            onChange={e => updateItem(idx, { bab: e.target.value })}
+                            placeholder="Bab 1"
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                          />
+                        </td>
+                        <td className="px-3 py-1.5">
+                          <input
+                            type="text"
+                            value={item.section}
+                            onChange={e => updateItem(idx, { section: e.target.value })}
+                            placeholder="1.1 Pengenalan..."
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                          />
+                        </td>
+                        <td className="px-3 py-1.5">
+                          <input
+                            type="date"
+                            value={item.tanggalTarget}
+                            onChange={e => updateItem(idx, { tanggalTarget: e.target.value })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                          />
+                        </td>
+                        <td className="px-3 py-1.5 text-center">
+                          <button
+                            onClick={() => removeRow(idx)}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
+                            title="Hapus baris"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-          <div className="px-3 py-2.5 bg-gray-50 border-t border-gray-200 flex justify-end">
-            <button
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
-              className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded text-white bg-blue-800 hover:bg-blue-900 transition-colors disabled:opacity-50 w-full sm:w-auto"
-            >
-              {saveMutation.isPending ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Menyimpan...</>
-              ) : (
-                <><Save className="w-4 h-4 mr-2" /> Simpan Silabus</>
-              )}
-            </button>
-          </div>
+              <div className="p-3 border-t border-gray-100">
+                <button
+                  onClick={addRow}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-blue-800 border border-dashed border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Tambah Baris
+                </button>
+              </div>
+
+              <div className="px-3 py-2.5 bg-gray-50 border-t border-gray-200 flex justify-end">
+                <button
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending}
+                  className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold rounded text-white bg-blue-800 hover:bg-blue-900 transition-colors disabled:opacity-50 w-full sm:w-auto"
+                >
+                  {saveMutation.isPending ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Menyimpan...</>
+                  ) : (
+                    <><Save className="w-4 h-4 mr-2" /> Simpan Silabus</>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+      )}
+
+      {previewMapel && (
+        <SilabusPreviewModal
+          mataPelajaranId={previewMapel.id}
+          mapelName={previewMapel.name}
+          tingkat={selectedTingkat}
+          tahunAjaran={tahunAjaran}
+          semester={semester}
+          onClose={() => setPreviewMapel(null)}
+        />
       )}
     </div>
   );

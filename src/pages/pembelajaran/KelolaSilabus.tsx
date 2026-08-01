@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
+import { AxiosError } from 'axios';
 import apiClient from '../../lib/apiClient';
-import { Loader2, Plus, Trash2, Save, Info, Download, Upload, FileSpreadsheet, Eye, Pencil, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Plus, Trash2, Save, Info, Download, Upload, FileSpreadsheet, FileDown, Eye, Pencil, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import SilabusPreviewModal from './SilabusPreviewModal';
 
@@ -12,6 +13,17 @@ interface SilabusSummaryItem {
   kodeMapel: string;
   jumlahItem: number;
   hasSilabus: boolean;
+}
+
+interface SilabusExportItem {
+  mataPelajaranName: string;
+  kodeMapel: string;
+  tingkat: string;
+  tahunAjaran: string;
+  semester: string;
+  bab: string;
+  section: string;
+  tanggalTarget: string | null;
 }
 
 interface SilabusItem {
@@ -133,6 +145,41 @@ export default function KelolaSilabus() {
     }
   });
 
+  const exportAllMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiClient.get<SilabusExportItem[]>('/pembelajaran/silabus/export');
+      return res.data;
+    },
+    onSuccess: (data) => {
+      if (data.length === 0) {
+        showToast('error', 'Belum ada data silabus untuk diekspor.');
+        return;
+      }
+      const worksheet = XLSX.utils.json_to_sheet(
+        data.map(d => {
+          const row: Record<string, string> = {
+            'Mata Pelajaran': d.mataPelajaranName,
+            'Kode Mapel': d.kodeMapel,
+            Tingkat: d.tingkat,
+            'Tahun Ajaran': d.tahunAjaran,
+            Semester: d.semester,
+            Bab: d.bab,
+            Section: d.section,
+          };
+          if (d.tanggalTarget) row['Tanggal Target'] = d.tanggalTarget.slice(0, 10);
+          return row;
+        })
+      );
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Semua Silabus');
+      XLSX.writeFile(workbook, `Semua_Silabus_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof AxiosError ? (err.response?.data as { message?: string } | undefined)?.message : undefined;
+      showToast('error', message || 'Gagal mengekspor data silabus.');
+    }
+  });
+
   const updateItem = (idx: number, patch: Partial<SilabusItem>) => {
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
   };
@@ -250,33 +297,48 @@ export default function KelolaSilabus() {
             ? 'Susun Bab/Section untuk mata pelajaran ini (tanggal target bersifat opsional).'
             : 'Pilih Tingkat, Tahun Ajaran, dan Semester untuk melihat mapel mana yang silabusnya sudah/belum diisi.'}
         </p>
-        {selectedMapel && (
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleDownloadTemplate}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-            >
-              <Download className="w-3.5 h-3.5" /> Unduh Template
-            </button>
-            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
-            <button
-              type="button"
-              onClick={handleImportClick}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" /> Import Excel
-            </button>
-            <button
-              type="button"
-              onClick={handleExport}
-              disabled={items.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
-            </button>
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => exportAllMutation.mutate()}
+            disabled={exportAllMutation.isPending}
+            title="Ekspor seluruh silabus (semua mapel &amp; tingkat) ke satu file Excel"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {exportAllMutation.isPending ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Mengekspor...</>
+            ) : (
+              <><FileDown className="w-3.5 h-3.5" /> Export Semua Silabus</>
+            )}
+          </button>
+          {selectedMapel && (
+            <>
+              <button
+                type="button"
+                onClick={handleDownloadTemplate}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" /> Unduh Template
+              </button>
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
+              <button
+                type="button"
+                onClick={handleImportClick}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" /> Import Excel
+              </button>
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={items.length === 0}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-semibold rounded text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" /> Export Excel
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">

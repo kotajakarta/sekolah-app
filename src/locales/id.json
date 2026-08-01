@@ -58,7 +58,8 @@
     "master_data": "Data Induk",
     "users": "Pengguna",
     "logout": "Keluar",
-    "settings": "Pengaturan"
+    "settings": "Pengaturan",
+    "surat": "Layanan Surat"
   },
   "common": {
     "save": "Simpan",
@@ -583,5 +584,144 @@
     "catatan_ph": "Catatan...",
     "empty_data": "Belum ada data guru pada cabang ini.",
     "empty_search": "Tidak ada data guru yang cocok dengan pencarian."
+  },
+  "surat": {
+    "title": "Manajemen Surat & Nomor Surat",
+    "subtitle": "Kelola penerbitan nomor surat resmi, pengarsipan surat keluar/masuk, template dokumen, dan pengaturan format surat instansi.",
+    "module_badge": "Modul Persuratan & Dokumentasi",
+    "btn_create_new": "Buat Nomor Surat Baru",
+    "btn_upload_template": "Upload Template",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "kelola": "Kelola Surat",
+      "template": "Template Surat",
+      "pengaturan": "Pengaturan (Admin)"
+    },
+    "dashboard": {
+      "total_letters": "Total Surat Diterbitkan",
+      "month_letters": "Surat Bulan Ini",
+      "total_templates": "Template Dokumen",
+      "total_types": "Kategori Jenis Surat",
+      "generator_title": "Butuh Nomor Surat Resmi?",
+      "generator_desc": "Gunakan fitur auto-generate untuk membuat nomor surat resmi sesuai format standar instansi secara otomatis tanpa risiko duplikasi.",
+      "active_format": "Format Aktif:",
+      "recent_letters": "Surat Terakhir Diterbitkan",
+      "recent_letters_sub": "Daftar penerbitan nomor surat terbaru di sistem",
+      "view_all": "Lihat Semua",
+      "no_letters": "Belum ada nomor surat yang diterbitkan."
+    },
+    "kelola": {
+      "search_placeholder": "Cari nomor surat, perihal, atau tujuan...",
+      "all_types": "Semua Jenis Surat",
+      "all_depts": "Semua Departemen",
+      "all_insts": "Semua Institusi",
+      "all_months": "Semua Bulan",
+      "all_years": "Semua Tahun",
+      "month_name": "Bulan",
+      "table": {
+        "letter_number": "Nomor Surat",
+        "subject_target": "Perihal & Tujuan",
+        "category": "Jenis / Kategori",
+        "dept_inst": "Dept & Institusi",
+        "date_author": "Tanggal & Pembuat",
+        "document": "File Dokumen",
+        "action": "Aksi",
+        "to": "Kepada:",
+        "download": "Unduh",
+        "no_file": "Tanpa file",
+        "delete_confirm": "Yakin ingin menghapus surat: {{number}}?"
+      },
+      "empty_title": "Tidak ada surat ditemukan",
+      "empty_desc": "Coba ubah kata kunci pencarian atau filter diatas."
+    },
+    "template_tab": {
+      "title": "Template Surat Resmi",
+      "subtitle": "Unduh template resmi format Word / PDF untuk pembuatan dokumen instansi.",
+      "upload_new": "Unggah Template Baru",
+      "empty_title": "Belum Ada Template Surat",
+      "empty_desc": "Silakan klik button \"Unggah Template Baru\" di atas untuk menambahkan berkas template surat (Docx/PDF).",
+      "no_desc": "Tidak ada deskripsi",
+      "by": "Oleh:",
+      "download": "Unduh",
+      "delete_confirm": "Yakin hapus template \"{{title}}\"?"
+    },
+    "settings_tab": {
+      "subtabs": {
+        "format": "Format Nomor Surat",
+        "type": "Master Jenis Surat",
+        "dept": "Master Departemen",
+        "inst": "Master Institusi"
+      },
+      "format": {
+        "title": "Pengaturan Format Nomor Surat",
+        "subtitle": "Tentukan pola string untuk pembuatan nomor surat otomatis.",
+        "input_label": "Pattern Format Surat",
+        "preview_label": "Contoh Hasil Preview Live:",
+        "save_btn": "Simpan Format Nomor Surat",
+        "saving": "Menyimpan...",
+        "guide_title": "Petunjuk Variabel Tag Format:",
+        "tag_sequence": "Nomor urut 3 digit (misal: 001)",
+        "tag_letter_type": "Kode jenis surat (misal: SK)",
+        "tag_department": "Kode departemen (misal: SEKR)",
+        "tag_institution": "Kode institusi (misal: PUSDATIN)",
+        "tag_month": "Bulan dalam Romawi (misal: VIII)",
+        "tag_month_num": "Bulan angka 2 digit (misal: 08)",
+        "tag_year": "Tahun 4 digit (misal: 2026)"
+      },
+      "master": {
+        "title": "Master Data {{target}}",
+        "subtitle": "Kelola kode dan nama untuk format penomoran surat.",
+        "add_new": "Tambah Baru",
+        "code": "Kode",
+        "name": "Nama Lengkap",
+        "action": "Aksi",
+        "modal_create": "Tambah Data {{target}}",
+        "modal_edit": "Edit Data {{target}}",
+        "delete_confirm": "Hapus {{code}}?"
+      }
+    },
+    "modals": {
+      "create_title": "Buat Nomor Surat Baru",
+      "create_subtitle": "Isi parameter untuk menerbitkan nomor surat",
+      "letter_type": "Jenis Surat *",
+      "department": "Departemen *",
+      "institution": "Institusi *",
+      "subject": "Perihal / Judul Surat *",
+      "addressed_to": "Ditujukan Kepada *",
+      "letter_date": "Tanggal Surat *",
+      "file_attachment": "Lampiran File (Opsional)",
+      "cancel": "Batal",
+      "submit": "Terbitkan Nomor Surat",
+      "generating": "Generating...",
+      "result_title": "Nomor Surat Berhasil Diterbitkan!",
+      "result_subtitle": "Nomor berikut telah dicatat ke dalam database sistem.",
+      "result_official": "Nomor Surat Resmi:",
+      "copy_btn": "Salin Nomor Surat",
+      "close": "Tutup & Selesai",
+      "upload_tmpl_title": "Unggah Template Surat Baru",
+      "upload_tmpl_subtitle": "Unggah berkas Word (.docx) atau PDF template",
+      "tmpl_title": "Judul Template *",
+      "tmpl_desc": "Deskripsi",
+      "tmpl_file": "File Berkas Template *",
+      "upload_btn": "Unggah Template",
+      "uploading": "Uploading..."
+    },
+    "toasts": {
+      "generated_success": "Nomor Surat Berhasil Dibuat!",
+      "generated_error": "Gagal membuat nomor surat.",
+      "upload_success": "Template Surat Berhasil Diunggah!",
+      "upload_error": "Gagal mengunggah template.",
+      "delete_letter_success": "Surat berhasil dihapus.",
+      "delete_letter_error": "Gagal menghapus surat.",
+      "delete_tmpl_success": "Template berhasil dihapus.",
+      "delete_tmpl_error": "Gagal menghapus template.",
+      "format_success": "Format Nomor Surat Berhasil Diperbarui!",
+      "format_error": "Gagal menyimpan format.",
+      "master_success": "Data master berhasil disimpan.",
+      "master_error": "Gagal menyimpan data master.",
+      "master_delete_success": "Data master berhasil dihapus.",
+      "master_delete_error": "Gagal menghapus data master.",
+      "copied": "Nomor Surat disalin ke clipboard!"
+    }
   }
 }

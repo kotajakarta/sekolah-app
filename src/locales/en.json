@@ -57,7 +57,8 @@
     "master_data": "Master Data",
     "users": "Users",
     "logout": "Logout",
-    "settings": "Settings"
+    "settings": "Settings",
+    "surat": "Letter Service"
   },
   "common": {
     "save": "Save",
@@ -582,5 +583,144 @@
     "catatan_ph": "Notes...",
     "empty_data": "No teacher data in this branch.",
     "empty_search": "No teacher data matches the search."
+  },
+  "surat": {
+    "title": "Letter & Document Management",
+    "subtitle": "Manage official letter numbering, incoming/outgoing archiving, document templates, and institutional letter format settings.",
+    "module_badge": "Correspondence & Documentation Module",
+    "btn_create_new": "Create New Letter Number",
+    "btn_upload_template": "Upload Template",
+    "tabs": {
+      "dashboard": "Dashboard",
+      "kelola": "Manage Letters",
+      "template": "Letter Templates",
+      "pengaturan": "Settings (Admin)"
+    },
+    "dashboard": {
+      "total_letters": "Total Letters Issued",
+      "month_letters": "Letters This Month",
+      "total_templates": "Document Templates",
+      "total_types": "Letter Categories",
+      "generator_title": "Need an Official Letter Number?",
+      "generator_desc": "Use the auto-generator feature to create official letter numbers according to standard institutional formats automatically without risk of duplication.",
+      "active_format": "Active Format:",
+      "recent_letters": "Recently Issued Letters",
+      "recent_letters_sub": "List of recent letter number issuances in system",
+      "view_all": "View All",
+      "no_letters": "No letter numbers issued yet."
+    },
+    "kelola": {
+      "search_placeholder": "Search letter number, subject, or recipient...",
+      "all_types": "All Letter Types",
+      "all_depts": "All Departments",
+      "all_insts": "All Institutions",
+      "all_months": "All Months",
+      "all_years": "All Years",
+      "month_name": "Month",
+      "table": {
+        "letter_number": "Letter Number",
+        "subject_target": "Subject & Recipient",
+        "category": "Category / Type",
+        "dept_inst": "Dept & Institution",
+        "date_author": "Date & Author",
+        "document": "File Document",
+        "action": "Action",
+        "to": "To:",
+        "download": "Download",
+        "no_file": "No file",
+        "delete_confirm": "Are you sure you want to delete letter: {{number}}?"
+      },
+      "empty_title": "No letters found",
+      "empty_desc": "Try changing your search keywords or filters above."
+    },
+    "template_tab": {
+      "title": "Official Letter Templates",
+      "subtitle": "Download official Word / PDF template formats for institutional document creation.",
+      "upload_new": "Upload New Template",
+      "empty_title": "No Letter Templates Yet",
+      "empty_desc": "Please click the \"Upload New Template\" button above to add template files (Docx/PDF).",
+      "no_desc": "No description",
+      "by": "By:",
+      "download": "Download",
+      "delete_confirm": "Are you sure you want to delete template \"{{title}}\"?"
+    },
+    "settings_tab": {
+      "subtabs": {
+        "format": "Letter Number Format",
+        "type": "Master Letter Types",
+        "dept": "Master Departments",
+        "inst": "Master Institutions"
+      },
+      "format": {
+        "title": "Letter Number Format Settings",
+        "subtitle": "Define string pattern rules for automatic letter number creation.",
+        "input_label": "Letter Format Pattern",
+        "preview_label": "Live Preview Example:",
+        "save_btn": "Save Letter Format",
+        "saving": "Saving...",
+        "guide_title": "Format Tag Variable Guide:",
+        "tag_sequence": "3-digit sequence number (e.g., 001)",
+        "tag_letter_type": "Letter type code (e.g., SK)",
+        "tag_department": "Department code (e.g., SEKR)",
+        "tag_institution": "Institution code (e.g., PUSDATIN)",
+        "tag_month": "Month in Roman numerals (e.g., VIII)",
+        "tag_month_num": "Month 2-digit number (e.g., 08)",
+        "tag_year": "4-digit year (e.g., 2026)"
+      },
+      "master": {
+        "title": "Master Data {{target}}",
+        "subtitle": "Manage codes and names for letter numbering format.",
+        "add_new": "Add New",
+        "code": "Code",
+        "name": "Full Name",
+        "action": "Action",
+        "modal_create": "Add {{target}} Data",
+        "modal_edit": "Edit {{target}} Data",
+        "delete_confirm": "Delete {{code}}?"
+      }
+    },
+    "modals": {
+      "create_title": "Create New Letter Number",
+      "create_subtitle": "Fill in parameters to issue a letter number",
+      "letter_type": "Letter Type *",
+      "department": "Department *",
+      "institution": "Institution *",
+      "subject": "Subject / Letter Title *",
+      "addressed_to": "Addressed To *",
+      "letter_date": "Letter Date *",
+      "file_attachment": "File Attachment (Optional)",
+      "cancel": "Cancel",
+      "submit": "Issue Letter Number",
+      "generating": "Generating...",
+      "result_title": "Letter Number Successfully Issued!",
+      "result_subtitle": "The following number has been recorded into system database.",
+      "result_official": "Official Letter Number:",
+      "copy_btn": "Copy Letter Number",
+      "close": "Close & Done",
+      "upload_tmpl_title": "Upload New Letter Template",
+      "upload_tmpl_subtitle": "Upload Word (.docx) or PDF template file",
+      "tmpl_title": "Template Title *",
+      "tmpl_desc": "Description",
+      "tmpl_file": "Template File *",
+      "upload_btn": "Upload Template",
+      "uploading": "Uploading..."
+    },
+    "toasts": {
+      "generated_success": "Letter Number Successfully Created!",
+      "generated_error": "Failed to create letter number.",
+      "upload_success": "Letter Template Successfully Uploaded!",
+      "upload_error": "Failed to upload template.",
+      "delete_letter_success": "Letter deleted successfully.",
+      "delete_letter_error": "Failed to delete letter.",
+      "delete_tmpl_success": "Template deleted successfully.",
+      "delete_tmpl_error": "Failed to delete template.",
+      "format_success": "Letter Number Format Successfully Updated!",
+      "format_error": "Failed to save format.",
+      "master_success": "Master data saved successfully.",
+      "master_error": "Failed to save master data.",
+      "master_delete_success": "Master data deleted successfully.",
+      "master_delete_error": "Failed to delete master data.",
+      "copied": "Letter Number copied to clipboard!"
+    }
   }
 }

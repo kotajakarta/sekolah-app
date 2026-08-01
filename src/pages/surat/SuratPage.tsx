@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
@@ -29,11 +30,20 @@ import {
 
 export default function SuratPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
+  const isAdmin = user?.scope === 'GLOBAL';
+
   // Active Main Tab: 'dashboard' | 'kelola' | 'template' | 'pengaturan'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'kelola' | 'template' | 'pengaturan'>('dashboard');
+
+  React.useEffect(() => {
+    if (!isAdmin && activeTab === 'pengaturan') {
+      setActiveTab('dashboard');
+    }
+  }, [isAdmin, activeTab]);
 
   // Modal States
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
@@ -184,10 +194,10 @@ export default function SuratPage() {
         letterDate: new Date().toISOString().split('T')[0],
       });
       setGenFile(null);
-      showToast('success', 'Nomor Surat Berhasil Dibuat!');
+      showToast('success', t('surat.toasts.generated_success') || 'Nomor Surat Berhasil Dibuat!');
     },
     onError: (err: any) => {
-      showToast('error', err?.response?.data?.message || 'Gagal membuat nomor surat.');
+      showToast('error', err?.response?.data?.message || t('surat.toasts.generated_error') || 'Gagal membuat nomor surat.');
     },
   });
 
@@ -210,10 +220,10 @@ export default function SuratPage() {
       setIsTemplateModalOpen(false);
       setTmplForm({ title: '', description: '' });
       setTmplFile(null);
-      showToast('success', 'Template Surat Berhasil Diunggah!');
+      showToast('success', t('surat.toasts.upload_success') || 'Template Surat Berhasil Diunggah!');
     },
     onError: (err: any) => {
-      showToast('error', err?.response?.data?.message || err?.message || 'Gagal mengunggah template.');
+      showToast('error', err?.response?.data?.message || err?.message || t('surat.toasts.upload_error') || 'Gagal mengunggah template.');
     },
   });
 
@@ -225,10 +235,10 @@ export default function SuratPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['surat-letters'] });
       queryClient.invalidateQueries({ queryKey: ['surat-stats'] });
-      showToast('success', 'Surat berhasil dihapus.');
+      showToast('success', t('surat.toasts.delete_letter_success') || 'Surat berhasil dihapus.');
     },
     onError: (err: any) => {
-      showToast('error', err?.response?.data?.message || 'Gagal menghapus surat.');
+      showToast('error', err?.response?.data?.message || t('surat.toasts.delete_letter_error') || 'Gagal menghapus surat.');
     },
   });
 
@@ -240,10 +250,10 @@ export default function SuratPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['surat-templates-list'] });
       queryClient.invalidateQueries({ queryKey: ['surat-stats'] });
-      showToast('success', 'Template berhasil dihapus.');
+      showToast('success', t('surat.toasts.delete_tmpl_success') || 'Template berhasil dihapus.');
     },
     onError: (err: any) => {
-      showToast('error', err?.response?.data?.message || 'Gagal menghapus template.');
+      showToast('error', err?.response?.data?.message || t('surat.toasts.delete_tmpl_error') || 'Gagal menghapus template.');
     },
   });
 
@@ -254,10 +264,10 @@ export default function SuratPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['surat-format-template'] });
-      showToast('success', 'Format Nomor Surat Berhasil Diperbarui!');
+      showToast('success', t('surat.toasts.format_success') || 'Format Nomor Surat Berhasil Diperbarui!');
     },
     onError: (err: any) => {
-      showToast('error', err?.response?.data?.message || 'Gagal menyimpan format.');
+      showToast('error', err?.response?.data?.message || t('surat.toasts.format_error') || 'Gagal menyimpan format.');
     },
   });
 
@@ -278,10 +288,10 @@ export default function SuratPage() {
       queryClient.invalidateQueries({ queryKey: ['surat-types'] });
       setMasterModal({ open: false, mode: 'create', target: 'dept' });
       setMasterForm({ code: '', name: '' });
-      showToast('success', 'Data master berhasil disimpan.');
+      showToast('success', t('surat.toasts.master_success') || 'Data master berhasil disimpan.');
     },
     onError: (err: any) => {
-      showToast('error', err?.response?.data?.message || 'Gagal menyimpan data master.');
+      showToast('error', err?.response?.data?.message || t('surat.toasts.master_error') || 'Gagal menyimpan data master.');
     },
   });
 
@@ -295,10 +305,10 @@ export default function SuratPage() {
       queryClient.invalidateQueries({ queryKey: ['surat-departments'] });
       queryClient.invalidateQueries({ queryKey: ['surat-institutions'] });
       queryClient.invalidateQueries({ queryKey: ['surat-types'] });
-      showToast('success', 'Data master berhasil dihapus.');
+      showToast('success', t('surat.toasts.master_delete_success') || 'Data master berhasil dihapus.');
     },
     onError: (err: any) => {
-      showToast('error', err?.response?.data?.message || 'Gagal menghapus data master.');
+      showToast('error', err?.response?.data?.message || t('surat.toasts.master_delete_error') || 'Gagal menghapus data master.');
     },
   });
 
@@ -306,7 +316,7 @@ export default function SuratPage() {
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
-    showToast('info', 'Nomor Surat disalin ke clipboard!');
+    showToast('info', t('surat.toasts.copied') || 'Nomor Surat disalin ke clipboard!');
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -335,31 +345,33 @@ export default function SuratPage() {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-indigo-100">
               <FileCheck className="w-3.5 h-3.5" />
-              <span>Modul Persuratan & Dokumentasi</span>
+              <span>{t('surat.module_badge') || 'Modul Persuratan & Dokumentasi'}</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-              Manajemen Surat & Nomor Surat
+              {t('surat.title') || 'Manajemen Surat & Nomor Surat'}
             </h1>
             <p className="text-indigo-100 text-sm max-w-2xl leading-relaxed">
-              Kelola penerbitan nomor surat resmi, pengarsipan surat keluar/masuk, template dokumen, dan pengaturan format surat instansi.
+              {t('surat.subtitle') || 'Kelola penerbitan nomor surat resmi, pengarsipan surat keluar/masuk, template dokumen, dan pengaturan format surat instansi.'}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => setIsGenerateModalOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-indigo-700 font-bold hover:bg-indigo-50 active:scale-95 transition-all shadow-lg text-sm"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-indigo-700 font-bold hover:bg-indigo-50 active:scale-95 transition-all shadow-lg text-sm cursor-pointer"
             >
               <PlusCircle className="w-4 h-4 text-indigo-700" />
-              <span>Buat Nomor Surat Baru</span>
+              <span>{t('surat.btn_create_new') || 'Buat Nomor Surat Baru'}</span>
             </button>
-            <button
-              onClick={() => setIsTemplateModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-800/60 hover:bg-indigo-800 border border-white/20 text-white font-medium active:scale-95 transition-all text-sm backdrop-blur-sm"
-            >
-              <Upload className="w-4 h-4" />
-              <span>Upload Template</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setIsTemplateModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-800/60 hover:bg-indigo-800 border border-white/20 text-white font-medium active:scale-95 transition-all text-sm backdrop-blur-sm cursor-pointer"
+              >
+                <Upload className="w-4 h-4" />
+                <span>{t('surat.btn_upload_template') || 'Upload Template'}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -379,7 +391,7 @@ export default function SuratPage() {
           }`}
         >
           <FileText className="w-4 h-4" />
-          <span>Dashboard</span>
+          <span>{t('surat.tabs.dashboard') || 'Dashboard'}</span>
         </button>
 
         <button
@@ -391,7 +403,7 @@ export default function SuratPage() {
           }`}
         >
           <FolderKanban className="w-4 h-4" />
-          <span>Kelola Surat</span>
+          <span>{t('surat.tabs.kelola') || 'Kelola Surat'}</span>
         </button>
 
         <button
@@ -403,20 +415,22 @@ export default function SuratPage() {
           }`}
         >
           <FileSpreadsheet className="w-4 h-4" />
-          <span>Template Surat</span>
+          <span>{t('surat.tabs.template') || 'Template Surat'}</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('pengaturan')}
-          className={`flex items-center gap-2.5 px-5 py-3 rounded-lg text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
-            activeTab === 'pengaturan'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span>Pengaturan (Admin)</span>
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab('pengaturan')}
+            className={`flex items-center gap-2.5 px-5 py-3 rounded-lg text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'pengaturan'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-indigo-600 hover:bg-slate-50'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            <span>{t('surat.tabs.pengaturan') || 'Pengaturan (Admin)'}</span>
+          </button>
+        )}
       </div>
 
       {/* ================= TAB 1: DASHBOARD ================= */}
@@ -429,7 +443,7 @@ export default function SuratPage() {
                 <FileText className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-500">Total Surat Diterbitkan</p>
+                <p className="text-xs font-medium text-slate-500">{t('surat.dashboard.total_letters') || 'Total Surat Diterbitkan'}</p>
                 <h3 className="text-2xl font-black text-slate-800">{stats?.totalLetters ?? 0}</h3>
               </div>
             </div>
@@ -439,7 +453,7 @@ export default function SuratPage() {
                 <Calendar className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-500">Surat Bulan Ini</p>
+                <p className="text-xs font-medium text-slate-500">{t('surat.dashboard.month_letters') || 'Surat Bulan Ini'}</p>
                 <h3 className="text-2xl font-black text-slate-800">{stats?.monthLetters ?? 0}</h3>
               </div>
             </div>
@@ -449,7 +463,7 @@ export default function SuratPage() {
                 <FileSpreadsheet className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-500">Template Dokumen</p>
+                <p className="text-xs font-medium text-slate-500">{t('surat.dashboard.total_templates') || 'Template Dokumen'}</p>
                 <h3 className="text-2xl font-black text-slate-800">{stats?.totalTemplates ?? 0}</h3>
               </div>
             </div>
@@ -459,7 +473,7 @@ export default function SuratPage() {
                 <Layers className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-xs font-medium text-slate-500">Kategori Jenis Surat</p>
+                <p className="text-xs font-medium text-slate-500">{t('surat.dashboard.total_types') || 'Kategori Jenis Surat'}</p>
                 <h3 className="text-2xl font-black text-slate-800">{stats?.totalTypes ?? 0}</h3>
               </div>
             </div>
@@ -473,15 +487,15 @@ export default function SuratPage() {
                 <span className="px-3 py-1 rounded-full bg-indigo-500/30 text-indigo-300 text-xs font-bold border border-indigo-400/30 inline-block">
                   Generator Nomor Surat
                 </span>
-                <h2 className="text-xl font-bold">Butuh Nomor Surat Resmi?</h2>
+                <h2 className="text-xl font-bold">{t('surat.dashboard.generator_title') || 'Butuh Nomor Surat Resmi?'}</h2>
                 <p className="text-slate-300 text-xs leading-relaxed">
-                  Gunakan fitur auto-generate untuk membuat nomor surat resmi sesuai format standar instansi secara otomatis tanpa risiko duplikasi.
+                  {t('surat.dashboard.generator_desc') || 'Gunakan fitur auto-generate untuk membuat nomor surat resmi sesuai format standar instansi secara otomatis tanpa risiko duplikasi.'}
                 </p>
               </div>
 
               <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-xs space-y-2">
                 <div className="flex justify-between items-center text-slate-400 font-medium">
-                  <span>Format Aktif:</span>
+                  <span>{t('surat.dashboard.active_format') || 'Format Aktif:'}</span>
                   <span className="text-indigo-400 font-mono font-bold">
                     {formatTemplateData?.template || '{sequence}/{letter_type}/{department}/{institution}/{month}/{year}'}
                   </span>
@@ -493,7 +507,7 @@ export default function SuratPage() {
                 className="w-full py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-sm text-white transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer active:scale-98"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>Buat Nomor Surat Baru</span>
+                <span>{t('surat.btn_create_new') || 'Buat Nomor Surat Baru'}</span>
               </button>
             </div>
 
@@ -501,35 +515,35 @@ export default function SuratPage() {
             <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-bold text-slate-800">Surat Terakhir Diterbitkan</h3>
-                  <p className="text-xs text-slate-500">Daftar penerbitan nomor surat terbaru di sistem</p>
+                  <h3 className="text-base font-bold text-slate-800">{t('surat.dashboard.recent_letters') || 'Surat Terakhir Diterbitkan'}</h3>
+                  <p className="text-xs text-slate-500">{t('surat.dashboard.recent_letters_sub') || 'Daftar penerbitan nomor surat terbaru di sistem'}</p>
                 </div>
                 <button
                   onClick={() => setActiveTab('kelola')}
                   className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
                 >
-                  <span>Lihat Semua</span>
+                  <span>{t('surat.dashboard.view_all') || 'Lihat Semua'}</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               {isLettersLoading ? (
-                <div className="py-12 text-center text-slate-400 text-sm">Loading data surat...</div>
+                <div className="py-12 text-center text-slate-400 text-sm">{t('common.loading') || 'Loading data...'}</div>
               ) : letters.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 text-sm space-y-2">
                   <FileText className="w-10 h-10 mx-auto text-slate-300" />
-                  <p>Belum ada nomor surat yang diterbitkan.</p>
+                  <p>{t('surat.dashboard.no_letters') || 'Belum ada nomor surat yang diterbitkan.'}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-slate-100 text-slate-400 font-bold uppercase tracking-wider text-[10px] bg-slate-50/50">
-                        <th className="py-3 px-3">Nomor Surat</th>
-                        <th className="py-3 px-3">Perihal</th>
-                        <th className="py-3 px-3">Tujuan</th>
-                        <th className="py-3 px-3">Tanggal</th>
-                        <th className="py-3 px-3 text-right">Aksi</th>
+                        <th className="py-3 px-3">{t('surat.kelola.table.letter_number') || 'Nomor Surat'}</th>
+                        <th className="py-3 px-3">{t('surat.kelola.table.subject_target') || 'Perihal'}</th>
+                        <th className="py-3 px-3">{t('surat.kelola.table.to') || 'Tujuan'}</th>
+                        <th className="py-3 px-3">{t('surat.kelola.table.date_author') || 'Tanggal'}</th>
+                        <th className="py-3 px-3 text-right">{t('surat.kelola.table.action') || 'Aksi'}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -541,7 +555,7 @@ export default function SuratPage() {
                               <button
                                 onClick={() => handleCopy(item.generatedNumber, item.id)}
                                 className="p-1 hover:bg-indigo-50 rounded text-slate-400 hover:text-indigo-600 cursor-pointer"
-                                title="Salin Nomor Surat"
+                                title="Salin"
                               >
                                 {copiedId === item.id ? (
                                   <Check className="w-3.5 h-3.5 text-emerald-600" />
@@ -569,7 +583,7 @@ export default function SuratPage() {
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-100 hover:bg-indigo-50 text-indigo-600 font-medium text-[11px]"
                               >
                                 <Download className="w-3 h-3" />
-                                <span>File</span>
+                                <span>{t('surat.kelola.table.download') || 'File'}</span>
                               </a>
                             ) : (
                               <span className="text-slate-400 text-[11px]">-</span>
@@ -597,7 +611,7 @@ export default function SuratPage() {
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Cari nomor surat, perihal, atau tujuan..."
+                  placeholder={t('surat.kelola.search_placeholder') || 'Cari nomor surat, perihal, atau tujuan...'}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
@@ -609,7 +623,7 @@ export default function SuratPage() {
                 className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>Buat Surat Baru</span>
+                <span>{t('surat.btn_create_new') || 'Buat Surat Baru'}</span>
               </button>
             </div>
 
@@ -620,7 +634,7 @@ export default function SuratPage() {
                 onChange={(e) => setFilterType(e.target.value)}
                 className="px-3 py-2 rounded-lg border border-slate-200 text-slate-700 bg-white focus:outline-none focus:border-indigo-500"
               >
-                <option value="">Semua Jenis Surat</option>
+                <option value="">{t('surat.kelola.all_types') || 'Semua Jenis Surat'}</option>
                 {letterTypes.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.code} - {t.name}
@@ -633,7 +647,7 @@ export default function SuratPage() {
                 onChange={(e) => setFilterDept(e.target.value)}
                 className="px-3 py-2 rounded-lg border border-slate-200 text-slate-700 bg-white focus:outline-none focus:border-indigo-500"
               >
-                <option value="">Semua Departemen</option>
+                <option value="">{t('surat.kelola.all_depts') || 'Semua Departemen'}</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.code} - {d.name}
@@ -646,7 +660,7 @@ export default function SuratPage() {
                 onChange={(e) => setFilterInst(e.target.value)}
                 className="px-3 py-2 rounded-lg border border-slate-200 text-slate-700 bg-white focus:outline-none focus:border-indigo-500"
               >
-                <option value="">Semua Institusi</option>
+                <option value="">{t('surat.kelola.all_insts') || 'Semua Institusi'}</option>
                 {institutions.map((i) => (
                   <option key={i.id} value={i.id}>
                     {i.code} - {i.name}
@@ -659,10 +673,10 @@ export default function SuratPage() {
                 onChange={(e) => setFilterMonth(e.target.value)}
                 className="px-3 py-2 rounded-lg border border-slate-200 text-slate-700 bg-white focus:outline-none focus:border-indigo-500"
               >
-                <option value="">Semua Bulan</option>
+                <option value="">{t('surat.kelola.all_months') || 'Semua Bulan'}</option>
                 {Array.from({ length: 12 }, (_, idx) => (
                   <option key={idx + 1} value={String(idx + 1)}>
-                    Bulan {idx + 1}
+                    {t('surat.kelola.month_name') || 'Bulan'} {idx + 1}
                   </option>
                 ))}
               </select>
@@ -672,7 +686,7 @@ export default function SuratPage() {
                 onChange={(e) => setFilterYear(e.target.value)}
                 className="px-3 py-2 rounded-lg border border-slate-200 text-slate-700 bg-white focus:outline-none focus:border-indigo-500"
               >
-                <option value="">Semua Tahun</option>
+                <option value="">{t('surat.kelola.all_years') || 'Semua Tahun'}</option>
                 <option value="2026">2026</option>
                 <option value="2025">2025</option>
                 <option value="2024">2024</option>
@@ -683,25 +697,25 @@ export default function SuratPage() {
           {/* Table of Surat */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             {isLettersLoading ? (
-              <div className="py-16 text-center text-slate-400 text-sm">Memuat data surat...</div>
+              <div className="py-16 text-center text-slate-400 text-sm">{t('common.loading') || 'Memuat data surat...'}</div>
             ) : letters.length === 0 ? (
               <div className="py-16 text-center text-slate-400 text-sm space-y-2">
                 <FileText className="w-12 h-12 mx-auto text-slate-300" />
-                <p className="font-semibold text-slate-600">Tidak ada surat ditemukan</p>
-                <p className="text-xs text-slate-400">Coba ubah kata kunci pencarian atau filter diatas.</p>
+                <p className="font-semibold text-slate-600">{t('surat.kelola.empty_title') || 'Tidak ada surat ditemukan'}</p>
+                <p className="text-xs text-slate-400">{t('surat.kelola.empty_desc') || 'Coba ubah kata kunci pencarian atau filter diatas.'}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                      <th className="py-3.5 px-4">Nomor Surat</th>
-                      <th className="py-3.5 px-4">Perihal & Tujuan</th>
-                      <th className="py-3.5 px-4">Jenis / Kategori</th>
-                      <th className="py-3.5 px-4">Dept & Institusi</th>
-                      <th className="py-3.5 px-4">Tanggal & Pembuat</th>
-                      <th className="py-3.5 px-4 text-center">File Dokumen</th>
-                      <th className="py-3.5 px-4 text-right">Aksi</th>
+                      <th className="py-3.5 px-4">{t('surat.kelola.table.letter_number') || 'Nomor Surat'}</th>
+                      <th className="py-3.5 px-4">{t('surat.kelola.table.subject_target') || 'Perihal & Tujuan'}</th>
+                      <th className="py-3.5 px-4">{t('surat.kelola.table.category') || 'Jenis / Kategori'}</th>
+                      <th className="py-3.5 px-4">{t('surat.kelola.table.dept_inst') || 'Dept & Institusi'}</th>
+                      <th className="py-3.5 px-4">{t('surat.kelola.table.date_author') || 'Tanggal & Pembuat'}</th>
+                      <th className="py-3.5 px-4 text-center">{t('surat.kelola.table.document') || 'File Dokumen'}</th>
+                      <th className="py-3.5 px-4 text-right">{t('surat.kelola.table.action') || 'Aksi'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -715,7 +729,7 @@ export default function SuratPage() {
                             <button
                               onClick={() => handleCopy(item.generatedNumber, item.id)}
                               className="p-1 hover:bg-indigo-100 rounded text-slate-400 hover:text-indigo-600 cursor-pointer"
-                              title="Salin Nomor Surat"
+                              title="Salin"
                             >
                               {copiedId === item.id ? (
                                 <Check className="w-4 h-4 text-emerald-600" />
@@ -729,7 +743,7 @@ export default function SuratPage() {
                         <td className="py-4 px-4 align-top max-w-xs space-y-1">
                           <p className="font-bold text-slate-800 text-xs leading-snug">{item.subject}</p>
                           <p className="text-[11px] text-slate-500">
-                            Kepada: <span className="font-medium text-slate-700">{item.addressedTo}</span>
+                            {t('surat.kelola.table.to') || 'Kepada:'} <span className="font-medium text-slate-700">{item.addressedTo}</span>
                           </p>
                         </td>
 
@@ -758,22 +772,22 @@ export default function SuratPage() {
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] border border-indigo-200/60 transition-colors"
                             >
                               <Download className="w-3.5 h-3.5" />
-                              <span>Unduh</span>
+                              <span>{t('surat.kelola.table.download') || 'Unduh'}</span>
                             </a>
                           ) : (
-                            <span className="text-slate-400 text-xs font-italic">Tanpa file</span>
+                            <span className="text-slate-400 text-xs font-italic">{t('surat.kelola.table.no_file') || 'Tanpa file'}</span>
                           )}
                         </td>
 
                         <td className="py-4 px-4 align-top text-right whitespace-nowrap">
                           <button
                             onClick={() => {
-                              if (confirm(`Yakin ingin menghapus surat: ${item.generatedNumber}?`)) {
+                              if (confirm(t('surat.kelola.table.delete_confirm', { number: item.generatedNumber }) || `Yakin ingin menghapus surat: ${item.generatedNumber}?`)) {
                                 deleteLetterMutation.mutate(item.id);
                               }
                             }}
                             className="p-1.5 rounded bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer"
-                            title="Hapus Surat"
+                            title="Hapus"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -793,29 +807,31 @@ export default function SuratPage() {
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs">
             <div>
-              <h3 className="text-base font-bold text-slate-800">Template Surat Resmi</h3>
+              <h3 className="text-base font-bold text-slate-800">{t('surat.template_tab.title') || 'Template Surat Resmi'}</h3>
               <p className="text-xs text-slate-500">
-                Unduh template resmi format Word / PDF untuk pembuatan dokumen instansi.
+                {t('surat.template_tab.subtitle') || 'Unduh template resmi format Word / PDF untuk pembuatan dokumen instansi.'}
               </p>
             </div>
-            <button
-              onClick={() => setIsTemplateModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
-            >
-              <Upload className="w-4 h-4" />
-              <span>Unggah Template Baru</span>
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setIsTemplateModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+              >
+                <Upload className="w-4 h-4" />
+                <span>{t('surat.template_tab.upload_new') || 'Unggah Template Baru'}</span>
+              </button>
+            )}
           </div>
 
           {/* Grid of Templates */}
           {isTemplatesLoading ? (
-            <div className="py-16 text-center text-slate-400 text-sm">Memuat daftar template...</div>
+            <div className="py-16 text-center text-slate-400 text-sm">{t('common.loading') || 'Memuat daftar template...'}</div>
           ) : templates.length === 0 ? (
             <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-200/80 space-y-3">
               <FileSpreadsheet className="w-12 h-12 mx-auto text-slate-300" />
-              <p className="font-bold text-slate-700 text-base">Belum Ada Template Surat</p>
+              <p className="font-bold text-slate-700 text-base">{t('surat.template_tab.empty_title') || 'Belum Ada Template Surat'}</p>
               <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Silakan klik button "Unggah Template Baru" di atas untuk menambahkan berkas template surat (Docx/PDF).
+                {t('surat.template_tab.empty_desc') || 'Silakan klik button "Unggah Template Baru" di atas untuk menambahkan berkas template surat (Docx/PDF).'}
               </p>
             </div>
           ) : (
@@ -830,29 +846,31 @@ export default function SuratPage() {
                       <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
                         <FileText className="w-5 h-5" />
                       </div>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Yakin hapus template "${tmpl.title}"?`)) {
-                            deleteTemplateMutation.mutate(tmpl.id);
-                          }
-                        }}
-                        className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
-                        title="Hapus Template"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => {
+                            if (confirm(t('surat.template_tab.delete_confirm', { title: tmpl.title }) || `Yakin hapus template "${tmpl.title}"?`)) {
+                              deleteTemplateMutation.mutate(tmpl.id);
+                            }
+                          }}
+                          className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                          title="Hapus"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
 
                     <h4 className="font-bold text-slate-800 text-sm">{tmpl.title}</h4>
                     <p className="text-slate-500 text-xs line-clamp-2 leading-relaxed">
-                      {tmpl.description || 'Tidak ada deskripsi'}
+                      {tmpl.description || t('surat.template_tab.no_desc') || 'Tidak ada deskripsi'}
                     </p>
                   </div>
 
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
                     <div>
                       <p className="font-medium text-slate-600 truncate max-w-[150px]">{tmpl.originalName}</p>
-                      <p>Oleh: {tmpl.user?.operatorName || tmpl.user?.username || 'Admin'}</p>
+                      <p>{t('surat.template_tab.by') || 'Oleh:'} {tmpl.user?.operatorName || tmpl.user?.username || 'Admin'}</p>
                     </div>
 
                     <a
@@ -862,7 +880,7 @@ export default function SuratPage() {
                       className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>Unduh</span>
+                      <span>{t('surat.template_tab.download') || 'Unduh'}</span>
                     </a>
                   </div>
                 </div>
@@ -883,7 +901,7 @@ export default function SuratPage() {
                 settingsSubTab === 'format' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
-              Format Nomor Surat
+              {t('surat.settings_tab.subtabs.format') || 'Format Nomor Surat'}
             </button>
             <button
               onClick={() => setSettingsSubTab('type')}
@@ -891,7 +909,7 @@ export default function SuratPage() {
                 settingsSubTab === 'type' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
-              Master Jenis Surat
+              {t('surat.settings_tab.subtabs.type') || 'Master Jenis Surat'}
             </button>
             <button
               onClick={() => setSettingsSubTab('dept')}
@@ -899,7 +917,7 @@ export default function SuratPage() {
                 settingsSubTab === 'dept' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
-              Master Departemen
+              {t('surat.settings_tab.subtabs.dept') || 'Master Departemen'}
             </button>
             <button
               onClick={() => setSettingsSubTab('inst')}
@@ -907,7 +925,7 @@ export default function SuratPage() {
                 settingsSubTab === 'inst' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
-              Master Institusi
+              {t('surat.settings_tab.subtabs.inst') || 'Master Institusi'}
             </button>
           </div>
 
@@ -915,16 +933,16 @@ export default function SuratPage() {
           {settingsSubTab === 'format' && (
             <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-6">
               <div>
-                <h3 className="text-base font-bold text-slate-800">Pengaturan Format Nomor Surat</h3>
+                <h3 className="text-base font-bold text-slate-800">{t('surat.settings_tab.format.title') || 'Pengaturan Format Nomor Surat'}</h3>
                 <p className="text-xs text-slate-500">
-                  Tentukan pola pola string untuk pembuatan nomor surat otomatis.
+                  {t('surat.settings_tab.format.subtitle') || 'Tentukan pola string untuk pembuatan nomor surat otomatis.'}
                 </p>
               </div>
 
               {/* Format input form */}
               <div className="space-y-4 max-w-2xl">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Pattern Format Surat</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t('surat.settings_tab.format.input_label') || 'Pattern Format Surat'}</label>
                   <input
                     type="text"
                     value={formatInput}
@@ -936,7 +954,7 @@ export default function SuratPage() {
 
                 {/* Live Preview */}
                 <div className="p-4 rounded-xl bg-slate-900 text-white space-y-1">
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Contoh Hasil Preview Live:</p>
+                  <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{t('surat.settings_tab.format.preview_label') || 'Contoh Hasil Preview Live:'}</p>
                   <p className="font-mono text-base font-bold text-emerald-400">{previewFormat}</p>
                 </div>
 
@@ -945,7 +963,7 @@ export default function SuratPage() {
                   disabled={saveFormatMutation.isPending}
                   className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-sm cursor-pointer"
                 >
-                  {saveFormatMutation.isPending ? 'Menyimpan...' : 'Simpan Format Nomor Surat'}
+                  {saveFormatMutation.isPending ? t('surat.settings_tab.format.saving') || 'Menyimpan...' : t('surat.settings_tab.format.save_btn') || 'Simpan Format Nomor Surat'}
                 </button>
               </div>
 
@@ -953,16 +971,16 @@ export default function SuratPage() {
               <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200/60 text-xs text-amber-900 space-y-2">
                 <div className="flex items-center gap-2 font-bold text-amber-800">
                   <Info className="w-4 h-4 text-amber-700" />
-                  <span>Petunjuk Variabel Tag Format:</span>
+                  <span>{t('surat.settings_tab.format.guide_title') || 'Petunjuk Variabel Tag Format:'}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
-                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{sequence}'}</code> : Nomor urut 3 digit (misal: 001)</div>
-                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{letter_type}'}</code> : Kode jenis surat (misal: SK)</div>
-                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{department}'}</code> : Kode departemen (misal: SEKR)</div>
-                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{institution}'}</code> : Kode institusi (misal: PUSDATIN)</div>
-                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{month}'}</code> : Bulan dalam Romawi (misal: VIII)</div>
-                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{month_num}'}</code> : Bulan angka 2 digit (misal: 08)</div>
-                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{year}'}</code> : Tahun 4 digit (misal: 2026)</div>
+                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{sequence}'}</code> : {t('surat.settings_tab.format.tag_sequence') || 'Nomor urut 3 digit (misal: 001)'}</div>
+                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{letter_type}'}</code> : {t('surat.settings_tab.format.tag_letter_type') || 'Kode jenis surat (misal: SK)'}</div>
+                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{department}'}</code> : {t('surat.settings_tab.format.tag_department') || 'Kode departemen (misal: SEKR)'}</div>
+                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{institution}'}</code> : {t('surat.settings_tab.format.tag_institution') || 'Kode institusi (misal: PUSDATIN)'}</div>
+                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{month}'}</code> : {t('surat.settings_tab.format.tag_month') || 'Bulan dalam Romawi (misal: VIII)'}</div>
+                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{month_num}'}</code> : {t('surat.settings_tab.format.tag_month_num') || 'Bulan angka 2 digit (misal: 08)'}</div>
+                  <div><code className="font-bold bg-amber-100 px-1 py-0.5 rounded text-amber-900">{'{year}'}</code> : {t('surat.settings_tab.format.tag_year') || 'Tahun 4 digit (misal: 2026)'}</div>
                 </div>
               </div>
             </div>
@@ -974,9 +992,9 @@ export default function SuratPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-bold text-slate-800">
-                    Master Data {settingsSubTab === 'dept' ? 'Departemen' : settingsSubTab === 'inst' ? 'Institusi' : 'Jenis Surat'}
+                    {t('surat.settings_tab.master.title', { target: settingsSubTab === 'dept' ? 'Departemen' : settingsSubTab === 'inst' ? 'Institusi' : 'Jenis Surat' }) || `Master Data ${settingsSubTab}`}
                   </h3>
-                  <p className="text-xs text-slate-500">Kelola kode dan nama untuk format penomoran surat.</p>
+                  <p className="text-xs text-slate-500">{t('surat.settings_tab.master.subtitle') || 'Kelola kode dan nama untuk format penomoran surat.'}</p>
                 </div>
                 <button
                   onClick={() => {
@@ -990,7 +1008,7 @@ export default function SuratPage() {
                   className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
-                  <span>Tambah Baru</span>
+                  <span>{t('surat.settings_tab.master.add_new') || 'Tambah Baru'}</span>
                 </button>
               </div>
 
@@ -998,9 +1016,9 @@ export default function SuratPage() {
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-                      <th className="py-3 px-4">Kode</th>
-                      <th className="py-3 px-4">Nama Lengkap</th>
-                      <th className="py-3 px-4 text-right">Aksi</th>
+                      <th className="py-3 px-4">{t('surat.settings_tab.master.code') || 'Kode'}</th>
+                      <th className="py-3 px-4">{t('surat.settings_tab.master.name') || 'Nama Lengkap'}</th>
+                      <th className="py-3 px-4 text-right">{t('surat.settings_tab.master.action') || 'Aksi'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1025,7 +1043,7 @@ export default function SuratPage() {
                           </button>
                           <button
                             onClick={() => {
-                              if (confirm(`Hapus ${item.code}?`)) {
+                              if (confirm(t('surat.settings_tab.master.delete_confirm', { code: item.code }) || `Hapus ${item.code}?`)) {
                                 deleteMasterMutation.mutate({ target: settingsSubTab as any, id: item.id });
                               }
                             }}
@@ -1054,8 +1072,8 @@ export default function SuratPage() {
                   <FileCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-800 text-base">Buat Nomor Surat Baru</h3>
-                  <p className="text-xs text-slate-500">Isi parameter untuk menerbitkan nomor surat</p>
+                  <h3 className="font-extrabold text-slate-800 text-base">{t('surat.modals.create_title') || 'Buat Nomor Surat Baru'}</h3>
+                  <p className="text-xs text-slate-500">{t('surat.modals.create_subtitle') || 'Isi parameter untuk menerbitkan nomor surat'}</p>
                 </div>
               </div>
               <button
@@ -1069,7 +1087,7 @@ export default function SuratPage() {
             <div className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Jenis Surat *</label>
+                  <label className="block font-bold text-slate-700 mb-1">{t('surat.modals.letter_type') || 'Jenis Surat *'}</label>
                   <select
                     value={genForm.letterTypeId}
                     onChange={(e) => setGenForm({ ...genForm, letterTypeId: e.target.value })}
@@ -1085,7 +1103,7 @@ export default function SuratPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Departemen *</label>
+                  <label className="block font-bold text-slate-700 mb-1">{t('surat.modals.department') || 'Departemen *'}</label>
                   <select
                     value={genForm.departmentId}
                     onChange={(e) => setGenForm({ ...genForm, departmentId: e.target.value })}
@@ -1101,7 +1119,7 @@ export default function SuratPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Institusi *</label>
+                  <label className="block font-bold text-slate-700 mb-1">{t('surat.modals.institution') || 'Institusi *'}</label>
                   <select
                     value={genForm.institutionId}
                     onChange={(e) => setGenForm({ ...genForm, institutionId: e.target.value })}
@@ -1118,7 +1136,7 @@ export default function SuratPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Perihal / Judul Surat *</label>
+                <label className="block font-bold text-slate-700 mb-1">{t('surat.modals.subject') || 'Perihal / Judul Surat *'}</label>
                 <input
                   type="text"
                   placeholder="Contoh: Permohonan Izin Penelitian / Surat Tugas Mengajar"
@@ -1129,7 +1147,7 @@ export default function SuratPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Ditujukan Kepada *</label>
+                <label className="block font-bold text-slate-700 mb-1">{t('surat.modals.addressed_to') || 'Ditujukan Kepada *'}</label>
                 <input
                   type="text"
                   placeholder="Contoh: Kepala Dinas Pendidikan / Ustadz Fulan"
@@ -1141,7 +1159,7 @@ export default function SuratPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Tanggal Surat *</label>
+                  <label className="block font-bold text-slate-700 mb-1">{t('surat.modals.letter_date') || 'Tanggal Surat *'}</label>
                   <input
                     type="date"
                     value={genForm.letterDate}
@@ -1151,7 +1169,7 @@ export default function SuratPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-700 mb-1">Lampiran File (Opsional)</label>
+                  <label className="block font-bold text-slate-700 mb-1">{t('surat.modals.file_attachment') || 'Lampiran File (Opsional)'}</label>
                   <input
                     type="file"
                     onChange={(e) => setGenFile(e.target.files?.[0] || null)}
@@ -1166,7 +1184,7 @@ export default function SuratPage() {
                 onClick={() => setIsGenerateModalOpen(false)}
                 className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs transition-colors cursor-pointer"
               >
-                Batal
+                {t('surat.modals.cancel') || 'Batal'}
               </button>
               <button
                 onClick={() => generateMutation.mutate()}
@@ -1180,7 +1198,7 @@ export default function SuratPage() {
                 }
                 className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-2"
               >
-                {generateMutation.isPending ? 'Generating...' : 'Terbitkan Nomor Surat'}
+                {generateMutation.isPending ? t('surat.modals.generating') || 'Generating...' : t('surat.modals.submit') || 'Terbitkan Nomor Surat'}
               </button>
             </div>
           </div>
@@ -1196,12 +1214,12 @@ export default function SuratPage() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-xl font-black text-slate-800">Nomor Surat Berhasil Diterbitkan!</h3>
-              <p className="text-xs text-slate-500">Nomor berikut telah dicatat ke dalam database sistem.</p>
+              <h3 className="text-xl font-black text-slate-800">{t('surat.modals.result_title') || 'Nomor Surat Berhasil Diterbitkan!'}</h3>
+              <p className="text-xs text-slate-500">{t('surat.modals.result_subtitle') || 'Nomor berikut telah dicatat ke dalam database sistem.'}</p>
             </div>
 
             <div className="p-4 bg-slate-900 rounded-2xl space-y-2">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Nomor Surat Resmi:</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('surat.modals.result_official') || 'Nomor Surat Resmi:'}</p>
               <p className="font-mono text-lg font-black text-emerald-400 break-all">
                 {generatedResult.generatedNumber}
               </p>
@@ -1211,21 +1229,21 @@ export default function SuratPage() {
                 className="mt-2 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer shadow-sm"
               >
                 <Copy className="w-3.5 h-3.5" />
-                <span>Salin Nomor Surat</span>
+                <span>{t('surat.modals.copy_btn') || 'Salin Nomor Surat'}</span>
               </button>
             </div>
 
             <div className="text-left text-xs bg-slate-50 p-4 rounded-xl space-y-1 text-slate-600">
-              <p><span className="font-semibold text-slate-700">Perihal:</span> {generatedResult.subject}</p>
-              <p><span className="font-semibold text-slate-700">Tujuan:</span> {generatedResult.addressedTo}</p>
-              <p><span className="font-semibold text-slate-700">Tanggal:</span> {generatedResult.letterDate}</p>
+              <p><span className="font-semibold text-slate-700">{t('surat.modals.subject') || 'Perihal:'}</span> {generatedResult.subject}</p>
+              <p><span className="font-semibold text-slate-700">{t('surat.modals.addressed_to') || 'Tujuan:'}</span> {generatedResult.addressedTo}</p>
+              <p><span className="font-semibold text-slate-700">{t('surat.modals.letter_date') || 'Tanggal:'}</span> {generatedResult.letterDate}</p>
             </div>
 
             <button
               onClick={() => setGeneratedResult(null)}
               className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs transition-colors cursor-pointer"
             >
-              Tutup & Selesai
+              {t('surat.modals.close') || 'Tutup & Selesai'}
             </button>
           </div>
         </div>
@@ -1241,8 +1259,8 @@ export default function SuratPage() {
                   <Upload className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-800 text-base">Unggah Template Surat Baru</h3>
-                  <p className="text-xs text-slate-500">Unggah berkas Word (.docx) atau PDF template</p>
+                  <h3 className="font-extrabold text-slate-800 text-base">{t('surat.modals.upload_tmpl_title') || 'Unggah Template Surat Baru'}</h3>
+                  <p className="text-xs text-slate-500">{t('surat.modals.upload_tmpl_subtitle') || 'Unggah berkas Word (.docx) atau PDF template'}</p>
                 </div>
               </div>
               <button
@@ -1255,7 +1273,7 @@ export default function SuratPage() {
 
             <div className="space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Judul Template *</label>
+                <label className="block font-bold text-slate-700 mb-1">{t('surat.modals.tmpl_title') || 'Judul Template *'}</label>
                 <input
                   type="text"
                   placeholder="Contoh: Template Surat Keputusan (SK) Guru"
@@ -1266,7 +1284,7 @@ export default function SuratPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Deskripsi</label>
+                <label className="block font-bold text-slate-700 mb-1">{t('surat.modals.tmpl_desc') || 'Deskripsi'}</label>
                 <textarea
                   placeholder="Keterangan singkat penggunaan template surat..."
                   value={tmplForm.description}
@@ -1276,7 +1294,7 @@ export default function SuratPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">File Berkas Template *</label>
+                <label className="block font-bold text-slate-700 mb-1">{t('surat.modals.tmpl_file') || 'File Berkas Template *'}</label>
                 <input
                   type="file"
                   onChange={(e) => setTmplFile(e.target.files?.[0] || null)}
@@ -1290,14 +1308,14 @@ export default function SuratPage() {
                 onClick={() => setIsTemplateModalOpen(false)}
                 className="px-4 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 font-semibold text-xs transition-colors cursor-pointer"
               >
-                Batal
+                {t('surat.modals.cancel') || 'Batal'}
               </button>
               <button
                 onClick={() => uploadTemplateMutation.mutate()}
                 disabled={uploadTemplateMutation.isPending || !tmplForm.title || !tmplFile}
                 className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-2"
               >
-                {uploadTemplateMutation.isPending ? 'Uploading...' : 'Unggah Template'}
+                {uploadTemplateMutation.isPending ? t('surat.modals.uploading') || 'Uploading...' : t('surat.modals.upload_btn') || 'Unggah Template'}
               </button>
             </div>
           </div>
@@ -1310,8 +1328,10 @@ export default function SuratPage() {
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-sm w-full p-6 space-y-5 relative">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-800 text-sm">
-                {masterModal.mode === 'create' ? 'Tambah Data' : 'Edit Data'}{' '}
-                {masterModal.target === 'dept' ? 'Departemen' : masterModal.target === 'inst' ? 'Institusi' : 'Jenis Surat'}
+                {masterModal.mode === 'create'
+                  ? t('surat.settings_tab.master.modal_create', { target: masterModal.target === 'dept' ? 'Departemen' : masterModal.target === 'inst' ? 'Institusi' : 'Jenis Surat' })
+                  : t('surat.settings_tab.master.modal_edit', { target: masterModal.target === 'dept' ? 'Departemen' : masterModal.target === 'inst' ? 'Institusi' : 'Jenis Surat' })
+                }
               </h3>
               <button
                 onClick={() => setMasterModal({ ...masterModal, open: false })}
@@ -1323,7 +1343,7 @@ export default function SuratPage() {
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Kode *</label>
+                <label className="block font-bold text-slate-700 mb-1">{t('surat.settings_tab.master.code') || 'Kode *'}</label>
                 <input
                   type="text"
                   placeholder="Contoh: SK / SEKR / PUSDATIN"
@@ -1334,7 +1354,7 @@ export default function SuratPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Nama Lengkap *</label>
+                <label className="block font-bold text-slate-700 mb-1">{t('surat.settings_tab.master.name') || 'Nama Lengkap *'}</label>
                 <input
                   type="text"
                   placeholder="Contoh: Surat Keputusan / Sekretariat"
@@ -1350,14 +1370,14 @@ export default function SuratPage() {
                 onClick={() => setMasterModal({ ...masterModal, open: false })}
                 className="px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold cursor-pointer"
               >
-                Batal
+                {t('common.cancel') || 'Batal'}
               </button>
               <button
                 onClick={() => saveMasterMutation.mutate()}
                 disabled={saveMasterMutation.isPending || !masterForm.code || !masterForm.name}
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm cursor-pointer"
               >
-                {saveMasterMutation.isPending ? 'Menyimpan...' : 'Simpan'}
+                {saveMasterMutation.isPending ? t('common.loading') || 'Menyimpan...' : t('common.save') || 'Simpan'}
               </button>
             </div>
           </div>

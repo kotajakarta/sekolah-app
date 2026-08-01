@@ -57,7 +57,8 @@
     "master_data": "Ana Veri",
     "users": "Kullanıcılar",
     "logout": "Çıkış Yap",
-    "settings": "Ayarlar"
+    "settings": "Ayarlar",
+    "surat": "Mektup Hizmeti"
   },
   "common": {
     "save": "Kaydet",
@@ -577,7 +578,146 @@
     "table_status": "Yoklama Durumu",
     "table_catatan": "Notlar",
     "catatan_ph": "Notlar...",
-    "empty_data": "Bu şubede öğretmen verisi yok.",
-    "empty_search": "Aramayla eşleşen öğretmen verisi yok."
+    "empty_data": "Bu şubede henüz öğretmen verisi yok.",
+    "empty_search": "Aramayla eşleşen öğretmen verisi bulunamadı."
+  },
+  "surat": {
+    "title": "Mektup ve Belge Yönetimi",
+    "subtitle": "Resmi mektup numaralandırma, gelen/giden arşivleme, belge şablonları ve kurum mektup format ayarlarını yönetin.",
+    "module_badge": "Yazışma ve Dokümantasyon Modülü",
+    "btn_create_new": "Yeni Mektup Numarası Oluştur",
+    "btn_upload_template": "Şablon Yükle",
+    "tabs": {
+      "dashboard": "Gösterge Paneli",
+      "kelola": "Mektupları Yönet",
+      "template": "Mektup Şablonları",
+      "pengaturan": "Ayarlar (Yönetici)"
+    },
+    "dashboard": {
+      "total_letters": "Düzenlenen Toplam Mektup",
+      "month_letters": "Bu Ayki Mektuplar",
+      "total_templates": "Belge Şablonları",
+      "total_types": "Mektup Kategorileri",
+      "generator_title": "Resmi Mektup Numarasına mı İhtiyacınız Var?",
+      "generator_desc": "Standart kurum formatlarına uygun olarak otomatik ve çakışma riski olmadan resmi mektup numarası oluşturmak için otomatik oluşturucuyu kullanın.",
+      "active_format": "Aktif Format:",
+      "recent_letters": "Son Düzenlenen Mektuplar",
+      "recent_letters_sub": "Sistemdeki son mektup numarası düzenlemeleri listesi",
+      "view_all": "Tümünü Gör",
+      "no_letters": "Henüz mektup numarası düzenlenmedi."
+    },
+    "kelola": {
+      "search_placeholder": "Mektup numarası, konu veya alıcı ara...",
+      "all_types": "Tüm Mektup Türleri",
+      "all_depts": "Tüm Departmanlar",
+      "all_insts": "Tüm Kurumlar",
+      "all_months": "Tüm Aylar",
+      "all_years": "Tüm Yıllar",
+      "month_name": "Ay",
+      "table": {
+        "letter_number": "Mektup Numarası",
+        "subject_target": "Konu ve Alıcı",
+        "category": "Kategori / Tür",
+        "dept_inst": "Departman ve Kurum",
+        "date_author": "Tarih ve Oluşturan",
+        "document": "Belge Dosyası",
+        "action": "İşlem",
+        "to": "Kime:",
+        "download": "İndir",
+        "no_file": "Dosya yok",
+        "delete_confirm": "Mektubu silmek istediğinizden emin misiniz: {{number}}?"
+      },
+      "empty_title": "Mektup bulunamadı",
+      "empty_desc": "Yukarıdaki arama kelimelerini veya filtreleri değiştirmeyi deneyin."
+    },
+    "template_tab": {
+      "title": "Resmi Mektup Şablonları",
+      "subtitle": "Kurumsal belge oluşturma için resmi Word / PDF şablon formatlarını indirin.",
+      "upload_new": "Yeni Şablon Yükle",
+      "empty_title": "Henüz Mektup Şablonu Yok",
+      "empty_desc": "Şablon dosyaları (Docx/PDF) eklemek için lütfen yukarıdaki \"Yeni Şablon Yükle\" butonuna tıklayın.",
+      "no_desc": "Açıklama yok",
+      "by": "Tarafından:",
+      "download": "İndir",
+      "delete_confirm": "\"{{title}}\" şablonunu silmek istediğinizden emin misiniz?"
+    },
+    "settings_tab": {
+      "subtabs": {
+        "format": "Mektup Numarası Formatı",
+        "type": "Ana Mektup Türleri",
+        "dept": "Ana Departmanlar",
+        "inst": "Ana Kurumlar"
+      },
+      "format": {
+        "title": "Mektup Numarası Format Ayarları",
+        "subtitle": "Otomatik mektup numarası oluşturma için metin deseni kurallarını belirleyin.",
+        "input_label": "Mektup Format Deseni",
+        "preview_label": "Canlı Önizleme Örneği:",
+        "save_btn": "Mektup Formatını Kaydet",
+        "saving": "Kaydediliyor...",
+        "guide_title": "Format Etiketi Değişken Kılavuzu:",
+        "tag_sequence": "3 haneli sıra numarası (örneğin: 001)",
+        "tag_letter_type": "Mektup türü kodu (örneğin: SK)",
+        "tag_department": "Departman kodu (örneğin: SEKR)",
+        "tag_institution": "Kurum kodu (örneğin: PUSDATIN)",
+        "tag_month": "Romen rakamıyla ay (örneğin: VIII)",
+        "tag_month_num": "2 haneli ay numarası (örneğin: 08)",
+        "tag_year": "4 haneli yıl (örneğin: 2026)"
+      },
+      "master": {
+        "title": "Ana Veri {{target}}",
+        "subtitle": "Mektup numaralandırma formatı için kodları ve isimleri yönetin.",
+        "add_new": "Yeni Ekle",
+        "code": "Kod",
+        "name": "Tam İsim",
+        "action": "İşlem",
+        "modal_create": "{{target}} Verisi Ekle",
+        "modal_edit": "{{target}} Verisini Düzenle",
+        "delete_confirm": "{{code}} silinsin mi?"
+      }
+    },
+    "modals": {
+      "create_title": "Yeni Mektup Numarası Oluştur",
+      "create_subtitle": "Mektup numarası düzenlemek için parametreleri doldurun",
+      "letter_type": "Mektup Türü *",
+      "department": "Departman *",
+      "institution": "Kurum *",
+      "subject": "Konu / Mektup Başlığı *",
+      "addressed_to": "Alıcı *",
+      "letter_date": "Mektup Tarihi *",
+      "file_attachment": "Dosya Ek (İsteğe Bağlı)",
+      "cancel": "İptal",
+      "submit": "Mektup Numarası Düzenle",
+      "generating": "Oluşturuluyor...",
+      "result_title": "Mektup Numarası Başarıyla Düzenlendi!",
+      "result_subtitle": "Aşağıdaki numara sistem veritabanına kaydedildi.",
+      "result_official": "Resmi Mektup Numarası:",
+      "copy_btn": "Mektup Numarasını Kopyala",
+      "close": "Kapat ve Bitir",
+      "upload_tmpl_title": "Yeni Mektup Şablonu Yükle",
+      "upload_tmpl_subtitle": "Word (.docx) veya PDF şablon dosyası yükleyin",
+      "tmpl_title": "Şablon Başlığı *",
+      "tmpl_desc": "Açıklama",
+      "tmpl_file": "Şablon Dosyası *",
+      "upload_btn": "Şablonu Yükle",
+      "uploading": "Yükleniyor..."
+    },
+    "toasts": {
+      "generated_success": "Mektup Numarası Başarıyla Oluşturuldu!",
+      "generated_error": "Mektup numarası oluşturulamadı.",
+      "upload_success": "Mektup Şablonu Başarıyla Yüklenedi!",
+      "upload_error": "Şablon yüklenemedi.",
+      "delete_letter_success": "Mektup başarıyla silindi.",
+      "delete_letter_error": "Mektup silinemedi.",
+      "delete_tmpl_success": "Şablon başarıyla silindi.",
+      "delete_tmpl_error": "Şablon silinemedi.",
+      "format_success": "Mektup Numarası Formatı Güncellendi!",
+      "format_error": "Format kaydedilemedi.",
+      "master_success": "Ana veri başarıyla kaydedildi.",
+      "master_error": "Ana veri kaydedilemedi.",
+      "master_delete_success": "Ana veri başarıyla silindi.",
+      "master_delete_error": "Ana veri silinemedi.",
+      "copied": "Mektup numarası panoya kopyalandı!"
+    }
   }
 }

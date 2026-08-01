@@ -6,11 +6,13 @@ import apiClient from '../../lib/apiClient';
 import { Loader2, Plus, Trash2, Save, Info, Download, Upload, FileSpreadsheet, FileDown, Eye, Pencil, ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import SilabusPreviewModal from './SilabusPreviewModal';
+import Pagination from '../../components/Pagination';
 
 interface SilabusSummaryItem {
   mataPelajaranId: string;
   name: string;
   kodeMapel: string;
+  tingkat: string;
   jumlahItem: number;
   hasSilabus: boolean;
 }
@@ -67,7 +69,13 @@ export default function KelolaSilabus() {
 
   const [selectedMapel, setSelectedMapel] = useState('');
   const [selectedTingkat, setSelectedTingkat] = useState('');
-  const [previewMapel, setPreviewMapel] = useState<{ id: string; name: string } | null>(null);
+  // Tingkat konkret yang sedang diedit — dipisah dari filter selectedTingkat karena
+  // filter bisa berisi 'ALL' (Semua Tingkat), sementara editor/preview selalu butuh
+  // satu tingkat pasti per baris yang diklik.
+  const [editingTingkat, setEditingTingkat] = useState('');
+  const [previewMapel, setPreviewMapel] = useState<{ id: string; name: string; tingkat: string } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: pengaturanAkademik } = useQuery({
@@ -100,10 +108,10 @@ export default function KelolaSilabus() {
   const isReady = isScopeReady && !!selectedMapel;
 
   const { data: fetchedSilabus, isLoading: loadingSilabus } = useQuery<SilabusItem[]>({
-    queryKey: ['silabus', selectedMapel, selectedTingkat, tahunAjaran, semester],
+    queryKey: ['silabus', selectedMapel, editingTingkat, tahunAjaran, semester],
     queryFn: async () => {
       const res = await apiClient.get('/pembelajaran/silabus', {
-        params: { mataPelajaranId: selectedMapel, tingkat: selectedTingkat, tahunAjaran, semester }
+        params: { mataPelajaranId: selectedMapel, tingkat: editingTingkat, tahunAjaran, semester }
       });
       return res.data;
     },
@@ -125,7 +133,7 @@ export default function KelolaSilabus() {
     mutationFn: async () => {
       return apiClient.post('/pembelajaran/silabus/bulk', {
         mataPelajaranId: selectedMapel,
-        tingkat: selectedTingkat,
+        tingkat: editingTingkat,
         tahunAjaran,
         semester,
         items: items.filter(i => i.bab.trim() && i.section.trim())
@@ -133,7 +141,7 @@ export default function KelolaSilabus() {
     },
     onSuccess: () => {
       showToast('success', 'Silabus berhasil disimpan');
-      queryClient.invalidateQueries({ queryKey: ['silabus', selectedMapel, selectedTingkat, tahunAjaran, semester] });
+      queryClient.invalidateQueries({ queryKey: ['silabus', selectedMapel, editingTingkat, tahunAjaran, semester] });
       queryClient.invalidateQueries({ queryKey: ['silabus-summary', selectedTingkat, tahunAjaran, semester] });
       // Menambah/menghapus section mengubah daftar materi & pembagi persentase di modul lain.
       queryClient.invalidateQueries({ queryKey: ['pelaksanaan-silabus'] });
@@ -193,8 +201,10 @@ export default function KelolaSilabus() {
     setItems(prev => prev.filter((_, i) => i !== idx));
   };
 
+  const paginatedSummary = (summaryList || []).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const mapelName = (summaryList || []).find(m => m.mataPelajaranId === selectedMapel)?.name || 'Mapel';
-  const exportFileName = () => `Silabus_${mapelName}_${selectedTingkat}_${tahunAjaran.replace('/', '-')}_${semester}.xlsx`.replace(/\s+/g, '_');
+  const exportFileName = () => `Silabus_${mapelName}_${editingTingkat}_${tahunAjaran.replace('/', '-')}_${semester}.xlsx`.replace(/\s+/g, '_');
 
   const handleDownloadTemplate = () => {
     const worksheet = XLSX.utils.json_to_sheet([
@@ -346,10 +356,11 @@ export default function KelolaSilabus() {
           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Tingkat</label>
           <select
             value={selectedTingkat}
-            onChange={e => { setSelectedTingkat(e.target.value); setSelectedMapel(''); }}
+            onChange={e => { setSelectedTingkat(e.target.value); setSelectedMapel(''); setCurrentPage(1); }}
             className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
           >
             <option value="">-- Pilih Tingkat --</option>
+            <option value="ALL">Semua Tingkat</option>
             {TINGKAT_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
@@ -357,7 +368,7 @@ export default function KelolaSilabus() {
           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Tahun Ajaran</label>
           <select
             value={tahunAjaran}
-            onChange={e => { setTahunAjaran(e.target.value); setSelectedMapel(''); }}
+            onChange={e => { setTahunAjaran(e.target.value); setSelectedMapel(''); setCurrentPage(1); }}
             className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
           >
             {TAHUN_AJARAN_OPTIONS.map(ta => <option key={ta} value={ta}>{ta}</option>)}
@@ -367,7 +378,7 @@ export default function KelolaSilabus() {
           <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Semester</label>
           <select
             value={semester}
-            onChange={e => { setSemester(e.target.value); setSelectedMapel(''); }}
+            onChange={e => { setSemester(e.target.value); setSelectedMapel(''); setCurrentPage(1); }}
             className="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
           >
             <option value="Ganjil">Ganjil</option>
@@ -393,65 +404,80 @@ export default function KelolaSilabus() {
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-100">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-12">No</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Mata Pelajaran</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-32">Kode</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-40">Status Silabus</th>
-                  <th className="px-3 py-2 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-24">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {summaryList.map((m, idx) => (
-                  <tr key={m.mataPelajaranId} className="hover:bg-gray-50/60 transition-colors">
-                    <td className="px-3 py-2.5 text-sm text-gray-400 font-medium">{idx + 1}</td>
-                    <td className="px-3 py-2.5 text-sm font-semibold text-gray-800">{m.name}</td>
-                    <td className="px-3 py-2.5 text-sm font-mono text-gray-500">{m.kodeMapel}</td>
-                    <td className="px-3 py-2.5">
-                      {m.hasSilabus ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
-                          <CheckCircle2 className="w-3 h-3" /> Sudah Ada ({m.jumlahItem})
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 text-[11px] font-bold">
-                          <XCircle className="w-3 h-3" /> Belum Ada
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewMapel({ id: m.mataPelajaranId, name: m.name })}
-                          disabled={!m.hasSilabus}
-                          title={m.hasSilabus ? 'Lihat silabus' : 'Belum ada silabus untuk dilihat'}
-                          className="p-1.5 text-gray-500 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedMapel(m.mataPelajaranId)}
-                          title="Isi / edit silabus"
-                          className="p-1.5 text-gray-500 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-100">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-12">No</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Mata Pelajaran</th>
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-32">Kode</th>
+                    {selectedTingkat === 'ALL' && (
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-28">Tingkat</th>
+                    )}
+                    <th className="px-3 py-2 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-40">Status Silabus</th>
+                    <th className="px-3 py-2 text-center text-[11px] font-semibold text-gray-500 uppercase tracking-wide w-24">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {paginatedSummary.map((m, idx) => (
+                    <tr key={`${m.mataPelajaranId}-${m.tingkat}`} className="hover:bg-gray-50/60 transition-colors">
+                      <td className="px-3 py-2.5 text-sm text-gray-400 font-medium">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
+                      <td className="px-3 py-2.5 text-sm font-semibold text-gray-800">{m.name}</td>
+                      <td className="px-3 py-2.5 text-sm font-mono text-gray-500">{m.kodeMapel}</td>
+                      {selectedTingkat === 'ALL' && (
+                        <td className="px-3 py-2.5 text-sm text-gray-600">{m.tingkat}</td>
+                      )}
+                      <td className="px-3 py-2.5">
+                        {m.hasSilabus ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
+                            <CheckCircle2 className="w-3 h-3" /> Sudah Ada ({m.jumlahItem})
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200 text-[11px] font-bold">
+                            <XCircle className="w-3 h-3" /> Belum Ada
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewMapel({ id: m.mataPelajaranId, name: m.name, tingkat: m.tingkat })}
+                            disabled={!m.hasSilabus}
+                            title={m.hasSilabus ? 'Lihat silabus' : 'Belum ada silabus untuk dilihat'}
+                            className="p-1.5 text-gray-500 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setSelectedMapel(m.mataPelajaranId); setEditingTingkat(m.tingkat); }}
+                            title="Isi / edit silabus"
+                            className="p-1.5 text-gray-500 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(summaryList.length / itemsPerPage)}
+              onPageChange={setCurrentPage}
+              totalItems={summaryList.length}
+              itemsPerPage={itemsPerPage}
+            />
           </div>
         )
       ) : (
         <div className="space-y-3">
           <button
             type="button"
-            onClick={() => setSelectedMapel('')}
+            onClick={() => { setSelectedMapel(''); setEditingTingkat(''); }}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-800 hover:text-blue-900 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Kembali ke Daftar Mapel
@@ -550,7 +576,7 @@ export default function KelolaSilabus() {
         <SilabusPreviewModal
           mataPelajaranId={previewMapel.id}
           mapelName={previewMapel.name}
-          tingkat={selectedTingkat}
+          tingkat={previewMapel.tingkat}
           tahunAjaran={tahunAjaran}
           semester={semester}
           onClose={() => setPreviewMapel(null)}

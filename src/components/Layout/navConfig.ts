@@ -5,7 +5,7 @@ import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import {
   Home, School, Building2, User, Users, UserCheck, FileText,
-  HeartHandshake, Activity, CheckCircle, BookOpen,
+  HeartHandshake, Activity, CheckCircle, BookOpen, Mail,
 } from 'lucide-react';
 
 export interface NavSubItem {
@@ -119,6 +119,7 @@ export function useNavEntries(): NavEntry[] {
       entries.push({ type: 'link', key: 'pembelajaran', label: t('sidebar.pembelajaran') || 'Kontrol Pembelajaran', icon: BookOpen, to: '/dashboard/pembelajaran' });
     }
 
+    entries.push({ type: 'link', key: 'surat', label: t('sidebar.surat') || 'Layanan Surat', icon: Mail, to: '/dashboard/surat' });
     entries.push({ type: 'group', key: 'layanan', label: t('sidebar.layanan') || 'Layanan dan Bantuan', icon: HeartHandshake, items: layananItems });
     entries.push({ type: 'group', key: 'bap', label: t('sidebar.bap') || 'Berita Acara (BAP)', icon: FileText, items: bapItems });
     entries.push({ type: 'group', key: 'monitoring', label: t('sidebar.monitoring') || 'Monitoring', icon: Activity, items: monitoringItems });

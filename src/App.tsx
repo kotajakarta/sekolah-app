@@ -66,6 +66,7 @@ import FormKegiatan from './pages/kegiatan/FormKegiatan';
 import ListKegiatanBap from './pages/kegiatan/ListKegiatanBap';
 import KelolaJenisKegiatan from './pages/kegiatan/KelolaJenisKegiatan';
 import KelolaTemplateKegiatan from './pages/kegiatan/KelolaTemplateKegiatan';
+import SuratPage from './pages/surat/SuratPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
@@ -476,6 +477,7 @@ export default function App() {
               <Route path="kegiatan" element={<ListKegiatanBap />} />
               <Route path="kegiatan/jenis" element={<KelolaJenisKegiatan />} />
               <Route path="kegiatan/templates" element={<KelolaTemplateKegiatan />} />
+              <Route path="surat" element={<SuratPage />} />
             </Route>
           </Routes>
         </Router>

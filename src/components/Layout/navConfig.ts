@@ -16,7 +16,7 @@ export interface NavSubItem {
 }
 
 export type NavEntry =
-  | { type: 'link'; key: string; label: string; icon: any; to: string }
+  | { type: 'link'; key: string; label: string; icon: any; to: string; highlight?: boolean }
   | { type: 'group'; key: string; label: string; icon: any; items: NavSubItem[] };
 
 // Sumber tunggal daftar menu navigasi (dipakai oleh Sidebar desktop & bottom nav mobile)
@@ -114,7 +114,7 @@ export function useNavEntries(): NavEntry[] {
 
     if (showRombonganBelajar) {
       entries.push({ type: 'link', key: 'rombel', label: t('sidebar.rombel') || 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas' });
-      entries.push({ type: 'link', key: 'pembelajaran', label: t('sidebar.pembelajaran') || 'Kontrol Pembelajaran', icon: BookOpen, to: '/dashboard/pembelajaran' });
+      entries.push({ type: 'link', key: 'pembelajaran', label: t('sidebar.pembelajaran') || 'Kontrol Pembelajaran', icon: BookOpen, to: '/dashboard/pembelajaran', highlight: true });
     }
 
     entries.push({ type: 'group', key: 'layanan', label: t('sidebar.layanan') || 'Layanan dan Bantuan', icon: HeartHandshake, items: layananItems });
@@ -122,7 +122,7 @@ export function useNavEntries(): NavEntry[] {
     entries.push({ type: 'group', key: 'monitoring', label: t('sidebar.monitoring') || 'Monitoring', icon: Activity, items: monitoringItems });
     entries.push({ type: 'group', key: 'konfirmasi', label: t('sidebar.konfirmasi') || 'Konfirmasi', icon: CheckCircle, items: konfirmasiItems });
     if (showRombonganBelajar) {
-      entries.push({ type: 'link', key: 'rapor', label: t('sidebar.rapor') || 'Rapor Muadalah', icon: FileText, to: '/dashboard/formal/rapor' });
+      entries.push({ type: 'link', key: 'rapor', label: t('sidebar.rapor') || 'Rapor Muadalah', icon: FileText, to: '/dashboard/formal/rapor', highlight: true });
     }
     entries.push({ type: 'link', key: 'surat', label: t('sidebar.surat') || 'Layanan Surat', icon: Mail, to: '/dashboard/surat' });
 

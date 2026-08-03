@@ -6,7 +6,7 @@ import { useNavEntries } from './navConfig';
 
 const SidebarContext = createContext({ isCollapsed: false });
 
-const NavLink = ({ to, icon: Icon, badge, children }: { to: string, icon: any, badge?: number, children: React.ReactNode }) => {
+const NavLink = ({ to, icon: Icon, badge, highlight, children }: { to: string, icon: any, badge?: number, highlight?: boolean, children: React.ReactNode }) => {
   const location = useLocation();
   const isActive = location.pathname === to;
   const { isCollapsed } = useContext(SidebarContext);
@@ -18,10 +18,12 @@ const NavLink = ({ to, icon: Icon, badge, children }: { to: string, icon: any, b
           to={to}
           className={`flex items-center justify-center p-2 mx-auto w-10 h-10 rounded-lg transition-all duration-200 group ${isActive
             ? 'bg-brand/10 text-brand font-semibold'
+            : highlight
+            ? 'bg-indigo-50 border border-indigo-200 text-indigo-700 font-semibold hover:bg-indigo-100'
             : 'text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900'
             }`}
         >
-          <Icon className={`w-[18px] h-[18px] transition-colors ${isActive ? 'text-brand' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive ? 2.5 : 2} />
+          <Icon className={`w-[18px] h-[18px] transition-colors ${isActive ? 'text-brand' : highlight ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive ? 2.5 : 2} />
         </Link>
       </li>
     );
@@ -32,12 +34,14 @@ const NavLink = ({ to, icon: Icon, badge, children }: { to: string, icon: any, b
       <Link
         to={to}
         className={`flex items-center justify-between px-3 py-2 text-[13px] rounded-lg transition-all duration-200 group ${isActive
-          ? 'bg-brand/10 text-brand font-semibold'
+          ? 'bg-brand/10 text-brand font-bold'
+          : highlight
+          ? 'bg-gradient-to-r from-amber-50/90 via-indigo-50 to-blue-50/90 border border-indigo-200/80 text-indigo-950 font-bold shadow-xs hover:from-amber-100 hover:to-indigo-100'
           : 'text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900'
           }`}
       >
         <div className="flex items-center">
-          <Icon className={`w-[18px] h-[18px] mr-3 transition-colors ${isActive ? 'text-brand' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive ? 2.5 : 2} />
+          <Icon className={`w-[18px] h-[18px] mr-3 transition-colors ${isActive ? 'text-brand' : highlight ? 'text-indigo-700' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive || highlight ? 2.5 : 2} />
           {children}
         </div>
         {badge !== undefined && badge > 0 && (
@@ -205,7 +209,7 @@ export const Sidebar: React.FC = () => {
           <ul className="space-y-1">
             {navEntries.map(entry => (
               entry.type === 'link' ? (
-                <NavLink key={entry.key} to={entry.to} icon={entry.icon}>{entry.label}</NavLink>
+                <NavLink key={entry.key} to={entry.to} icon={entry.icon} highlight={entry.highlight}>{entry.label}</NavLink>
               ) : (
                 <React.Fragment key={entry.key}>
                   <GroupHeader

@@ -13,6 +13,22 @@ export interface Wilayah {
   name: string;
 }
 
+export interface TargetKuota {
+  id?: string;
+  cabangId?: string;
+  tahunAjaran?: string;
+  targetHazirlik: number;
+  targetHafizlik: number;
+  targetIbtidai: number;
+  targetIhzari: number;
+  targetTingkat7: number;
+  targetTingkat8: number;
+  targetTingkat9: number;
+  targetTingkat10: number;
+  targetTingkat11: number;
+  targetTingkat12: number;
+}
+
 export interface Cabang {
   id: string;
   name: string;
@@ -27,9 +43,14 @@ export interface Cabang {
   alamatProvName?: string;
   statusTanah?: string;
   statusBangunan?: string;
+  fotoPlang?: string;
+  fotoGedung?: string;
+  fotoKelas?: string;
+  fotoMushala?: string;
   wilayah?: Wilayah;
   pimpinanCabang?: string;
   pjMuadalah?: string;
+  targetKuota?: TargetKuota;
   personel?: {
     pendidikLK: number;
     pendidikPR: number;
@@ -98,6 +119,32 @@ export const useGetCabang = () => {
     queryFn: async () => {
       const response = await apiClient.get<Cabang[]>('/master-data/cabang');
       return response.data;
+    },
+  });
+};
+
+export const useUpdateTargetKuota = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ cabangId, data }: { cabangId: string; data: Partial<TargetKuota> }) => {
+      const response = await apiClient.put(`/master-data/cabang/${cabangId}/target-kuota`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['master-data', 'cabang'] });
+    },
+  });
+};
+
+export const useImportTargetKuota = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: any[]) => {
+      const response = await apiClient.post('/master-data/cabang/import-target-kuota', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['master-data', 'cabang'] });
     },
   });
 };

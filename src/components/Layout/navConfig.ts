@@ -114,8 +114,6 @@ export function useNavEntries(): NavEntry[] {
 
     if (showRombonganBelajar) {
       entries.push({ type: 'link', key: 'rombel', label: t('sidebar.rombel') || 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas' });
-      entries.push({ type: 'link', key: 'rapor', label: t('sidebar.rapor') || 'Rapor Muadalah', icon: FileText, to: '/dashboard/formal/rapor' });
-
       entries.push({ type: 'link', key: 'pembelajaran', label: t('sidebar.pembelajaran') || 'Kontrol Pembelajaran', icon: BookOpen, to: '/dashboard/pembelajaran' });
     }
 
@@ -123,6 +121,9 @@ export function useNavEntries(): NavEntry[] {
     entries.push({ type: 'group', key: 'bap', label: t('sidebar.bap') || 'Berita Acara (BAP)', icon: FileText, items: bapItems });
     entries.push({ type: 'group', key: 'monitoring', label: t('sidebar.monitoring') || 'Monitoring', icon: Activity, items: monitoringItems });
     entries.push({ type: 'group', key: 'konfirmasi', label: t('sidebar.konfirmasi') || 'Konfirmasi', icon: CheckCircle, items: konfirmasiItems });
+    if (showRombonganBelajar) {
+      entries.push({ type: 'link', key: 'rapor', label: t('sidebar.rapor') || 'Rapor Muadalah', icon: FileText, to: '/dashboard/formal/rapor' });
+    }
     entries.push({ type: 'link', key: 'surat', label: t('sidebar.surat') || 'Layanan Surat', icon: Mail, to: '/dashboard/surat' });
 
     return entries;

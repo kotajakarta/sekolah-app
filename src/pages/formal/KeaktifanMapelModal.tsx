@@ -32,6 +32,7 @@ export default function KeaktifanMapelModal({ mapel, onClose }: KeaktifanMapelMo
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mapel-grup'] });
+      queryClient.invalidateQueries({ queryKey: ['grup-daimi'] });
       queryClient.invalidateQueries({ queryKey: ['mapel'] });
     }
   });

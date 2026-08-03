@@ -4,9 +4,9 @@ import * as XLSX from 'xlsx';
 import {
   Building2, Plus, Edit2, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown,
   Users, GraduationCap, Home, Send, FileText, X, Filter, Sparkles, MapPin, Download,
-  UserCheck, Shield, Award, Target, FileSpreadsheet, Upload
+  UserCheck, Shield, Award, Target, FileSpreadsheet, Upload, RotateCcw, ChevronDown, ChevronUp
 } from 'lucide-react';
-import { useGetCabang, Cabang } from '../../features/core_data/hooks/useMasterData';
+import { useGetCabang, useGetWilayah, Cabang } from '../../features/core_data/hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
 import CabangModal from '../../features/core_data/components/CabangModal';
@@ -33,6 +33,7 @@ export default function DataCabang() {
   const itemsPerPage = 10;
 
   const { data: cabang, isLoading, isError } = useGetCabang();
+  const { data: wilayahList = [] } = useGetWilayah();
   const { t } = useTranslation();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -52,10 +53,18 @@ export default function DataCabang() {
   const [cabangToDelete, setCabangToDelete] = useState<string | null>(null);
   const [isConfirmDeleteAllOpen, setIsConfirmDeleteAllOpen] = useState(false);
 
+  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [filterWilayah, setFilterWilayah] = useState('ALL');
   const [sortField, setSortField] = useState<'name' | 'wilayah'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Advanced Filter States
+  const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState(false);
+  const [filterStatusTanah, setFilterStatusTanah] = useState('ALL');
+  const [filterStatusBangunan, setFilterStatusBangunan] = useState('ALL');
+  const [filterKeterisian, setFilterKeterisian] = useState('ALL'); // ALL | HIGH (>=90%) | MED (50-89%) | LOW (<50%)
+  const [filterPersonel, setFilterPersonel] = useState('ALL'); // ALL | HAS_STAFF | NO_STAFF
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -98,6 +107,25 @@ export default function DataCabang() {
     };
   }, [cabang]);
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filterWilayah !== 'ALL') count++;
+    if (filterStatusTanah !== 'ALL') count++;
+    if (filterStatusBangunan !== 'ALL') count++;
+    if (filterKeterisian !== 'ALL') count++;
+    if (filterPersonel !== 'ALL') count++;
+    return count;
+  }, [filterWilayah, filterStatusTanah, filterStatusBangunan, filterKeterisian, filterPersonel]);
+
+  const resetAdvancedFilters = () => {
+    setFilterWilayah('ALL');
+    setFilterStatusTanah('ALL');
+    setFilterStatusBangunan('ALL');
+    setFilterKeterisian('ALL');
+    setFilterPersonel('ALL');
+    setSearchQuery('');
+  };
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       return apiClient.delete(`/master-data/cabang/${id}`);
@@ -137,17 +165,13 @@ export default function DataCabang() {
     }
   };
 
-  const confirmDeleteAll = () => {
-    deleteAllMutation.mutate();
-    setIsConfirmDeleteAllOpen(false);
-  };
-
   // Filter & Sort
   const filteredAndSortedCabang = useMemo(() => {
     if (!cabang || !Array.isArray(cabang)) return [];
 
     let result = [...cabang];
 
+    // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(c => 
@@ -158,10 +182,44 @@ export default function DataCabang() {
       );
     }
 
+    // Filter Wilayah
     if (filterWilayah !== 'ALL') {
       result = result.filter(c => c.wilayah?.id === filterWilayah);
     }
 
+    // Filter Status Tanah
+    if (filterStatusTanah !== 'ALL') {
+      result = result.filter(c => (c.statusTanah || '').toLowerCase().includes(filterStatusTanah.toLowerCase()));
+    }
+
+    // Filter Status Bangunan
+    if (filterStatusBangunan !== 'ALL') {
+      result = result.filter(c => (c.statusBangunan || '').toLowerCase().includes(filterStatusBangunan.toLowerCase()));
+    }
+
+    // Filter Personel
+    if (filterPersonel !== 'ALL') {
+      result = result.filter(c => {
+        const totalP = (c.personel?.totalLK || 0) + (c.personel?.totalPR || 0);
+        return filterPersonel === 'HAS_STAFF' ? totalP > 0 : totalP === 0;
+      });
+    }
+
+    // Filter Level Keterisian Kuota
+    if (filterKeterisian !== 'ALL') {
+      result = result.filter(c => {
+        const realisasi = c.siswaStats?.totalSiswa || c._count?.students || 0;
+        const target = c.kapasitasSantri || 0;
+        if (!target || target === 0) return filterKeterisian === 'LOW';
+        const pct = (realisasi / target) * 100;
+        if (filterKeterisian === 'HIGH') return pct >= 90;
+        if (filterKeterisian === 'MED') return pct >= 50 && pct < 90;
+        if (filterKeterisian === 'LOW') return pct < 50;
+        return true;
+      });
+    }
+
+    // Sort
     result.sort((a, b) => {
       let aVal = '', bVal = '';
       if (sortField === 'name') {
@@ -178,11 +236,11 @@ export default function DataCabang() {
     });
 
     return result;
-  }, [cabang, searchQuery, filterWilayah, sortField, sortDirection]);
+  }, [cabang, searchQuery, filterWilayah, filterStatusTanah, filterStatusBangunan, filterKeterisian, filterPersonel, sortField, sortDirection]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterWilayah, sortField, sortDirection, activeSubTab]);
+  }, [searchQuery, filterWilayah, filterStatusTanah, filterStatusBangunan, filterKeterisian, filterPersonel, sortField, sortDirection, activeSubTab]);
 
   const toggleSort = (field: 'name' | 'wilayah') => {
     if (sortField === field) {
@@ -438,23 +496,141 @@ export default function DataCabang() {
               </div>
             </div>
 
-            {/* Filter Search */}
+            {/* ── FILTER SEARCH & ADVANCED FILTER TOGGLE ── */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="relative w-full sm:w-72">
-                <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari cabang..."
-                  className="w-full pl-9 pr-3 py-1.5 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                />
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative w-full sm:w-72">
+                  <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari nama cabang atau wilayah..."
+                    className="w-full pl-9 pr-3 py-1.5 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                  />
+                </div>
+
+                {/* Filter Lanjutan Button */}
+                <button
+                  onClick={() => setIsAdvancedFilterOpen((v) => !v)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition-all cursor-pointer shrink-0 ${
+                    activeFilterCount > 0
+                      ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <Filter className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Filter Lanjutan</span>
+                  {activeFilterCount > 0 && (
+                    <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] font-extrabold flex items-center justify-center">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                  {isAdvancedFilterOpen ? <ChevronUp className="w-3.5 h-3.5 ml-0.5" /> : <ChevronDown className="w-3.5 h-3.5 ml-0.5" />}
+                </button>
               </div>
 
               <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                <span>Total: <strong className="text-slate-800">{filteredAndSortedCabang.length} cabang</strong></span>
+                <span>Menampilkan <strong className="text-slate-800">{filteredAndSortedCabang.length} dari {cabang?.length || 0} cabang</strong></span>
               </div>
             </div>
+
+            {/* ── ADVANCED FILTER COLLAPSIBLE PANEL ── */}
+            {isAdvancedFilterOpen && (
+              <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200/80 space-y-3 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Filter className="w-3.5 h-3.5 text-indigo-600" /> Parameter Filter Lanjutan
+                  </span>
+
+                  {activeFilterCount > 0 && (
+                    <button
+                      onClick={resetAdvancedFilters}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Reset Filter
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                  {/* Filter Wilayah */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Wilayah</label>
+                    <select
+                      value={filterWilayah}
+                      onChange={(e) => setFilterWilayah(e.target.value)}
+                      className="w-full px-3 py-1.5 font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="ALL">Semua Wilayah</option>
+                      {wilayahList.map((w) => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Filter Status Tanah */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Status Lahan/Tanah</label>
+                    <select
+                      value={filterStatusTanah}
+                      onChange={(e) => setFilterStatusTanah(e.target.value)}
+                      className="w-full px-3 py-1.5 font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="ALL">Semua Status Tanah</option>
+                      <option value="SHM">Milik Sendiri / SHM</option>
+                      <option value="Wakaf">Wakaf</option>
+                      <option value="Sewa">Sewa / Kontrak</option>
+                      <option value="Hibah">Hibah</option>
+                    </select>
+                  </div>
+
+                  {/* Filter Status Bangunan */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Status Bangunan</label>
+                    <select
+                      value={filterStatusBangunan}
+                      onChange={(e) => setFilterStatusBangunan(e.target.value)}
+                      className="w-full px-3 py-1.5 font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="ALL">Semua Status Bangunan</option>
+                      <option value="Milik Sendiri">Milik Sendiri</option>
+                      <option value="Sewa">Sewa / Pinjam</option>
+                      <option value="Menumpang">Menumpang / Temporary</option>
+                    </select>
+                  </div>
+
+                  {/* Filter Keterisian Kuota */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tingkat Keterisian Kuota</label>
+                    <select
+                      value={filterKeterisian}
+                      onChange={(e) => setFilterKeterisian(e.target.value)}
+                      className="w-full px-3 py-1.5 font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="ALL">Semua Level Kuota</option>
+                      <option value="HIGH">🟢 Hampir Full / Full (≥90%)</option>
+                      <option value="MED">🟡 Terisi Sedang (50 - 89%)</option>
+                      <option value="LOW">🔴 Di Bawah Target (&lt;50%)</option>
+                    </select>
+                  </div>
+
+                  {/* Filter Personel */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Ketersediaan Personel</label>
+                    <select
+                      value={filterPersonel}
+                      onChange={(e) => setFilterPersonel(e.target.value)}
+                      className="w-full px-3 py-1.5 font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="ALL">Semua Status Personel</option>
+                      <option value="HAS_STAFF">Sudah Ada Personel</option>
+                      <option value="NO_STAFF">Belum Ada Personel</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* ── TABLE CONTAINER (Dynamic per SubTab) ── */}
             <div className="overflow-x-auto">
@@ -517,7 +693,7 @@ export default function DataCabang() {
                       <th className="py-3 px-3 text-center">Tingkat 8</th>
                       <th className="py-3 px-3 text-center">Tingkat 9</th>
                       <th className="py-3 px-3 text-center">Tingkat 10 - 12</th>
-                      <th className="py-3 px-3 text-center">Total Siswa</th>
+                      <th className="py-3 px-3 text-center">Total Siswa / Kapasitas</th>
                       <th className="py-3 px-3 text-right">Aksi</th>
                     </tr>
                   )}
@@ -533,7 +709,7 @@ export default function DataCabang() {
                   ) : filteredAndSortedCabang.length === 0 ? (
                     <tr>
                       <td colSpan={12} className="py-8 text-center text-slate-400 font-medium">
-                        Tidak ada data cabang yang cocok dengan filter pencarian.
+                        Tidak ada data cabang yang cocok dengan parameter filter pencarian.
                       </td>
                     </tr>
                   ) : (

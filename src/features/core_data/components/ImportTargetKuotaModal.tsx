@@ -19,6 +19,7 @@ export default function ImportTargetKuotaModal({ cabangList, onClose }: Props) {
     const templateData = cabangList.map((c) => ({
       'Nama Cabang': c.nameGlodemy || c.name,
       'Wilayah': c.wilayah?.name || '-',
+      'Kapasitas Cabang': c.kapasitasSantri || 0,
       'Target Hazirlik': c.targetKuota?.targetHazirlik || 0,
       'Target Hafizlik': c.targetKuota?.targetHafizlik || 0,
       'Target Ibtidai': c.targetKuota?.targetIbtidai || 0,

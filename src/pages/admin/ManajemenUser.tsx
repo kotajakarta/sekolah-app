@@ -111,7 +111,17 @@ export default function ManajemenUser() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.scope}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.divisi}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.wilayah?.name || '-'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.cabang?.name || '-'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                      {item.cabang?.name || '-'}
+                      {item.scope === 'WALI' && (
+                        <span
+                          className="block text-xs text-slate-500"
+                          title={(item.waliSantri ?? []).map((w: any) => w.student?.biodata?.fullName).join(', ')}
+                        >
+                          {item.waliSantri?.length ?? 0} anak
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button onClick={() => handleEdit(item)} className="text-indigo-600 hover:text-blue-900 mr-4">
                         <Edit2 className="w-4 h-4" />

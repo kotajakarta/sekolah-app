@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Select from 'react-select';
 import apiClient from '../../lib/apiClient';
+import { useGetStudents } from '../../features/core_data/hooks/useGetStudents';
 
 interface UserModalProps {
   isOpen: boolean;
@@ -20,7 +22,11 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
     divisi: 'ALL',
     wilayahId: '',
     cabangId: '',
+    studentIds: [] as string[],
+    hubungan: '',
   });
+
+  const { data: studentsData } = useGetStudents();
 
   const { data: wilayahData } = useQuery({
     queryKey: ['master-data', 'wilayah'],
@@ -48,6 +54,12 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
         divisi: userToEdit.divisi || 'ALL',
         wilayahId: userToEdit.wilayahId || '',
         cabangId: userToEdit.cabangId || '',
+        studentIds: userToEdit.scope === 'WALI'
+          ? (userToEdit.waliSantri?.map((w: any) => w.studentId) ?? [])
+          : [],
+        hubungan: userToEdit.scope === 'WALI'
+          ? (userToEdit.waliSantri?.[0]?.hubungan ?? '')
+          : '',
       });
     } else {
       setFormData({
@@ -58,6 +70,8 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
         divisi: 'ALL',
         wilayahId: '',
         cabangId: '',
+        studentIds: [],
+        hubungan: '',
       });
     }
   }, [userToEdit]);
@@ -133,27 +147,92 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
                 required
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                 value={formData.scope}
-                onChange={(e) => setFormData({ ...formData, scope: e.target.value, wilayahId: '', cabangId: '' })}
+                onChange={(e) => {
+                  const newScope = e.target.value;
+                  setFormData({
+                    ...formData,
+                    scope: newScope,
+                    wilayahId: '',
+                    cabangId: '',
+                    ...(newScope !== 'WALI' ? { studentIds: [], hubungan: '' } : {}),
+                  });
+                }}
               >
                 <option value="GLOBAL">GLOBAL</option>
                 <option value="WILAYAH">WILAYAH</option>
                 <option value="CABANG">CABANG</option>
+                <option value="WALI">WALI</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Divisi *</label>
-              <select
-                required
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-                value={formData.divisi}
-                onChange={(e) => setFormData({ ...formData, divisi: e.target.value })}
-              >
-                <option value="ALL">ALL</option>
-                <option value="FORMAL">FORMAL</option>
-                <option value="PESANTREN">PESANTREN</option>
-              </select>
-            </div>
+            {formData.scope !== 'WALI' && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Divisi *</label>
+                <select
+                  required
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  value={formData.divisi}
+                  onChange={(e) => setFormData({ ...formData, divisi: e.target.value })}
+                >
+                  <option value="ALL">ALL</option>
+                  <option value="FORMAL">FORMAL</option>
+                  <option value="PESANTREN">PESANTREN</option>
+                </select>
+              </div>
+            )}
           </div>
+
+          {formData.scope === 'WALI' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Santri Terhubung</label>
+                <Select
+                  isMulti
+                  options={(studentsData ?? []).map((student) => ({
+                    value: student.id,
+                    label: `${student.biodata?.fullName ?? 'Tanpa Nama'} — ${student.cabang?.name ?? student.wilayah?.name ?? ''}`.trim(),
+                  }))}
+                  value={(studentsData ?? [])
+                    .filter((student) => formData.studentIds.includes(student.id))
+                    .map((student) => ({
+                      value: student.id,
+                      label: `${student.biodata?.fullName ?? 'Tanpa Nama'} — ${student.cabang?.name ?? student.wilayah?.name ?? ''}`.trim(),
+                    }))}
+                  onChange={(selected) =>
+                    setFormData({ ...formData, studentIds: (selected ?? []).map((opt) => opt.value) })
+                  }
+                  placeholder="Pilih santri..."
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      borderColor: '#e2e8f0',
+                      borderRadius: '0.5rem',
+                      backgroundColor: '#f8fafc',
+                      boxShadow: 'none',
+                      '&:hover': { borderColor: '#6366f1' },
+                      minHeight: '42px',
+                      fontSize: '14px',
+                    }),
+                    option: (base, state) => ({
+                      ...base,
+                      backgroundColor: state.isSelected ? '#6366f1' : state.isFocused ? '#eef2ff' : 'white',
+                      color: state.isSelected ? 'white' : '#1e293b',
+                      fontSize: '13px',
+                    }),
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Hubungan dengan Santri</label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                  value={formData.hubungan}
+                  onChange={(e) => setFormData({ ...formData, hubungan: e.target.value })}
+                  placeholder="Ayah / Ibu / Wali"
+                />
+              </div>
+            </div>
+          )}
 
           {(formData.scope === 'WILAYAH' || formData.scope === 'CABANG') && (
             <div>

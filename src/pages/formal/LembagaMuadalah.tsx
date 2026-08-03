@@ -552,8 +552,6 @@ export default function LembagaMuadalahPage() {
                   <tr>
                     <th className="py-3 px-3 text-center w-10">No</th>
                     <th className="py-3 px-3">Nama Lembaga</th>
-                    <th className="py-3 px-3 text-center">NPSN</th>
-                    <th className="py-3 px-3 text-center">NSPP Pesantren</th>
                     <th className="py-3 px-3">Pesantren Induk</th>
                     <th className="py-3 px-3 text-center">Jenjang</th>
                     <th className="py-3 px-3 text-center">Tahun Berdiri</th>
@@ -652,14 +650,22 @@ export default function LembagaMuadalahPage() {
                             {item.namaLain && (
                               <p className="text-[11px] font-normal text-slate-400">({item.namaLain})</p>
                             )}
+                            {activeSubTab === 'identitas' && (
+                              <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                                NPSN: <span className="font-bold text-slate-700">{item.npsn || '-'}</span>
+                              </p>
+                            )}
                           </td>
 
                           {/* ── SUB-TAB 1: IDENTITAS BODY ── */}
                           {activeSubTab === 'identitas' && (
                             <>
-                              <td className="py-3.5 px-3 text-center font-semibold text-slate-700">{item.npsn || '-'}</td>
-                              <td className="py-3.5 px-3 text-center font-semibold text-slate-700">{item.nspp || '-'}</td>
-                              <td className="py-3.5 px-3 text-slate-700 font-medium">{item.pesantrenInduk || '-'}</td>
+                              <td className="py-3.5 px-3 text-slate-700 font-medium">
+                                <p className="font-semibold text-slate-800">{item.pesantrenInduk || '-'}</p>
+                                <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                                  NSPP: <span className="font-bold text-slate-700">{item.nspp || '-'}</span>
+                                </p>
+                              </td>
                               <td className="py-3.5 px-3 text-center">
                                 <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
                                   {item.jenjang || 'WUSTHA'}

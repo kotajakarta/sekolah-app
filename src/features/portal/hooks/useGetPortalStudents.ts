@@ -15,6 +15,7 @@ export interface PortalStudentKelas {
 export interface PortalStudent {
   id: string;
   isActive?: boolean;
+  statusHafidz?: string | null;
   biodata?: PortalStudentBiodata | null;
   cabang?: { id: string; name: string } | null;
   wilayah?: { id: string; name: string } | null;

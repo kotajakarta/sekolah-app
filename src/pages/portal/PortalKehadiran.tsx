@@ -3,8 +3,10 @@ import { usePortalStudent } from '../../features/portal/context/PortalStudentCon
 import { useGetKehadiran, KehadiranStatus } from '../../features/portal/hooks/useGetKehadiran';
 import { CheckCircle2, XCircle, Clock, Loader2, HeartPulse } from 'lucide-react';
 
+// Uses local-timezone date parts (not toISOString, which converts to UTC first
+// and can shift the calendar day for timezones ahead of UTC, e.g. Asia/Jakarta).
 function toDateInput(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return d.toLocaleDateString('sv-SE');
 }
 
 function firstDayOfMonth() {
@@ -24,7 +26,7 @@ const STATUS_STYLES: Record<KehadiranStatus, { label: string; className: string;
 };
 
 export default function PortalKehadiran() {
-  const { selectedStudentId, isLoading } = usePortalStudent();
+  const { selectedStudentId, isLoading, isError } = usePortalStudent();
   const [startDate, setStartDate] = useState(firstDayOfMonth());
   const [endDate, setEndDate] = useState(todayStr());
 
@@ -34,6 +36,14 @@ export default function PortalKehadiran() {
     return (
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 text-sm text-slate-500 flex items-center gap-2">
         <Loader2 className="w-4 h-4 animate-spin" /> Memuat...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 text-sm text-rose-600">
+        Gagal memuat data, coba lagi.
       </div>
     );
   }

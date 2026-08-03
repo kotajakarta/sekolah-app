@@ -235,6 +235,7 @@ export default function UsersWilayah() {
                 <option value="GLOBAL">GLOBAL (Admin)</option>
                 <option value="WILAYAH">WILAYAH</option>
                 <option value="CABANG">CABANG</option>
+                <option value="WALI">WALI</option>
               </select>
             </div>
 
@@ -337,13 +338,30 @@ export default function UsersWilayah() {
                         <span className={`px-2 py-0.5 rounded text-xs uppercase font-bold tracking-wider ${
                           item.scope === 'GLOBAL' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
                           item.scope === 'WILAYAH' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                          item.scope === 'WALI' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
                           'bg-emerald-50 text-emerald-700 border border-emerald-100'
                         }`}>
                           {item.scope}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.divisi}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.wilayah?.name || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                        {item.scope === 'WALI' ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100"
+                            title={
+                              (item.waliSantri ?? [])
+                                .map((w: any) => w.student?.biodata?.fullName)
+                                .filter(Boolean)
+                                .join(', ') || 'Belum ada santri terhubung'
+                            }
+                          >
+                            {item.waliSantri?.length ?? 0} santri
+                          </span>
+                        ) : (
+                          item.wilayah?.name || '-'
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.cabang?.name || '-'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button onClick={() => handleEdit(item)} className="text-indigo-600 hover:text-blue-900 mr-4">

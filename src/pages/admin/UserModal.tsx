@@ -11,6 +11,71 @@ interface UserModalProps {
   userToEdit?: any;
 }
 
+// Only mounted when formData.scope === 'WALI', so the (unpaginated, deep-include)
+// GET /students request this hook fires only happens when the WALI branch is
+// actually visible — not on every UserModal mount.
+interface WaliStudentSelectProps {
+  studentIds: string[];
+  hubungan: string;
+  onChangeStudentIds: (ids: string[]) => void;
+  onChangeHubungan: (value: string) => void;
+}
+
+function WaliStudentSelect({ studentIds, hubungan, onChangeStudentIds, onChangeHubungan }: WaliStudentSelectProps) {
+  const { data: studentsData } = useGetStudents();
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Santri Terhubung</label>
+        <Select
+          isMulti
+          options={(studentsData ?? []).map((student) => ({
+            value: student.id,
+            label: `${student.biodata?.fullName ?? 'Tanpa Nama'} — ${student.cabang?.name ?? student.wilayah?.name ?? ''}`.trim(),
+          }))}
+          value={(studentsData ?? [])
+            .filter((student) => studentIds.includes(student.id))
+            .map((student) => ({
+              value: student.id,
+              label: `${student.biodata?.fullName ?? 'Tanpa Nama'} — ${student.cabang?.name ?? student.wilayah?.name ?? ''}`.trim(),
+            }))}
+          onChange={(selected) => onChangeStudentIds((selected ?? []).map((opt) => opt.value))}
+          placeholder="Pilih santri..."
+          styles={{
+            control: (base) => ({
+              ...base,
+              borderColor: '#e2e8f0',
+              borderRadius: '0.5rem',
+              backgroundColor: '#f8fafc',
+              boxShadow: 'none',
+              '&:hover': { borderColor: '#6366f1' },
+              minHeight: '42px',
+              fontSize: '14px',
+            }),
+            option: (base, state) => ({
+              ...base,
+              backgroundColor: state.isSelected ? '#6366f1' : state.isFocused ? '#eef2ff' : 'white',
+              color: state.isSelected ? 'white' : '#1e293b',
+              fontSize: '13px',
+            }),
+          }}
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">Hubungan dengan Santri</label>
+        <input
+          type="text"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+          value={hubungan}
+          onChange={(e) => onChangeHubungan(e.target.value)}
+          placeholder="Ayah / Ibu / Wali"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
   const queryClient = useQueryClient();
 
@@ -25,8 +90,6 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
     studentIds: [] as string[],
     hubungan: '',
   });
-
-  const { data: studentsData } = useGetStudents();
 
   const { data: wilayahData } = useQuery({
     queryKey: ['master-data', 'wilayah'],
@@ -182,56 +245,12 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
           </div>
 
           {formData.scope === 'WALI' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Santri Terhubung</label>
-                <Select
-                  isMulti
-                  options={(studentsData ?? []).map((student) => ({
-                    value: student.id,
-                    label: `${student.biodata?.fullName ?? 'Tanpa Nama'} — ${student.cabang?.name ?? student.wilayah?.name ?? ''}`.trim(),
-                  }))}
-                  value={(studentsData ?? [])
-                    .filter((student) => formData.studentIds.includes(student.id))
-                    .map((student) => ({
-                      value: student.id,
-                      label: `${student.biodata?.fullName ?? 'Tanpa Nama'} — ${student.cabang?.name ?? student.wilayah?.name ?? ''}`.trim(),
-                    }))}
-                  onChange={(selected) =>
-                    setFormData({ ...formData, studentIds: (selected ?? []).map((opt) => opt.value) })
-                  }
-                  placeholder="Pilih santri..."
-                  styles={{
-                    control: (base) => ({
-                      ...base,
-                      borderColor: '#e2e8f0',
-                      borderRadius: '0.5rem',
-                      backgroundColor: '#f8fafc',
-                      boxShadow: 'none',
-                      '&:hover': { borderColor: '#6366f1' },
-                      minHeight: '42px',
-                      fontSize: '14px',
-                    }),
-                    option: (base, state) => ({
-                      ...base,
-                      backgroundColor: state.isSelected ? '#6366f1' : state.isFocused ? '#eef2ff' : 'white',
-                      color: state.isSelected ? 'white' : '#1e293b',
-                      fontSize: '13px',
-                    }),
-                  }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Hubungan dengan Santri</label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-                  value={formData.hubungan}
-                  onChange={(e) => setFormData({ ...formData, hubungan: e.target.value })}
-                  placeholder="Ayah / Ibu / Wali"
-                />
-              </div>
-            </div>
+            <WaliStudentSelect
+              studentIds={formData.studentIds}
+              hubungan={formData.hubungan}
+              onChangeStudentIds={(ids) => setFormData({ ...formData, studentIds: ids })}
+              onChangeHubungan={(value) => setFormData({ ...formData, hubungan: value })}
+            />
           )}
 
           {(formData.scope === 'WILAYAH' || formData.scope === 'CABANG') && (

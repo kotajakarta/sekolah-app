@@ -9,12 +9,13 @@ interface PortalStudentContextType {
   selectedLink: WaliSantriLink | null;
   setSelectedStudentId: (id: string) => void;
   isLoading: boolean;
+  isError: boolean;
 }
 
 const PortalStudentContext = createContext<PortalStudentContextType | null>(null);
 
 export const PortalStudentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { data: links = [], isLoading } = useGetPortalStudents();
+  const { data: links = [], isLoading, isError } = useGetPortalStudents();
   const [selectedStudentId, setSelectedStudentIdState] = useState<string | null>(
     () => localStorage.getItem(STORAGE_KEY)
   );
@@ -37,7 +38,7 @@ export const PortalStudentProvider: React.FC<{ children: React.ReactNode }> = ({
   const selectedLink = links.find((l) => l.studentId === selectedStudentId) ?? null;
 
   return (
-    <PortalStudentContext.Provider value={{ links, selectedStudentId, selectedLink, setSelectedStudentId, isLoading }}>
+    <PortalStudentContext.Provider value={{ links, selectedStudentId, selectedLink, setSelectedStudentId, isLoading, isError }}>
       {children}
     </PortalStudentContext.Provider>
   );

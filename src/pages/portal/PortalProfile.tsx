@@ -11,7 +11,7 @@ export default function PortalProfile() {
   // (see report: PortalProfile deviation) — a wali with zero linked children must
   // still be able to change their own password. `links` is still read here to
   // render the read-only "Santri Terhubung" list below.
-  const { links, isLoading } = usePortalStudent();
+  const { links, isLoading, isError } = usePortalStudent();
 
   const [operatorName, setOperatorName] = useState(user?.operatorName || '');
   const [password, setPassword] = useState('');
@@ -142,6 +142,8 @@ export default function PortalProfile() {
           <p className="text-sm text-slate-400 flex items-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin" /> Memuat...
           </p>
+        ) : isError ? (
+          <p className="text-sm text-rose-600">Gagal memuat data, coba lagi.</p>
         ) : links.length === 0 ? (
           <p className="text-sm text-slate-400">Belum ada santri yang terhubung ke akun ini.</p>
         ) : (

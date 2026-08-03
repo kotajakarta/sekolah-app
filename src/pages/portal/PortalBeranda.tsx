@@ -10,13 +10,21 @@ const STATUS_HAFIDZ_LABEL: Record<string, string> = {
 };
 
 export default function PortalBeranda() {
-  const { selectedStudentId, selectedLink, isLoading } = usePortalStudent();
+  const { selectedStudentId, selectedLink, isLoading, isError } = usePortalStudent();
   const { data: riwayat = [], isLoading: isRiwayatLoading } = useGetRiwayatKelas(selectedStudentId);
 
   if (isLoading) {
     return (
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 text-sm text-slate-500 flex items-center gap-2">
         <Loader2 className="w-4 h-4 animate-spin" /> Memuat...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 text-sm text-rose-600">
+        Gagal memuat data, coba lagi.
       </div>
     );
   }

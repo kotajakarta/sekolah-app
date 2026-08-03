@@ -67,6 +67,14 @@ import ListKegiatanBap from './pages/kegiatan/ListKegiatanBap';
 import KelolaJenisKegiatan from './pages/kegiatan/KelolaJenisKegiatan';
 import KelolaTemplateKegiatan from './pages/kegiatan/KelolaTemplateKegiatan';
 import SuratPage from './pages/surat/SuratPage';
+import PortalLayout from './components/Layout/PortalLayout';
+import { PortalStudentProvider } from './features/portal/context/PortalStudentContext';
+import PortalBeranda from './pages/portal/PortalBeranda';
+import PortalRapor from './pages/portal/PortalRapor';
+import PortalKehadiran from './pages/portal/PortalKehadiran';
+import PortalPengumuman from './pages/portal/PortalPengumuman';
+import PortalPermohonanIzin from './pages/portal/PortalPermohonanIzin';
+import PortalProfile from './pages/portal/PortalProfile';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
@@ -81,6 +89,32 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user.scope === 'WALI') {
+    return <Navigate to="/portal" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const WaliRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.scope !== 'WALI') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -478,6 +512,23 @@ export default function App() {
               <Route path="kegiatan/jenis" element={<KelolaJenisKegiatan />} />
               <Route path="kegiatan/templates" element={<KelolaTemplateKegiatan />} />
               <Route path="surat" element={<SuratPage />} />
+            </Route>
+            <Route
+              path="/portal"
+              element={
+                <WaliRoute>
+                  <PortalStudentProvider>
+                    <PortalLayout />
+                  </PortalStudentProvider>
+                </WaliRoute>
+              }
+            >
+              <Route index element={<PortalBeranda />} />
+              <Route path="rapor" element={<PortalRapor />} />
+              <Route path="kehadiran" element={<PortalKehadiran />} />
+              <Route path="pengumuman" element={<PortalPengumuman />} />
+              <Route path="permohonan-izin" element={<PortalPermohonanIzin />} />
+              <Route path="profile" element={<PortalProfile />} />
             </Route>
           </Routes>
         </Router>

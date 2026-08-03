@@ -4,7 +4,7 @@ export interface AuthUser {
   id: string;
   username?: string;
   operatorName?: string;
-  scope: 'GLOBAL' | 'WILAYAH' | 'CABANG';
+  scope: 'GLOBAL' | 'WILAYAH' | 'CABANG' | 'WALI';
   divisi: 'ALL' | 'FORMAL' | 'PESANTREN';
   wilayahId?: string;
   cabangId?: string;

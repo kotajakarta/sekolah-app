@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePortalStudent } from '../../features/portal/context/PortalStudentContext';
 import { useGetPengumuman } from '../../features/portal/hooks/useGetPengumuman';
-import { Megaphone, Loader2, Calendar, Bell } from 'lucide-react';
+import { Megaphone, Loader2, Calendar, Bell, ExternalLink, Link2 } from 'lucide-react';
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -72,9 +72,37 @@ export default function PortalPengumuman() {
                       {formatDate(item.createdAt)}
                     </span>
                   </div>
-                  <div className="mt-3 text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80">
-                    {item.content}
-                  </div>
+                  
+                  {/* HTML Content Rendering */}
+                  <div
+                    className="mt-3 text-xs sm:text-sm text-slate-700 leading-relaxed bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 prose prose-slate max-w-none prose-p:my-1.5 prose-ul:my-1.5 prose-li:my-0.5 prose-a:text-indigo-600 prose-a:font-semibold hover:prose-a:underline"
+                    dangerouslySetInnerHTML={{ __html: item.content }}
+                  />
+
+                  {/* Links attached to announcement */}
+                  {item.links && item.links.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-slate-100">
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                        <Link2 className="w-3.5 h-3.5 text-indigo-600" />
+                        Tautan Terkait
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {item.links.map((link, idx) => (
+                          <a
+                            key={idx}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-3 rounded-xl border border-slate-200/80 bg-white hover:border-indigo-300 hover:shadow-xs transition-all flex items-center justify-between gap-2 text-xs font-semibold text-slate-800 hover:text-indigo-600"
+                          >
+                            <span className="truncate">{link.title || link.url}</span>
+                            <ExternalLink className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               </div>
             </div>

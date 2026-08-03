@@ -19,7 +19,7 @@ const NavLink = ({ to, icon: Icon, badge, highlight, children }: { to: string, i
           className={`flex items-center justify-center p-2 mx-auto w-10 h-10 rounded-lg transition-all duration-200 group ${isActive
             ? 'bg-brand/10 text-brand font-semibold'
             : highlight
-            ? 'bg-indigo-50 border border-indigo-200 text-indigo-700 font-semibold hover:bg-indigo-100'
+            ? 'bg-indigo-50/70 text-indigo-700 font-semibold hover:bg-indigo-100/80'
             : 'text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900'
             }`}
         >
@@ -34,14 +34,14 @@ const NavLink = ({ to, icon: Icon, badge, highlight, children }: { to: string, i
       <Link
         to={to}
         className={`flex items-center justify-between px-3 py-2 text-[13px] rounded-lg transition-all duration-200 group ${isActive
-          ? 'bg-brand/10 text-brand font-bold'
+          ? 'bg-brand/10 text-brand font-semibold'
           : highlight
-          ? 'bg-gradient-to-r from-amber-50/90 via-indigo-50 to-blue-50/90 border border-indigo-200/80 text-indigo-950 font-bold shadow-xs hover:from-amber-100 hover:to-indigo-100'
+          ? 'bg-indigo-50/50 text-slate-800 font-semibold border border-indigo-100/80 hover:bg-indigo-100/60'
           : 'text-slate-600 font-medium hover:bg-slate-100 hover:text-slate-900'
           }`}
       >
         <div className="flex items-center">
-          <Icon className={`w-[18px] h-[18px] mr-3 transition-colors ${isActive ? 'text-brand' : highlight ? 'text-indigo-700' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive || highlight ? 2.5 : 2} />
+          <Icon className={`w-[18px] h-[18px] mr-3 transition-colors ${isActive ? 'text-brand' : highlight ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} strokeWidth={isActive ? 2.5 : 2} />
           {children}
         </div>
         {badge !== undefined && badge > 0 && (

@@ -205,7 +205,9 @@ export default function LembagaMuadalahPage() {
   const getFullFileUrl = (relativeUrl?: string) => {
     if (!relativeUrl) return '';
     const baseURL = apiClient.defaults.baseURL || '/api/v1';
-    return `${baseURL}${relativeUrl}`;
+    const token = localStorage.getItem('token') || '';
+    const query = token ? `?token=${encodeURIComponent(token)}` : '';
+    return `${baseURL}${relativeUrl}${query}`;
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof typeof formData) => {

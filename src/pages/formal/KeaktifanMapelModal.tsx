@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
-import { X, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 
 interface KeaktifanMapelModalProps {
   mapel: { id: string; name: string; kodeMapel: string };
@@ -11,24 +11,23 @@ interface KeaktifanMapelModalProps {
 export default function KeaktifanMapelModal({ mapel, onClose }: KeaktifanMapelModalProps) {
   const queryClient = useQueryClient();
 
-  const { data: grupList, isLoading: loadingGrup } = useQuery({
+  const { data: jenisGrupList, isLoading: loadingJenis } = useQuery({
+    queryKey: ['jenis-grup-daimi'],
+    queryFn: async () => (await apiClient.get('/pesantren/jenis-grup-daimi')).data
+  });
+
+  const { data: grupDaimiList, isLoading: loadingGrup } = useQuery({
     queryKey: ['grup-daimi'],
-    queryFn: async () => {
-      const res = await apiClient.get('/pesantren/grup-daimi');
-      return res.data;
-    }
+    queryFn: async () => (await apiClient.get('/pesantren/grup-daimi')).data
   });
 
   const { data: mapelGrupList, isLoading: loadingMapelGrup } = useQuery({
     queryKey: ['mapel-grup'],
-    queryFn: async () => {
-      const res = await apiClient.get('/formal/mapel-grup');
-      return res.data;
-    }
+    queryFn: async () => (await apiClient.get('/formal/mapel-grup')).data
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async (data: { mataPelajaranId: string, grupDaimiId: string, isActive: boolean }) => {
+    mutationFn: async (data: { mataPelajaranId: string; jenisGrupName: string; isActive: boolean }) => {
       await apiClient.post('/formal/mapel-grup/toggle', data);
     },
     onSuccess: () => {
@@ -37,21 +36,34 @@ export default function KeaktifanMapelModal({ mapel, onClose }: KeaktifanMapelMo
     }
   });
 
-  const isMapelActiveInGrup = (grupId: string) => {
-    if (!mapelGrupList) return false;
-    const mapping = mapelGrupList.find((m: any) => m.mataPelajaranId === mapel.id && m.grupDaimiId === grupId);
-    return mapping ? mapping.isActive : false;
+  const isMapelActiveInJenisGrup = (jenisName: string) => {
+    if (!mapelGrupList || !grupDaimiList) return false;
+
+    const matchingGrupIds = grupDaimiList
+      .filter((g: any) => 
+        (g.jenis && g.jenis.toLowerCase() === jenisName.toLowerCase()) ||
+        (g.name && g.name.toLowerCase() === jenisName.toLowerCase())
+      )
+      .map((g: any) => g.id);
+
+    if (matchingGrupIds.length === 0) return false;
+
+    return mapelGrupList.some((m: any) => 
+      m.mataPelajaranId === mapel.id && 
+      matchingGrupIds.includes(m.grupDaimiId) && 
+      m.isActive
+    );
   };
 
-  const handleToggle = (grupId: string, currentStatus: boolean) => {
+  const handleToggle = (jenisName: string, currentStatus: boolean) => {
     toggleMutation.mutate({
       mataPelajaranId: mapel.id,
-      grupDaimiId: grupId,
+      jenisGrupName: jenisName,
       isActive: !currentStatus
     });
   };
 
-  const isLoading = loadingGrup || loadingMapelGrup;
+  const isLoading = loadingJenis || loadingGrup || loadingMapelGrup;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
@@ -78,16 +90,16 @@ export default function KeaktifanMapelModal({ mapel, onClose }: KeaktifanMapelMo
               </p>
               
               <div className="border border-slate-200 rounded-lg overflow-hidden divide-y divide-slate-100">
-                {(grupList || []).map((grup: any) => {
-                  const isActive = isMapelActiveInGrup(grup.id);
+                {(jenisGrupList || []).map((jenis: any) => {
+                  const isActive = isMapelActiveInJenisGrup(jenis.name);
                   return (
-                    <div key={grup.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                    <div key={jenis.id || jenis.name} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
                       <div>
-                        <p className="font-bold text-slate-800">{grup.jenis || grup.name}</p>
+                        <p className="font-bold text-slate-800">{jenis.name}</p>
                         <p className="text-xs text-slate-500">Status: {isActive ? 'Aktif' : 'Tidak Aktif'}</p>
                       </div>
                       <button
-                        onClick={() => handleToggle(grup.id, isActive)}
+                        onClick={() => handleToggle(jenis.name, isActive)}
                         disabled={toggleMutation.isPending}
                         className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${isActive ? 'bg-indigo-600' : 'bg-slate-200'}`}
                         role="switch"
@@ -101,9 +113,9 @@ export default function KeaktifanMapelModal({ mapel, onClose }: KeaktifanMapelMo
                     </div>
                   );
                 })}
-                {grupList?.length === 0 && (
+                {jenisGrupList?.length === 0 && (
                   <div className="p-4 text-center text-slate-500 text-sm">
-                    Belum ada data Grup Daimi.
+                    Belum ada data Jenis Grup Daimi.
                   </div>
                 )}
               </div>

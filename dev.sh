@@ -18,9 +18,9 @@ echo "=== 3. Mem-push ke GitHub ==="
 # Gunakan flag --verbose agar terlihat progress upload-nya
 git push --verbose origin main
 
-# Menghentikan secara paksa proses di port 3000 jika ada
+# Menghentikan secara paksa proses frontend di port 3000
 fuser -k -9 3000/tcp 2>/dev/null || true
-pkill -9 -f "vite" 2>/dev/null || true
-kill -9 $(lsof -t -i:3000) 2>/dev/null || true
+lsof -t -i:3000 | xargs -r kill -9 2>/dev/null || true
+pkill -9 -f "tsx server.ts" 2>/dev/null || true
 
 npm run dev

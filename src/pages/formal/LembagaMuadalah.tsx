@@ -2,10 +2,19 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
-import { Plus, Edit2, CheckCircle, XCircle, Loader2, Trash2, School, Search, User, FileText, Eye, Upload } from 'lucide-react';
+import { 
+  Plus, Edit2, CheckCircle, XCircle, Loader2, Trash2, School, Search, User, FileText, Eye, Upload,
+  Building2, Users, FileCheck, Shield, Award, FolderOpen, ExternalLink
+} from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
+
+interface SantriBreakdownGender {
+  l: number;
+  p: number;
+  total: number;
+}
 
 interface LembagaMuadalah {
   id: string;
@@ -13,9 +22,17 @@ interface LembagaMuadalah {
   code: string;
   npsn?: string;
   nspp?: string;
+  pesantrenInduk?: string;
+  tahunBerdiri?: string;
   namaKetua?: string;
+  operator?: string;
+  emisPontren?: string;
+  emisSpm?: string;
   ttdKetua?: string;
   skSpm?: string;
+  skStruktur?: string;
+  skDewanMasyayikh?: string;
+  skPengangkatanKepalaSpm?: string;
   isActive: boolean;
   namaLain?: string;
   jenjang?: string;
@@ -37,30 +54,62 @@ interface LembagaMuadalah {
       }
     }
   }[];
+  jumlahSantri?: {
+    wustha: {
+      tingkat7: SantriBreakdownGender;
+      tingkat8: SantriBreakdownGender;
+      tingkat9: SantriBreakdownGender;
+      total: SantriBreakdownGender;
+    };
+    ulya: {
+      tingkat10: SantriBreakdownGender;
+      tingkat11: SantriBreakdownGender;
+      tingkat12: SantriBreakdownGender;
+      total: SantriBreakdownGender;
+    };
+    totalL: number;
+    totalP: number;
+    totalAll: number;
+  };
 }
 
+type SubTab = 'identitas' | 'jumlah_santri' | 'berkas';
+
 export default function LembagaMuadalahPage() {
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('identitas');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showToast } = useToast();
+
+  // RBAC Access Control Flags
   const isAdmin = user?.scope === 'GLOBAL';
   const isWilayahOrAdmin = user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH';
+  const isCabang = user?.scope === 'CABANG';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMuadalah, setEditingMuadalah] = useState<LembagaMuadalah | null>(null);
+  
   const [formData, setFormData] = useState({ 
     name: '', 
     code: '', 
     npsn: '', 
     nspp: '', 
+    pesantrenInduk: '',
+    tahunBerdiri: '',
     namaKetua: '', 
+    operator: '',
+    emisPontren: '',
+    emisSpm: '',
     ttdKetua: '', 
     skSpm: '', 
+    skStruktur: '',
+    skDewanMasyayikh: '',
+    skPengangkatanKepalaSpm: '',
     isActive: true,
     namaLain: '',
-    jenjang: '',
+    jenjang: 'WUSTHA',
     provinsi: '',
     kabupaten: '',
     kecamatan: '',
@@ -75,15 +124,14 @@ export default function LembagaMuadalahPage() {
   const [selectedProfileMuadalah, setSelectedProfileMuadalah] = useState<LembagaMuadalah | null>(null);
   const [profileTab, setProfileTab] = useState<'info' | 'kelas'>('info');
 
-  // Uploading states
-  const [isUploadingTtd, setIsUploadingTtd] = useState(false);
-  const [isUploadingSk, setIsUploadingSk] = useState(false);
+  // Uploading states per document type
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
 
   // Filter states
   const [filterName, setFilterName] = useState('');
-  const [filterTingkat, setFilterTingkat] = useState('');
+  const [filterJenjang, setFilterJenjang] = useState('');
 
-  // Address API States
+  // Address API States (Emsifa)
   const [provinces, setProvinces] = useState<any[]>([]);
   const [regencies, setRegencies] = useState<any[]>([]);
   const [districts, setDistricts] = useState<any[]>([]);
@@ -102,7 +150,6 @@ export default function LembagaMuadalahPage() {
       .catch((e) => console.error('Gagal mengambil data provinsi', e));
   }, []);
 
-  // Fetch regencies when province changes
   React.useEffect(() => {
     if (alamatProvId) {
       fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${alamatProvId}.json`)
@@ -114,7 +161,6 @@ export default function LembagaMuadalahPage() {
     }
   }, [alamatProvId]);
 
-  // Fetch districts when regency changes
   React.useEffect(() => {
     if (alamatKabId) {
       fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${alamatKabId}.json`)
@@ -126,7 +172,6 @@ export default function LembagaMuadalahPage() {
     }
   }, [alamatKabId]);
 
-  // Fetch villages when district changes
   React.useEffect(() => {
     if (alamatKecId) {
       fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${alamatKecId}.json`)
@@ -152,43 +197,28 @@ export default function LembagaMuadalahPage() {
     return `${baseURL}${relativeUrl}`;
   };
 
-  const handleTtdUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof typeof formData) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.type !== 'image/png') {
-      showToast('error', 'Format file harus PNG');
+
+    if (fieldName === 'ttdKetua' && file.type !== 'image/png') {
+      showToast('error', 'Format file tanda tangan harus PNG transparan');
       return;
     }
-    setIsUploadingTtd(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await apiClient.post('/formal/muadalah/upload', fd, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      setFormData(prev => ({ ...prev, ttdKetua: res.data.url }));
-    } catch (err: any) {
-      showToast('error', 'Gagal mengupload file: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setIsUploadingTtd(false);
-    }
-  };
 
-  const handleSkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploadingSk(true);
+    setUploadingField(fieldName as string);
     try {
       const fd = new FormData();
       fd.append('file', file);
       const res = await apiClient.post('/formal/muadalah/upload', fd, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setFormData(prev => ({ ...prev, skSpm: res.data.url }));
+      setFormData((prev) => ({ ...prev, [fieldName]: res.data.url }));
+      showToast('success', 'Dokumen berhasil diunggah');
     } catch (err: any) {
-      showToast('error', 'Gagal mengupload file: ' + (err.response?.data?.message || err.message));
+      showToast('error', 'Gagal mengunggah file: ' + (err.response?.data?.message || err.message));
     } finally {
-      setIsUploadingSk(false);
+      setUploadingField(null);
     }
   };
 
@@ -199,6 +229,7 @@ export default function LembagaMuadalahPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lembaga-muadalah'] });
       setIsModalOpen(false);
+      showToast('success', 'Lembaga Muadalah berhasil ditambahkan');
     },
     onError: (err: any) => {
       showToast('error', err?.response?.data?.message || 'Gagal menyimpan data');
@@ -212,6 +243,7 @@ export default function LembagaMuadalahPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lembaga-muadalah'] });
       setIsModalOpen(false);
+      showToast('success', 'Data Lembaga Muadalah berhasil diperbarui');
     },
     onError: (err: any) => {
       showToast('error', err?.response?.data?.message || 'Gagal mengubah data');
@@ -219,11 +251,12 @@ export default function LembagaMuadalahPage() {
   });
 
   const toggleStatusMutation = useMutation({
-    mutationFn: async (data: { id: string, isActive: boolean }) => {
+    mutationFn: async (data: { id: string; isActive: boolean }) => {
       await apiClient.patch(`/formal/muadalah/${data.id}/status`, { isActive: data.isActive });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lembaga-muadalah'] });
+      showToast('success', 'Status lembaga berhasil diubah');
     },
     onError: (err: any) => {
       showToast('error', err?.response?.data?.message || 'Gagal mengubah status');
@@ -236,6 +269,7 @@ export default function LembagaMuadalahPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lembaga-muadalah'] });
+      showToast('success', 'Lembaga Muadalah berhasil dihapus');
     },
     onError: (err: any) => {
       showToast('error', err?.response?.data?.message || 'Gagal menghapus data');
@@ -247,20 +281,7 @@ export default function LembagaMuadalahPage() {
     if (editingMuadalah) {
       updateMutation.mutate({ 
         id: editingMuadalah.id, 
-        name: formData.name, 
-        code: formData.code,
-        npsn: formData.npsn,
-        nspp: formData.nspp,
-        namaKetua: formData.namaKetua,
-        ttdKetua: formData.ttdKetua,
-        skSpm: formData.skSpm,
-        namaLain: formData.namaLain,
-        jenjang: formData.jenjang,
-        provinsi: formData.provinsi,
-        kabupaten: formData.kabupaten,
-        kecamatan: formData.kecamatan,
-        kelurahan: formData.kelurahan,
-        alamatDetail: formData.alamatDetail,
+        ...formData
       });
     } else {
       createMutation.mutate(formData);
@@ -274,12 +295,20 @@ export default function LembagaMuadalahPage() {
       code: '', 
       npsn: '', 
       nspp: '', 
+      pesantrenInduk: '',
+      tahunBerdiri: '',
       namaKetua: '', 
+      operator: '',
+      emisPontren: '',
+      emisSpm: '',
       ttdKetua: '', 
       skSpm: '', 
+      skStruktur: '',
+      skDewanMasyayikh: '',
+      skPengangkatanKepalaSpm: '',
       isActive: true,
       namaLain: '',
-      jenjang: '',
+      jenjang: 'WUSTHA',
       provinsi: '',
       kabupaten: '',
       kecamatan: '',
@@ -303,12 +332,20 @@ export default function LembagaMuadalahPage() {
       code: item.code, 
       npsn: item.npsn || '', 
       nspp: item.nspp || '', 
+      pesantrenInduk: item.pesantrenInduk || '',
+      tahunBerdiri: item.tahunBerdiri || '',
       namaKetua: item.namaKetua || '', 
+      operator: item.operator || '',
+      emisPontren: item.emisPontren || '',
+      emisSpm: item.emisSpm || '',
       ttdKetua: item.ttdKetua || '', 
       skSpm: item.skSpm || '', 
+      skStruktur: item.skStruktur || '',
+      skDewanMasyayikh: item.skDewanMasyayikh || '',
+      skPengangkatanKepalaSpm: item.skPengangkatanKepalaSpm || '',
       isActive: item.isActive,
       namaLain: item.namaLain || '',
-      jenjang: item.jenjang || '',
+      jenjang: item.jenjang || 'WUSTHA',
       provinsi: item.provinsi || '',
       kabupaten: item.kabupaten || '',
       kecamatan: item.kecamatan || '',
@@ -316,13 +353,11 @@ export default function LembagaMuadalahPage() {
       alamatDetail: item.alamatDetail || '',
     });
 
-    // Reset address IDs first
     setAlamatProvId('');
     setAlamatKabId('');
     setAlamatKecId('');
     setAlamatKelId('');
 
-    // Prepopulate Address API dropdowns
     if (item.provinsi) {
       const pMatch = provinces.find(p => p.name.toUpperCase() === item.provinsi?.toUpperCase());
       if (pMatch) {
@@ -382,257 +417,568 @@ export default function LembagaMuadalahPage() {
     }
   };
 
-  // Local Filter logic
+  // Filter Logic
   const filteredList = list.filter(item => {
     const matchName = !filterName || 
       item.name.toLowerCase().includes(filterName.toLowerCase()) ||
-      item.code.toLowerCase().includes(filterName.toLowerCase());
+      item.code.toLowerCase().includes(filterName.toLowerCase()) ||
+      (item.namaLain || '').toLowerCase().includes(filterName.toLowerCase());
 
-    const matchTingkat = !filterTingkat ||
-      (item.kelas && item.kelas.some(k => k.tingkat === filterTingkat));
+    const matchJenjang = !filterJenjang || (item.jenjang || '').toUpperCase() === filterJenjang.toUpperCase();
 
-    return matchName && matchTingkat;
+    return matchName && matchJenjang;
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
+      {/* ── HEADER HALAMAN ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-800 flex items-center gap-2">
-            <School className="w-6 h-6 text-indigo-500" />
-            Manajemen Lembaga Muadalah
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <School className="w-6 h-6 text-indigo-600" /> Manajemen Lembaga Muadalah
           </h1>
-          <p className="text-sm text-slate-500 mt-1.5">Kelola data Lembaga Muadalah yang menaungi kelas-kelas di setiap cabang.</p>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Kelola data identitas kelembagaan SPM/Muadalah, statistik jumlah santri, dan dokumen berkas legalitas.
+          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {isWilayahOrAdmin && (
-            <button 
-              onClick={openAddModal}
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 animate-all"
+
+        {/* RBAC Action Button: Only Wilayah & Admin can add new lembaga */}
+        {isWilayahOrAdmin && (
+          <button 
+            onClick={openAddModal}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-transparent shadow-xs text-xs font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" /> Tambah Lembaga Muadalah
+          </button>
+        )}
+      </div>
+
+      {/* ── SUB-TABS NAVIGATION (Identitas Lembaga, Jumlah Santri, Berkas) ── */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          
+          {/* Sub-Tab Buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap bg-slate-100/70 p-1.5 rounded-2xl border border-slate-200/60">
+            <button
+              onClick={() => setActiveSubTab('identitas')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeSubTab === 'identitas'
+                  ? 'bg-white text-indigo-600 shadow-xs border border-slate-200/80'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Tambah Lembaga
+              <Building2 className="w-3.5 h-3.5" /> Identitas Lembaga
             </button>
+
+            <button
+              onClick={() => setActiveSubTab('jumlah_santri')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeSubTab === 'jumlah_santri'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" /> Jumlah Santri
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab('berkas')}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeSubTab === 'berkas'
+                  ? 'bg-white text-indigo-600 shadow-xs border border-slate-200/80'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <FolderOpen className="w-3.5 h-3.5" /> Berkas Dokumen
+            </button>
+          </div>
+
+          {/* Search & Filter Inputs */}
+          <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+            <div className="relative w-full sm:w-64">
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari lembaga / kode..."
+                value={filterName}
+                onChange={e => { setFilterName(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-9 pr-3 py-1.5 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+              />
+            </div>
+
+            <select
+              value={filterJenjang}
+              onChange={e => { setFilterJenjang(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-1.5 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+            >
+              <option value="">-- Semua Jenjang --</option>
+              <option value="WUSTHA">WUSTHA</option>
+              <option value="ULYA">ULYA</option>
+              <option value="ULA">ULA</option>
+            </select>
+          </div>
+        </div>
+
+        {/* ── TABLE CONTAINER (Dynamic per SubTab) ── */}
+        <div className="overflow-x-auto">
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+            </div>
+          ) : (
+            <table className="w-full text-left text-xs border-collapse">
+              {/* ── SUB-TAB 1: IDENTITAS LEMBAGA HEADER ── */}
+              {activeSubTab === 'identitas' && (
+                <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
+                  <tr>
+                    <th className="py-3 px-3 text-center w-10">No</th>
+                    <th className="py-3 px-3">Nama Lembaga</th>
+                    <th className="py-3 px-3 text-center">NPSN</th>
+                    <th className="py-3 px-3 text-center">NSPP Pesantren</th>
+                    <th className="py-3 px-3">Pesantren Induk</th>
+                    <th className="py-3 px-3 text-center">Jenjang</th>
+                    <th className="py-3 px-3 text-center">Tahun Berdiri</th>
+                    <th className="py-3 px-3">Kepala SPM</th>
+                    <th className="py-3 px-3">Operator</th>
+                    <th className="py-3 px-3 text-center">EMIS Pontren</th>
+                    <th className="py-3 px-3 text-center">EMIS SPM</th>
+                    <th className="py-3 px-3 text-center">Status</th>
+                    <th className="py-3 px-3 text-right">Aksi</th>
+                  </tr>
+                </thead>
+              )}
+
+              {/* ── SUB-TAB 2: JUMLAH SANTRI HEADER (Nested) ── */}
+              {activeSubTab === 'jumlah_santri' && (
+                <thead className="bg-slate-50/90 text-slate-600 font-bold text-[11px] border-b border-slate-200">
+                  <tr>
+                    <th rowSpan={3} className="py-3 px-2 text-center border-r border-slate-200 w-10">No</th>
+                    <th rowSpan={3} className="py-3 px-3 border-r border-slate-200 min-w-[180px]">Nama Lembaga</th>
+                    <th rowSpan={3} className="py-3 px-2 text-center border-r border-slate-200 w-16">Jenjang</th>
+                    <th colSpan={6} className="py-1.5 px-2 text-center border-r border-slate-200 bg-indigo-50/60 text-indigo-900 uppercase">Wustha</th>
+                    <th colSpan={6} className="py-1.5 px-2 text-center border-r border-slate-200 bg-emerald-50/60 text-emerald-900 uppercase">Ulya</th>
+                    <th colSpan={3} className="py-1.5 px-2 text-center border-r border-slate-200 bg-slate-100 uppercase">Total Santri</th>
+                    <th rowSpan={3} className="py-3 px-3 text-right">Aksi</th>
+                  </tr>
+                  <tr>
+                    <th colSpan={2} className="py-1 px-1 text-center border-r border-b border-slate-200 bg-indigo-50/40">Tingkat 7</th>
+                    <th colSpan={2} className="py-1 px-1 text-center border-r border-b border-slate-200 bg-indigo-50/40">Tingkat 8</th>
+                    <th colSpan={2} className="py-1 px-1 text-center border-r border-b border-slate-200 bg-indigo-50/40">Tingkat 9</th>
+                    <th colSpan={2} className="py-1 px-1 text-center border-r border-b border-slate-200 bg-emerald-50/40">Tingkat 10</th>
+                    <th colSpan={2} className="py-1 px-1 text-center border-r border-b border-slate-200 bg-emerald-50/40">Tingkat 11</th>
+                    <th colSpan={2} className="py-1 px-1 text-center border-r border-b border-slate-200 bg-emerald-50/40">Tingkat 12</th>
+                    <th rowSpan={2} className="py-1 px-2 text-center border-r border-slate-200 bg-slate-100 font-bold">L</th>
+                    <th rowSpan={2} className="py-1 px-2 text-center border-r border-slate-200 bg-slate-100 font-bold">P</th>
+                    <th rowSpan={2} className="py-1 px-2 text-center border-r border-slate-200 bg-slate-100 font-bold">Total</th>
+                  </tr>
+                  <tr>
+                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">L</th>
+                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">P</th>
+                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">L</th>
+                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">P</th>
+                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">L</th>
+                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">P</th>
+                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">L</th>
+                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">P</th>
+                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">L</th>
+                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">P</th>
+                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">L</th>
+                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">P</th>
+                  </tr>
+                </thead>
+              )}
+
+              {/* ── SUB-TAB 3: BERKAS HEADER ── */}
+              {activeSubTab === 'berkas' && (
+                <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
+                  <tr>
+                    <th className="py-3 px-3 text-center w-12">No</th>
+                    <th className="py-3 px-3">Nama Lembaga</th>
+                    <th className="py-3 px-3 text-center">SK Pendirian SPM</th>
+                    <th className="py-3 px-3 text-center">Struktur Organisasi</th>
+                    <th className="py-3 px-3 text-center">SK Dewan Masyayikh</th>
+                    <th className="py-3 px-3 text-center">SK Pengangkatan Kepala SPM</th>
+                    <th className="py-3 px-3 text-center">TTD Kepala SPM</th>
+                    <th className="py-3 px-3 text-right">Aksi</th>
+                  </tr>
+                </thead>
+              )}
+
+              <tbody className="divide-y divide-slate-100">
+                {filteredList.length === 0 ? (
+                  <tr>
+                    <td colSpan={15} className="py-8 text-center text-slate-400 font-medium">
+                      Tidak ada data lembaga muadalah yang sesuai dengan pencarian.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredList
+                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                    .map((item, idx) => {
+                      const rowNo = (currentPage - 1) * itemsPerPage + idx + 1;
+                      const js = item.jumlahSantri;
+
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3.5 px-2 text-center text-slate-400 font-medium">{rowNo}</td>
+
+                          {/* NAMA LEMBAGA */}
+                          <td className="py-3.5 px-3 font-semibold text-slate-800">
+                            <button
+                              onClick={() => { setSelectedProfileMuadalah(item); setProfileTab('info'); }}
+                              className="hover:text-indigo-600 text-left font-bold transition-colors cursor-pointer"
+                            >
+                              {item.name}
+                            </button>
+                            {item.namaLain && (
+                              <p className="text-[11px] font-normal text-slate-400">({item.namaLain})</p>
+                            )}
+                          </td>
+
+                          {/* ── SUB-TAB 1: IDENTITAS BODY ── */}
+                          {activeSubTab === 'identitas' && (
+                            <>
+                              <td className="py-3.5 px-3 text-center font-semibold text-slate-700">{item.npsn || '-'}</td>
+                              <td className="py-3.5 px-3 text-center font-semibold text-slate-700">{item.nspp || '-'}</td>
+                              <td className="py-3.5 px-3 text-slate-700 font-medium">{item.pesantrenInduk || '-'}</td>
+                              <td className="py-3.5 px-3 text-center">
+                                <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                  {item.jenjang || 'WUSTHA'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-3 text-center text-slate-700 font-medium">{item.tahunBerdiri || '-'}</td>
+                              <td className="py-3.5 px-3 text-slate-700 font-medium">{item.namaKetua || '-'}</td>
+                              <td className="py-3.5 px-3 text-slate-700 font-medium">{item.operator || '-'}</td>
+                              <td className="py-3.5 px-3 text-center font-semibold text-slate-700">{item.emisPontren || '-'}</td>
+                              <td className="py-3.5 px-3 text-center font-semibold text-slate-700">{item.emisSpm || '-'}</td>
+                              <td className="py-3.5 px-3 text-center">
+                                <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${item.isActive ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
+                                  {item.isActive ? 'Aktif' : 'Nonaktif'}
+                                </span>
+                              </td>
+                            </>
+                          )}
+
+                          {/* ── SUB-TAB 2: JUMLAH SANTRI BODY ── */}
+                          {activeSubTab === 'jumlah_santri' && (
+                            <>
+                              <td className="py-3.5 px-2 text-center font-bold text-slate-700">{item.jenjang || 'WUSTHA'}</td>
+                              
+                              {/* WUSTHA T7, T8, T9 */}
+                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.wustha.tingkat7.l || 0}</td>
+                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.wustha.tingkat7.p || 0}</td>
+                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.wustha.tingkat8.l || 0}</td>
+                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.wustha.tingkat8.p || 0}</td>
+                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.wustha.tingkat9.l || 0}</td>
+                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-200">{js?.wustha.tingkat9.p || 0}</td>
+
+                              {/* ULYA T10, T11, T12 */}
+                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.ulya.tingkat10.l || 0}</td>
+                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.ulya.tingkat10.p || 0}</td>
+                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.ulya.tingkat11.l || 0}</td>
+                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.ulya.tingkat11.p || 0}</td>
+                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.ulya.tingkat12.l || 0}</td>
+                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-200">{js?.ulya.tingkat12.p || 0}</td>
+
+                              {/* TOTAL L, P, ALL */}
+                              <td className="py-3.5 px-2 text-center font-bold text-indigo-700 bg-indigo-50/20">{js?.totalL || 0}</td>
+                              <td className="py-3.5 px-2 text-center font-bold text-emerald-700 bg-emerald-50/20">{js?.totalP || 0}</td>
+                              <td className="py-3.5 px-2 text-center font-extrabold text-slate-900 bg-slate-100/50">{js?.totalAll || 0}</td>
+                            </>
+                          )}
+
+                          {/* ── SUB-TAB 3: BERKAS DOKUMEN BODY ── */}
+                          {activeSubTab === 'berkas' && (
+                            <>
+                              <td className="py-3.5 px-3 text-center">
+                                {item.skSpm ? (
+                                  <a href={getFullFileUrl(item.skSpm)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-100">
+                                    <FileCheck className="w-3 h-3 text-indigo-600" /> Terupload
+                                  </a>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 italic">Belum Ada</span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-3 text-center">
+                                {item.skStruktur ? (
+                                  <a href={getFullFileUrl(item.skStruktur)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-100">
+                                    <FileCheck className="w-3 h-3 text-indigo-600" /> Terupload
+                                  </a>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 italic">Belum Ada</span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-3 text-center">
+                                {item.skDewanMasyayikh ? (
+                                  <a href={getFullFileUrl(item.skDewanMasyayikh)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-100">
+                                    <FileCheck className="w-3 h-3 text-indigo-600" /> Terupload
+                                  </a>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 italic">Belum Ada</span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-3 text-center">
+                                {item.skPengangkatanKepalaSpm ? (
+                                  <a href={getFullFileUrl(item.skPengangkatanKepalaSpm)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-full border border-indigo-100">
+                                    <FileCheck className="w-3 h-3 text-indigo-600" /> Terupload
+                                  </a>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 italic">Belum Ada</span>
+                                )}
+                              </td>
+                              <td className="py-3.5 px-3 text-center">
+                                {item.ttdKetua ? (
+                                  <a href={getFullFileUrl(item.ttdKetua)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-100">
+                                    <CheckCircle className="w-3 h-3 text-emerald-600" /> PNG Ready
+                                  </a>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 italic">Belum Ada</span>
+                                )}
+                              </td>
+                            </>
+                          )}
+
+                          {/* ── ACTION BUTTONS WITH RBAC ── */}
+                          <td className="py-3.5 px-3 text-right space-x-1.5 whitespace-nowrap">
+                            <button
+                              onClick={() => { setSelectedProfileMuadalah(item); setProfileTab('info'); }}
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                              title="Lihat Profil Muadalah"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* RBAC: Edit & Toggle Status available for Wilayah & Admin */}
+                            {isWilayahOrAdmin && (
+                              <>
+                                <button
+                                  onClick={() => openEditModal(item)}
+                                  className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors cursor-pointer"
+                                  title="Edit Lembaga"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+
+                                <button
+                                  onClick={() => toggleStatusMutation.mutate({ id: item.id, isActive: !item.isActive })}
+                                  className={`p-1.5 rounded-lg transition-colors cursor-pointer ${item.isActive ? 'bg-amber-50 hover:bg-amber-100 text-amber-700' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'}`}
+                                  title={item.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                                >
+                                  {item.isActive ? <XCircle className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                                </button>
+                              </>
+                            )}
+
+                            {/* RBAC: Delete only available for Admin Pusat */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => confirmDelete(item.id)}
+                                className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors cursor-pointer"
+                                title="Hapus Lembaga"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                )}
+              </tbody>
+            </table>
           )}
         </div>
+
+        {/* Pagination */}
+        <Pagination 
+          currentPage={currentPage} 
+          totalPages={Math.ceil((filteredList.length || 0) / itemsPerPage)} 
+          onPageChange={setCurrentPage} 
+          totalItems={filteredList.length || 0} 
+          itemsPerPage={itemsPerPage} 
+        />
       </div>
 
-      {/* Filter Section */}
-      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="relative">
-          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Cari Nama Lembaga / Kode</label>
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Masukkan kata kunci nama atau kode..."
-              value={filterName}
-              onChange={e => { setFilterName(e.target.value); setCurrentPage(1); }}
-              className="w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/20"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Filter Tingkat Kelas</label>
-          <select
-            value={filterTingkat}
-            onChange={e => { setFilterTingkat(e.target.value); setCurrentPage(1); }}
-            className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
-          >
-            <option value="">-- Semua Tingkat --</option>
-            <option value="Non Muadalah">Non Muadalah</option>
-            <option value="7">Tingkat 7</option>
-            <option value="8">Tingkat 8</option>
-            <option value="9">Tingkat 9</option>
-            <option value="10">Tingkat 10</option>
-            <option value="11">Tingkat 11</option>
-            <option value="12">Tingkat 12</option>
-          </select>
-        </div>
-      </div>
-      
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="flex justify-center p-8">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-          </div>
-        ) : (<>
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50/80 border-b border-slate-200">
-              <tr>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Kode Lembaga</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Nama Lembaga</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Jenjang</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-slate-200">
-              {filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, idx) => (
-                <tr key={item.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
-                    {(currentPage - 1) * itemsPerPage + idx + 1}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
-                    {item.code}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                    {item.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-650">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-750 border border-indigo-100">
-                      {item.jenjang || 'ULA'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${item.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {item.isActive ? 'Aktif' : 'Tidak Aktif'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => { setSelectedProfileMuadalah(item); setProfileTab('info'); }}
-                      className="inline-flex items-center px-2 py-1 border border-slate-200 rounded text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100"
-                    >
-                      <Eye className="w-3.5 h-3.5 mr-1" />
-                      Profil
-                    </button>
-                    {isWilayahOrAdmin && (
-                      <button
-                        onClick={() => toggleStatusMutation.mutate({ id: item.id, isActive: !item.isActive })}
-                        className={`inline-flex items-center px-2 py-1 border rounded text-xs font-medium ${item.isActive ? 'text-red-700 bg-red-50 border-red-200 hover:bg-red-100' : 'text-green-700 bg-green-50 border-green-200 hover:bg-green-100'}`}
-                        disabled={toggleStatusMutation.isPending}
-                      >
-                        {item.isActive ? <XCircle className="w-3.5 h-3.5 mr-1" /> : <CheckCircle className="w-3.5 h-3.5 mr-1" />}
-                        {item.isActive ? 'Nonaktifkan' : 'Aktifkan'}
-                      </button>
-                    )}
-                    {isWilayahOrAdmin && (
-                      <button
-                        onClick={() => openEditModal(item)}
-                        className="inline-flex items-center px-2 py-1 border border-indigo-200 rounded text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100"
-                      >
-                        <Edit2 className="w-3.5 h-3.5 mr-1" />
-                        Edit
-                      </button>
-                    )}
-                    {isAdmin && (
-                      <button
-                        onClick={() => confirmDelete(item.id)}
-                        className="inline-flex items-center px-2 py-1 border border-red-200 rounded text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        Hapus
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {filteredList.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                    Tidak ada data lembaga muadalah yang sesuai dengan filter.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          <Pagination 
-            currentPage={currentPage} 
-            totalPages={Math.ceil((filteredList.length || 0) / itemsPerPage)} 
-            onPageChange={setCurrentPage} 
-            totalItems={filteredList.length || 0} 
-            itemsPerPage={itemsPerPage} 
-          />
-        </>)}
-      </div>
-
+      {/* ── MODAL TAMBAH / EDIT LEMBAGA ── */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-            <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
-              <div className="px-6 py-4 border-b border-slate-100">
-                <h3 className="text-lg font-semibold text-slate-800">
-                  {editingMuadalah ? 'Edit Lembaga Muadalah' : 'Tambah Lembaga Muadalah'}
-                </h3>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6">
+            <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+              <div>
+                <div className="flex items-center gap-2 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-1">
+                  <School className="w-4 h-4" /> Kelola Kelembagaan
+                </div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  {editingMuadalah ? 'Edit Data Lembaga Muadalah' : 'Tambah Lembaga Muadalah Baru'}
+                </h2>
               </div>
-              <div className="p-6 space-y-4 overflow-y-auto flex-1">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Kode Lembaga *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none text-sm"
-                    placeholder="Contoh: GONTOR, LIRBOYO..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lembaga Muadalah *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none text-sm"
-                    placeholder="Contoh: Pondok Modern Darussalam Gontor"
-                  />
-                </div>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lain Lembaga</label>
-                  <input
-                    type="text"
-                    value={formData.namaLain}
-                    onChange={(e) => setFormData({ ...formData, namaLain: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none text-sm"
-                    placeholder="Masukkan nama lain / singkatan..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Jenjang Lembaga *</label>
-                  <select
-                    required
-                    value={formData.jenjang}
-                    onChange={(e) => setFormData({ ...formData, jenjang: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none text-sm bg-white"
-                  >
-                    <option value="">-- Pilih Jenjang --</option>
-                    <option value="ULA">ULA</option>
-                    <option value="WUSTHA">WUSTHA</option>
-                    <option value="ULYA">ULYA</option>
-                  </select>
-                </div>
-
-                {/* Alamat Section (Emsifa API) */}
-                <div className="border-t border-slate-100 pt-3 space-y-3">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Alamat Lembaga</h4>
-                  
+            <form onSubmit={handleSubmit} className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
+              {/* SECTION 1: IDENTITAS KELEMBAGAAN */}
+              <div>
+                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3">1. Identitas Utama</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Provinsi *</label>
-                    <select 
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Nama Lembaga *</label>
+                    <input
+                      type="text"
                       required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      placeholder="Pondok Modern Darussalam Gontor"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Kode Singkatan / Singkat *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.code}
+                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      placeholder="GONTOR"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Nama Lain / Alias</label>
+                    <input
+                      type="text"
+                      value={formData.namaLain}
+                      onChange={(e) => setFormData({ ...formData, namaLain: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      placeholder="KMI Gontor"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Jenjang Pendidikan *</label>
+                    <select
+                      required
+                      value={formData.jenjang}
+                      onChange={(e) => setFormData({ ...formData, jenjang: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="WUSTHA">WUSTHA (SMP/MTs Equivalent)</option>
+                      <option value="ULYA">ULYA (SMA/MA Equivalent)</option>
+                      <option value="ULA">ULA (SD/MI Equivalent)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">NPSN</label>
+                    <input
+                      type="text"
+                      value={formData.npsn}
+                      onChange={(e) => setFormData({ ...formData, npsn: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      placeholder="NPSN Lembaga"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">NSPP Pesantren</label>
+                    <input
+                      type="text"
+                      value={formData.nspp}
+                      onChange={(e) => setFormData({ ...formData, nspp: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      placeholder="NSPP Pesantren"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Pesantren Induk</label>
+                    <input
+                      type="text"
+                      value={formData.pesantrenInduk}
+                      onChange={(e) => setFormData({ ...formData, pesantrenInduk: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      placeholder="Pondok Pesantren Pusat"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Tahun Berdiri</label>
+                    <input
+                      type="text"
+                      value={formData.tahunBerdiri}
+                      onChange={(e) => setFormData({ ...formData, tahunBerdiri: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      placeholder="1926"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Kepala SPM / Ketua</label>
+                    <input
+                      type="text"
+                      value={formData.namaKetua}
+                      onChange={(e) => setFormData({ ...formData, namaKetua: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      placeholder="KH. Hasan Abdullah Sahal"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Operator SPM</label>
+                    <input
+                      type="text"
+                      value={formData.operator}
+                      onChange={(e) => setFormData({ ...formData, operator: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      placeholder="Nama Operator"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">EMIS Pontren ID</label>
+                    <input
+                      type="text"
+                      value={formData.emisPontren}
+                      onChange={(e) => setFormData({ ...formData, emisPontren: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      placeholder="EMIS Pontren Code"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">EMIS SPM ID</label>
+                    <input
+                      type="text"
+                      value={formData.emisSpm}
+                      onChange={(e) => setFormData({ ...formData, emisSpm: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      placeholder="EMIS SPM Code"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 2: ALAMAT LENGKAP */}
+              <div className="pt-4 border-t border-slate-100">
+                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3">2. Alamat & Wilayah</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Provinsi</label>
+                    <select 
                       value={alamatProvId}
                       onChange={(e) => {
                         const id = e.target.value;
                         const name = provinces.find((p) => p.id === id)?.name || '';
                         setAlamatProvId(id);
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          provinsi: name, 
-                          kabupaten: '', 
-                          kecamatan: '', 
-                          kelurahan: '' 
-                        }));
+                        setFormData(prev => ({ ...prev, provinsi: name, kabupaten: '', kecamatan: '', kelurahan: '' }));
                         setAlamatKabId('');
                         setAlamatKecId('');
                         setAlamatKelId('');
                       }}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-sans"
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl outline-none"
                     >
                       <option value="">-- Pilih Provinsi --</option>
                       {provinces.map((p) => (
@@ -642,27 +988,21 @@ export default function LembagaMuadalahPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Kabupaten / Kota *</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Kabupaten / Kota</label>
                     <select 
-                      required
                       value={alamatKabId}
                       disabled={!alamatProvId}
                       onChange={(e) => {
                         const id = e.target.value;
                         const name = regencies.find((r) => r.id === id)?.name || '';
                         setAlamatKabId(id);
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          kabupaten: name, 
-                          kecamatan: '', 
-                          kelurahan: '' 
-                        }));
+                        setFormData(prev => ({ ...prev, kabupaten: name, kecamatan: '', kelurahan: '' }));
                         setAlamatKecId('');
                         setAlamatKelId('');
                       }}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white disabled:bg-slate-50 disabled:text-slate-400 font-sans"
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl outline-none disabled:opacity-50"
                     >
-                      <option value="">-- Pilih Kabupaten / Kota --</option>
+                      <option value="">-- Pilih Kabupaten --</option>
                       {regencies.map((r) => (
                         <option key={r.id} value={r.id}>{r.name}</option>
                       ))}
@@ -670,23 +1010,18 @@ export default function LembagaMuadalahPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Kecamatan *</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Kecamatan</label>
                     <select 
-                      required
                       value={alamatKecId}
                       disabled={!alamatKabId}
                       onChange={(e) => {
                         const id = e.target.value;
                         const name = districts.find((d) => d.id === id)?.name || '';
                         setAlamatKecId(id);
-                        setFormData(prev => ({ 
-                          ...prev, 
-                          kecamatan: name, 
-                          kelurahan: '' 
-                        }));
+                        setFormData(prev => ({ ...prev, kecamatan: name, kelurahan: '' }));
                         setAlamatKelId('');
                       }}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white disabled:bg-slate-50 disabled:text-slate-400 font-sans"
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl outline-none disabled:opacity-50"
                     >
                       <option value="">-- Pilih Kecamatan --</option>
                       {districts.map((d) => (
@@ -696,9 +1031,8 @@ export default function LembagaMuadalahPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Kelurahan / Desa *</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Kelurahan / Desa</label>
                     <select 
-                      required
                       value={alamatKelId}
                       disabled={!alamatKecId}
                       onChange={(e) => {
@@ -707,137 +1041,124 @@ export default function LembagaMuadalahPage() {
                         setAlamatKelId(id);
                         setFormData(prev => ({ ...prev, kelurahan: name }));
                       }}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none bg-white disabled:bg-slate-50 disabled:text-slate-400 font-sans"
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl outline-none disabled:opacity-50"
                     >
-                      <option value="">-- Pilih Kelurahan / Desa --</option>
+                      <option value="">-- Pilih Kelurahan --</option>
                       {villages.map((v) => (
                         <option key={v.id} value={v.id}>{v.name}</option>
                       ))}
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-655 mb-1">Jalan / Kampung / Gang *</label>
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Detail Alamat Jalan</label>
                     <input
                       type="text"
-                      required
                       value={formData.alamatDetail}
                       onChange={(e) => setFormData({ ...formData, alamatDetail: e.target.value })}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                      placeholder="Nama jalan, RT/RW, nomor rumah atau gedung..."
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                      placeholder="Jalan Sukarno Hatta No 8"
                     />
                   </div>
                 </div>
-
-                <div className="border-t border-slate-100 pt-3" />
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">NPSN</label>
-                  <input
-                    type="text"
-                    value={formData.npsn}
-                    onChange={(e) => setFormData({ ...formData, npsn: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none text-sm"
-                    placeholder="Masukkan NPSN lembaga..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">NSPP Pesantren</label>
-                  <input
-                    type="text"
-                    value={formData.nspp}
-                    onChange={(e) => setFormData({ ...formData, nspp: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none text-sm"
-                    placeholder="Masukkan NSPP pesantren..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nama Ketua Muadalah</label>
-                  <input
-                    type="text"
-                    value={formData.namaKetua}
-                    onChange={(e) => setFormData({ ...formData, namaKetua: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-blue-500 outline-none text-sm"
-                    placeholder="Masukkan nama ketua..."
-                  />
-                </div>
-
-                {/* Upload TTD Ketua (PNG) */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Upload TTD Ketua (PNG)</label>
-                  <div className="flex items-center gap-3">
-                    <label className="cursor-pointer inline-flex items-center px-4 py-2 border border-slate-300 rounded-lg shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50">
-                      <Upload className="w-4 h-4 mr-2 text-slate-400" />
-                      Pilih PNG TTD
-                      <input
-                        type="file"
-                        accept="image/png"
-                        onChange={handleTtdUpload}
-                        className="hidden"
-                      />
-                    </label>
-                    {isUploadingTtd && <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />}
-                    {formData.ttdKetua && (
-                      <span className="text-xs text-green-600 bg-green-50 px-2.5 py-1 rounded-full border border-green-100 flex items-center gap-1 font-semibold">
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        Terupload
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Upload SK SPM */}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Upload SK SPM (PDF/Gambar)</label>
-                  <div className="flex items-center gap-3">
-                    <label className="cursor-pointer inline-flex items-center px-4 py-2 border border-slate-300 rounded-lg shadow-sm text-sm font-medium text-slate-700 bg-white hover:bg-slate-50">
-                      <Upload className="w-4 h-4 mr-2 text-slate-400" />
-                      Pilih Dokumen SK
-                      <input
-                        type="file"
-                        accept="application/pdf,image/*"
-                        onChange={handleSkUpload}
-                        className="hidden"
-                      />
-                    </label>
-                    {isUploadingSk && <Loader2 className="w-4 h-4 animate-spin text-indigo-500" />}
-                    {formData.skSpm && (
-                      <span className="text-xs text-green-600 bg-green-50 px-2.5 py-1 rounded-full border border-green-100 flex items-center gap-1 font-semibold">
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        Terupload
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {!editingMuadalah && (
-                  <div className="flex items-center pt-2">
-                    <input
-                      type="checkbox"
-                      id="isActive"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
-                    />
-                    <label htmlFor="isActive" className="ml-2 block text-sm text-slate-700">
-                      Aktif
-                    </label>
-                  </div>
-                )}
               </div>
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+
+              {/* SECTION 3: UNGGAH DOKUMEN & BERKAS */}
+              <div className="pt-4 border-t border-slate-100">
+                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3">3. Dokumen & Berkas Legalitas</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* SK Pendirian SPM */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">SK Pendirian SPM (PDF/Gambar)</label>
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                        Pilih File SK SPM
+                        <input type="file" accept="application/pdf,image/*" onChange={(e) => handleFileUpload(e, 'skSpm')} className="hidden" />
+                      </label>
+                      {uploadingField === 'skSpm' && <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />}
+                      {formData.skSpm && <CheckCircle className="w-4 h-4 text-emerald-600" />}
+                    </div>
+                  </div>
+
+                  {/* SK Struktur Organisasi */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Struktur Organisasi (PDF/Gambar)</label>
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                        Pilih File Struktur
+                        <input type="file" accept="application/pdf,image/*" onChange={(e) => handleFileUpload(e, 'skStruktur')} className="hidden" />
+                      </label>
+                      {uploadingField === 'skStruktur' && <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />}
+                      {formData.skStruktur && <CheckCircle className="w-4 h-4 text-emerald-600" />}
+                    </div>
+                  </div>
+
+                  {/* SK Dewan Masyayikh */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">SK Dewan Masyayikh (PDF/Gambar)</label>
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                        Pilih File SK Masyayikh
+                        <input type="file" accept="application/pdf,image/*" onChange={(e) => handleFileUpload(e, 'skDewanMasyayikh')} className="hidden" />
+                      </label>
+                      {uploadingField === 'skDewanMasyayikh' && <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />}
+                      {formData.skDewanMasyayikh && <CheckCircle className="w-4 h-4 text-emerald-600" />}
+                    </div>
+                  </div>
+
+                  {/* SK Pengangkatan Kepala SPM */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">SK Pengangkatan Kepala SPM (PDF/Gambar)</label>
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                        Pilih SK Kepala SPM
+                        <input type="file" accept="application/pdf,image/*" onChange={(e) => handleFileUpload(e, 'skPengangkatanKepalaSpm')} className="hidden" />
+                      </label>
+                      {uploadingField === 'skPengangkatanKepalaSpm' && <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />}
+                      {formData.skPengangkatanKepalaSpm && <CheckCircle className="w-4 h-4 text-emerald-600" />}
+                    </div>
+                  </div>
+
+                  {/* TTD Kepala SPM (PNG) */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">TTD Kepala SPM (Format PNG Transparan)</label>
+                    <div className="flex items-center gap-3">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-slate-50 hover:bg-slate-100 transition-colors">
+                        <Upload className="w-3.5 h-3.5 text-emerald-600" />
+                        Pilih Gambar TTD (PNG)
+                        <input type="file" accept="image/png" onChange={(e) => handleFileUpload(e, 'ttdKetua')} className="hidden" />
+                      </label>
+                      {uploadingField === 'ttdKetua' && <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />}
+                      {formData.ttdKetua && (
+                        <span className="text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1 font-bold">
+                          <CheckCircle className="w-3.5 h-3.5" /> File PNG Siap
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-semibold text-slate-650 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending || isUploadingTtd || isUploadingSk}
-                  className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                  disabled={createMutation.isPending || updateMutation.isPending || !!uploadingField}
+                  className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl px-5 py-2 text-xs shadow-xs transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {createMutation.isPending || updateMutation.isPending ? 'Menyimpan...' : 'Simpan'}
+                  {createMutation.isPending || updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  Simpan Data Lembaga
                 </button>
               </div>
             </form>
@@ -847,183 +1168,53 @@ export default function LembagaMuadalahPage() {
 
       {/* Profile Modal */}
       {selectedProfileMuadalah && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-100">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-                <School className="w-5 h-5 text-indigo-500" />
-                Profil Lembaga Muadalah
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <School className="w-5 h-5 text-indigo-600" /> Profil Lembaga Muadalah
               </h3>
-              <button 
-                onClick={() => setSelectedProfileMuadalah(null)}
-                className="text-slate-400 hover:text-slate-600"
-              >
+              <button onClick={() => setSelectedProfileMuadalah(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Modal Sub Tabs */}
-            <div className="border-b border-slate-100 px-6 flex space-x-6">
-              <button
-                onClick={() => setProfileTab('info')}
-                className={`pb-3 pt-2 text-sm font-semibold border-b-2 transition-all ${
-                  profileTab === 'info'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Profil Lembaga
-              </button>
-              <button
-                onClick={() => setProfileTab('kelas')}
-                className={`pb-3 pt-2 text-sm font-semibold border-b-2 transition-all ${
-                  profileTab === 'kelas'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Daftar Kelas & Cabang ({selectedProfileMuadalah.kelas?.length || 0})
-              </button>
-            </div>
-
             <div className="p-6 space-y-6">
-              {profileTab === 'info' ? (
-                <>
-                  <div className="flex items-center gap-4 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/55">
-                    <div className="w-12 h-12 rounded-xl bg-indigo-500 flex items-center justify-center text-white font-bold text-xl shadow-sm">
-                      {selectedProfileMuadalah.code.substring(0,2).toUpperCase()}
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-slate-800 text-base">
-                        {selectedProfileMuadalah.name}
-                        {selectedProfileMuadalah.namaLain && (
-                          <span className="text-sm font-medium text-slate-500 ml-1.5 font-sans">({selectedProfileMuadalah.namaLain})</span>
-                        )}
-                      </h4>
-                      <p className="text-xs text-slate-500 font-medium">Kode: {selectedProfileMuadalah.code} | Jenjang: <span className="font-bold text-indigo-600">{selectedProfileMuadalah.jenjang || 'ULA'}</span></p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <span className="block text-[11px] font-semibold text-slate-400 uppercase tracking-widest">NPSN</span>
-                      <span className="text-sm font-medium text-slate-700">{selectedProfileMuadalah.npsn || 'Tidak ada'}</span>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="block text-[11px] font-semibold text-slate-400 uppercase tracking-widest">NSPP Pesantren</span>
-                      <span className="text-sm font-medium text-slate-700">{selectedProfileMuadalah.nspp || 'Tidak ada'}</span>
-                    </div>
-                    <div className="space-y-1">
-                      <span className="block text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Status Keaktifan</span>
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold leading-5 ${selectedProfileMuadalah.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {selectedProfileMuadalah.isActive ? 'Aktif' : 'Tidak Aktif'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Alamat Detail */}
-                  <div className="border-t border-slate-100 pt-4 space-y-1">
-                    <span className="block text-[11px] font-semibold text-slate-400 uppercase tracking-widest">Alamat Lengkap</span>
-                    <span className="text-xs text-slate-700 leading-relaxed block font-medium">
-                      {selectedProfileMuadalah.alamatDetail && `${selectedProfileMuadalah.alamatDetail}, `}
-                      {selectedProfileMuadalah.kelurahan && `${selectedProfileMuadalah.kelurahan}, `}
-                      {selectedProfileMuadalah.kecamatan && `${selectedProfileMuadalah.kecamatan}, `}
-                      {selectedProfileMuadalah.kabupaten && `${selectedProfileMuadalah.kabupaten}, `}
-                      {selectedProfileMuadalah.provinsi && `${selectedProfileMuadalah.provinsi}`}
-                      {!selectedProfileMuadalah.provinsi && 'Alamat belum diatur'}
-                    </span>
-                  </div>
-
-                  <div className="border-t border-slate-100 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <span className="block text-[11px] font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                        <User className="w-3.5 h-3.5 text-indigo-500" />
-                        Ketua Muadalah
-                      </span>
-                      <span className="block text-sm font-semibold text-slate-850">{selectedProfileMuadalah.namaKetua || 'Tidak ada'}</span>
-                      {selectedProfileMuadalah.ttdKetua && (
-                        <div className="mt-2 bg-slate-50 p-3 rounded-lg border border-slate-100 max-w-[200px] hover:shadow-sm animate-all">
-                          <span className="block text-[10px] text-slate-400 mb-1 font-semibold">Tanda Tangan</span>
-                          <img 
-                            src={getFullFileUrl(selectedProfileMuadalah.ttdKetua)} 
-                            alt="Tanda Tangan Ketua" 
-                            className="max-h-20 max-w-full object-contain mx-auto" 
-                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <span className="block text-[11px] font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                        <FileText className="w-3.5 h-3.5 text-indigo-500" />
-                        SK SPM
-                      </span>
-                      {selectedProfileMuadalah.skSpm ? (
-                        <a
-                          href={getFullFileUrl(selectedProfileMuadalah.skSpm)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold border border-indigo-100 animate-all"
-                        >
-                          <Eye className="w-3.5 h-3.5 mr-1" />
-                          Lihat Dokumen SK
-                        </a>
-                      ) : (
-                        <span className="text-sm text-slate-500 font-medium">Belum diupload</span>
-                      )}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="overflow-x-auto max-h-[50vh] border border-slate-200 rounded-xl shadow-sm">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50/80 border-b border-slate-200">
-                      <tr>
-                        <th className="px-4 py-2.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-12">No</th>
-                        <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Nama Kelas</th>
-                        <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Tingkat</th>
-                        <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Cabang</th>
-                        <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Wilayah</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-slate-100">
-                      {(selectedProfileMuadalah.kelas || []).map((kelasItem, index) => (
-                        <tr key={kelasItem.id} className="hover:bg-slate-50">
-                          <td className="px-4 py-3 whitespace-nowrap text-center text-xs text-slate-400 font-semibold">
-                            {index + 1}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-xs font-semibold text-slate-800">
-                            {kelasItem.name}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-650">
-                            {kelasItem.tingkat || '-'}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-750 font-medium">
-                            {kelasItem.cabang?.name || '-'}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-500">
-                            {kelasItem.cabang?.wilayah?.name || '-'}
-                          </td>
-                        </tr>
-                      ))}
-                      {(selectedProfileMuadalah.kelas || []).length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="px-4 py-8 text-center text-slate-500 text-xs">
-                            Belum ada kelas yang terdaftar di bawah lembaga muadalah ini.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+              <div className="flex items-center gap-4 bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
+                <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-xs">
+                  {selectedProfileMuadalah.code.substring(0,2).toUpperCase()}
                 </div>
-              )}
+                <div>
+                  <h4 className="font-bold text-slate-900 text-base">
+                    {selectedProfileMuadalah.name}
+                  </h4>
+                  <p className="text-xs text-slate-500 font-medium">Kode: {selectedProfileMuadalah.code} | Jenjang: <span className="font-bold text-indigo-600">{selectedProfileMuadalah.jenjang || 'WUSTHA'}</span></p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 text-xs">
+                <div>
+                  <span className="block font-bold text-slate-400 uppercase">NPSN</span>
+                  <span className="font-semibold text-slate-800">{selectedProfileMuadalah.npsn || '-'}</span>
+                </div>
+                <div>
+                  <span className="block font-bold text-slate-400 uppercase">NSPP Pesantren</span>
+                  <span className="font-semibold text-slate-800">{selectedProfileMuadalah.nspp || '-'}</span>
+                </div>
+                <div>
+                  <span className="block font-bold text-slate-400 uppercase">Status</span>
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedProfileMuadalah.isActive ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`}>
+                    {selectedProfileMuadalah.isActive ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                </div>
+              </div>
             </div>
+
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
               <button
                 type="button"
                 onClick={() => setSelectedProfileMuadalah(null)}
-                className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50"
+                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 cursor-pointer"
               >
                 Tutup
               </button>
@@ -1032,12 +1223,13 @@ export default function LembagaMuadalahPage() {
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
         onConfirm={executeDelete}
-        title="Konfirmasi Hapus"
-        message="Apakah Anda yakin ingin menghapus lembaga muadalah ini? Aksi ini tidak dapat dibatalkan."
+        title="Konfirmasi Hapus Lembaga"
+        message="Apakah Anda yakin ingin menghapus Lembaga Muadalah ini? Seluruh data terikat akan berpengaruh."
       />
     </div>
   );

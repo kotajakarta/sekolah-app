@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { 
-  Plus, Edit2, CheckCircle, XCircle, Loader2, Trash2, School, Search, User, FileText, Eye, Upload,
-  Building2, Users, FileCheck, Shield, Award, FolderOpen, ExternalLink
+  Plus, Edit2, CheckCircle, XCircle, Loader2, Trash2, School, Search, User, FileText, Eye, EyeOff, Upload,
+  Building2, Users, FileCheck, Shield, Award, FolderOpen, ExternalLink, Key, Lock, MapPin, Calendar
 } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -27,7 +27,9 @@ interface LembagaMuadalah {
   namaKetua?: string;
   operator?: string;
   emisPontren?: string;
+  emisPontrenPass?: string;
   emisSpm?: string;
+  emisSpmPass?: string;
   ttdKetua?: string;
   skSpm?: string;
   skStruktur?: string;
@@ -86,10 +88,17 @@ export default function LembagaMuadalahPage() {
   // RBAC Access Control Flags
   const isAdmin = user?.scope === 'GLOBAL';
   const isWilayahOrAdmin = user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH';
-  const isCabang = user?.scope === 'CABANG';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMuadalah, setEditingMuadalah] = useState<LembagaMuadalah | null>(null);
+
+  // Form password visibility toggles
+  const [showEmisPontrenPass, setShowEmisPontrenPass] = useState(false);
+  const [showEmisSpmPass, setShowEmisSpmPass] = useState(false);
+
+  // Profile modal password visibility toggles
+  const [showProfilePontrenPass, setShowProfilePontrenPass] = useState(false);
+  const [showProfileSpmPass, setShowProfileSpmPass] = useState(false);
   
   const [formData, setFormData] = useState({ 
     name: '', 
@@ -101,7 +110,9 @@ export default function LembagaMuadalahPage() {
     namaKetua: '', 
     operator: '',
     emisPontren: '',
+    emisPontrenPass: '',
     emisSpm: '',
+    emisSpmPass: '',
     ttdKetua: '', 
     skSpm: '', 
     skStruktur: '',
@@ -290,6 +301,8 @@ export default function LembagaMuadalahPage() {
 
   const openAddModal = () => {
     setEditingMuadalah(null);
+    setShowEmisPontrenPass(false);
+    setShowEmisSpmPass(false);
     setFormData({ 
       name: '', 
       code: '', 
@@ -300,7 +313,9 @@ export default function LembagaMuadalahPage() {
       namaKetua: '', 
       operator: '',
       emisPontren: '',
+      emisPontrenPass: '',
       emisSpm: '',
+      emisSpmPass: '',
       ttdKetua: '', 
       skSpm: '', 
       skStruktur: '',
@@ -327,6 +342,8 @@ export default function LembagaMuadalahPage() {
 
   const openEditModal = async (item: LembagaMuadalah) => {
     setEditingMuadalah(item);
+    setShowEmisPontrenPass(false);
+    setShowEmisSpmPass(false);
     setFormData({ 
       name: item.name, 
       code: item.code, 
@@ -337,7 +354,9 @@ export default function LembagaMuadalahPage() {
       namaKetua: item.namaKetua || '', 
       operator: item.operator || '',
       emisPontren: item.emisPontren || '',
+      emisPontrenPass: item.emisPontrenPass || '',
       emisSpm: item.emisSpm || '',
+      emisSpmPass: item.emisSpmPass || '',
       ttdKetua: item.ttdKetua || '', 
       skSpm: item.skSpm || '', 
       skStruktur: item.skStruktur || '',
@@ -438,11 +457,11 @@ export default function LembagaMuadalahPage() {
             <School className="w-6 h-6 text-indigo-600" /> Manajemen Lembaga Muadalah
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Kelola data identitas kelembagaan SPM/Muadalah, statistik jumlah santri, dan dokumen berkas legalitas.
+            Kelola data identitas kelembagaan SPM/Muadalah, akun EMIS, statistik santri, dan dokumen berkas legalitas.
           </p>
         </div>
 
-        {/* RBAC Action Button: Only Wilayah & Admin can add new lembaga */}
+        {/* RBAC Action Button */}
         {isWilayahOrAdmin && (
           <button 
             onClick={openAddModal}
@@ -820,7 +839,7 @@ export default function LembagaMuadalahPage() {
             <form onSubmit={handleSubmit} className="space-y-6 max-h-[75vh] overflow-y-auto pr-1">
               {/* SECTION 1: IDENTITAS KELEMBAGAAN */}
               <div>
-                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3">1. Identitas Utama</h3>
+                <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3">1. Identitas Utama & Akun EMIS</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-600 mb-1">Nama Lembaga *</label>
@@ -937,26 +956,70 @@ export default function LembagaMuadalahPage() {
                     />
                   </div>
 
+                  {/* EMIS Pontren Username */}
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">EMIS Pontren ID</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">EMIS Pontren Username</label>
                     <input
                       type="text"
                       value={formData.emisPontren}
                       onChange={(e) => setFormData({ ...formData, emisPontren: e.target.value })}
                       className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                      placeholder="EMIS Pontren Code"
+                      placeholder="Username EMIS Pontren"
                     />
                   </div>
 
+                  {/* EMIS Pontren Password with Eye Toggle */}
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">EMIS SPM ID</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">EMIS Pontren Password</label>
+                    <div className="relative">
+                      <input
+                        type={showEmisPontrenPass ? 'text' : 'password'}
+                        value={formData.emisPontrenPass}
+                        onChange={(e) => setFormData({ ...formData, emisPontrenPass: e.target.value })}
+                        className="w-full pl-3 pr-10 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowEmisPontrenPass((v) => !v)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        {showEmisPontrenPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* EMIS SPM Username */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">EMIS SPM Username</label>
                     <input
                       type="text"
                       value={formData.emisSpm}
                       onChange={(e) => setFormData({ ...formData, emisSpm: e.target.value })}
                       className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                      placeholder="EMIS SPM Code"
+                      placeholder="Username EMIS SPM"
                     />
+                  </div>
+
+                  {/* EMIS SPM Password with Eye Toggle */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">EMIS SPM Password</label>
+                    <div className="relative">
+                      <input
+                        type={showEmisSpmPass ? 'text' : 'password'}
+                        value={formData.emisSpmPass}
+                        onChange={(e) => setFormData({ ...formData, emisSpmPass: e.target.value })}
+                        className="w-full pl-3 pr-10 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowEmisSpmPass((v) => !v)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        {showEmisSpmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1166,57 +1229,224 @@ export default function LembagaMuadalahPage() {
         </div>
       )}
 
-      {/* Profile Modal */}
+      {/* ── PROFIL LEMBAGA MODAL ENHANCED ── */}
       {selectedProfileMuadalah && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-100">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <School className="w-5 h-5 text-indigo-600" /> Profil Lembaga Muadalah
-              </h3>
-              <button onClick={() => setSelectedProfileMuadalah(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full overflow-hidden border border-slate-100 space-y-0">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-bold text-lg shadow-xs">
+                  {selectedProfileMuadalah.code.substring(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">{selectedProfileMuadalah.name}</h3>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Kode: <strong className="text-slate-800">{selectedProfileMuadalah.code}</strong> | Jenjang: <span className="font-bold text-indigo-600">{selectedProfileMuadalah.jenjang || 'WUSTHA'}</span>
+                  </p>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => {
+                  setSelectedProfileMuadalah(null);
+                  setShowProfilePontrenPass(false);
+                  setShowProfileSpmPass(false);
+                }} 
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div className="flex items-center gap-4 bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
-                <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-xs">
-                  {selectedProfileMuadalah.code.substring(0,2).toUpperCase()}
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 text-base">
-                    {selectedProfileMuadalah.name}
-                  </h4>
-                  <p className="text-xs text-slate-500 font-medium">Kode: {selectedProfileMuadalah.code} | Jenjang: <span className="font-bold text-indigo-600">{selectedProfileMuadalah.jenjang || 'WUSTHA'}</span></p>
+            {/* Modal Body */}
+            <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+              {/* SECTION A: IDENTITAS LEMBAGA */}
+              <div>
+                <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4" /> 1. Identitas Utama Kelembagaan
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60">
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-400 uppercase">Nama Lain / Alias</span>
+                    <span className="font-bold text-slate-800">{selectedProfileMuadalah.namaLain || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-400 uppercase">NPSN</span>
+                    <span className="font-bold text-slate-800">{selectedProfileMuadalah.npsn || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-400 uppercase">NSPP Pesantren</span>
+                    <span className="font-bold text-slate-800">{selectedProfileMuadalah.nspp || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-400 uppercase">Pesantren Induk</span>
+                    <span className="font-bold text-slate-800">{selectedProfileMuadalah.pesantrenInduk || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-400 uppercase">Tahun Berdiri</span>
+                    <span className="font-bold text-slate-800">{selectedProfileMuadalah.tahunBerdiri || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-400 uppercase">Status Keaktifan</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedProfileMuadalah.isActive ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
+                      {selectedProfileMuadalah.isActive ? 'Aktif' : 'Nonaktif'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-400 uppercase">Kepala SPM / Ketua</span>
+                    <span className="font-bold text-slate-800">{selectedProfileMuadalah.namaKetua || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[11px] font-semibold text-slate-400 uppercase">Operator SPM</span>
+                    <span className="font-bold text-slate-800">{selectedProfileMuadalah.operator || '-'}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 text-xs">
-                <div>
-                  <span className="block font-bold text-slate-400 uppercase">NPSN</span>
-                  <span className="font-semibold text-slate-800">{selectedProfileMuadalah.npsn || '-'}</span>
+              {/* SECTION B: AKUN & KREDENSIAL EMIS */}
+              <div>
+                <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <Key className="w-4 h-4" /> 2. Kredensial Akun EMIS
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                  {/* EMIS Pontren Card */}
+                  <div className="p-4 bg-indigo-50/30 rounded-2xl border border-indigo-100/70 space-y-2">
+                    <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-indigo-600" /> EMIS Pontren
+                    </span>
+                    <div className="space-y-1">
+                      <p className="text-[11px] text-slate-500 font-semibold">Username:</p>
+                      <p className="font-bold text-slate-900 font-mono text-xs">{selectedProfileMuadalah.emisPontren || '-'}</p>
+                    </div>
+                    <div className="space-y-1 pt-1 border-t border-indigo-100/60">
+                      <p className="text-[11px] text-slate-500 font-semibold">Password:</p>
+                      <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-indigo-200/60">
+                        <span className="font-bold text-slate-900 font-mono">
+                          {showProfilePontrenPass ? (selectedProfileMuadalah.emisPontrenPass || '-') : '••••••••'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowProfilePontrenPass((v) => !v)}
+                          className="text-slate-400 hover:text-indigo-600 cursor-pointer"
+                        >
+                          {showProfilePontrenPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* EMIS SPM Card */}
+                  <div className="p-4 bg-emerald-50/30 rounded-2xl border border-emerald-100/70 space-y-2">
+                    <span className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-emerald-600" /> EMIS SPM
+                    </span>
+                    <div className="space-y-1">
+                      <p className="text-[11px] text-slate-500 font-semibold">Username:</p>
+                      <p className="font-bold text-slate-900 font-mono text-xs">{selectedProfileMuadalah.emisSpm || '-'}</p>
+                    </div>
+                    <div className="space-y-1 pt-1 border-t border-emerald-100/60">
+                      <p className="text-[11px] text-slate-500 font-semibold">Password:</p>
+                      <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border border-emerald-200/60">
+                        <span className="font-bold text-slate-900 font-mono">
+                          {showProfileSpmPass ? (selectedProfileMuadalah.emisSpmPass || '-') : '••••••••'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setShowProfileSpmPass((v) => !v)}
+                          className="text-slate-400 hover:text-emerald-600 cursor-pointer"
+                        >
+                          {showProfileSpmPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span className="block font-bold text-slate-400 uppercase">NSPP Pesantren</span>
-                  <span className="font-semibold text-slate-800">{selectedProfileMuadalah.nspp || '-'}</span>
+              </div>
+
+              {/* SECTION C: ALAMAT LENGKAP */}
+              <div>
+                <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4" /> 3. Alamat Lengkap
+                </h4>
+                <div className="p-4 bg-slate-50/70 rounded-2xl border border-slate-200/60 text-xs leading-relaxed font-semibold text-slate-800">
+                  {selectedProfileMuadalah.alamatDetail && `${selectedProfileMuadalah.alamatDetail}, `}
+                  {selectedProfileMuadalah.kelurahan && `${selectedProfileMuadalah.kelurahan}, `}
+                  {selectedProfileMuadalah.kecamatan && `${selectedProfileMuadalah.kecamatan}, `}
+                  {selectedProfileMuadalah.kabupaten && `${selectedProfileMuadalah.kabupaten}, `}
+                  {selectedProfileMuadalah.provinsi && `${selectedProfileMuadalah.provinsi}`}
+                  {!selectedProfileMuadalah.provinsi && 'Alamat belum diatur'}
                 </div>
-                <div>
-                  <span className="block font-bold text-slate-400 uppercase">Status</span>
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${selectedProfileMuadalah.isActive ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`}>
-                    {selectedProfileMuadalah.isActive ? 'Aktif' : 'Nonaktif'}
-                  </span>
+              </div>
+
+              {/* SECTION D: BERKAS & TTD */}
+              <div>
+                <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <FolderOpen className="w-4 h-4" /> 4. Berkas Legalitas & Tanda Tangan
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <span className="font-semibold text-slate-700">SK Pendirian SPM</span>
+                    {selectedProfileMuadalah.skSpm ? (
+                      <a href={getFullFileUrl(selectedProfileMuadalah.skSpm)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 font-bold hover:underline">
+                        Lihat <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : <span className="text-slate-400 italic">Belum Ada</span>}
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <span className="font-semibold text-slate-700">Struktur Organisasi</span>
+                    {selectedProfileMuadalah.skStruktur ? (
+                      <a href={getFullFileUrl(selectedProfileMuadalah.skStruktur)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 font-bold hover:underline">
+                        Lihat <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : <span className="text-slate-400 italic">Belum Ada</span>}
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <span className="font-semibold text-slate-700">SK Dewan Masyayikh</span>
+                    {selectedProfileMuadalah.skDewanMasyayikh ? (
+                      <a href={getFullFileUrl(selectedProfileMuadalah.skDewanMasyayikh)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 font-bold hover:underline">
+                        Lihat <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : <span className="text-slate-400 italic">Belum Ada</span>}
+                  </div>
+
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                    <span className="font-semibold text-slate-700">SK Pengangkatan Kepala</span>
+                    {selectedProfileMuadalah.skPengangkatanKepalaSpm ? (
+                      <a href={getFullFileUrl(selectedProfileMuadalah.skPengangkatanKepalaSpm)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 font-bold hover:underline">
+                        Lihat <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : <span className="text-slate-400 italic">Belum Ada</span>}
+                  </div>
+
+                  {selectedProfileMuadalah.ttdKetua && (
+                    <div className="sm:col-span-2 p-3 bg-slate-50 rounded-2xl border border-slate-200 text-center space-y-2">
+                      <span className="block text-[11px] font-bold text-slate-500 uppercase">Spesimen Tanda Tangan Kepala SPM</span>
+                      <img 
+                        src={getFullFileUrl(selectedProfileMuadalah.ttdKetua)} 
+                        alt="TTD Ketua" 
+                        className="max-h-24 mx-auto object-contain"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
+            {/* Footer */}
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
               <button
                 type="button"
-                onClick={() => setSelectedProfileMuadalah(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 cursor-pointer"
+                onClick={() => {
+                  setSelectedProfileMuadalah(null);
+                  setShowProfilePontrenPass(false);
+                  setShowProfileSpmPass(false);
+                }}
+                className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 cursor-pointer"
               >
-                Tutup
+                Tutup Profil
               </button>
             </div>
           </div>

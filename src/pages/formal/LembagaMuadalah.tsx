@@ -647,9 +647,6 @@ export default function LembagaMuadalahPage() {
                             >
                               {item.name}
                             </button>
-                            {item.namaLain && (
-                              <p className="text-[11px] font-normal text-slate-400">({item.namaLain})</p>
-                            )}
                             {activeSubTab === 'identitas' && (
                               <p className="text-[11px] font-medium text-slate-500 mt-0.5">
                                 NPSN: <span className="font-bold text-slate-700">{item.npsn || '-'}</span>

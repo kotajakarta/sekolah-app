@@ -49,6 +49,7 @@ import KalenderAkademikUmum from './pages/umum/KalenderAkademikUmum';
 import LandingPage from './pages/public/LandingPage';
 import DaftarUlang from './pages/public/DaftarUlang';
 import RiwayatPerubahanData from './pages/core/RiwayatPerubahanData';
+import PermohonanIzinSantri from './pages/core/PermohonanIzinSantri';
 import FaqPage from './pages/umum/FaqPage';
 import ProfileUser from './pages/core/ProfileUser';
 import KetersediaanGuruMapel from './pages/dashboard/KetersediaanGuruMapel';
@@ -476,6 +477,7 @@ export default function App() {
               <Route path="core/siswa-residu" element={<DataResidu />} />
               <Route path="core/daftar-ulang" element={<DaftarUlangSiswa />} />
               <Route path="core/permintaan-tarik" element={<PermintaanTarikData />} />
+              <Route path="core/permohonan-izin" element={<PermohonanIzinSantri />} />
               <Route path="core/pool" element={<PoolSiswa />} />
               <Route path="core/guru" element={<DataGuru />} />
               <Route path="core/pool-guru" element={<PoolGuru />} />

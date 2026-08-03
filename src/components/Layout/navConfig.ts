@@ -98,6 +98,7 @@ export function useNavEntries(): NavEntry[] {
 
     const konfirmasiItems: NavSubItem[] = [
       { to: '/dashboard/core/permintaan-tarik', label: t('sidebar.status_mutasi') || 'Status Mutasi & Tarik Data', badge: pendingCount },
+      { to: '/dashboard/core/permohonan-izin', label: t('portal.nav_konfirmasi_izin') || 'Konfirmasi Izin Santri' },
     ];
 
     const entries: NavEntry[] = [

@@ -35,6 +35,19 @@ export function useNavEntries(): NavEntry[] {
     refetchInterval: 30000,
   });
 
+  const { data: moduleSettings } = useQuery({
+    queryKey: ['module-settings'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/pengaturan/modules');
+        return res.data;
+      } catch (e) {
+        return { portalWalsanEnabled: true, raporMuadalahEnabled: true };
+      }
+    },
+    staleTime: 60000,
+  });
+
   return useMemo(() => {
     const showKelembagaan =
       user?.scope === 'CABANG' ||
@@ -44,6 +57,8 @@ export function useNavEntries(): NavEntry[] {
       user?.scope === 'WILAYAH';
 
     const showRombonganBelajar = user?.divisi === 'FORMAL' || user?.divisi === 'ALL';
+    const isRaporEnabled = moduleSettings?.raporMuadalahEnabled !== false;
+    const isPortalEnabled = moduleSettings?.portalWalsanEnabled !== false;
 
     const kelembagaanItems = [
       { to: '/dashboard/profile', label: t('sidebar.profil_saya') || 'Profil Saya', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
@@ -122,12 +137,16 @@ export function useNavEntries(): NavEntry[] {
     entries.push({ type: 'group', key: 'bap', label: t('sidebar.bap') || 'Berita Acara (BAP)', icon: FileText, items: bapItems });
     entries.push({ type: 'group', key: 'monitoring', label: t('sidebar.monitoring') || 'Monitoring', icon: Activity, items: monitoringItems });
     entries.push({ type: 'group', key: 'konfirmasi', label: t('sidebar.konfirmasi') || 'Konfirmasi', icon: CheckCircle, items: konfirmasiItems });
-    if (showRombonganBelajar) {
+
+    if (showRombonganBelajar && isRaporEnabled) {
       entries.push({ type: 'link', key: 'rapor', label: t('sidebar.rapor') || 'Rapor Muadalah', icon: FileText, to: '/dashboard/formal/rapor', highlight: true });
     }
     entries.push({ type: 'link', key: 'surat', label: t('sidebar.surat') || 'Layanan Surat', icon: Mail, to: '/dashboard/surat' });
-    entries.push({ type: 'link', key: 'portal-walsan', label: 'Portal Walsan', icon: HeartHandshake, to: '/dashboard/portal-walsan', highlight: true });
+
+    if (isPortalEnabled) {
+      entries.push({ type: 'link', key: 'portal-walsan', label: 'Portal Walsan', icon: HeartHandshake, to: '/dashboard/portal-walsan', highlight: true });
+    }
 
     return entries;
-  }, [user, t, pendingCount]);
+  }, [user, t, pendingCount, moduleSettings]);
 }

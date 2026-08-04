@@ -48,13 +48,91 @@ export default function PengaturanAkademik() {
     return <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>;
   }
 
+  // Fetch Module Settings
+  const { data: moduleSettings } = useQuery({
+    queryKey: ['module-settings'],
+    queryFn: async () => {
+      const res = await apiClient.get('/pengaturan/modules');
+      return res.data;
+    },
+  });
+
+  const moduleMutation = useMutation({
+    mutationFn: async (data: any) => {
+      await apiClient.put('/pengaturan/modules', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['module-settings'] });
+      showToast('success', 'Status Keaktifan Modul berhasil diperbarui');
+    },
+    onError: (err: any) => {
+      showToast('error', err.response?.data?.message || 'Gagal menyimpan status modul');
+    },
+  });
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-800">Pengaturan Akademik</h1>
-        <p className="text-sm text-slate-500 mt-1.5">Atur semester dan tahun ajaran aktif sistem.</p>
+        <h1 className="text-2xl font-semibold text-slate-800">Pengaturan Akademik & Fitur Modul</h1>
+        <p className="text-sm text-slate-500 mt-1.5">Atur semester, tahun ajaran aktif, serta kontrol keaktifan modul sistem.</p>
       </div>
-      
+
+      {/* ── FITUR TOGGLE MODUL SISTEM (RBAC & SIDEBAR VISIBILITY) ── */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <h2 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-2">
+          Kontrol Keaktifan Modul System & Sidebar
+        </h2>
+        <p className="text-xs text-slate-500">
+          Admin Pusat dapat mengaktifkan atau menonaktifkan modul. Jika dinonaktifkan, menu di sidebar akan disembunyikan.
+        </p>
+
+        <div className="space-y-3 pt-2">
+          {/* TOGGLE PORTAL WALSAN */}
+          <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">Modul Portal Wali Santri</h3>
+              <p className="text-xs text-slate-500">Mengontrol akses & tampilan menu Portal Walsan di sidebar.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const currentVal = moduleSettings?.portalWalsanEnabled !== false;
+                moduleMutation.mutate({ portalWalsanEnabled: !currentVal });
+              }}
+              className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                moduleSettings?.portalWalsanEnabled !== false
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                  : 'bg-slate-300 text-slate-700 hover:bg-slate-400'
+              }`}
+            >
+              {moduleSettings?.portalWalsanEnabled !== false ? 'AKTIF (Tampil di Sidebar)' : 'NONAKTIF (Sembunyi)'}
+            </button>
+          </div>
+
+          {/* TOGGLE RAPOR MUADALAH */}
+          <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">Modul Rapor Muadalah</h3>
+              <p className="text-xs text-slate-500">Mengontrol akses & tampilan menu Rapor Muadalah di sidebar.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const currentVal = moduleSettings?.raporMuadalahEnabled !== false;
+                moduleMutation.mutate({ raporMuadalahEnabled: !currentVal });
+              }}
+              className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs ${
+                moduleSettings?.raporMuadalahEnabled !== false
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                  : 'bg-slate-300 text-slate-700 hover:bg-slate-400'
+              }`}
+            >
+              {moduleSettings?.raporMuadalahEnabled !== false ? 'AKTIF (Tampil di Sidebar)' : 'NONAKTIF (Sembunyi)'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

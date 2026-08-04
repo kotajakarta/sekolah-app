@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '../../lib/apiClient';
 import { usePortalStudent } from '../../features/portal/context/PortalStudentContext';
 import {
   Video,
@@ -98,6 +100,34 @@ const CCTV_CHANNELS: CCTVChannel[] = [
 export default function PortalCctv() {
   const { selectedLink } = usePortalStudent();
 
+  // Fetch active CCTV channels configured by Cabang
+  const { data: dbChannels = [] } = useQuery({
+    queryKey: ['portal-cctv-channels', selectedLink?.studentId],
+    queryFn: async () => {
+      const res = await apiClient.get('/portal/cctv/channels', {
+        params: { studentId: selectedLink?.studentId },
+      });
+      return res.data;
+    },
+    enabled: !!selectedLink?.studentId,
+  });
+
+  const activeChannels: CCTVChannel[] = dbChannels.length > 0
+    ? dbChannels.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        location: c.location || 'Lokasi Cabang',
+        category: c.category || 'KELAS',
+        icon: c.category === 'MASJID' ? Building : c.category === 'MAKAN' ? Utensils : School,
+        status: 'ONLINE',
+        streamQuality: '1080p HD',
+        fps: 30,
+        description: c.description || `Stream Kamera ${c.name}`,
+        gradient: 'from-blue-600 to-indigo-900',
+        simulatedBg: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1200&q=80',
+      }))
+    : CCTV_CHANNELS;
+
   // Check protection & lock status
   const isProtectionEnabled = localStorage.getItem('cctv_protection_enabled') !== 'false';
   const [isUnlocked, setIsUnlocked] = useState(
@@ -108,7 +138,7 @@ export default function PortalCctv() {
   const [pinError, setPinError] = useState('');
   const [showPin, setShowPin] = useState(false);
 
-  const [selectedChannel, setSelectedChannel] = useState<CCTVChannel>(CCTV_CHANNELS[0]);
+  const [selectedChannel, setSelectedChannel] = useState<CCTVChannel>(activeChannels[0]);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -402,8 +432,8 @@ export default function PortalCctv() {
             </h3>
 
             <div className="space-y-2.5">
-              {CCTV_CHANNELS.map((channel) => {
-                const isSelected = selectedChannel.id === channel.id;
+              {activeChannels.map((channel) => {
+                const isSelected = selectedChannel?.id === channel.id;
                 const IconComponent = channel.icon;
 
                 return (

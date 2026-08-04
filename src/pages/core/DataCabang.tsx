@@ -318,16 +318,12 @@ export default function DataCabang() {
         'PJ Muadalah': item.pjMuadalah || '-',
         'Total Siswa (Realisasi)': s.totalSiswa,
         'Kapasitas Santri': item.kapasitasSantri || 0,
-        'Hazirlik (Realisasi/Target)': `${s.grup.hazirlik} / ${t.targetHazirlik}`,
-        'Hafizlik (Realisasi/Target)': `${s.grup.hafizlik} / ${t.targetHafizlik}`,
-        'Ibtidai (Realisasi/Target)': `${s.grup.ibtidai} / ${t.targetIbtidai}`,
-        'Ihzari (Realisasi/Target)': `${s.grup.ihzari} / ${t.targetIhzari}`,
-        'Tingkat 7 (Realisasi/Target)': `${s.tingkat.tingkat7} / ${t.targetTingkat7}`,
-        'Tingkat 8 (Realisasi/Target)': `${s.tingkat.tingkat8} / ${t.targetTingkat8}`,
-        'Tingkat 9 (Realisasi/Target)': `${s.tingkat.tingkat9} / ${t.targetTingkat9}`,
-        'Tingkat 10 (Realisasi/Target)': `${s.tingkat.tingkat10} / ${t.targetTingkat10}`,
-        'Tingkat 11 (Realisasi/Target)': `${s.tingkat.tingkat11} / ${t.targetTingkat11}`,
-        'Tingkat 12 (Realisasi/Target)': `${s.tingkat.tingkat12} / ${t.targetTingkat12}`,
+        'Wustha - Tingkat 7 (Realisasi/Target)': `${s.tingkat.tingkat7} / ${t.targetTingkat7}`,
+        'Wustha - Tingkat 8 (Realisasi/Target)': `${s.tingkat.tingkat8} / ${t.targetTingkat8}`,
+        'Wustha - Tingkat 9 (Realisasi/Target)': `${s.tingkat.tingkat9} / ${t.targetTingkat9}`,
+        'Ulya - Tingkat 10 (Realisasi/Target)': `${s.tingkat.tingkat10} / ${t.targetTingkat10}`,
+        'Ulya - Tingkat 11 (Realisasi/Target)': `${s.tingkat.tingkat11} / ${t.targetTingkat11}`,
+        'Ulya - Tingkat 12 (Realisasi/Target)': `${s.tingkat.tingkat12} / ${t.targetTingkat12}`,
       };
     });
 
@@ -682,20 +678,30 @@ export default function DataCabang() {
 
                   {/* SUB-TAB 4: JUMLAH SISWA & TARGET KUOTA */}
                   {activeSubTab === 'jumlah_siswa' && (
-                    <tr>
-                      <th className="py-3 px-3 text-center w-12">No</th>
-                      <th className="py-3 px-3">Nama Cabang</th>
-                      <th className="py-3 px-3 text-center">Hazirlik</th>
-                      <th className="py-3 px-3 text-center">Hafizlik</th>
-                      <th className="py-3 px-3 text-center">Ibtidai</th>
-                      <th className="py-3 px-3 text-center">Ihzari</th>
-                      <th className="py-3 px-3 text-center">Tingkat 7</th>
-                      <th className="py-3 px-3 text-center">Tingkat 8</th>
-                      <th className="py-3 px-3 text-center">Tingkat 9</th>
-                      <th className="py-3 px-3 text-center">Tingkat 10 - 12</th>
-                      <th className="py-3 px-3 text-center">Total Siswa / Kapasitas</th>
-                      <th className="py-3 px-3 text-right">Aksi</th>
-                    </tr>
+                    <>
+                      <tr className="border-b border-slate-200">
+                        <th rowSpan={2} className="py-2.5 px-3 text-center w-12 bg-slate-100/90 text-slate-700 font-bold border-r border-slate-200 align-middle">No</th>
+                        <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-bold border-r border-slate-200 align-middle">Nama Cabang</th>
+                        <th colSpan={3} className="py-2 px-3 text-center bg-sky-600 text-white font-bold tracking-wide border-r border-sky-500 shadow-2xs">
+                          WUSTHA (TINGKAT 7 - 9)
+                        </th>
+                        <th colSpan={3} className="py-2 px-3 text-center bg-emerald-600 text-white font-bold tracking-wide border-r border-emerald-500 shadow-2xs">
+                          ULYA (TINGKAT 10 - 12)
+                        </th>
+                        <th rowSpan={2} className="py-2.5 px-3 text-center bg-indigo-100/90 text-indigo-950 font-bold border-r border-indigo-200 align-middle">
+                          Total Siswa / Kapasitas
+                        </th>
+                        <th rowSpan={2} className="py-2.5 px-3 text-right bg-slate-100/90 text-slate-700 font-bold align-middle">Aksi</th>
+                      </tr>
+                      <tr>
+                        <th className="py-2 px-3 text-center bg-sky-100 text-sky-950 font-bold border-r border-sky-200">Tingkat 7</th>
+                        <th className="py-2 px-3 text-center bg-sky-100 text-sky-950 font-bold border-r border-sky-200">Tingkat 8</th>
+                        <th className="py-2 px-3 text-center bg-sky-100 text-sky-950 font-bold border-r border-sky-300">Tingkat 9</th>
+                        <th className="py-2 px-3 text-center bg-emerald-100 text-emerald-950 font-bold border-r border-emerald-200">Tingkat 10</th>
+                        <th className="py-2 px-3 text-center bg-emerald-100 text-emerald-950 font-bold border-r border-emerald-200">Tingkat 11</th>
+                        <th className="py-2 px-3 text-center bg-emerald-100 text-emerald-950 font-bold border-r border-emerald-300">Tingkat 12</th>
+                      </tr>
+                    </>
                   )}
                 </thead>
 
@@ -792,34 +798,30 @@ export default function DataCabang() {
                             {/* ── SUB-TAB 4: JUMLAH SISWA & TARGET KUOTA ── */}
                             {activeSubTab === 'jumlah_siswa' && (
                               <>
-                                <td className="py-3.5 px-3 text-center">
-                                  {renderTargetCell(s.grup.hazirlik, t.targetHazirlik)}
-                                </td>
-                                <td className="py-3.5 px-3 text-center">
-                                  {renderTargetCell(s.grup.hafizlik, t.targetHafizlik)}
-                                </td>
-                                <td className="py-3.5 px-3 text-center">
-                                  {renderTargetCell(s.grup.ibtidai, t.targetIbtidai)}
-                                </td>
-                                <td className="py-3.5 px-3 text-center">
-                                  {renderTargetCell(s.grup.ihzari, t.targetIhzari)}
-                                </td>
-                                <td className="py-3.5 px-3 text-center">
+                                {/* WUSTHA (TINGKAT 7 - 9) - Sky Blue Accent */}
+                                <td className="py-3 px-3 text-center bg-sky-50/40 border-r border-sky-100">
                                   {renderTargetCell(s.tingkat.tingkat7, t.targetTingkat7)}
                                 </td>
-                                <td className="py-3.5 px-3 text-center">
+                                <td className="py-3 px-3 text-center bg-sky-50/40 border-r border-sky-100">
                                   {renderTargetCell(s.tingkat.tingkat8, t.targetTingkat8)}
                                 </td>
-                                <td className="py-3.5 px-3 text-center">
+                                <td className="py-3 px-3 text-center bg-sky-50/60 border-r border-sky-200">
                                   {renderTargetCell(s.tingkat.tingkat9, t.targetTingkat9)}
                                 </td>
-                                <td className="py-3.5 px-3 text-center">
-                                  {renderTargetCell(
-                                    s.tingkat.tingkat10 + s.tingkat.tingkat11 + s.tingkat.tingkat12,
-                                    t.targetTingkat10 + t.targetTingkat11 + t.targetTingkat12
-                                  )}
+
+                                {/* ULYA (TINGKAT 10 - 12) - Emerald Green Accent */}
+                                <td className="py-3 px-3 text-center bg-emerald-50/40 border-r border-emerald-100">
+                                  {renderTargetCell(s.tingkat.tingkat10, t.targetTingkat10)}
                                 </td>
-                                <td className="py-3.5 px-3 text-center">
+                                <td className="py-3 px-3 text-center bg-emerald-50/40 border-r border-emerald-100">
+                                  {renderTargetCell(s.tingkat.tingkat11, t.targetTingkat11)}
+                                </td>
+                                <td className="py-3 px-3 text-center bg-emerald-50/60 border-r border-emerald-200">
+                                  {renderTargetCell(s.tingkat.tingkat12, t.targetTingkat12)}
+                                </td>
+
+                                {/* TOTAL REALISASI / KAPASITAS TARGET - Indigo Accent */}
+                                <td className="py-3 px-3 text-center bg-indigo-50/50 border-r border-indigo-100 font-bold">
                                   {renderTargetCell(s.totalSiswa, item.kapasitasSantri || 0)}
                                 </td>
                               </>

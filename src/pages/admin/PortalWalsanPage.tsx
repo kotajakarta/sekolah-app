@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import apiClient from '../../lib/apiClient';
 import PermohonanIzinSantriTab from '../../features/permohonan/PermohonanIzinSantriTab';
+import KelolaCctvCabangTab from '../../features/portal/components/KelolaCctvCabangTab';
 import {
   HeartHandshake,
   Users,
@@ -524,6 +525,9 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
               </div>
             )}
           </div>
+
+          {/* MANAGING CABANG CCTV STREAM URLS */}
+          <KelolaCctvCabangTab />
 
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">

@@ -331,7 +331,9 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
               </div>
               <div>
                 <span className="text-xs text-slate-500 font-medium">Live CCTV Stream</span>
-                <h3 className="text-xl font-extrabold text-slate-900 mt-0.5">4 Kanal Online</h3>
+                <h3 className="text-xl font-extrabold text-slate-900 mt-0.5">
+                  {activeCctvFeeds.filter((f) => f.status === 'ONLINE').length} Kamera Online
+                </h3>
               </div>
             </div>
 
@@ -389,11 +391,11 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
               )}
             </div>
 
-            {/* MONITORING CCTV EMBED */}
+            {/* MONITORING CCTV EMBED (DYNAMIC FROM DB) */}
             <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                  <Video className="w-5 h-5 text-indigo-600" /> Pemantauan CCTV Realtime
+                  <Video className="w-5 h-5 text-indigo-600" /> Pemantauan CCTV Realtime ({activeCctvFeeds.length})
                 </h3>
                 <button
                   onClick={() => setActiveTab('cctv')}
@@ -404,25 +406,30 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {ADMIN_CCTV_FEEDS.map((feed) => (
+                {activeCctvFeeds.slice(0, 4).map((feed) => (
                   <div
                     key={feed.id}
                     onClick={() => {
                       setSelectedCctv(feed);
                       setActiveTab('cctv');
                     }}
-                    className="relative aspect-video rounded-2xl overflow-hidden group cursor-pointer border border-slate-200"
+                    className="relative aspect-video rounded-2xl overflow-hidden group cursor-pointer border border-slate-200 bg-slate-950"
                   >
-                    <img src={feed.bg} alt={feed.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent"></div>
-                    <div className="absolute top-2 left-2 flex items-center gap-1">
+                    <HlsPlayer
+                      src={feed.streamUrl || 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8'}
+                      poster={feed.bg}
+                      controls={false}
+                      title={feed.name}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none"></div>
+                    <div className="absolute top-2 left-2 flex items-center gap-1 pointer-events-none">
                       <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
                       <span className="text-[9px] font-bold text-white bg-slate-900/70 px-1.5 py-0.5 rounded-md backdrop-blur-xs">
                         LIVE
                       </span>
                     </div>
-                    <p className="absolute bottom-2 left-2 text-[10px] font-bold text-white truncate max-w-[90%]">
-                      {feed.name.split(': ')[1] || feed.name}
+                    <p className="absolute bottom-2 left-2 text-[10px] font-bold text-white truncate max-w-[90%] pointer-events-none">
+                      {feed.name}
                     </p>
                   </div>
                 ))}

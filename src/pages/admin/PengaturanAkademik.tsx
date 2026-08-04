@@ -39,15 +39,6 @@ export default function PengaturanAkademik() {
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateMutation.mutate(formData);
-  };
-
-  if (isLoading) {
-    return <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>;
-  }
-
   // Fetch Module Settings
   const { data: moduleSettings } = useQuery({
     queryKey: ['module-settings'],
@@ -69,6 +60,15 @@ export default function PengaturanAkademik() {
       showToast('error', err.response?.data?.message || 'Gagal menyimpan status modul');
     },
   });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateMutation.mutate(formData);
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>;
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

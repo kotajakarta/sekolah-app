@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import apiClient from '../../lib/apiClient';
@@ -132,22 +132,30 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
     },
   });
 
-  const activeCctvFeeds: CCTVChannel[] = dbCctvList.length > 0
-    ? dbCctvList.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        location: c.location || 'Lokasi Cabang',
-        category: c.category || 'KELAS',
-        icon: c.category === 'MASJID' ? Building2 : c.category === 'MAKAN' ? Utensils : School,
-        status: c.isActive ? 'ONLINE' : 'OFFLINE',
-        fps: 30,
-        bg: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80',
-        streamUrl: c.streamUrl,
-        rawItem: c,
-      }))
-    : ADMIN_CCTV_FEEDS;
+  const activeCctvFeeds: CCTVChannel[] = (dbCctvList || []).map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    location: c.location || 'Lokasi Cabang',
+    category: c.category || 'KELAS',
+    icon: c.category === 'MASJID' ? Building2 : c.category === 'MAKAN' ? Utensils : School,
+    status: c.isActive ? 'ONLINE' : 'OFFLINE',
+    fps: 30,
+    bg: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80',
+    streamUrl: c.streamUrl,
+    rawItem: c,
+  }));
 
-  const [selectedCctv, setSelectedCctv] = useState<CCTVChannel>(activeCctvFeeds[0]);
+  const [selectedCctv, setSelectedCctv] = useState<CCTVChannel | null>(null);
+
+  useEffect(() => {
+    if (activeCctvFeeds.length > 0) {
+      if (!selectedCctv || !activeCctvFeeds.some((f) => f.id === selectedCctv.id)) {
+        setSelectedCctv(activeCctvFeeds[0]);
+      }
+    } else {
+      setSelectedCctv(null);
+    }
+  }, [dbCctvList]);
 
   // Edit Modal State
   const [editingFeed, setEditingFeed] = useState<CCTVChannel | null>(null);
@@ -640,95 +648,109 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                 <p className="text-xs text-slate-500 mt-0.5">Kanal siaran langsung pengawasan area santri 24 jam.</p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                  <Radio className="w-3.5 h-3.5 text-rose-600 animate-pulse" /> Live Stream Active
-                </span>
-              </div>
+              {activeCctvFeeds.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                    <Radio className="w-3.5 h-3.5 text-rose-600 animate-pulse" /> Live Stream Active ({activeCctvFeeds.length})
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* MAIN CAMERA DISPLAY WITH LIVE HLS PLAYER */}
-            <div className="relative aspect-video rounded-3xl bg-slate-950 overflow-hidden border border-slate-800 shadow-xl">
-              <HlsPlayer
-                src={selectedCctv.streamUrl || 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8'}
-                poster={selectedCctv.bg}
-                title={selectedCctv.name}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none"></div>
-
-              {/* OVERLAY BADGES */}
-              <div className="absolute top-4 left-4 flex items-center gap-2 pointer-events-none z-10">
-                <span className="px-3 py-1 rounded-lg text-xs font-bold bg-rose-600 text-white shadow-md">
-                  LIVE REC 🔴
-                </span>
-                <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-900/80 text-slate-200 border border-slate-700">
-                  1080p HD @ {selectedCctv.fps}fps
-                </span>
-              </div>
-
-              <div className="absolute bottom-4 left-4 pointer-events-none z-10">
-                <p className="text-white font-bold text-base flex items-center gap-2">
-                  <selectedCctv.icon className="w-5 h-5 text-indigo-400" />
-                  {selectedCctv.name}
+            {activeCctvFeeds.length === 0 || !selectedCctv ? (
+              <div className="p-10 text-center bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+                <Video className="w-10 h-10 text-slate-300 mx-auto" />
+                <h4 className="font-bold text-slate-700 text-sm">Belum Ada Kamera CCTV Live Terdaftar untuk Cabang Ini</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  Belum ada siaran kamera CCTV yang dikonfigurasi. Klik tombol <strong className="text-indigo-600">"+ Tambah Kamera CCTV"</strong> di atas untuk mendaftarkan URL siaran kamera.
                 </p>
-                <p className="text-slate-300 text-xs">{selectedCctv.location}</p>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* MAIN CAMERA DISPLAY WITH LIVE HLS PLAYER */}
+                <div className="relative aspect-video rounded-3xl bg-slate-950 overflow-hidden border border-slate-800 shadow-xl">
+                  <HlsPlayer
+                    src={selectedCctv.streamUrl || 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8'}
+                    poster={selectedCctv.bg}
+                    title={selectedCctv.name}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none"></div>
 
-            {/* CAMERA GRID SELECTOR & DIRECT EDIT BUTTONS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-              {activeCctvFeeds.map((feed) => {
-                const isSelected = selectedCctv.id === feed.id;
-                const IconComp = feed.icon;
+                  {/* OVERLAY BADGES */}
+                  <div className="absolute top-4 left-4 flex items-center gap-2 pointer-events-none z-10">
+                    <span className="px-3 py-1 rounded-lg text-xs font-bold bg-rose-600 text-white shadow-md">
+                      LIVE REC 🔴
+                    </span>
+                    <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-900/80 text-slate-200 border border-slate-700">
+                      1080p HD @ {selectedCctv.fps}fps
+                    </span>
+                  </div>
 
-                return (
-                  <div
-                    key={feed.id}
-                    className={`p-3.5 rounded-2xl border text-left transition-all relative group flex flex-col justify-between gap-2 ${
-                      isSelected
-                        ? 'bg-indigo-50/90 border-indigo-300 ring-2 ring-indigo-500/30 shadow-xs'
-                        : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/80'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <button
-                        onClick={() => setSelectedCctv(feed)}
-                        className="flex-1 text-left cursor-pointer"
-                      >
-                        <p className="font-bold text-slate-900 text-xs flex items-center gap-1.5 truncate">
-                          <IconComp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                          {feed.name}
-                        </p>
-                        <p className="text-[10px] text-slate-500 truncate mt-0.5">{feed.location}</p>
-                      </button>
+                  <div className="absolute bottom-4 left-4 pointer-events-none z-10">
+                    <p className="text-white font-bold text-base flex items-center gap-2">
+                      <selectedCctv.icon className="w-5 h-5 text-indigo-400" />
+                      {selectedCctv.name}
+                    </p>
+                    <p className="text-slate-300 text-xs">{selectedCctv.location}</p>
+                  </div>
+                </div>
 
-                      {/* EDIT BUTTON (As requested by user screenshot) */}
-                      <button
-                        onClick={() => openEditModal(feed)}
-                        className="p-1.5 rounded-xl bg-white border border-slate-200 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs shrink-0 cursor-pointer"
-                        title="Edit Alamat Stream & Detail Kamera Ini"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                {/* CAMERA GRID SELECTOR & DIRECT EDIT BUTTONS */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                  {activeCctvFeeds.map((feed) => {
+                    const isSelected = selectedCctv.id === feed.id;
+                    const IconComp = feed.icon;
 
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
-                      <span className="font-mono text-slate-400 truncate max-w-[130px]">
-                        {feed.streamUrl || 'URL Default'}
-                      </span>
-                      <button
-                        onClick={() => setSelectedCctv(feed)}
-                        className={`px-2 py-0.5 rounded-md font-bold cursor-pointer ${
-                          isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                    return (
+                      <div
+                        key={feed.id}
+                        className={`p-3.5 rounded-2xl border text-left transition-all relative group flex flex-col justify-between gap-2 ${
+                          isSelected
+                            ? 'bg-indigo-50/90 border-indigo-300 ring-2 ring-indigo-500/30 shadow-xs'
+                            : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/80'
                         }`}
                       >
-                        {isSelected ? 'TAYANG' : 'PILIH'}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                        <div className="flex items-start justify-between gap-2">
+                          <button
+                            onClick={() => setSelectedCctv(feed)}
+                            className="flex-1 text-left cursor-pointer"
+                          >
+                            <p className="font-bold text-slate-900 text-xs flex items-center gap-1.5 truncate">
+                              <IconComp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                              {feed.name}
+                            </p>
+                            <p className="text-[10px] text-slate-500 truncate mt-0.5">{feed.location}</p>
+                          </button>
+
+                          {/* EDIT BUTTON (As requested by user screenshot) */}
+                          <button
+                            onClick={() => openEditModal(feed)}
+                            className="p-1.5 rounded-xl bg-white border border-slate-200 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs shrink-0 cursor-pointer"
+                            title="Edit Alamat Stream & Detail Kamera Ini"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
+                          <span className="font-mono text-slate-400 truncate max-w-[130px]">
+                            {feed.streamUrl || 'URL Default'}
+                          </span>
+                          <button
+                            onClick={() => setSelectedCctv(feed)}
+                            className={`px-2 py-0.5 rounded-md font-bold cursor-pointer ${
+                              isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                            }`}
+                          >
+                            {isSelected ? 'TAYANG' : 'PILIH'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -118,22 +118,20 @@ export default function PortalCctv() {
     enabled: !!selectedLink?.studentId,
   });
 
-  const activeChannels: CCTVChannel[] = dbChannels.length > 0
-    ? dbChannels.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        location: c.location || 'Lokasi Cabang',
-        category: c.category || 'KELAS',
-        icon: c.category === 'MASJID' ? Building : c.category === 'MAKAN' ? Utensils : School,
-        status: 'ONLINE',
-        streamQuality: '1080p HD',
-        fps: 30,
-        description: c.description || `Stream Kamera ${c.name}`,
-        gradient: 'from-blue-600 to-indigo-900',
-        simulatedBg: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1200&q=80',
-        streamUrl: c.streamUrl,
-      }))
-    : CCTV_CHANNELS;
+  const activeChannels: CCTVChannel[] = (dbChannels || []).map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    location: c.location || 'Lokasi Cabang',
+    category: c.category || 'KELAS',
+    icon: c.category === 'MASJID' ? Building : c.category === 'MAKAN' ? Utensils : School,
+    status: 'ONLINE',
+    streamQuality: '1080p HD',
+    fps: 30,
+    description: c.description || `Stream Kamera ${c.name}`,
+    gradient: 'from-blue-600 to-indigo-900',
+    simulatedBg: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1200&q=80',
+    streamUrl: c.streamUrl,
+  }));
 
   // Check protection & lock status
   const isProtectionEnabled = localStorage.getItem('cctv_protection_enabled') !== 'false';
@@ -145,7 +143,17 @@ export default function PortalCctv() {
   const [pinError, setPinError] = useState('');
   const [showPin, setShowPin] = useState(false);
 
-  const [selectedChannel, setSelectedChannel] = useState<CCTVChannel>(activeChannels[0]);
+  const [selectedChannel, setSelectedChannel] = useState<CCTVChannel | null>(null);
+
+  useEffect(() => {
+    if (activeChannels.length > 0) {
+      if (!selectedChannel || !activeChannels.some((c) => c.id === selectedChannel.id)) {
+        setSelectedChannel(activeChannels[0]);
+      }
+    } else {
+      setSelectedChannel(null);
+    }
+  }, [dbChannels]);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -298,32 +306,40 @@ export default function PortalCctv() {
       </div>
 
       {/* ── PLAYER & CHANNEL SELECTOR ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* PLAYER MAIN CONTAINER */}
-        <div className="lg:col-span-2 space-y-4">
-          <div
-            className={`relative bg-slate-950 rounded-3xl overflow-hidden shadow-xl border border-slate-800 group ${
-              isFullscreen ? 'fixed inset-0 z-50 rounded-none border-none' : 'aspect-video'
-            }`}
-          >
-            {/* LIVE STREAM DISPLAY */}
-            <div className="relative w-full h-full bg-slate-900 flex items-center justify-center overflow-hidden">
-              {selectedChannel.streamUrl ? (
-                <HlsPlayer
-                  src={selectedChannel.streamUrl}
-                  poster={selectedChannel.simulatedBg}
-                  autoPlay={isPlaying}
-                  muted={isMuted}
-                  title={selectedChannel.name}
-                />
-              ) : (
-                <img
-                  src={selectedChannel.simulatedBg}
-                  alt={selectedChannel.name}
-                  className={`w-full h-full object-cover transition-opacity duration-300 ${isPlaying ? 'opacity-90 scale-[1.01]' : 'opacity-40 blur-xs'}`}
-                />
-              )}
+      {activeChannels.length === 0 || !selectedChannel ? (
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-12 text-center space-y-3">
+          <Video className="w-12 h-12 text-slate-300 mx-auto" />
+          <h3 className="font-bold text-slate-800 text-base">Siaran Live CCTV Belum Tersedia</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            Pengelola cabang sekolah santri belum mengaktifkan atau mendaftarkan siaran kamera CCTV live untuk lokasi ini. Silakan hubungi pengurus sekolah untuk informasi lebih lanjut.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* PLAYER MAIN CONTAINER */}
+          <div className="lg:col-span-2 space-y-4">
+            <div
+              className={`relative bg-slate-950 rounded-3xl overflow-hidden shadow-xl border border-slate-800 group ${
+                isFullscreen ? 'fixed inset-0 z-50 rounded-none border-none' : 'aspect-video'
+              }`}
+            >
+              {/* LIVE STREAM DISPLAY */}
+              <div className="relative w-full h-full bg-slate-900 flex items-center justify-center overflow-hidden">
+                {selectedChannel.streamUrl ? (
+                  <HlsPlayer
+                    src={selectedChannel.streamUrl}
+                    poster={selectedChannel.simulatedBg}
+                    autoPlay={isPlaying}
+                    muted={isMuted}
+                    title={selectedChannel.name}
+                  />
+                ) : (
+                  <img
+                    src={selectedChannel.simulatedBg}
+                    alt={selectedChannel.name}
+                    className={`w-full h-full object-cover transition-opacity duration-300 ${isPlaying ? 'opacity-90 scale-[1.01]' : 'opacity-40 blur-xs'}`}
+                  />
+                )}
 
               {/* DYNAMIC MOTION OVERLAY SIMULATION */}
               {isPlaying && (
@@ -502,9 +518,9 @@ export default function PortalCctv() {
               <li>Akses tayangan beroperasi selama 24 jam dengan enkripsi stream HLS SSL terenkripsi.</li>
             </ul>
           </div>
+          </div>
         </div>
-
-      </div>
+      )}
     </div>
   );
 }

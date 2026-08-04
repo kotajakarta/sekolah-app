@@ -271,6 +271,8 @@ export default function DataResidu() {
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={setCurrentPage}
+              totalItems={filteredStudents.length}
+              itemsPerPage={itemsPerPage}
             />
           )}
         </>

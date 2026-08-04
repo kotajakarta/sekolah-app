@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, CheckCircle2, XCircle, Search, RefreshCw, Filter, LayoutDashboard } from 'lucide-react';
 import apiClient from '../../lib/apiClient';
@@ -23,6 +23,11 @@ export default function DataResidu() {
     jenisDaimi: '',
     tingkat: ''
   });
+
+  const handleAdvancedFilterChange = useCallback((newFilters: FilterState) => {
+    setAdvancedFilters(newFilters);
+    setCurrentPage(1);
+  }, []);
 
   const { data: students, isLoading, isError, refetch } = useQuery<ResiduStudent[]>({
     queryKey: ['students-residu'],
@@ -163,10 +168,7 @@ export default function DataResidu() {
       ) : (
         <>
           <AdvancedFilterBar
-            onFilterChange={(newFilters) => {
-              setAdvancedFilters(newFilters);
-              setCurrentPage(1);
-            }}
+            onFilterChange={handleAdvancedFilterChange}
             userScope={user?.scope || ''}
             userWilayahId={user?.wilayahId}
             userCabangId={user?.cabangId}

@@ -108,9 +108,14 @@ export default function AdvancedFilterBar({
     });
   };
 
+  const onFilterChangeRef = React.useRef(onFilterChange);
   useEffect(() => {
-    onFilterChange(filters);
-  }, [filters, onFilterChange]);
+    onFilterChangeRef.current = onFilterChange;
+  });
+
+  useEffect(() => {
+    onFilterChangeRef.current(filters);
+  }, [filters]);
 
   const filteredCabangs = filters.wilayahId 
     ? cabangs.filter((c: any) => c.wilayahId === filters.wilayahId) 

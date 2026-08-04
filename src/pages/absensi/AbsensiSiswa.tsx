@@ -368,34 +368,60 @@ export default function AbsensiSiswa() {
         </div>
       ) : (
         <div className="space-y-3 sm:space-y-4">
-          {/* Quick Actions Header */}
-          <div className="flex flex-col gap-2.5 bg-slate-50 border border-slate-200 p-3 sm:p-4 rounded-xl">
-            <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">Tandai Cepat Semua</span>
-            <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-1.5 sm:gap-2">
-              <button
-                onClick={() => markAll('HADIR')}
-                className="px-2 sm:px-3 py-1.5 sm:py-1 bg-white hover:bg-emerald-50 text-emerald-700 border border-slate-200 hover:border-emerald-200 text-[11px] sm:text-xs font-semibold rounded-lg transition-all"
-              >
-                Hadir
-              </button>
-              <button
-                onClick={() => markAll('SAKIT')}
-                className="px-2 sm:px-3 py-1.5 sm:py-1 bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 hover:border-blue-200 text-[11px] sm:text-xs font-semibold rounded-lg transition-all"
-              >
-                Sakit
-              </button>
-              <button
-                onClick={() => markAll('IZIN')}
-                className="px-2 sm:px-3 py-1.5 sm:py-1 bg-white hover:bg-amber-50 text-amber-700 border border-slate-200 hover:border-amber-200 text-[11px] sm:text-xs font-semibold rounded-lg transition-all"
-              >
-                Izin
-              </button>
-              <button
-                onClick={() => markAll('ALPA')}
-                className="px-2 sm:px-3 py-1.5 sm:py-1 bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 hover:border-rose-200 text-[11px] sm:text-xs font-semibold rounded-lg transition-all"
-              >
-                Alpa
-              </button>
+          {/* Search Box & Quick Actions Header */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 bg-slate-50 border border-slate-200 p-3 sm:p-4 rounded-xl">
+            {/* Search Box */}
+            <div className="relative w-full lg:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari nama santri atau NIS..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-9 pr-8 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500/20 text-xs font-medium focus:outline-none transition-all shadow-xs"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); setPage(1); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Tandai Cepat Buttons */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full lg:w-auto">
+              <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">Tandai Cepat Semua:</span>
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => markAll('HADIR')}
+                  className="px-2.5 py-1.5 bg-white hover:bg-emerald-50 text-emerald-700 border border-slate-200 hover:border-emerald-200 text-[11px] sm:text-xs font-semibold rounded-lg transition-all cursor-pointer"
+                >
+                  Hadir
+                </button>
+                <button
+                  onClick={() => markAll('SAKIT')}
+                  className="px-2.5 py-1.5 bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 hover:border-blue-200 text-[11px] sm:text-xs font-semibold rounded-lg transition-all cursor-pointer"
+                >
+                  Sakit
+                </button>
+                <button
+                  onClick={() => markAll('IZIN')}
+                  className="px-2.5 py-1.5 bg-white hover:bg-amber-50 text-amber-700 border border-slate-200 hover:border-amber-200 text-[11px] sm:text-xs font-semibold rounded-lg transition-all cursor-pointer"
+                >
+                  Izin
+                </button>
+                <button
+                  onClick={() => markAll('ALPA')}
+                  className="px-2.5 py-1.5 bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 hover:border-rose-200 text-[11px] sm:text-xs font-semibold rounded-lg transition-all cursor-pointer"
+                >
+                  Alpa
+                </button>
+              </div>
             </div>
 
             {isSavedSuccessfully && (

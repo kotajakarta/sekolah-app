@@ -71,7 +71,7 @@ export default function KelolaCctvCabangTab() {
   const { data: cabangList = [] } = useQuery({
     queryKey: ['cabang-list-cctv'],
     queryFn: async () => {
-      const res = await apiClient.get('/core/cabang');
+      const res = await apiClient.get('/master-data/cabang');
       return res.data;
     },
     enabled: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH',

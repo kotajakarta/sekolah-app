@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { usePortalStudent } from '../../features/portal/context/PortalStudentContext';
+import HlsPlayer from '../../components/Cctv/HlsPlayer';
 import {
   Video,
   Camera,
@@ -40,6 +41,7 @@ interface CCTVChannel {
   description: string;
   gradient: string;
   simulatedBg: string;
+  streamUrl?: string;
 }
 
 const CCTV_CHANNELS: CCTVChannel[] = [
@@ -55,6 +57,7 @@ const CCTV_CHANNELS: CCTVChannel[] = [
     description: 'Pemantauan aktivitas belajar mengajar & suasana kelas santri.',
     gradient: 'from-blue-600 to-indigo-900',
     simulatedBg: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1200&q=80',
+    streamUrl: 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8',
   },
   {
     id: 'cctv-masjid-1',
@@ -68,6 +71,7 @@ const CCTV_CHANNELS: CCTVChannel[] = [
     description: 'Pemantauan kegiatan jamaah shalat, tahfidz, dan kajian santri.',
     gradient: 'from-emerald-600 to-teal-900',
     simulatedBg: 'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=1200&q=80',
+    streamUrl: 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8',
   },
   {
     id: 'cctv-makan-1',
@@ -81,6 +85,7 @@ const CCTV_CHANNELS: CCTVChannel[] = [
     description: 'Pemantauan waktu makan santri, kebersihan dapur, & antrean kantin.',
     gradient: 'from-amber-600 to-orange-900',
     simulatedBg: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
+    streamUrl: 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8',
   },
   {
     id: 'cctv-asrama-1',
@@ -94,6 +99,7 @@ const CCTV_CHANNELS: CCTVChannel[] = [
     description: 'Pemantauan jam istirahat, kegiatan olahraga, & gazebo hafalan.',
     gradient: 'from-indigo-600 to-purple-900',
     simulatedBg: 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80',
+    streamUrl: 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8',
   },
 ];
 
@@ -125,6 +131,7 @@ export default function PortalCctv() {
         description: c.description || `Stream Kamera ${c.name}`,
         gradient: 'from-blue-600 to-indigo-900',
         simulatedBg: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1200&q=80',
+        streamUrl: c.streamUrl,
       }))
     : CCTV_CHANNELS;
 
@@ -300,13 +307,23 @@ export default function PortalCctv() {
               isFullscreen ? 'fixed inset-0 z-50 rounded-none border-none' : 'aspect-video'
             }`}
           >
-            {/* SIMULATED STREAM DISPLAY */}
+            {/* LIVE STREAM DISPLAY */}
             <div className="relative w-full h-full bg-slate-900 flex items-center justify-center overflow-hidden">
-              <img
-                src={selectedChannel.simulatedBg}
-                alt={selectedChannel.name}
-                className={`w-full h-full object-cover transition-opacity duration-300 ${isPlaying ? 'opacity-90 scale-[1.01]' : 'opacity-40 blur-xs'}`}
-              />
+              {selectedChannel.streamUrl ? (
+                <HlsPlayer
+                  src={selectedChannel.streamUrl}
+                  poster={selectedChannel.simulatedBg}
+                  autoPlay={isPlaying}
+                  muted={isMuted}
+                  title={selectedChannel.name}
+                />
+              ) : (
+                <img
+                  src={selectedChannel.simulatedBg}
+                  alt={selectedChannel.name}
+                  className={`w-full h-full object-cover transition-opacity duration-300 ${isPlaying ? 'opacity-90 scale-[1.01]' : 'opacity-40 blur-xs'}`}
+                />
+              )}
 
               {/* DYNAMIC MOTION OVERLAY SIMULATION */}
               {isPlaying && (

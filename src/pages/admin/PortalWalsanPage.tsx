@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import apiClient from '../../lib/apiClient';
 import PermohonanIzinSantriTab from '../../features/permohonan/PermohonanIzinSantriTab';
 import KelolaCctvCabangTab from '../../features/portal/components/KelolaCctvCabangTab';
+import HlsPlayer from '../../components/Cctv/HlsPlayer';
+import { useToast } from '../../contexts/ToastContext';
 import {
   HeartHandshake,
   Users,
@@ -25,6 +27,10 @@ import {
   Filter,
   Lock,
   Save,
+  Edit2,
+  Trash2,
+  X,
+  Link2,
 } from 'lucide-react';
 
 interface WaliUserItem {
@@ -52,6 +58,8 @@ interface CCTVChannel {
   status: 'ONLINE' | 'OFFLINE';
   fps: number;
   bg: string;
+  streamUrl?: string;
+  rawItem?: any;
 }
 
 const ADMIN_CCTV_FEEDS: CCTVChannel[] = [
@@ -64,6 +72,7 @@ const ADMIN_CCTV_FEEDS: CCTVChannel[] = [
     status: 'ONLINE',
     fps: 30,
     bg: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80',
+    streamUrl: 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8',
   },
   {
     id: 'c2',
@@ -74,6 +83,7 @@ const ADMIN_CCTV_FEEDS: CCTVChannel[] = [
     status: 'ONLINE',
     fps: 30,
     bg: 'https://images.unsplash.com/photo-1564769625905-50e93615e769?auto=format&fit=crop&w=800&q=80',
+    streamUrl: 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8',
   },
   {
     id: 'c3',
@@ -84,6 +94,7 @@ const ADMIN_CCTV_FEEDS: CCTVChannel[] = [
     status: 'ONLINE',
     fps: 30,
     bg: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=800&q=80',
+    streamUrl: 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8',
   },
   {
     id: 'c4',
@@ -94,14 +105,17 @@ const ADMIN_CCTV_FEEDS: CCTVChannel[] = [
     status: 'ONLINE',
     fps: 30,
     bg: 'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=800&q=80',
+    streamUrl: 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8',
   },
 ];
 
 export default function PortalWalsanPage({ initialTab = 'overview' }: { initialTab?: 'overview' | 'list' | 'izin' | 'cctv' }) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
+  const queryClient = useQueryClient();
+
   const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'izin' | 'cctv'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCctv, setSelectedCctv] = useState<CCTVChannel>(ADMIN_CCTV_FEEDS[0]);
 
   // CCTV Access Code PIN States
   const [cctvPinInput, setCctvPinInput] = useState(() => localStorage.getItem('cctv_access_code') || '123456');
@@ -109,10 +123,91 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
   const [showPinText, setShowPinText] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
 
+  // Fetch CCTV Channels from DB
+  const { data: dbCctvList = [] } = useQuery({
+    queryKey: ['cctv-channels-admin'],
+    queryFn: async () => {
+      const res = await apiClient.get('/cctv/channels');
+      return res.data;
+    },
+  });
+
+  const activeCctvFeeds: CCTVChannel[] = dbCctvList.length > 0
+    ? dbCctvList.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        location: c.location || 'Lokasi Cabang',
+        category: c.category || 'KELAS',
+        icon: c.category === 'MASJID' ? Building2 : c.category === 'MAKAN' ? Utensils : School,
+        status: c.isActive ? 'ONLINE' : 'OFFLINE',
+        fps: 30,
+        bg: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=800&q=80',
+        streamUrl: c.streamUrl,
+        rawItem: c,
+      }))
+    : ADMIN_CCTV_FEEDS;
+
+  const [selectedCctv, setSelectedCctv] = useState<CCTVChannel>(activeCctvFeeds[0]);
+
+  // Edit Modal State
+  const [editingFeed, setEditingFeed] = useState<CCTVChannel | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    category: 'KELAS',
+    streamUrl: '',
+    location: '',
+    description: '',
+    isActive: true,
+  });
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Edit Mutation
+  const saveCctvMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      if (editingFeed?.rawItem?.id) {
+        return apiClient.put(`/cctv/channels/${editingFeed.rawItem.id}`, payload);
+      } else {
+        return apiClient.post('/cctv/channels', payload);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cctv-channels-admin'] });
+      queryClient.invalidateQueries({ queryKey: ['portal-cctv-channels'] });
+      showToast('success', 'Kamera CCTV berhasil diperbarui!');
+      setIsEditModalOpen(false);
+      setEditingFeed(null);
+    },
+    onError: (err: any) => {
+      showToast('error', err.response?.data?.message || 'Gagal menyimpan kamera CCTV');
+    },
+  });
+
+  const openEditModal = (feed: CCTVChannel) => {
+    setEditingFeed(feed);
+    setEditFormData({
+      name: feed.rawItem?.name || feed.name,
+      category: feed.rawItem?.category || feed.category || 'KELAS',
+      streamUrl: feed.streamUrl || feed.rawItem?.streamUrl || 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8',
+      location: feed.rawItem?.location || feed.location || '',
+      description: feed.rawItem?.description || '',
+      isActive: feed.status === 'ONLINE',
+    });
+    setIsEditModalOpen(true);
+  };
+
   // Fetch Users for Wali Santri List
   const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery<WaliUserItem[]>({
     queryKey: ['admin-users-walsan'],
-    queryFn: async () => (await apiClient.get('/admin/users')).data,
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/admin/users');
+        return res.data;
+      } catch (err) {
+        console.warn('Cannot fetch admin users:', err);
+        return [];
+      }
+    },
+    retry: false,
   });
 
   // Filter only WALI users
@@ -545,13 +640,17 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
               </div>
             </div>
 
-            {/* MAIN CAMERA DISPLAY */}
+            {/* MAIN CAMERA DISPLAY WITH LIVE HLS PLAYER */}
             <div className="relative aspect-video rounded-3xl bg-slate-950 overflow-hidden border border-slate-800 shadow-xl">
-              <img src={selectedCctv.bg} alt={selectedCctv.name} className="w-full h-full object-cover opacity-90" />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40"></div>
+              <HlsPlayer
+                src={selectedCctv.streamUrl || 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8'}
+                poster={selectedCctv.bg}
+                title={selectedCctv.name}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none"></div>
 
               {/* OVERLAY BADGES */}
-              <div className="absolute top-4 left-4 flex items-center gap-2">
+              <div className="absolute top-4 left-4 flex items-center gap-2 pointer-events-none z-10">
                 <span className="px-3 py-1 rounded-lg text-xs font-bold bg-rose-600 text-white shadow-md">
                   LIVE REC 🔴
                 </span>
@@ -560,7 +659,7 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                 </span>
               </div>
 
-              <div className="absolute bottom-4 left-4">
+              <div className="absolute bottom-4 left-4 pointer-events-none z-10">
                 <p className="text-white font-bold text-base flex items-center gap-2">
                   <selectedCctv.icon className="w-5 h-5 text-indigo-400" />
                   {selectedCctv.name}
@@ -569,23 +668,189 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
               </div>
             </div>
 
-            {/* CAMERA GRID SELECTOR */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-              {ADMIN_CCTV_FEEDS.map((feed) => (
-                <button
-                  key={feed.id}
-                  onClick={() => setSelectedCctv(feed)}
-                  className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                    selectedCctv.id === feed.id
-                      ? 'bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/20'
-                      : 'bg-slate-50 hover:bg-slate-100 border-slate-200'
-                  }`}
-                >
-                  <p className="font-bold text-slate-800 text-xs truncate">{feed.name.split(': ')[1]}</p>
-                  <p className="text-[10px] text-slate-500 truncate mt-0.5">{feed.location}</p>
-                </button>
-              ))}
+            {/* CAMERA GRID SELECTOR & DIRECT EDIT BUTTONS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+              {activeCctvFeeds.map((feed) => {
+                const isSelected = selectedCctv.id === feed.id;
+                const IconComp = feed.icon;
+
+                return (
+                  <div
+                    key={feed.id}
+                    className={`p-3.5 rounded-2xl border text-left transition-all relative group flex flex-col justify-between gap-2 ${
+                      isSelected
+                        ? 'bg-indigo-50/90 border-indigo-300 ring-2 ring-indigo-500/30 shadow-xs'
+                        : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/80'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <button
+                        onClick={() => setSelectedCctv(feed)}
+                        className="flex-1 text-left cursor-pointer"
+                      >
+                        <p className="font-bold text-slate-900 text-xs flex items-center gap-1.5 truncate">
+                          <IconComp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                          {feed.name}
+                        </p>
+                        <p className="text-[10px] text-slate-500 truncate mt-0.5">{feed.location}</p>
+                      </button>
+
+                      {/* EDIT BUTTON (As requested by user screenshot) */}
+                      <button
+                        onClick={() => openEditModal(feed)}
+                        className="p-1.5 rounded-xl bg-white border border-slate-200 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs shrink-0 cursor-pointer"
+                        title="Edit Alamat Stream & Detail Kamera Ini"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
+                      <span className="font-mono text-slate-400 truncate max-w-[130px]">
+                        {feed.streamUrl || 'URL Default'}
+                      </span>
+                      <button
+                        onClick={() => setSelectedCctv(feed)}
+                        className={`px-2 py-0.5 rounded-md font-bold cursor-pointer ${
+                          isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                        }`}
+                      >
+                        {isSelected ? 'TAYANG' : 'PILIH'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL EDIT STREAM KAMERA CCTV (Sesuai Gambar User) ── */}
+      {isEditModalOpen && editingFeed && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-5 animate-scale-up">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-indigo-600" />
+                Edit Pengaturan & Alamat Stream CCTV
+              </h3>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                saveCctvMutation.mutate(editFormData);
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Nama Kamera CCTV *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Misal: CCTV-01: Ruang Kelas Utama A-102"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Kategori Area *</label>
+                  <select
+                    value={editFormData.category}
+                    onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium bg-white"
+                  >
+                    <option value="KELAS">Ruang Kelas</option>
+                    <option value="MASJID">Masjid / Mushala</option>
+                    <option value="MAKAN">Tempat Makan / Dapur</option>
+                    <option value="ASRAMA">Asrama Santri</option>
+                    <option value="HALAMAN">Halaman & Lapangan</option>
+                    <option value="LAINNYA">Lainnya</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Lokasi Detail</label>
+                  <input
+                    type="text"
+                    placeholder="Misal: Gedung Utama Lt. 2"
+                    value={editFormData.location}
+                    onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Alamat Stream URL (HLS `.m3u8` / RTSP / WebRTC) *</label>
+                <div className="relative">
+                  <Link2 className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8"
+                    value={editFormData.streamUrl}
+                    onChange={(e) => setEditFormData({ ...editFormData, streamUrl: e.target.value })}
+                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-slate-200 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Pastikan URL stream aktif. Contoh URL HLS publik: <code className="bg-slate-100 px-1 py-0.5 rounded text-indigo-600">https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8</code>
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Deskripsi / Catatan Tambahan</label>
+                <textarea
+                  rows={2}
+                  placeholder="Catatan mengenai kamera ini..."
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="isActiveEditModal"
+                  checked={editFormData.isActive}
+                  onChange={(e) => setEditFormData({ ...editFormData, isActive: e.target.checked })}
+                  className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
+                />
+                <label htmlFor="isActiveEditModal" className="font-bold text-slate-700 cursor-pointer">
+                  Aktifkan Sinyal Kamera CCTV untuk Wali Santri
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={saveCctvMutation.isPending}
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                >
+                  {saveCctvMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Simpan Perubahan Stream
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

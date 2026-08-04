@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { Video, AlertCircle, RefreshCw, Radio } from 'lucide-react';
+import { AlertCircle, RefreshCw, Radio, ExternalLink, Play } from 'lucide-react';
 
 interface HlsPlayerProps {
   src: string;
@@ -22,9 +22,20 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
   title = 'Live CCTV Stream',
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isIframe, setIsIframe] = useState<boolean>(false);
+
+  // Dynamically load hls.js@latest from CDN as ultra-resilient fallback if needed
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !(window as any).Hls) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js';
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }, []);
 
   useEffect(() => {
     setError(null);
@@ -35,7 +46,7 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
       return;
     }
 
-    // Check if iframe embed URL
+    // Check if iframe embed snippet or third party URL
     if (src.includes('<iframe') || src.includes('youtube.com') || src.includes('vimeo.com')) {
       setIsIframe(true);
       setLoading(false);
@@ -47,41 +58,63 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    let hls: Hls | null = null;
+    // Destroy previous Hls instance if exists
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
 
-    if (Hls.isSupported() && (src.includes('.m3u8') || src.includes('/hls/') || src.includes('stream'))) {
-      hls = new Hls({
+    // Get Hls constructor (either imported or window.Hls latest from CDN)
+    const HlsConstructor = (window as any).Hls || Hls;
+
+    const isHlsStream = src.includes('.m3u8') || src.includes('/hls/') || src.includes('/play/') || src.includes('stream');
+
+    if (HlsConstructor && HlsConstructor.isSupported() && isHlsStream) {
+      const hls = new HlsConstructor({
         enableWorker: true,
         lowLatencyMode: true,
         backBufferLength: 90,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        maxBufferHole: 0.5,
+        highBufferWatchdogPeriod: 2,
+        nudgeOffset: 0.1,
+        nudgeMaxRetry: 5,
+        xhrSetup: (xhr: XMLHttpRequest) => {
+          xhr.withCredentials = false;
+        },
       });
 
+      hlsRef.current = hls;
       hls.loadSource(src);
       hls.attachMedia(video);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      hls.on(HlsConstructor.Events.MANIFEST_PARSED, () => {
         setLoading(false);
+        setError(null);
         if (autoPlay) {
-          video.play().catch(() => {
-            // Autoplay blocked fallback
+          video.play().catch((e) => {
+            console.warn('Autoplay prevented:', e);
           });
         }
       });
 
-      hls.on(Hls.Events.ERROR, (_event, data) => {
+      hls.on(HlsConstructor.Events.ERROR, (_event: any, data: any) => {
+        console.warn('HLS.js Event Error:', data);
         if (data.fatal) {
           switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              setError('Gagal menghubungkan ke server stream CCTV (Network Error). Mencoba ulang...');
-              hls?.startLoad();
+            case HlsConstructor.ErrorTypes.NETWORK_ERROR:
+              console.error('HLS Network error encountered, attempting recovery...');
+              hls.startLoad();
+              setError('Gagal menghubungkan ke stream server. Pastikan server CCTV online dan mengizinkan CORS.');
               break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              setError('Format media stream tidak dapat diputar. Mencoba memulihkan...');
-              hls?.recoverMediaError();
+            case HlsConstructor.ErrorTypes.MEDIA_ERROR:
+              console.error('HLS Media error encountered, recovering...');
+              hls.recoverMediaError();
               break;
             default:
-              setError('Stream CCTV sedang offline atau URL tidak valid.');
-              hls?.destroy();
+              setError('Format stream CCTV tidak dapat diputar di browser ini.');
+              hls.destroy();
               break;
           }
         }
@@ -89,29 +122,42 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Safari iOS / macOS)
       video.src = src;
-      video.addEventListener('loadedmetadata', () => {
+      const handleLoadedMetadata = () => {
         setLoading(false);
+        setError(null);
         if (autoPlay) {
           video.play().catch(() => {});
         }
-      });
-      video.addEventListener('error', () => {
+      };
+      const handleError = () => {
         setError('Gagal memuat video stream CCTV.');
         setLoading(false);
-      });
+      };
+
+      video.addEventListener('loadedmetadata', handleLoadedMetadata);
+      video.addEventListener('error', handleError);
+
+      return () => {
+        video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        video.removeEventListener('error', handleError);
+      };
     } else {
-      // Direct MP4 / WebM video
+      // Direct MP4 / WebM / fallback
       video.src = src;
-      video.onloadeddata = () => setLoading(false);
+      video.onloadeddata = () => {
+        setLoading(false);
+        setError(null);
+      };
       video.onerror = () => {
-        setError('Format stream tidak didukung secara langsung.');
+        setError('Format stream tidak dapat diputar langsung.');
         setLoading(false);
       };
     }
 
     return () => {
-      if (hls) {
-        hls.destroy();
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
       }
     };
   }, [src, autoPlay]);
@@ -130,8 +176,8 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
   }
 
   return (
-    <div className="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden">
-      {/* Video Element */}
+    <div className="relative w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden group">
+      {/* HTML5 Video Element with HLS.js */}
       <video
         ref={videoRef}
         poster={poster}
@@ -148,33 +194,46 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
             <Radio className="w-8 h-8 text-emerald-400 animate-pulse" />
           </div>
           <div>
-            <p className="text-xs font-bold text-emerald-300">Menghubungkan Sinyal CCTV Live...</p>
+            <p className="text-xs font-bold text-emerald-300">Menghubungkan HLS.js Live Stream...</p>
             <p className="text-[10px] text-slate-400 mt-0.5 font-mono max-w-xs truncate">{src}</p>
           </div>
         </div>
       )}
 
-      {/* Error Overlay */}
+      {/* Error / Offline Overlay */}
       {error && (
-        <div className="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-6 text-center space-y-3 z-20">
-          <AlertCircle className="w-10 h-10 text-rose-500 animate-bounce" />
+        <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center space-y-3 z-20">
+          <AlertCircle className="w-10 h-10 text-amber-400 animate-pulse" />
           <div>
-            <h4 className="text-sm font-bold text-rose-300">Streaming CCTV Tidak Dapat Diputar</h4>
-            <p className="text-xs text-slate-400 mt-1 max-w-md">{error}</p>
-            <p className="text-[10px] font-mono text-slate-500 mt-2 truncate max-w-xs bg-slate-900 px-3 py-1 rounded-lg border border-slate-800">
+            <h4 className="text-sm font-bold text-white">Stream CCTV Terkendala Sinyal / Server</h4>
+            <p className="text-xs text-slate-300 mt-1 max-w-md">{error}</p>
+            <div className="mt-2 text-[10px] font-mono text-slate-400 truncate max-w-xs bg-slate-900 px-3 py-1 rounded-lg border border-slate-800 mx-auto">
               URL: {src}
-            </p>
+            </div>
           </div>
-          <button
-            onClick={() => {
-              setError(null);
-              setLoading(true);
-              if (videoRef.current) videoRef.current.load();
-            }}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" /> Coba Hubungkan Ulang
-          </button>
+
+          <div className="flex items-center gap-2 pt-2">
+            <button
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                if (videoRef.current) {
+                  videoRef.current.load();
+                }
+              }}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Putar Ulang Stream
+            </button>
+            <a
+              href={src}
+              target="_blank"
+              rel="noreferrer"
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-1.5"
+            >
+              <ExternalLink className="w-3.5 h-3.5" /> Buka Stream di Tab Baru
+            </a>
+          </div>
         </div>
       )}
     </div>

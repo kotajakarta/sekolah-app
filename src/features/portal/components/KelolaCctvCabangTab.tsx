@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
 import { useToast } from '../../../contexts/ToastContext';
 import { useAuth } from '../../../hooks/useAuth';
+import { maskStreamUrl } from '../../../utils/cctvCrypto';
 import {
   Video,
   Plus,
@@ -263,9 +264,9 @@ export default function KelolaCctvCabangTab() {
 
                   {/* STREAM URL BOX */}
                   <div className="p-3 bg-slate-900 rounded-xl font-mono text-xs text-indigo-300 flex items-center justify-between gap-2 overflow-hidden border border-slate-800">
-                    <span className="truncate flex items-center gap-1.5">
+                    <span className="truncate flex items-center gap-1.5 font-bold">
                       <Link2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                      {item.streamUrl}
+                      {maskStreamUrl(item.streamUrl)}
                     </span>
                     <button
                       onClick={() => setPreviewStreamItem(item)}

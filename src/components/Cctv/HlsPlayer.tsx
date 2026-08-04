@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import { AlertCircle, RefreshCw, Radio, ExternalLink, Play } from 'lucide-react';
+import { AlertCircle, RefreshCw, Radio, ExternalLink } from 'lucide-react';
+import { decryptStreamUrlAsync, maskStreamUrl } from '../../utils/cctvCrypto';
 
 interface HlsPlayerProps {
   src: string;
@@ -26,6 +27,7 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isIframe, setIsIframe] = useState<boolean>(false);
+  const [realStreamUrl, setRealStreamUrl] = useState<string>('');
 
   // Dynamically load hls.js@latest from CDN as ultra-resilient fallback if needed
   useEffect(() => {
@@ -40,6 +42,7 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
   useEffect(() => {
     setError(null);
     setLoading(true);
+    let isSubscribed = true;
 
     if (!src) {
       setLoading(false);
@@ -64,97 +67,109 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
       hlsRef.current = null;
     }
 
-    // Get Hls constructor (either imported or window.Hls latest from CDN)
-    const HlsConstructor = (window as any).Hls || Hls;
+    // Decrypt stream URL in browser memory safely right before loading HLS
+    decryptStreamUrlAsync(src).then((resolvedUrl) => {
+      if (!isSubscribed) return;
+      setRealStreamUrl(resolvedUrl);
 
-    const isHlsStream = src.includes('.m3u8') || src.includes('/hls/') || src.includes('/play/') || src.includes('stream');
+      // Get Hls constructor (either imported or window.Hls latest from CDN)
+      const HlsConstructor = (window as any).Hls || Hls;
+      const isHlsStream =
+        resolvedUrl.includes('.m3u8') ||
+        resolvedUrl.includes('/hls/') ||
+        resolvedUrl.includes('/play/') ||
+        resolvedUrl.includes('stream') ||
+        src.startsWith('cctv_enc_');
 
-    if (HlsConstructor && HlsConstructor.isSupported() && isHlsStream) {
-      const hls = new HlsConstructor({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 90,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        maxBufferHole: 0.5,
-        highBufferWatchdogPeriod: 2,
-        nudgeOffset: 0.1,
-        nudgeMaxRetry: 5,
-        xhrSetup: (xhr: XMLHttpRequest) => {
-          xhr.withCredentials = false;
-        },
-      });
+      if (HlsConstructor && HlsConstructor.isSupported() && isHlsStream) {
+        const hls = new HlsConstructor({
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 90,
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          maxBufferHole: 0.5,
+          highBufferWatchdogPeriod: 2,
+          nudgeOffset: 0.1,
+          nudgeMaxRetry: 5,
+          xhrSetup: (xhr: XMLHttpRequest) => {
+            xhr.withCredentials = false;
+          },
+        });
 
-      hlsRef.current = hls;
-      hls.loadSource(src);
-      hls.attachMedia(video);
+        hlsRef.current = hls;
+        hls.loadSource(resolvedUrl);
+        hls.attachMedia(video);
 
-      hls.on(HlsConstructor.Events.MANIFEST_PARSED, () => {
-        setLoading(false);
-        setError(null);
-        if (autoPlay) {
-          video.play().catch((e) => {
-            console.warn('Autoplay prevented:', e);
-          });
-        }
-      });
-
-      hls.on(HlsConstructor.Events.ERROR, (_event: any, data: any) => {
-        console.warn('HLS.js Event Error:', data);
-        if (data.fatal) {
-          switch (data.type) {
-            case HlsConstructor.ErrorTypes.NETWORK_ERROR:
-              console.error('HLS Network error encountered, attempting recovery...');
-              hls.startLoad();
-              setError('Gagal menghubungkan ke stream server. Pastikan server CCTV online dan mengizinkan CORS.');
-              break;
-            case HlsConstructor.ErrorTypes.MEDIA_ERROR:
-              console.error('HLS Media error encountered, recovering...');
-              hls.recoverMediaError();
-              break;
-            default:
-              setError('Format stream CCTV tidak dapat diputar di browser ini.');
-              hls.destroy();
-              break;
+        hls.on(HlsConstructor.Events.MANIFEST_PARSED, () => {
+          if (!isSubscribed) return;
+          setLoading(false);
+          setError(null);
+          if (autoPlay) {
+            video.play().catch((e) => {
+              console.warn('Autoplay prevented:', e);
+            });
           }
-        }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Native HLS support (Safari iOS / macOS)
-      video.src = src;
-      const handleLoadedMetadata = () => {
-        setLoading(false);
-        setError(null);
-        if (autoPlay) {
-          video.play().catch(() => {});
-        }
-      };
-      const handleError = () => {
-        setError('Gagal memuat video stream CCTV.');
-        setLoading(false);
-      };
+        });
 
-      video.addEventListener('loadedmetadata', handleLoadedMetadata);
-      video.addEventListener('error', handleError);
+        hls.on(HlsConstructor.Events.ERROR, (_event: any, data: any) => {
+          if (!isSubscribed) return;
+          console.warn('HLS.js Event Error:', data);
+          if (data.fatal) {
+            switch (data.type) {
+              case HlsConstructor.ErrorTypes.NETWORK_ERROR:
+                console.error('HLS Network error encountered, attempting recovery...');
+                hls.startLoad();
+                setError('Gagal menghubungkan ke stream server. Pastikan server CCTV online dan mengizinkan CORS.');
+                break;
+              case HlsConstructor.ErrorTypes.MEDIA_ERROR:
+                console.error('HLS Media error encountered, recovering...');
+                hls.recoverMediaError();
+                break;
+              default:
+                setError('Format stream CCTV tidak dapat diputar di browser ini.');
+                hls.destroy();
+                break;
+            }
+          }
+        });
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Native HLS support (Safari iOS / macOS)
+        video.src = resolvedUrl;
+        const handleLoadedMetadata = () => {
+          if (!isSubscribed) return;
+          setLoading(false);
+          setError(null);
+          if (autoPlay) {
+            video.play().catch(() => {});
+          }
+        };
+        const handleError = () => {
+          if (!isSubscribed) return;
+          setError('Gagal memuat video stream CCTV.');
+          setLoading(false);
+        };
 
-      return () => {
-        video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        video.removeEventListener('error', handleError);
-      };
-    } else {
-      // Direct MP4 / WebM / fallback
-      video.src = src;
-      video.onloadeddata = () => {
-        setLoading(false);
-        setError(null);
-      };
-      video.onerror = () => {
-        setError('Format stream tidak dapat diputar langsung.');
-        setLoading(false);
-      };
-    }
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
+        video.addEventListener('error', handleError);
+      } else {
+        // Direct MP4 / WebM / fallback
+        video.src = resolvedUrl;
+        video.onloadeddata = () => {
+          if (!isSubscribed) return;
+          setLoading(false);
+          setError(null);
+        };
+        video.onerror = () => {
+          if (!isSubscribed) return;
+          setError('Format stream tidak dapat diputar langsung.');
+          setLoading(false);
+        };
+      }
+    });
 
     return () => {
+      isSubscribed = false;
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -195,7 +210,9 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
           </div>
           <div>
             <p className="text-xs font-bold text-emerald-300">Menghubungkan HLS.js Live Stream...</p>
-            <p className="text-[10px] text-slate-400 mt-0.5 font-mono max-w-xs truncate">{src}</p>
+            <p className="text-[10px] text-slate-400 mt-0.5 font-mono max-w-xs truncate font-bold">
+              {maskStreamUrl(src)}
+            </p>
           </div>
         </div>
       )}
@@ -207,8 +224,8 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
           <div>
             <h4 className="text-sm font-bold text-white">Stream CCTV Terkendala Sinyal / Server</h4>
             <p className="text-xs text-slate-300 mt-1 max-w-md">{error}</p>
-            <div className="mt-2 text-[10px] font-mono text-slate-400 truncate max-w-xs bg-slate-900 px-3 py-1 rounded-lg border border-slate-800 mx-auto">
-              URL: {src}
+            <div className="mt-2 text-[10px] font-mono text-slate-400 truncate max-w-xs bg-slate-900 px-3 py-1 rounded-lg border border-slate-800 mx-auto font-bold">
+              URL: {maskStreamUrl(src)}
             </div>
           </div>
 
@@ -225,14 +242,16 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
             >
               <RefreshCw className="w-3.5 h-3.5" /> Putar Ulang Stream
             </button>
-            <a
-              href={src}
-              target="_blank"
-              rel="noreferrer"
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-1.5"
-            >
-              <ExternalLink className="w-3.5 h-3.5" /> Buka Stream di Tab Baru
-            </a>
+            {realStreamUrl && (
+              <a
+                href={realStreamUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all border border-slate-700 flex items-center gap-1.5"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Buka Stream di Tab Baru
+              </a>
+            )}
           </div>
         </div>
       )}

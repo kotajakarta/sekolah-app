@@ -22,6 +22,8 @@ import {
   ExternalLink,
   Plus,
   Filter,
+  Lock,
+  Save,
 } from 'lucide-react';
 
 interface WaliUserItem {
@@ -99,6 +101,12 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
   const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'izin' | 'cctv'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCctv, setSelectedCctv] = useState<CCTVChannel>(ADMIN_CCTV_FEEDS[0]);
+
+  // CCTV Access Code PIN States
+  const [cctvPinInput, setCctvPinInput] = useState(() => localStorage.getItem('cctv_access_code') || '123456');
+  const [cctvProtectionEnabled, setCctvProtectionEnabled] = useState(() => localStorage.getItem('cctv_protection_enabled') !== 'false');
+  const [showPinText, setShowPinText] = useState(false);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
 
   // Fetch Users for Wali Santri List
   const { data: allUsers = [], isLoading: isLoadingUsers } = useQuery<WaliUserItem[]>({
@@ -437,6 +445,86 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
       {/* ── TAB 4: LIVE CCTV STREAMING ── */}
       {activeTab === 'cctv' && (
         <div className="space-y-6">
+          {/* CCTV ACCESS CODE CONFIGURATION FOR ADMIN */}
+          <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 rounded-3xl p-6 text-white shadow-lg space-y-4 border border-indigo-700/40">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-3 border-b border-indigo-800/80">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 mb-2">
+                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> Pengaturan Keamanan CCTV Wali Santri
+                </div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-indigo-400" /> Kode Akses / PIN CCTV
+                </h3>
+                <p className="text-xs text-indigo-200/80 mt-0.5">
+                  Tentukan Kode PIN Akses yang wajib dimasukkan oleh wali santri saat membuka halaman /portal/cctv.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const newStatus = !cctvProtectionEnabled;
+                    setCctvProtectionEnabled(newStatus);
+                    localStorage.setItem('cctv_protection_enabled', newStatus ? 'true' : 'false');
+                    setSaveSuccessMsg(newStatus ? 'Proteksi PIN CCTV Diaktifkan!' : 'Proteksi PIN CCTV Dinonaktifkan!');
+                    setTimeout(() => setSaveSuccessMsg(''), 3000);
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs flex items-center gap-2 ${
+                    cctvProtectionEnabled
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                      : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full ${cctvProtectionEnabled ? 'bg-white animate-pulse' : 'bg-slate-400'}`}></span>
+                  Status: {cctvProtectionEnabled ? 'PROTEKSI AKTIF' : 'BEBAS AKSES (TANPA PIN)'}
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end pt-1">
+              <div className="sm:col-span-2 space-y-1.5">
+                <label className="text-xs font-bold text-indigo-200 block">Kode Akses PIN CCTV Baru:</label>
+                <div className="relative">
+                  <input
+                    type={showPinText ? 'text' : 'password'}
+                    value={cctvPinInput}
+                    onChange={(e) => setCctvPinInput(e.target.value)}
+                    placeholder="Masukkan Kode PIN (misal: 123456 atau CCTV2026)"
+                    className="w-full bg-slate-950/80 border border-indigo-700/60 rounded-xl px-4 py-2.5 text-sm text-white font-mono font-bold tracking-wider focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPinText(!showPinText)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-indigo-400 hover:text-white"
+                  >
+                    {showPinText ? 'Sembunyikan' : 'Tampilkan'}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <button
+                  onClick={() => {
+                    if (!cctvPinInput.trim()) return;
+                    localStorage.setItem('cctv_access_code', cctvPinInput.trim());
+                    localStorage.setItem('cctv_protection_enabled', cctvProtectionEnabled ? 'true' : 'false');
+                    setSaveSuccessMsg('Kode PIN Akses CCTV berhasil disimpan!');
+                    setTimeout(() => setSaveSuccessMsg(''), 3000);
+                  }}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" /> Simpan Kode Akses PIN
+                </button>
+              </div>
+            </div>
+
+            {saveSuccessMsg && (
+              <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-bold flex items-center gap-2 animate-fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" /> {saveSuccessMsg}
+              </div>
+            )}
+          </div>
+
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
               <div>

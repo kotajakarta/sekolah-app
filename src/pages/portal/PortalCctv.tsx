@@ -18,6 +18,12 @@ import {
   Clock,
   Sparkles,
   CheckCircle2,
+  Lock,
+  Unlock,
+  KeyRound,
+  Eye,
+  EyeOff,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface CCTVChannel {
@@ -91,6 +97,17 @@ const CCTV_CHANNELS: CCTVChannel[] = [
 
 export default function PortalCctv() {
   const { selectedLink } = usePortalStudent();
+
+  // Check protection & lock status
+  const isProtectionEnabled = localStorage.getItem('cctv_protection_enabled') !== 'false';
+  const [isUnlocked, setIsUnlocked] = useState(
+    () => !isProtectionEnabled || localStorage.getItem('cctv_unlocked_session') === 'true'
+  );
+
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [showPin, setShowPin] = useState(false);
+
   const [selectedChannel, setSelectedChannel] = useState<CCTVChannel>(CCTV_CHANNELS[0]);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
@@ -112,6 +129,25 @@ export default function PortalCctv() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPinError('');
+    const targetCode = localStorage.getItem('cctv_access_code') || '123456';
+
+    if (pinInput.trim() === targetCode) {
+      setIsUnlocked(true);
+      localStorage.setItem('cctv_unlocked_session', 'true');
+    } else {
+      setPinError('Kode Akses PIN salah! Silakan tanyakan kode PIN ke pihak pengelola sekolah.');
+    }
+  };
+
+  const handleLockSession = () => {
+    localStorage.removeItem('cctv_unlocked_session');
+    setIsUnlocked(false);
+    setPinInput('');
+  };
+
   const handleTakeSnapshot = () => {
     setSnapshotSuccess(true);
     setTimeout(() => setSnapshotSuccess(false), 3000);
@@ -120,6 +156,70 @@ export default function PortalCctv() {
   const studentName = selectedLink?.student?.biodata?.fullName ?? 'Anak Anda';
   const kelasName = selectedLink?.student?.siswaFormal?.kelas?.name ?? 'Kelas Santri';
 
+  // ── LOCK SCREEN IF NOT UNLOCKED ──
+  if (isProtectionEnabled && !isUnlocked) {
+    return (
+      <div className="max-w-md mx-auto my-8">
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xl overflow-hidden p-8 text-center space-y-6 relative">
+          <div className="w-20 h-20 bg-indigo-50 border-2 border-indigo-100 rounded-3xl flex items-center justify-center mx-auto text-indigo-600 shadow-xs">
+            <Lock className="w-10 h-10" />
+          </div>
+
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Akses Live CCTV Terkunci</h2>
+            <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+              Halaman tayangan CCTV dilindungi dengan Kode Akses PIN oleh pengelola sekolah.
+            </p>
+          </div>
+
+          <form onSubmit={handleUnlock} className="space-y-4 text-left">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 block flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-indigo-600" /> Masukkan Kode PIN Akses:
+              </label>
+              <div className="relative">
+                <input
+                  type={showPin ? 'text' : 'password'}
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  placeholder="Kode PIN (misal: 123456)"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-base text-center font-mono font-bold tracking-widest text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPin(!showPin)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                >
+                  {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {pinError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-medium flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{pinError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+            >
+              <Unlock className="w-4 h-4" /> Buka Tayangan CCTV
+            </button>
+          </form>
+
+          <div className="pt-2 border-t border-slate-100 text-[11px] text-slate-500 leading-normal">
+            💡 Kode PIN Akses CCTV dapat diperoleh dengan menghubungi sekretariat / pengelola sekolah.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── UNLOCKED FULL CCTV DISPLAY ──
   return (
     <div className="space-y-6">
       {/* ── BANNER INFORMASI LIVE CCTV ── */}
@@ -130,7 +230,7 @@ export default function PortalCctv() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 mb-2">
               <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-              Portal Monitoring CCTV Walisantri
+              Portal Monitoring CCTV Terverifikasi
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
               <Video className="w-6 h-6 text-indigo-400" />
@@ -141,9 +241,21 @@ export default function PortalCctv() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-indigo-900/50 px-4 py-2 rounded-2xl border border-indigo-700/50 text-xs font-medium text-indigo-200 shrink-0">
-            <Clock className="w-4 h-4 text-amber-400" />
-            <span>Server Time: {currentTime}</span>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="hidden sm:flex items-center gap-2 bg-indigo-900/50 px-3 py-1.5 rounded-2xl border border-indigo-700/50 text-xs font-medium text-indigo-200">
+              <Clock className="w-4 h-4 text-amber-400" />
+              <span>{currentTime}</span>
+            </div>
+
+            {isProtectionEnabled && (
+              <button
+                onClick={handleLockSession}
+                className="px-3 py-1.5 bg-indigo-900/80 hover:bg-rose-900/80 border border-indigo-700/60 rounded-xl text-xs font-semibold text-indigo-200 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
+                title="Kunci Akses Sesi CCTV"
+              >
+                <Lock className="w-3.5 h-3.5" /> Kunci Sesi
+              </button>
+            )}
           </div>
         </div>
       </div>

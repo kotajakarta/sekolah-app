@@ -11,6 +11,7 @@ import {
   LogOut,
   User,
   Sparkles,
+  Video,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortalStudent } from '../../features/portal/context/PortalStudentContext';
@@ -19,6 +20,7 @@ const TABS = [
   { to: '/portal', label: 'Beranda', icon: Home },
   { to: '/portal/rapor', label: 'Rapor', icon: GraduationCap },
   { to: '/portal/kehadiran', label: 'Kehadiran', icon: CalendarCheck },
+  { to: '/portal/cctv', label: 'CCTV Live', icon: Video },
   { to: '/portal/pengumuman', label: 'Pengumuman', icon: Megaphone },
   { to: '/portal/permohonan-izin', label: 'Permohonan Izin', icon: FileText },
 ];

@@ -76,6 +76,8 @@ import PortalKehadiran from './pages/portal/PortalKehadiran';
 import PortalPengumuman from './pages/portal/PortalPengumuman';
 import PortalPermohonanIzin from './pages/portal/PortalPermohonanIzin';
 import PortalProfile from './pages/portal/PortalProfile';
+import PortalCctv from './pages/portal/PortalCctv';
+import PortalWalsanPage from './pages/admin/PortalWalsanPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
@@ -514,6 +516,10 @@ export default function App() {
               <Route path="kegiatan/jenis" element={<KelolaJenisKegiatan />} />
               <Route path="kegiatan/templates" element={<KelolaTemplateKegiatan />} />
               <Route path="surat" element={<SuratPage />} />
+              <Route path="portal-walsan" element={<PortalWalsanPage />} />
+              <Route path="portal-walsan/list" element={<PortalWalsanPage initialTab="list" />} />
+              <Route path="portal-walsan/izin" element={<PortalWalsanPage initialTab="izin" />} />
+              <Route path="portal-walsan/cctv" element={<PortalWalsanPage initialTab="cctv" />} />
             </Route>
             <Route
               path="/portal"
@@ -528,6 +534,7 @@ export default function App() {
               <Route index element={<PortalBeranda />} />
               <Route path="rapor" element={<PortalRapor />} />
               <Route path="kehadiran" element={<PortalKehadiran />} />
+              <Route path="cctv" element={<PortalCctv />} />
               <Route path="pengumuman" element={<PortalPengumuman />} />
               <Route path="permohonan-izin" element={<PortalPermohonanIzin />} />
               <Route path="profile" element={<PortalProfile />} />

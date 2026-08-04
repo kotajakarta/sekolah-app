@@ -96,6 +96,13 @@ export function useNavEntries(): NavEntry[] {
       { to: '/dashboard/core/riwayat-perubahan', label: t('sidebar.riwayat_perubahan') || 'Riwayat Perubahan Data', show: true },
     ].filter(i => i.show).map(({ show, ...rest }) => rest);
 
+    const walsanItems: NavSubItem[] = [
+      { to: '/dashboard/portal-walsan', label: 'Ringkasan Portal Walsan' },
+      { to: '/dashboard/portal-walsan/list', label: 'Daftar Wali Santri' },
+      { to: '/dashboard/core/permohonan-izin', label: 'Konfirmasi Izin Santri' },
+      { to: '/dashboard/portal-walsan/cctv', label: 'Live CCTV Monitoring' },
+    ];
+
     const konfirmasiItems: NavSubItem[] = [
       { to: '/dashboard/core/permintaan-tarik', label: t('sidebar.status_mutasi') || 'Status Mutasi & Tarik Data', badge: pendingCount },
       { to: '/dashboard/core/permohonan-izin', label: t('portal.nav_konfirmasi_izin') || 'Konfirmasi Izin Santri' },
@@ -112,6 +119,7 @@ export function useNavEntries(): NavEntry[] {
     entries.push({ type: 'group', key: 'sarpras', label: t('sidebar.sarpras') || 'Sarana Prasarana', icon: Building2, items: sarprasItems });
     entries.push({ type: 'group', key: 'santri', label: t('sidebar.santri') || 'Santri', icon: User, items: santriItems });
     entries.push({ type: 'group', key: 'ustadz', label: t('sidebar.ustadz') || 'Ustadz', icon: Users, items: ustadzItems });
+    entries.push({ type: 'group', key: 'portal-walsan', label: 'Portal Walsan', icon: HeartHandshake, items: walsanItems });
 
     if (showRombonganBelajar) {
       entries.push({ type: 'link', key: 'rombel', label: t('sidebar.rombel') || 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas' });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePortalStudent } from '../../features/portal/context/PortalStudentContext';
 import { useGetRiwayatKelas } from '../../features/portal/hooks/useGetRiwayatKelas';
+import { getStudentFotoUrl } from '../../utils/photo';
 import { UserCircle, CheckCircle2, XCircle, GraduationCap, MapPin, History, Loader2, Award, Calendar, BookOpen } from 'lucide-react';
 
 const STATUS_HAFIDZ_LABEL: Record<string, string> = {
@@ -41,6 +42,7 @@ export default function PortalBeranda() {
   const student = selectedLink.student;
   const kelas = student.siswaFormal?.kelas;
   const mostRecent = riwayat[0];
+  const fotoUrl = getStudentFotoUrl(student.biodata?.fotoUrl);
 
   return (
     <div className="space-y-6">
@@ -50,17 +52,20 @@ export default function PortalBeranda() {
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 relative z-10">
           <div className="shrink-0">
-            {student.biodata?.fotoUrl ? (
+            {fotoUrl ? (
               <img
-                src={student.biodata.fotoUrl}
+                src={fotoUrl}
                 alt={student.biodata?.fullName ?? 'Santri'}
                 className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-indigo-100 shadow-sm"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                  (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden');
+                }}
               />
-            ) : (
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-indigo-400">
-                <UserCircle className="w-12 h-12" />
-              </div>
-            )}
+            ) : null}
+            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-indigo-400 ${fotoUrl ? 'hidden' : ''}`}>
+              <UserCircle className="w-12 h-12" />
+            </div>
           </div>
 
           <div className="flex-1 min-w-0">

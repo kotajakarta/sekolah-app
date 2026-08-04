@@ -67,50 +67,56 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
       hlsRef.current = null;
     }
 
-    // Decrypt stream URL in browser memory safely right before loading HLS
-    decryptStreamUrlAsync(src).then((resolvedUrl) => {
-      if (!isSubscribed) return;
-      setRealStreamUrl(resolvedUrl);
+    // Construct proxy target source URL if needed
+    let targetSourceUrl = src;
+    if (src.startsWith('cctv_enc_')) {
+      targetSourceUrl = `/api/v1/cctv/stream-proxy/playlist?token=${encodeURIComponent(src)}`;
+    } else if ((src.startsWith('http://') || src.startsWith('https://')) && !src.includes('/stream-proxy/')) {
+      targetSourceUrl = `/api/v1/cctv/stream-proxy/playlist?url=${encodeURIComponent(src)}`;
+    }
 
-      // Get Hls constructor (either imported or window.Hls latest from CDN)
-      const HlsConstructor = (window as any).Hls || Hls;
-      const isHlsStream =
-        resolvedUrl.includes('.m3u8') ||
-        resolvedUrl.includes('/hls/') ||
-        resolvedUrl.includes('/play/') ||
-        resolvedUrl.includes('stream') ||
-        src.startsWith('cctv_enc_');
+    setRealStreamUrl(targetSourceUrl);
 
-      if (HlsConstructor && HlsConstructor.isSupported() && isHlsStream) {
-        const hls = new HlsConstructor({
-          enableWorker: true,
-          lowLatencyMode: true,
-          backBufferLength: 90,
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-          maxBufferHole: 0.5,
-          highBufferWatchdogPeriod: 2,
-          nudgeOffset: 0.1,
-          nudgeMaxRetry: 5,
-          xhrSetup: (xhr: XMLHttpRequest) => {
-            xhr.withCredentials = false;
-          },
-        });
+    // Get Hls constructor (either imported or window.Hls latest from CDN)
+    const HlsConstructor = (window as any).Hls || Hls;
+    const isHlsStream =
+      targetSourceUrl.includes('.m3u8') ||
+      targetSourceUrl.includes('/stream-proxy/') ||
+      targetSourceUrl.includes('/hls/') ||
+      targetSourceUrl.includes('/play/') ||
+      targetSourceUrl.includes('stream') ||
+      src.startsWith('cctv_enc_');
 
-        hlsRef.current = hls;
-        hls.loadSource(resolvedUrl);
-        hls.attachMedia(video);
+    if (HlsConstructor && HlsConstructor.isSupported() && isHlsStream) {
+      const hls = new HlsConstructor({
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 90,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        maxBufferHole: 0.5,
+        highBufferWatchdogPeriod: 2,
+        nudgeOffset: 0.1,
+        nudgeMaxRetry: 5,
+        xhrSetup: (xhr: XMLHttpRequest) => {
+          xhr.withCredentials = false;
+        },
+      });
 
-        hls.on(HlsConstructor.Events.MANIFEST_PARSED, () => {
-          if (!isSubscribed) return;
-          setLoading(false);
-          setError(null);
-          if (autoPlay) {
-            video.play().catch((e) => {
-              console.warn('Autoplay prevented:', e);
-            });
-          }
-        });
+      hlsRef.current = hls;
+      hls.loadSource(targetSourceUrl);
+      hls.attachMedia(video);
+
+      hls.on(HlsConstructor.Events.MANIFEST_PARSED, () => {
+        if (!isSubscribed) return;
+        setLoading(false);
+        setError(null);
+        if (autoPlay) {
+          video.play().catch((e) => {
+            console.warn('Autoplay prevented:', e);
+          });
+        }
+      });
 
         hls.on(HlsConstructor.Events.ERROR, (_event: any, data: any) => {
           if (!isSubscribed) return;
@@ -135,7 +141,7 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Native HLS support (Safari iOS / macOS)
-        video.src = resolvedUrl;
+        video.src = targetSourceUrl;
         const handleLoadedMetadata = () => {
           if (!isSubscribed) return;
           setLoading(false);
@@ -154,7 +160,7 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
         video.addEventListener('error', handleError);
       } else {
         // Direct MP4 / WebM / fallback
-        video.src = resolvedUrl;
+        video.src = targetSourceUrl;
         video.onloadeddata = () => {
           if (!isSubscribed) return;
           setLoading(false);
@@ -166,7 +172,6 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
           setLoading(false);
         };
       }
-    });
 
     return () => {
       isSubscribed = false;

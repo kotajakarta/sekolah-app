@@ -28,6 +28,7 @@ import {
   Lock,
   Save,
   Edit2,
+  ShieldAlert,
   Trash2,
   X,
   Link2,
@@ -230,6 +231,40 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
     );
     return nameMatch || userMatch || studentMatch;
   });
+  const { data: moduleSettings } = useQuery({
+    queryKey: ['module-settings'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/pengaturan/modules');
+        return res.data;
+      } catch (e) {
+        return { portalWalsanEnabled: true, raporMuadalahEnabled: true };
+      }
+    },
+    staleTime: 30000,
+  });
+
+  if (moduleSettings && moduleSettings.portalWalsanEnabled === false) {
+    return (
+      <div className="max-w-xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200/80 shadow-xl text-center space-y-4">
+        <div className="w-16 h-16 bg-rose-50 border border-rose-200 text-rose-600 rounded-3xl flex items-center justify-center mx-auto shadow-xs">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-lg font-bold text-slate-900">Modul Portal Wali Santri Nonaktif</h2>
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            Akses ke halaman Portal Wali Santri telah dinonaktifkan oleh Administrator Pusat di Pengaturan Sistem.
+          </p>
+        </div>
+        <button
+          onClick={() => (window.location.href = '/dashboard')}
+          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer"
+        >
+          Kembali ke Dashboard Utama
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

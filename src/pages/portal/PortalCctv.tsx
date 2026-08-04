@@ -200,6 +200,34 @@ export default function PortalCctv() {
 
   const studentName = selectedLink?.student?.biodata?.fullName ?? 'Anak Anda';
   const kelasName = selectedLink?.student?.siswaFormal?.kelas?.name ?? 'Kelas Santri';
+  const { data: moduleSettings } = useQuery({
+    queryKey: ['module-settings'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/pengaturan/modules');
+        return res.data;
+      } catch (e) {
+        return { portalWalsanEnabled: true, raporMuadalahEnabled: true };
+      }
+    },
+    staleTime: 30000,
+  });
+
+  if (moduleSettings && moduleSettings.portalWalsanEnabled === false) {
+    return (
+      <div className="max-w-md mx-auto my-12 bg-white rounded-3xl border border-slate-200/80 shadow-xl overflow-hidden p-8 text-center space-y-4">
+        <div className="w-16 h-16 bg-rose-50 border border-rose-200 text-rose-600 rounded-3xl flex items-center justify-center mx-auto shadow-xs">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold text-slate-900 tracking-tight">Fitur CCTV Nonaktif</h2>
+          <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
+            Modul Portal Wali Santri & CCTV sedang dinonaktifkan oleh administrator sekolah. Silakan hubungi pengurus sekolah.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // ── LOCK SCREEN IF NOT UNLOCKED ──
   if (isProtectionEnabled && !isUnlocked) {

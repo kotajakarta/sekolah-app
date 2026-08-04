@@ -68,7 +68,8 @@ export default function DataResidu() {
   });
 
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
-  const currentStudents = filteredStudents.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const validCurrentPage = totalPages > 0 ? Math.min(Math.max(1, currentPage), totalPages) : 1;
+  const currentStudents = filteredStudents.slice((validCurrentPage - 1) * itemsPerPage, validCurrentPage * itemsPerPage);
 
   const columns = [
     { key: 'nisn', label: 'NISN' },
@@ -241,7 +242,7 @@ export default function DataResidu() {
                       currentStudents.map((student, idx) => (
                         <tr key={student.id} className="hover:bg-slate-50/80 transition-colors group">
                           <td className="px-4 py-3 sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0] font-medium text-slate-600 text-center">
-                            {(currentPage - 1) * itemsPerPage + idx + 1}
+                            {(validCurrentPage - 1) * itemsPerPage + idx + 1}
                           </td>
                           <td className="px-4 py-3 sticky left-[52px] bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0] font-medium text-slate-900">
                             {student.biodata?.fullName || '-'}
@@ -268,7 +269,7 @@ export default function DataResidu() {
           
           {totalPages > 1 && (
             <Pagination
-              currentPage={currentPage}
+              currentPage={validCurrentPage}
               totalPages={totalPages}
               onPageChange={setCurrentPage}
               totalItems={filteredStudents.length}

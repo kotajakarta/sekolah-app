@@ -190,6 +190,24 @@ export default function FormKegiatan() {
     }
   });
 
+  // Mutation to unconfirm BAP (Admin Pusat)
+  const unconfirmMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiClient.post(`/kegiatan/${id}/unconfirm`);
+    },
+    onSuccess: (res) => {
+      showToast('success', 'Konfirmasi BAP berhasil dibatalkan. Akses edit kini terbuka untuk Cabang.');
+      if (editingBap) {
+        setEditingBap(res.data);
+      }
+      queryClient.invalidateQueries({ queryKey: ['kegiatan'] });
+      queryClient.invalidateQueries({ queryKey: ['kegiatan', 'branch-list'] });
+    },
+    onError: (error: any) => {
+      showToast('error', error.response?.data?.message || 'Gagal membatalkan konfirmasi BAP.');
+    }
+  });
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -564,6 +582,33 @@ export default function FormKegiatan() {
               Cabang Anda tidak dapat lagi mengubah data atau menghapus berkas laporan ini.
             </p>
           </div>
+        </div>
+      )}
+
+      {activeView === 'EDIT' && editingBap?.isConfirmed === true && user?.scope === 'GLOBAL' && (
+        <div className="bg-emerald-50 border border-emerald-300 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-900 text-sm shadow-sm">
+          <div className="flex items-start gap-3">
+            <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-emerald-900">Laporan BAP Berstatus Diterima Pusat</p>
+              <p className="text-xs text-emerald-800 mt-0.5 leading-relaxed">
+                Sebagai Administrator Pusat, Anda dapat langsung mengubah data laporan ini atau membatalkan konfirmasi agar Cabang dapat mengedit/membuat ulang.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Batalkan konfirmasi terima BAP ini? Cabang akan dapat mengedit kembali.')) {
+                unconfirmMutation.mutate(editingBap.id);
+              }
+            }}
+            disabled={unconfirmMutation.isPending}
+            className="shrink-0 px-3.5 py-1.5 text-xs font-bold text-amber-800 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-lg transition-colors cursor-pointer"
+          >
+            {unconfirmMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> : null}
+            Batalkan Konfirmasi (Buka Akses Edit Cabang)
+          </button>
         </div>
       )}
 

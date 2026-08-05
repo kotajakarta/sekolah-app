@@ -177,6 +177,34 @@ export default function ListKegiatanBap() {
     }
   });
 
+  // Mutation to unconfirm BAP receipt (Pusat Only)
+  const unconfirmMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiClient.post(`/kegiatan/${id}/unconfirm`);
+    },
+    onSuccess: () => {
+      showToast('success', 'Konfirmasi BAP berhasil dibatalkan. Akses edit kini terbuka.');
+      queryClient.invalidateQueries({ queryKey: ['kegiatan'] });
+    },
+    onError: (error: any) => {
+      showToast('error', error.response?.data?.message || 'Gagal membatalkan konfirmasi BAP.');
+    }
+  });
+
+  // Mutation to delete BAP (Pusat Only)
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiClient.delete(`/kegiatan/${id}`);
+    },
+    onSuccess: () => {
+      showToast('success', 'Laporan BAP berhasil dihapus. Cabang kini dapat membuat ulang.');
+      queryClient.invalidateQueries({ queryKey: ['kegiatan'] });
+    },
+    onError: (error: any) => {
+      showToast('error', error.response?.data?.message || 'Gagal menghapus BAP.');
+    }
+  });
+
   const toggleExpand = (id: string) => {
     setExpandedId(prev => (prev === id ? null : id));
   };
@@ -449,19 +477,49 @@ export default function ListKegiatanBap() {
                         )}
                       </div>
 
-                      {!bap.isConfirmed && user?.scope === 'GLOBAL' && (
-                        <button
-                          onClick={() => confirmMutation.mutate(bap.id)}
-                          disabled={confirmMutation.isPending}
-                          className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all cursor-pointer"
-                        >
-                          {confirmMutation.isPending ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      {user?.scope === 'GLOBAL' && (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {bap.isConfirmed ? (
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Batalkan konfirmasi terima BAP ini? Akses edit akan dibuka kembali.')) {
+                                  unconfirmMutation.mutate(bap.id);
+                                }
+                              }}
+                              disabled={unconfirmMutation.isPending}
+                              className="px-3.5 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-300 rounded-lg hover:bg-amber-100 transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              {unconfirmMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> : null}
+                              Batalkan Konfirmasi (Buka Akses Edit)
+                            </button>
                           ) : (
-                            <Sparkles className="w-3.5 h-3.5" />
+                            <button
+                              onClick={() => confirmMutation.mutate(bap.id)}
+                              disabled={confirmMutation.isPending}
+                              className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all cursor-pointer"
+                            >
+                              {confirmMutation.isPending ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Sparkles className="w-3.5 h-3.5" />
+                              )}
+                              Konfirmasi Terima Laporan BAP
+                            </button>
                           )}
-                          Konfirmasi Terima Laporan BAP
-                        </button>
+
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Hapus laporan BAP ini? Cabang dapat membuat ulang laporan setelah dihapus.')) {
+                                deleteMutation.mutate(bap.id);
+                              }
+                            }}
+                            disabled={deleteMutation.isPending}
+                            className="px-3.5 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all cursor-pointer disabled:opacity-50"
+                          >
+                            {deleteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> : null}
+                            Hapus Laporan (Izinkan Buat Ulang)
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

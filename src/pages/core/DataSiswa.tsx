@@ -290,35 +290,39 @@ export default function DataSiswa() {
             <FileSpreadsheet className="w-4 h-4 mr-2" />
             {t('siswa.export_xlsx') || 'Export XLSX'}
           </button>
-          {isAdmin && students && students.length > 0 && (
-            <button
-              onClick={() => setIsConfirmDeleteAllOpen(true)}
-              className="inline-flex items-center justify-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {t('common.delete_all') || 'Hapus Semua'}
-            </button>
+          {user?.scope !== 'AUDITOR' && (
+            <>
+              {isAdmin && students && students.length > 0 && (
+                <button
+                  onClick={() => setIsConfirmDeleteAllOpen(true)}
+                  className="inline-flex items-center justify-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {t('common.delete_all') || 'Hapus Semua'}
+                </button>
+              )}
+              {(user?.scope === 'CABANG' || user?.scope === 'WILAYAH' || user?.scope === 'GLOBAL') && (
+                <button
+                  onClick={() => setIsTarikModalOpen(true)}
+                  className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  {t('siswa.tarik_data') || 'Tarik Data Santri'}
+                </button>
+              )}
+              <button
+                onClick={() => setIsLepasMassalOpen(true)}
+                className="inline-flex items-center justify-center px-4 py-2 border border-amber-200 shadow-sm text-sm font-medium rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+              >
+                <UserMinus className="w-4 h-4 mr-2" />
+                {t('siswa.lepas_massal') || 'Lepas Massal'}
+              </button>
+              <button onClick={handleAdd} className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
+                <Plus className="w-4 h-4 mr-2" />
+                {t('siswa.add_button')}
+              </button>
+            </>
           )}
-          {(user?.scope === 'CABANG' || user?.scope === 'WILAYAH' || user?.scope === 'GLOBAL') && (
-            <button
-              onClick={() => setIsTarikModalOpen(true)}
-              className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              {t('siswa.tarik_data') || 'Tarik Data Santri'}
-            </button>
-          )}
-          <button
-            onClick={() => setIsLepasMassalOpen(true)}
-            className="inline-flex items-center justify-center px-4 py-2 border border-amber-200 shadow-sm text-sm font-medium rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
-          >
-            <UserMinus className="w-4 h-4 mr-2" />
-            {t('siswa.lepas_massal') || 'Lepas Massal'}
-          </button>
-          <button onClick={handleAdd} className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
-            <Plus className="w-4 h-4 mr-2" />
-            {t('siswa.add_button')}
-          </button>
         </div>
       </div>
 
@@ -528,30 +532,34 @@ export default function DataSiswa() {
                               >
                                 <User className="h-3.5 w-3.5" />
                               </button>
-                              <button
-                                onClick={() => handleEdit(student)}
-                                className="inline-flex items-center justify-center p-1.5 border border-indigo-200 shadow-sm rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                                title={t('common.edit') || "Edit"}
-                              >
-                                <Edit2 className="h-3.5 w-3.5" />
-                              </button>
-                              {student.statusPool === 'AKTIF_CABANG' && (
-                                <button
-                                  onClick={() => setStudentToLepas(student)}
-                                  className="inline-flex items-center justify-center p-1.5 border border-amber-200 shadow-sm rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors"
-                                  title="Lepas Siswa"
-                                >
-                                  <UserMinus className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                              {isAdmin && (
-                                <button
-                                  onClick={() => setStudentToDelete(student)}
-                                  className="inline-flex items-center justify-center p-1.5 border border-red-200 shadow-sm rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                                  title="Hapus Siswa"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
+                              {user?.scope !== ('AUDITOR' as any) && (
+                                <>
+                                  <button
+                                    onClick={() => handleEdit(student)}
+                                    className="inline-flex items-center justify-center p-1.5 border border-indigo-200 shadow-sm rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                                    title={t('common.edit') || "Edit"}
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </button>
+                                  {student.statusPool === 'AKTIF_CABANG' && (
+                                    <button
+                                      onClick={() => setStudentToLepas(student)}
+                                      className="inline-flex items-center justify-center p-1.5 border border-amber-200 shadow-sm rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors"
+                                      title="Lepas Siswa"
+                                    >
+                                      <UserMinus className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => setStudentToDelete(student)}
+                                      className="inline-flex items-center justify-center p-1.5 border border-red-200 shadow-sm rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                      title="Hapus Siswa"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </td>
                           </tr>

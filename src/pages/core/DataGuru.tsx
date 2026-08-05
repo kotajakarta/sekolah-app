@@ -147,30 +147,32 @@ export default function DataGuru() {
           <h1 className="text-3xl font-display font-bold text-slate-800 tracking-tight">{t('guru.title')}</h1>
           <p className="text-sm text-slate-500 mt-1.5">{t('guru.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-3">
-          {isAdmin && guru && guru.length > 0 && (
-            <button 
-              onClick={() => setIsConfirmDeleteAllOpen(true)}
-              className="inline-flex items-center justify-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {t('common.delete_all') || 'Hapus Semua'}
+        {user?.scope !== 'AUDITOR' && (
+          <div className="flex items-center gap-3">
+            {isAdmin && guru && guru.length > 0 && (
+              <button 
+                onClick={() => setIsConfirmDeleteAllOpen(true)}
+                className="inline-flex items-center justify-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                {t('common.delete_all') || 'Hapus Semua'}
+              </button>
+            )}
+            {(user?.scope === 'CABANG' || user?.scope === 'WILAYAH') && (
+              <button 
+                onClick={() => setIsTarikModalOpen(true)}
+                className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                {t('guru.tarik_btn')}
+              </button>
+            )}
+            <button onClick={handleCreate} className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
+              <Plus className="w-4 h-4 mr-2" />
+              {t('guru.add_button')}
             </button>
-          )}
-          {(user?.scope === 'CABANG' || user?.scope === 'WILAYAH') && (
-            <button 
-              onClick={() => setIsTarikModalOpen(true)}
-              className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              {t('guru.tarik_btn')}
-            </button>
-          )}
-          <button onClick={handleCreate} className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
-            <Plus className="w-4 h-4 mr-2" />
-            {t('guru.add_button')}
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Tabs Switcher */}
@@ -278,27 +280,33 @@ export default function DataGuru() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => handleEdit(item)}
-                            className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-xs font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors mr-2"
-                          >
-                            <Edit2 className="h-3.5 w-3.5 mr-1" />
-                            {t('guru.form.edit_btn')}
-                          </button>
-                          <button
-                            onClick={() => setGuruToLepas(item)}
-                            className="inline-flex items-center px-3 py-1.5 border border-amber-200 shadow-sm text-xs font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors mr-2"
-                          >
-                            <UserMinus className="h-3.5 w-3.5 mr-1" />
-                            {t('guru.form.lepas_btn')}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className="inline-flex items-center px-3 py-1.5 border border-red-200 shadow-sm text-xs font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                          >
-                            <Trash2 className="h-3.5 w-3.5 mr-1" />
-                            {t('common.delete')}
-                          </button>
+                          {user?.scope !== 'AUDITOR' ? (
+                            <>
+                              <button
+                                onClick={() => handleEdit(item)}
+                                className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-xs font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors mr-2"
+                              >
+                                <Edit2 className="h-3.5 w-3.5 mr-1" />
+                                {t('guru.form.edit_btn')}
+                              </button>
+                              <button
+                                onClick={() => setGuruToLepas(item)}
+                                className="inline-flex items-center px-3 py-1.5 border border-amber-200 shadow-sm text-xs font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors mr-2"
+                              >
+                                <UserMinus className="h-3.5 w-3.5 mr-1" />
+                                {t('guru.form.lepas_btn')}
+                              </button>
+                              <button
+                                onClick={() => handleDelete(item.id)}
+                                className="inline-flex items-center px-3 py-1.5 border border-red-200 shadow-sm text-xs font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                {t('common.delete')}
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-xs text-slate-400 font-normal">Read-Only</span>
+                          )}
                         </td>
                       </tr>
                     ))}

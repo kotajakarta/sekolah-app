@@ -49,6 +49,43 @@ export function useNavEntries(): NavEntry[] {
   });
 
   return useMemo(() => {
+    if (user?.scope === 'AUDITOR') {
+      const auditorKelembagaan = [
+        { to: '/dashboard/core/cabang', label: t('sidebar.cabang') || 'Data Cabang' },
+        { to: '/dashboard/core/wilayah', label: t('sidebar.wilayah') || 'Data Wilayah' },
+        { to: '/dashboard/formal/muadalah', label: t('sidebar.lembaga_muadalah') || 'Lembaga Muadalah' },
+        { to: '/dashboard/formal/mapel', label: t('sidebar.mapel') || 'Mata Pelajaran' },
+      ];
+      const auditorSarpras = [
+        { to: '/dashboard/sarpras/ruang', label: t('sidebar.ruang') || 'Ruang & Bangunan' },
+        { to: '/dashboard/sarpras/fasilitas', label: t('sidebar.fasilitas') || 'Fasilitas Utama' },
+      ];
+      const auditorSantri = [
+        { to: '/dashboard/core/siswa', label: t('sidebar.data_santri') || 'Data Semua Santri' },
+        { to: '/dashboard/formal/siswa', label: t('sidebar.santri_muadalah') || 'Santri Muadalah' },
+        { to: '/dashboard/absensi/siswa', label: t('sidebar.absensi_siswa') || 'Absensi Siswa' },
+      ];
+      const auditorUstadz = [
+        { to: '/dashboard/core/guru', label: t('sidebar.data_guru') || 'Data Guru' },
+        { to: '/dashboard/formal/penugasan-guru', label: t('sidebar.penugasan_guru') || 'Penugasan Guru' },
+        { to: '/dashboard/absensi/guru', label: t('sidebar.absensi_guru') || 'Absensi Guru' },
+      ];
+      const auditorBap = [
+        { to: '/dashboard/kegiatan/dashboard', label: 'Dashboard Infografik BAP' },
+        { to: '/dashboard/kegiatan', label: t('sidebar.bap_list') || 'Daftar BAP Laporan' },
+      ];
+
+      return [
+        { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard', icon: Home, to: '/dashboard' },
+        { type: 'group', key: 'kelembagaan', label: t('sidebar.kelembagaan') || 'Kelembagaan', icon: School, items: auditorKelembagaan },
+        { type: 'group', key: 'sarpras', label: t('sidebar.sarpras') || 'Sarana Prasarana', icon: Building2, items: auditorSarpras },
+        { type: 'group', key: 'santri', label: t('sidebar.santri') || 'Santri', icon: User, items: auditorSantri },
+        { type: 'group', key: 'ustadz', label: t('sidebar.ustadz') || 'Ustadz', icon: Users, items: auditorUstadz },
+        { type: 'link', key: 'rombel', label: t('sidebar.rombel') || 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas' },
+        { type: 'group', key: 'bap', label: t('sidebar.bap') || 'Berita Acara (BAP)', icon: FileText, items: auditorBap },
+      ];
+    }
+
     const showKelembagaan =
       user?.scope === 'CABANG' ||
       user?.divisi === 'FORMAL' ||

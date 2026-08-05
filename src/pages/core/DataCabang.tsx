@@ -350,25 +350,27 @@ export default function DataCabang() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {user?.scope === 'WILAYAH' && (
-            <button
-              onClick={() => setIsAjukanModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
-            >
-              <Send className="w-4 h-4" /> Ajukan Pendirian Cabang
-            </button>
-          )}
+        {user?.scope !== 'AUDITOR' && (
+          <div className="flex items-center gap-2">
+            {user?.scope === 'WILAYAH' && (
+              <button
+                onClick={() => setIsAjukanModalOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                <Send className="w-4 h-4" /> Ajukan Pendirian Cabang
+              </button>
+            )}
 
-          {isAdmin && (
-            <button
-              onClick={() => { setCabangToEdit(null); setIsModalOpen(true); }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
-            >
-              <Plus className="w-4 h-4" /> Tambah Cabang Baru
-            </button>
-          )}
-        </div>
+            {isAdmin && (
+              <button
+                onClick={() => { setCabangToEdit(null); setIsModalOpen(true); }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4" /> Tambah Cabang Baru
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── MAIN TABS NAVIGATION (Data Cabang vs Permohonan Pendirian) ── */}

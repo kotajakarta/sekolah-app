@@ -386,8 +386,25 @@ export default function FormKegiatan() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.templateId || !formData.tempatKegiatan || !formData.ketuaPanitiaId) {
-      showToast('error', 'Silakan lengkapi seluruh field wajib pelaporan (Tempat Kegiatan dan Ketua Panitia).');
+
+    if (!formData.templateId) {
+      showToast('error', 'Template kegiatan belum dipilih.');
+      return;
+    }
+    if (!formData.tanggalKegiatan) {
+      showToast('error', 'Silakan isi Tanggal Kegiatan terlebih dahulu.');
+      return;
+    }
+    if (!formData.waktuKegiatan) {
+      showToast('error', 'Silakan isi Waktu Kegiatan (contoh: 08:00 - 12:00).');
+      return;
+    }
+    if (!formData.tempatKegiatan) {
+      showToast('error', 'Silakan isi Tempat Kegiatan.');
+      return;
+    }
+    if (!formData.ketuaPanitiaId) {
+      showToast('error', 'Silakan pilih Ketua Panitia dari daftar ustadz/staff.');
       return;
     }
 
@@ -426,10 +443,12 @@ export default function FormKegiatan() {
     if (activeView === 'EDIT' && editingBap) {
       updateMutation.mutate({ id: editingBap.id, data: payload });
     } else {
-      if (docFiles.length === 0) {
-        showToast('error', 'Silakan unggah minimal satu dokumen laporan BAP.');
+      const totalFiles = docFiles.length + suratPengantarFiles.length + photoFiles.length;
+      if (totalFiles === 0) {
+        showToast('error', 'Silakan unggah minimal 1 berkas dokumen atau foto laporan BAP.');
         return;
       }
+      createMutation.mutate(payload);
     }
   };
 
@@ -612,7 +631,7 @@ export default function FormKegiatan() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
         {/* Template Detail Box */}
         {selectedTemplate && (
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">

@@ -303,9 +303,9 @@ export default function ListKegiatanBap() {
             const sekretarisName = sekretarisPanitia?.staff?.name || sekretarisPanitia?.user?.operatorName || sekretarisPanitia?.user?.username || '-';
             const bendaharaName = bendaharaPanitia?.staff?.name || bendaharaPanitia?.user?.operatorName || bendaharaPanitia?.user?.username || '-';
 
-            // Categorize dokumen
-            const docFiles = bap.dokumen.filter(d => !(/\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image')));
-            const photoFiles = bap.dokumen.filter(d => /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image'));
+            // Categorize dokumen based on fileType (DOCUMENT/SURAT_PENGANTAR vs PHOTO)
+            const docFiles = bap.dokumen.filter(d => d.fileType === 'DOCUMENT' || d.fileType === 'SURAT_PENGANTAR' || (!d.fileType && !/\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName)));
+            const photoFiles = bap.dokumen.filter(d => d.fileType === 'PHOTO' || (!d.fileType && /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName)));
 
             return (
               <div

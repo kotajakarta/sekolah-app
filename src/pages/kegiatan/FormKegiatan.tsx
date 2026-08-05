@@ -436,9 +436,9 @@ export default function FormKegiatan() {
       payload.append('cabangId', user.cabangId);
     }
 
-    docFiles.forEach(file => payload.append('files', file));
-    suratPengantarFiles.forEach(file => payload.append('files', file));
-    photoFiles.forEach(file => payload.append('files', file));
+    docFiles.forEach(file => payload.append('docFiles', file));
+    suratPengantarFiles.forEach(file => payload.append('suratPengantarFiles', file));
+    photoFiles.forEach(file => payload.append('photoFiles', file));
 
     if (activeView === 'EDIT' && editingBap) {
       updateMutation.mutate({ id: editingBap.id, data: payload });
@@ -982,7 +982,7 @@ export default function FormKegiatan() {
               </div>
 
               {/* Existing uploaded surat pengantar in EDIT mode */}
-              {activeView === 'EDIT' && editingBap?.dokumen?.filter((d: any) => !(/\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image'))).slice(0, 1).map((doc: any) => (
+              {activeView === 'EDIT' && editingBap?.dokumen?.filter((d: any) => d.fileType === 'SURAT_PENGANTAR').map((doc: any) => (
                 <div key={`exist-sp-${doc.id}`} className="border border-emerald-200 bg-emerald-50/30 rounded-lg overflow-hidden">
                   <div className="flex items-center justify-between px-3 py-2 text-xs">
                     <div className="flex items-center gap-1.5 truncate flex-1 mr-2">
@@ -1074,7 +1074,7 @@ export default function FormKegiatan() {
               </div>
 
               {/* Existing uploaded BAP docs in EDIT mode */}
-              {activeView === 'EDIT' && editingBap?.dokumen?.filter((d: any) => !(/\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image'))).slice(1).map((doc: any) => (
+              {activeView === 'EDIT' && editingBap?.dokumen?.filter((d: any) => d.fileType === 'DOCUMENT' || (!d.fileType && !/\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName))).map((doc: any) => (
                 <div key={`exist-bap-${doc.id}`} className="border border-emerald-200 bg-emerald-50/30 rounded-lg overflow-hidden">
                   <div className="flex items-center justify-between px-3 py-2 text-xs">
                     <div className="flex items-center gap-1.5 truncate flex-1 mr-2">
@@ -1136,11 +1136,11 @@ export default function FormKegiatan() {
               <p className="text-xs text-slate-500 mb-3">Dokumentasi foto pelaksanaan kegiatan.</p>
 
               {/* Existing uploaded photos in EDIT mode */}
-              {activeView === 'EDIT' && editingBap?.dokumen?.filter((d: any) => /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image')).length > 0 && (
+              {activeView === 'EDIT' && editingBap?.dokumen?.filter((d: any) => d.fileType === 'PHOTO').length > 0 && (
                 <div className="mb-3 space-y-1.5">
                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Foto Tersimpan:</span>
                   <div className="grid grid-cols-3 gap-2">
-                    {editingBap.dokumen.filter((d: any) => /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image')).map((photo: any) => {
+                    {editingBap.dokumen.filter((d: any) => d.fileType === 'PHOTO').map((photo: any) => {
                       const photoUrl = `${apiClient.defaults.baseURL || ''}${photo.filePath}`;
                       return (
                         <div

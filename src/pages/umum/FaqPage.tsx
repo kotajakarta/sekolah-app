@@ -23,7 +23,7 @@ export default function FaqPage() {
 
   const filteredFaqs = useMemo(() => {
     if (!searchQuery) return faqs;
-    return faqs.filter(faq => 
+    return faqs.filter(faq =>
       faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
       faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -52,7 +52,7 @@ export default function FaqPage() {
         <BookOpen className="w-12 h-12 text-indigo-500 mx-auto mb-3" />
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Pusat Bantuan & FAQ</h1>
         <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">
-          Temukan jawaban atas pertanyaan yang paling sering diajukan mengenai sistem eSiswa.
+          Temukan jawaban atas pertanyaan yang paling sering diajukan mengenai sistem eSantri.
         </p>
 
         {/* Live Search Input */}
@@ -87,7 +87,7 @@ export default function FaqPage() {
                   {expandedId === faq.id ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                 </span>
               </button>
-              
+
               {expandedId === faq.id && (
                 <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 animate-in slide-in-from-top-2 duration-200">
                   <div className="prose prose-sm prose-slate max-w-none text-slate-600 leading-relaxed whitespace-pre-wrap">

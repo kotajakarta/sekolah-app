@@ -38,7 +38,7 @@ export default function LoginPage() {
           <img src="https://cdn.aithendi.my.id/assets/logoyts-modern.png" alt="eSiswa Logo" className="h-16 w-auto object-contain" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-display font-bold text-slate-800 tracking-tight">
-          eSiswa
+          eSantri
         </h2>
         <p className="mt-2 text-center text-sm text-slate-500">
           Sign in to access your dashboard

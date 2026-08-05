@@ -27,7 +27,8 @@ import {
   BookOpen,
   MapPin,
   CheckCircle,
-  XCircle
+  XCircle,
+  Calendar
 } from 'lucide-react';
 
 interface StatsSummary {
@@ -94,8 +95,17 @@ interface CabangProgressStat {
   status: string; // SELESAI, SEBAGIAN, BELUM_ADA
 }
 
+interface TemplateOption {
+  id: string;
+  judul: string;
+  tanggalKegiatan?: string | null;
+  deadline?: string | null;
+  jenis?: { nama: string };
+}
+
 interface DashboardData {
   summary: StatsSummary;
+  templatesOptions?: TemplateOption[];
   charts: {
     byJenis: JenisStat[];
     topCabang: TopCabangStat[];
@@ -116,15 +126,20 @@ export default function DashboardBapAdmin() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJenis, setSelectedJenis] = useState('');
 
+  // Filter Spesifik BAP Template (Termasuk Tanggal Dilaksanakan)
+  const [selectedTemplateFilter, setSelectedTemplateFilter] = useState('');
+
   // Search & Filter for Cabang Table
   const [cabangSearchTerm, setCabangSearchTerm] = useState('');
   const [selectedWilayahFilter, setSelectedWilayahFilter] = useState('');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('');
 
   const { data, isLoading, isError, refetch, isRefetching } = useQuery<DashboardData>({
-    queryKey: ['kegiatan', 'stats'],
+    queryKey: ['kegiatan', 'stats', selectedTemplateFilter],
     queryFn: async () => {
-      const res = await apiClient.get('/kegiatan/stats');
+      const res = await apiClient.get('/kegiatan/stats', {
+        params: { templateId: selectedTemplateFilter || undefined }
+      });
       return res.data;
     }
   });
@@ -153,9 +168,12 @@ export default function DashboardBapAdmin() {
     );
   }
 
-  const { summary, charts } = data;
+  const { summary, charts, templatesOptions = [] } = data;
 
-  // Filter templates
+  // Selected template item object
+  const activeTemplateObj = templatesOptions.find(t => t.id === selectedTemplateFilter);
+
+  // Filter templates list for bottom table
   const filteredTemplates = charts.byTemplate.filter(t => {
     const matchSearch = t.judul.toLowerCase().includes(searchTerm.toLowerCase()) || t.jenisNama.toLowerCase().includes(searchTerm.toLowerCase());
     const matchJenis = selectedJenis ? t.jenisNama === selectedJenis : true;
@@ -185,11 +203,17 @@ export default function DashboardBapAdmin() {
         
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="bg-indigo-500/30 border border-indigo-400/40 text-indigo-200 text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
                 Infografik & Analisis Real-Time
               </span>
+              {activeTemplateObj && (
+                <span className="bg-amber-400/20 border border-amber-400/40 text-amber-200 text-xs font-bold px-3 py-1 rounded-full backdrop-blur-sm flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-amber-300" />
+                  Filter BAP: {activeTemplateObj.judul}
+                </span>
+              )}
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Dashboard Berita Acara Pelaksanaan (BAP)
@@ -200,6 +224,29 @@ export default function DashboardBapAdmin() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
+            {/* Main Template Filter Dropdown in Header */}
+            <div className="relative">
+              <select
+                value={selectedTemplateFilter}
+                onChange={e => setSelectedTemplateFilter(e.target.value)}
+                className="px-3.5 py-2.5 bg-white text-slate-800 rounded-xl font-bold text-xs shadow-md border border-indigo-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer max-w-xs truncate"
+              >
+                <option value="">Semua Template BAP (Agregat)</option>
+                {templatesOptions.map(tmpl => {
+                  const dateStr = tmpl.tanggalKegiatan
+                    ? new Date(tmpl.tanggalKegiatan).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : tmpl.deadline
+                    ? new Date(tmpl.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : '-';
+                  return (
+                    <option key={tmpl.id} value={tmpl.id}>
+                      {tmpl.judul} - ({dateStr})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
             <button
               onClick={() => refetch()}
               disabled={isRefetching}
@@ -216,14 +263,7 @@ export default function DashboardBapAdmin() {
                   className="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-semibold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
-                  Buat Template Kegiatan
-                </button>
-                <button
-                  onClick={() => navigate('/dashboard/kegiatan')}
-                  className="px-4 py-2.5 bg-white text-indigo-900 hover:bg-indigo-50 rounded-xl font-bold text-xs shadow-lg transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <FileText className="w-4 h-4" />
-                  Daftar BAP Laporan
+                  Buat Template
                 </button>
               </>
             )}
@@ -244,7 +284,7 @@ export default function DashboardBapAdmin() {
           <div className="mt-3">
             <div className="text-3xl font-extrabold text-slate-900">{summary.totalBapSubmitted}</div>
             <div className="flex items-center justify-between text-xs text-slate-500 mt-2 pt-2 border-t border-slate-100">
-              <span>Dari {summary.totalTemplates} Template Rilis</span>
+              <span>Dari {summary.totalTemplates} Template Target</span>
               <span className="font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{summary.completionRate}% Rate</span>
             </div>
           </div>
@@ -309,6 +349,7 @@ export default function DashboardBapAdmin() {
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <MapPin className="w-5 h-5 text-indigo-600" />
               Progres Data BAP Masuk per Wilayah
+              {activeTemplateObj && <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">Filter: {activeTemplateObj.judul}</span>}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">Ringkasan tingkat kepatuhan pelaporan BAP dan partisipasi peserta di tingkat Wilayah.</p>
           </div>
@@ -538,6 +579,27 @@ export default function DashboardBapAdmin() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Filter Pilih Laporan BAP (Termasuk Tgl Dilaksanakan) */}
+            <select
+              value={selectedTemplateFilter}
+              onChange={e => setSelectedTemplateFilter(e.target.value)}
+              className="px-3 py-1.5 text-xs font-bold border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none bg-indigo-50 text-indigo-900 max-w-xs truncate cursor-pointer"
+            >
+              <option value="">Semua Template BAP (Agregat)</option>
+              {templatesOptions.map(tmpl => {
+                const dateStr = tmpl.tanggalKegiatan
+                  ? new Date(tmpl.tanggalKegiatan).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : tmpl.deadline
+                  ? new Date(tmpl.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+                  : '-';
+                return (
+                  <option key={tmpl.id} value={tmpl.id}>
+                    {tmpl.judul} - ({dateStr})
+                  </option>
+                );
+              })}
+            </select>
+
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -545,7 +607,7 @@ export default function DashboardBapAdmin() {
                 placeholder="Cari cabang / wilayah..."
                 value={cabangSearchTerm}
                 onChange={e => setCabangSearchTerm(e.target.value)}
-                className="pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none w-48 sm:w-60"
+                className="pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none w-48 sm:w-56"
               />
             </div>
 

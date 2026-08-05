@@ -321,9 +321,9 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     if (student) {
       setFormData({
         nik: student.biodata?.nik || '',
-        noKk: (student.biodata as any)?.noKk || '',
-        anakKe: (student.biodata as any)?.anakKe || '',
-        jumlahSaudara: (student.biodata as any)?.jumlahSaudara || '',
+        noKk: student.biodata?.noKk || '',
+        anakKe: student.biodata?.anakKe !== undefined && student.biodata?.anakKe !== null ? String(student.biodata.anakKe) : '',
+        jumlahSaudara: student.biodata?.jumlahSaudara !== undefined && student.biodata?.jumlahSaudara !== null ? String(student.biodata.jumlahSaudara) : '',
         nisn: student.biodata?.nisn || '',
         nisLokal: student.biodata?.nisLokal || '',
         noGlodemy: student.biodata?.noGlodemy || '',
@@ -334,20 +334,20 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
         kewarganegaraan: student.biodata?.kewarganegaraan || 'WNI',
         namaAyah: student.biodata?.namaAyah || '',
         statusHidupAyah: student.biodata?.statusHidupAyah || 'Masih Hidup',
-        nikAyah: (student.biodata as any)?.nikAyah || '',
-        tempatLahirAyah: (student.biodata as any)?.tempatLahirAyah || '',
-        tanggalLahirAyah: (student.biodata as any)?.tanggalLahirAyah ? new Date((student.biodata as any).tanggalLahirAyah).toISOString().split('T')[0] : '',
+        nikAyah: student.biodata?.nikAyah || '',
+        tempatLahirAyah: student.biodata?.tempatLahirAyah || '',
+        tanggalLahirAyah: student.biodata?.tanggalLahirAyah ? new Date(student.biodata.tanggalLahirAyah).toISOString().split('T')[0] : '',
         pekerjaanAyah: student.biodata?.pekerjaanAyah || '',
         pendidikanAyah: student.biodata?.pendidikanAyah || '',
-        penghasilanAyah: (student.biodata as any)?.penghasilanAyah || '',
+        penghasilanAyah: student.biodata?.penghasilanAyah || '',
         namaIbu: student.biodata?.namaIbu || '',
         statusHidupIbu: student.biodata?.statusHidupIbu || 'Masih Hidup',
-        nikIbu: (student.biodata as any)?.nikIbu || '',
-        tempatLahirIbu: (student.biodata as any)?.tempatLahirIbu || '',
-        tanggalLahirIbu: (student.biodata as any)?.tanggalLahirIbu ? new Date((student.biodata as any).tanggalLahirIbu).toISOString().split('T')[0] : '',
+        nikIbu: student.biodata?.nikIbu || '',
+        tempatLahirIbu: student.biodata?.tempatLahirIbu || '',
+        tanggalLahirIbu: student.biodata?.tanggalLahirIbu ? new Date(student.biodata.tanggalLahirIbu).toISOString().split('T')[0] : '',
         pekerjaanIbu: student.biodata?.pekerjaanIbu || '',
         pendidikanIbu: student.biodata?.pendidikanIbu || '',
-        penghasilanIbu: (student.biodata as any)?.penghasilanIbu || '',
+        penghasilanIbu: student.biodata?.penghasilanIbu || '',
         address: student.biodata?.address || '',
         phone: student.biodata?.phone || '',
         kontakDaruratNama: student.biodata?.kontakDaruratNama || '',
@@ -361,29 +361,29 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
         jenisSiswa: student.jenisSiswa || '',
         grupDaimi: student.grupDaimi || '',
         statusHafidz: student.statusHafidz || '',
-        tanggalMasuk: new Date().toISOString().split('T')[0],
+        tanggalMasuk: student.riwayatPendidikan?.[0]?.tanggalMasuk ? new Date(student.riwayatPendidikan[0].tanggalMasuk).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         isActive: student.isActive !== undefined ? student.isActive : true,
-        alamatProvId: (student.biodata as any)?.alamatProvId || '',
-        alamatProvName: (student.biodata as any)?.alamatProvName || '',
-        alamatKabId: (student.biodata as any)?.alamatKabId || '',
-        alamatKabName: (student.biodata as any)?.alamatKabName || '',
-        alamatKecId: (student.biodata as any)?.alamatKecId || '',
-        alamatKecName: (student.biodata as any)?.alamatKecName || '',
-        alamatKelId: (student.biodata as any)?.alamatKelId || '',
-        alamatKelName: (student.biodata as any)?.alamatKelName || '',
-        alamatJalan: (student.biodata as any)?.alamatJalan || '',
+        alamatProvId: student.biodata?.alamatProvId || '',
+        alamatProvName: student.biodata?.alamatProvName || '',
+        alamatKabId: student.biodata?.alamatKabId || '',
+        alamatKabName: student.biodata?.alamatKabName || '',
+        alamatKecId: student.biodata?.alamatKecId || '',
+        alamatKecName: student.biodata?.alamatKecName || '',
+        alamatKelId: student.biodata?.alamatKelId || '',
+        alamatKelName: student.biodata?.alamatKelName || '',
+        alamatJalan: student.biodata?.alamatJalan || '',
       });
 
-      if ((student.biodata as any)?.alamatProvId) {
-        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${(student.biodata as any).alamatProvId}.json`)
+      if (student.biodata?.alamatProvId) {
+        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${student.biodata.alamatProvId}.json`)
           .then((r) => r.json()).then((d) => setRegencies(d)).catch(console.error);
       }
-      if ((student.biodata as any)?.alamatKabId) {
-        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${(student.biodata as any).alamatKabId}.json`)
+      if (student.biodata?.alamatKabId) {
+        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${student.biodata.alamatKabId}.json`)
           .then((r) => r.json()).then((d) => setDistricts(d)).catch(console.error);
       }
-      if ((student.biodata as any)?.alamatKecId) {
-        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${(student.biodata as any).alamatKecId}.json`)
+      if (student.biodata?.alamatKecId) {
+        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${student.biodata.alamatKecId}.json`)
           .then((r) => r.json()).then((d) => setVillages(d)).catch(console.error);
       }
     }

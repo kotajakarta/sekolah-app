@@ -18,6 +18,7 @@ interface Cabang {
   name: string;
   wilayahId?: string;
   wilayah?: {
+    id?: string;
     name: string;
   };
 }
@@ -314,9 +315,9 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
   // Apply filters client-side
   const filteredGrupList = React.useMemo(() => {
     return (grupList || []).filter((grup) => {
-      // 1. Filter Wilayah
-      if (filterWilayah && grup.cabang?.wilayahId !== filterWilayah) {
-        return false;
+      if (filterWilayah) {
+        const wId = grup.cabang?.wilayahId || grup.cabang?.wilayah?.id;
+        if (wId !== filterWilayah) return false;
       }
       // 2. Filter Cabang
       if (filterCabang && grup.cabangId !== filterCabang) {

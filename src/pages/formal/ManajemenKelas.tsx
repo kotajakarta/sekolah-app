@@ -21,7 +21,7 @@ interface Cabang {
   id: string;
   name: string;
   wilayahId?: string;
-  wilayah?: { name: string };
+  wilayah?: { id?: string; name: string };
 }
 
 interface LembagaMuadalah {
@@ -329,8 +329,9 @@ export default function ManajemenKelas() {
     if (filterMuadalah && kelas.lembagaMuadalahId !== filterMuadalah) {
       return false;
     }
-    if (filterWilayah && kelas.cabang?.wilayahId !== filterWilayah) {
-      return false;
+    if (filterWilayah) {
+      const wId = kelas.cabang?.wilayahId || kelas.cabang?.wilayah?.id;
+      if (wId !== filterWilayah) return false;
     }
     if (filterCabang && kelas.cabangId !== filterCabang) {
       return false;

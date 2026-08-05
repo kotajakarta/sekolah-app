@@ -337,6 +337,7 @@ export default function UsersWilayah() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold">
                         <span className={`px-2 py-0.5 rounded text-xs uppercase font-bold tracking-wider ${
                           item.scope === 'GLOBAL' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
+                          item.scope === 'AUDITOR' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' :
                           item.scope === 'WILAYAH' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
                           item.scope === 'WALI' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
                           'bg-emerald-50 text-emerald-700 border border-emerald-100'

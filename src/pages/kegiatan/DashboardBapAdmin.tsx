@@ -175,7 +175,8 @@ export default function DashboardBapAdmin() {
 
   const isCabangScope = userScope === 'CABANG';
   const isWilayahScope = userScope === 'WILAYAH';
-  const isGlobalScope = userScope === 'GLOBAL' || (!isCabangScope && !isWilayahScope);
+  const isAuditorScope = userScope === 'AUDITOR';
+  const isGlobalScope = userScope === 'GLOBAL' || (!isCabangScope && !isWilayahScope && !isAuditorScope);
 
   // Selected template item object
   const activeTemplateObj = templatesOptions.find(t => t.id === selectedTemplateFilter);
@@ -205,12 +206,16 @@ export default function DashboardBapAdmin() {
     ? `Dashboard BAP Kegiatan - ${userCabangName || 'Cabang Anda'}`
     : isWilayahScope
     ? `Dashboard BAP Kegiatan - Wilayah ${userWilayahName || ''}`
+    : isAuditorScope
+    ? `Dashboard BAP Kegiatan - Audit & Inspeksi Pusat`
     : 'Dashboard Berita Acara Pelaksanaan (BAP)';
 
   const headerDesc = isCabangScope
     ? `Pantau status pengiriman, kelengkapan berkas, serta verifikasi laporan BAP kegiatan milik ${userCabangName || 'cabang Anda'} ke Pusat.`
     : isWilayahScope
     ? `Pantau progres data pelaporan BAP kegiatan dari cabang-cabang di bawah naungan ${userWilayahName || 'Wilayah Anda'}.`
+    : isAuditorScope
+    ? `Pengawasan & audit real-time tingkat nasional terhadap kepatuhan pelaporan BAP seluruh wilayah dan cabang.`
     : 'Pantau kepatuhan pelaporan BAP seluruh wilayah & cabang, jangkauan partisipasi santri & ustadz, serta status verifikasi laporan secara komprehensif.';
 
   return (

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
+import { processMultipleKegiatanFiles, formatFileSize } from '../../utils/kegiatanCompressor';
 import { Calendar, Upload, Users, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag, Download, Image as ImageIcon, Edit, CheckCircle, Clock, Eye, ZoomIn, ZoomOut, RotateCw, File, Lock } from 'lucide-react';
 
 interface Guru {
@@ -16,13 +17,19 @@ interface Guru {
 interface TemplateKegiatan {
   id: string;
   judul: string;
-  deskripsi: string;
+  deskripsi?: string;
   deadline: string;
   jenis: { nama: string };
   dokumen: { id: string; filePath: string; fileName: string; fileType: string }[];
   tanggalKegiatan?: string;
   waktuKegiatan?: string;
   tujuanKegiatan?: string;
+  tema?: string;
+  latarBelakang?: string;
+  bentukKegiatan?: string;
+  rangkaianKegiatan?: string;
+  hasilPelaksanaan?: string;
+  penutup?: string;
 }
 
 export default function FormKegiatan() {
@@ -40,12 +47,19 @@ export default function FormKegiatan() {
     templateId: '',
     deskripsi: '',
     ketuaPanitiaId: '',
+    sekretarisPanitiaId: '',
+    bendaharaPanitiaId: '',
     tanggalKegiatan: '',
     waktuKegiatan: '',
     tempatKegiatan: '',
+    totalSantri: '',
+    totalGuru: '',
     jumlahPeserta: '',
-    ringkasanKegiatan: '',
-    kesimpulan: '',
+    bentukKegiatan: '',
+    rangkaianKegiatan: '',
+    hasilPelaksanaan: '',
+    evaluasiBaik: '',
+    evaluasiPerbaikan: '',
   });
 
   const [docFiles, setDocFiles] = useState<File[]>([]);
@@ -173,6 +187,8 @@ export default function FormKegiatan() {
     document.body.removeChild(link);
   };
 
+  const [isCompressing, setIsCompressing] = useState(false);
+
   // Drag and drop handlers for Documents
   const handleDragOverDoc = (e: React.DragEvent) => {
     e.preventDefault();
@@ -183,24 +199,28 @@ export default function FormKegiatan() {
     setIsDraggingDoc(false);
   };
 
-  const handleDropDoc = (e: React.DragEvent) => {
+  const handleDropDoc = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingDoc(false);
-    if (e.dataTransfer.files) {
-      const newFiles = Array.from(e.dataTransfer.files).filter(file => 
-        file.name.endsWith('.pdf') || file.name.endsWith('.doc') || file.name.endsWith('.docx')
-      );
-      if (newFiles.length === 0) {
-        showToast('error', 'Hanya menerima file dokumen (PDF, DOC, DOCX)');
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setIsCompressing(true);
+      const validFiles = await processMultipleKegiatanFiles(Array.from(e.dataTransfer.files), showToast);
+      if (validFiles.length > 0) {
+        setDocFiles(prev => [...prev, ...validFiles]);
       }
-      setDocFiles(prev => [...prev, ...newFiles]);
+      setIsCompressing(false);
     }
   };
 
-  const handleDocFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setDocFiles(prev => [...prev, ...newFiles]);
+  const handleDocFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setIsCompressing(true);
+      const validFiles = await processMultipleKegiatanFiles(Array.from(e.target.files), showToast);
+      if (validFiles.length > 0) {
+        setDocFiles(prev => [...prev, ...validFiles]);
+      }
+      setIsCompressing(false);
+      e.target.value = '';
     }
   };
 
@@ -208,10 +228,15 @@ export default function FormKegiatan() {
     setDocFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSuratPengantarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setSuratPengantarFiles(prev => [...prev, ...newFiles]);
+  const handleSuratPengantarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setIsCompressing(true);
+      const validFiles = await processMultipleKegiatanFiles(Array.from(e.target.files), showToast);
+      if (validFiles.length > 0) {
+        setSuratPengantarFiles(prev => [...prev, ...validFiles]);
+      }
+      setIsCompressing(false);
+      e.target.value = '';
     }
   };
 
@@ -229,24 +254,28 @@ export default function FormKegiatan() {
     setIsDraggingPhoto(false);
   };
 
-  const handleDropPhoto = (e: React.DragEvent) => {
+  const handleDropPhoto = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingPhoto(false);
-    if (e.dataTransfer.files) {
-      const newFiles = Array.from(e.dataTransfer.files).filter(file => 
-        file.type.startsWith('image/')
-      );
-      if (newFiles.length === 0) {
-        showToast('error', 'Hanya menerima file gambar/foto');
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      setIsCompressing(true);
+      const validFiles = await processMultipleKegiatanFiles(Array.from(e.dataTransfer.files), showToast);
+      if (validFiles.length > 0) {
+        setPhotoFiles(prev => [...prev, ...validFiles]);
       }
-      setPhotoFiles(prev => [...prev, ...newFiles]);
+      setIsCompressing(false);
     }
   };
 
-  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setPhotoFiles(prev => [...prev, ...newFiles]);
+  const handlePhotoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setIsCompressing(true);
+      const validFiles = await processMultipleKegiatanFiles(Array.from(e.target.files), showToast);
+      if (validFiles.length > 0) {
+        setPhotoFiles(prev => [...prev, ...validFiles]);
+      }
+      setIsCompressing(false);
+      e.target.value = '';
     }
   };
 
@@ -257,16 +286,24 @@ export default function FormKegiatan() {
   const startCreate = (tmpl: TemplateKegiatan) => {
     setSelectedTemplate(tmpl);
     setEditingBap(null);
+    const defaultTempat = user?.cabangName || (user as any)?.cabang?.name || '';
     setFormData({
       templateId: tmpl.id,
-      deskripsi: '',
+      deskripsi: tmpl.bentukKegiatan || tmpl.judul || '',
       ketuaPanitiaId: '',
+      sekretarisPanitiaId: '',
+      bendaharaPanitiaId: '',
       tanggalKegiatan: tmpl.tanggalKegiatan ? new Date(tmpl.tanggalKegiatan).toISOString().split('T')[0] : '',
       waktuKegiatan: tmpl.waktuKegiatan || '',
-      tempatKegiatan: '',
-      jumlahPeserta: '',
-      ringkasanKegiatan: '',
-      kesimpulan: '',
+      tempatKegiatan: defaultTempat,
+      totalSantri: '',
+      totalGuru: '',
+      jumlahPeserta: '0',
+      bentukKegiatan: tmpl.bentukKegiatan || '',
+      rangkaianKegiatan: tmpl.rangkaianKegiatan || '',
+      hasilPelaksanaan: tmpl.hasilPelaksanaan || '',
+      evaluasiBaik: '',
+      evaluasiPerbaikan: '',
     });
     setDocFiles([]);
     setSuratPengantarFiles([]);
@@ -277,16 +314,32 @@ export default function FormKegiatan() {
   const startEdit = (tmpl: TemplateKegiatan, bap: any) => {
     setSelectedTemplate(tmpl);
     setEditingBap(bap);
+    const ketua = bap.panitia?.find((p: any) => p.jabatan === 'KETUA')?.staffId || bap.panitia?.[0]?.staffId || '';
+    const sekretaris = bap.panitia?.find((p: any) => p.jabatan === 'SEKRETARIS')?.staffId || '';
+    const bendahara = bap.panitia?.find((p: any) => p.jabatan === 'BENDAHARA')?.staffId || '';
+    const defaultTempat = bap.tempatKegiatan || user?.cabangName || (user as any)?.cabang?.name || '';
+
+    const santriVal = bap.totalSantri !== null && bap.totalSantri !== undefined ? String(bap.totalSantri) : '';
+    const guruVal = bap.totalGuru !== null && bap.totalGuru !== undefined ? String(bap.totalGuru) : '';
+    const calculatedTotal = (Number(santriVal) || 0) + (Number(guruVal) || 0) || (bap.jumlahPeserta ? Number(bap.jumlahPeserta) : 0);
+
     setFormData({
       templateId: tmpl.id,
       deskripsi: bap.deskripsi || '',
-      ketuaPanitiaId: bap.panitia[0]?.staffId || '',
+      ketuaPanitiaId: ketua,
+      sekretarisPanitiaId: sekretaris,
+      bendaharaPanitiaId: bendahara,
       tanggalKegiatan: bap.tanggalKegiatan ? new Date(bap.tanggalKegiatan).toISOString().split('T')[0] : '',
       waktuKegiatan: bap.waktuKegiatan || '',
-      tempatKegiatan: bap.tempatKegiatan || '',
-      jumlahPeserta: bap.jumlahPeserta ? String(bap.jumlahPeserta) : '',
-      ringkasanKegiatan: bap.ringkasanKegiatan || bap.deskripsi || '',
-      kesimpulan: bap.kesimpulan || '',
+      tempatKegiatan: defaultTempat,
+      totalSantri: santriVal,
+      totalGuru: guruVal,
+      jumlahPeserta: String(calculatedTotal),
+      bentukKegiatan: bap.bentukKegiatan || tmpl.bentukKegiatan || bap.ringkasanKegiatan || '',
+      rangkaianKegiatan: bap.rangkaianKegiatan || tmpl.rangkaianKegiatan || '',
+      hasilPelaksanaan: bap.hasilPelaksanaan || tmpl.hasilPelaksanaan || bap.kesimpulan || '',
+      evaluasiBaik: bap.evaluasiBaik || '',
+      evaluasiPerbaikan: bap.evaluasiPerbaikan || '',
     });
     setDocFiles([]);
     setSuratPengantarFiles([]);
@@ -296,26 +349,35 @@ export default function FormKegiatan() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.templateId || !formData.tempatKegiatan || !formData.jumlahPeserta || !formData.ringkasanKegiatan || !formData.kesimpulan || !formData.ketuaPanitiaId) {
-      showToast('error', 'Silakan lengkapi seluruh field wajib pelaporan.');
+    if (!formData.templateId || !formData.tempatKegiatan || !formData.ketuaPanitiaId) {
+      showToast('error', 'Silakan lengkapi seluruh field wajib pelaporan (Tempat Kegiatan dan Ketua Panitia).');
       return;
     }
 
+    const calculatedTotal = (Number(formData.totalSantri) || 0) + (Number(formData.totalGuru) || 0);
+
     const payload = new FormData();
     payload.append('templateId', formData.templateId);
-    payload.append('deskripsi', formData.ringkasanKegiatan); // Maps to required 'deskripsi' field in DB
-    payload.append('ketuaPanitiaId', formData.ketuaPanitiaId);
-    if (formData.tanggalKegiatan) {
-      payload.append('tanggalKegiatan', formData.tanggalKegiatan);
-    }
-    if (formData.waktuKegiatan) {
-      payload.append('waktuKegiatan', formData.waktuKegiatan);
-    }
+    payload.append('deskripsi', formData.bentukKegiatan || 'BAP Kegiatan');
+    if (formData.ketuaPanitiaId) payload.append('ketuaPanitiaId', formData.ketuaPanitiaId);
+    if (formData.sekretarisPanitiaId) payload.append('sekretarisPanitiaId', formData.sekretarisPanitiaId);
+    if (formData.bendaharaPanitiaId) payload.append('bendaharaPanitiaId', formData.bendaharaPanitiaId);
+    if (formData.tanggalKegiatan) payload.append('tanggalKegiatan', formData.tanggalKegiatan);
+    if (formData.waktuKegiatan) payload.append('waktuKegiatan', formData.waktuKegiatan);
     payload.append('tempatKegiatan', formData.tempatKegiatan);
-    payload.append('jumlahPeserta', formData.jumlahPeserta);
-    payload.append('ringkasanKegiatan', formData.ringkasanKegiatan);
-    payload.append('kesimpulan', formData.kesimpulan);
+    payload.append('totalSantri', formData.totalSantri || '0');
+    payload.append('totalGuru', formData.totalGuru || '0');
+    payload.append('jumlahPeserta', String(calculatedTotal));
+
+    if (formData.bentukKegiatan) payload.append('bentukKegiatan', formData.bentukKegiatan);
+    if (formData.rangkaianKegiatan) payload.append('rangkaianKegiatan', formData.rangkaianKegiatan);
+    if (formData.hasilPelaksanaan) payload.append('hasilPelaksanaan', formData.hasilPelaksanaan);
+    if (formData.evaluasiBaik) payload.append('evaluasiBaik', formData.evaluasiBaik);
+    if (formData.evaluasiPerbaikan) payload.append('evaluasiPerbaikan', formData.evaluasiPerbaikan);
     
+    payload.append('ringkasanKegiatan', formData.bentukKegiatan || '');
+    payload.append('kesimpulan', formData.hasilPelaksanaan || '');
+
     if (user?.scope === 'CABANG' && user.cabangId) {
       payload.append('cabangId', user.cabangId);
     }
@@ -331,7 +393,6 @@ export default function FormKegiatan() {
         showToast('error', 'Silakan unggah minimal satu dokumen laporan BAP.');
         return;
       }
-      createMutation.mutate(payload);
     }
   };
 
@@ -587,88 +648,195 @@ export default function FormKegiatan() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tempat Kegiatan {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
-              <input
-                type="text"
-                name="tempatKegiatan"
-                required={!isLockedForCabang}
-                disabled={isLockedForCabang}
-                value={formData.tempatKegiatan}
-                onChange={handleInputChange}
-                placeholder="Contoh: Aula Utama Asrama Cabang"
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tempat Kegiatan (Nama Cabang Otomatis) {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
+            <input
+              type="text"
+              name="tempatKegiatan"
+              required={!isLockedForCabang}
+              disabled={isLockedForCabang}
+              value={formData.tempatKegiatan}
+              onChange={handleInputChange}
+              placeholder="Contoh: Aula Utama Asrama Cabang"
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-semibold text-slate-800 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+            />
+          </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Jumlah Peserta {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
-              <input
-                type="number"
-                name="jumlahPeserta"
-                required={!isLockedForCabang}
-                disabled={isLockedForCabang}
-                value={formData.jumlahPeserta}
-                onChange={handleInputChange}
-                placeholder="Contoh: 150"
-                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-              />
+          {/* Breakdown Jumlah Peserta */}
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Jumlah Peserta Kegiatan</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Total Santri</label>
+                <input
+                  type="number"
+                  name="totalSantri"
+                  disabled={isLockedForCabang}
+                  value={formData.totalSantri}
+                  onChange={handleInputChange}
+                  placeholder="0"
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white disabled:bg-slate-100 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Total Guru / Ustadz</label>
+                <input
+                  type="number"
+                  name="totalGuru"
+                  disabled={isLockedForCabang}
+                  value={formData.totalGuru}
+                  onChange={handleInputChange}
+                  placeholder="0"
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white disabled:bg-slate-100 disabled:cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Total Semua (Otomatis)</label>
+                <input
+                  type="number"
+                  disabled
+                  value={(Number(formData.totalSantri) || 0) + (Number(formData.totalGuru) || 0)}
+                  className="w-full px-3 py-1.5 border border-indigo-200 bg-indigo-50/60 font-bold text-indigo-900 rounded-lg text-sm cursor-not-allowed"
+                />
+              </div>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ringkasan Kegiatan {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Bentuk Kegiatan (Otomatis dari Template)</label>
             <textarea
-              name="ringkasanKegiatan"
-              rows={4}
-              required={!isLockedForCabang}
+              name="bentukKegiatan"
+              rows={2}
               disabled={isLockedForCabang}
-              value={formData.ringkasanKegiatan}
+              value={formData.bentukKegiatan}
               onChange={handleInputChange}
-              placeholder="Tuliskan ringkasan jalan/pelaksanaan kegiatan cabang..."
+              placeholder="Bentuk pelaksanaan kegiatan..."
               className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Kesimpulan {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Rangkaian Kegiatan (Otomatis dari Template)</label>
             <textarea
-              name="kesimpulan"
+              name="rangkaianKegiatan"
               rows={3}
-              required={!isLockedForCabang}
               disabled={isLockedForCabang}
-              value={formData.kesimpulan}
+              value={formData.rangkaianKegiatan}
               onChange={handleInputChange}
-              placeholder="Tuliskan hasil evaluasi atau kesimpulan akhir dari kegiatan..."
+              placeholder="Rangkaian / susunan acara kegiatan..."
               className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Hasil Pelaksanaan (Otomatis dari Template)</label>
+            <textarea
+              name="hasilPelaksanaan"
+              rows={3}
+              disabled={isLockedForCabang}
+              value={formData.hasilPelaksanaan}
+              onChange={handleInputChange}
+              placeholder="Poin-poin hasil pelaksanaan kegiatan..."
+              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          {/* Evaluasi Kegiatan */}
+          <div className="bg-amber-50/50 border border-amber-200 rounded-lg p-4 space-y-3">
+            <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wider">Evaluasi Pelaksanaan Kegiatan</h4>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Hal Yang Sudah Baik</label>
+                <textarea
+                  name="evaluasiBaik"
+                  rows={2}
+                  disabled={isLockedForCabang}
+                  value={formData.evaluasiBaik}
+                  onChange={handleInputChange}
+                  placeholder="Tuliskan hal-hal positif yang sudah berjalan baik..."
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white disabled:bg-slate-100 disabled:cursor-not-allowed font-sans"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Hal Yang Perlu Ditingkatkan</label>
+                <textarea
+                  name="evaluasiPerbaikan"
+                  rows={2}
+                  disabled={isLockedForCabang}
+                  value={formData.evaluasiPerbaikan}
+                  onChange={handleInputChange}
+                  placeholder="Tuliskan catatan perbaikan atau hal yang perlu ditingkatkan ke depan..."
+                  className="w-full px-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white disabled:bg-slate-100 disabled:cursor-not-allowed font-sans"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Panitia Section */}
+        {/* Panitia Section: Ketua, Sekretaris, Bendahara */}
         <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm space-y-4">
           <h2 className="text-lg font-semibold text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
             <Users className="w-5 h-5 text-indigo-500" />
-            Penanggung Jawab / Ketua Panitia
+            Penanggung Jawab Pelaksana (Pilih dari Data Ustadz / Staff)
           </h2>
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ketua Panitia Cabang (Guru) {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
-            <select
-              name="ketuaPanitiaId"
-              required={!isLockedForCabang}
-              value={formData.ketuaPanitiaId}
-              onChange={handleInputChange}
-              disabled={isLoadingGurus || isLockedForCabang}
-              className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
-            >
-              <option value="">{isLoadingGurus ? 'Memuat guru...' : '-- Pilih Guru Cabang --'}</option>
-              {filteredGurus.map(g => (
-                <option key={g.id} value={g.id}>
-                  {g.name} ({g.position})
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Ketua {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
+              <select
+                name="ketuaPanitiaId"
+                required={!isLockedForCabang}
+                value={formData.ketuaPanitiaId}
+                onChange={handleInputChange}
+                disabled={isLoadingGurus || isLockedForCabang}
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+              >
+                <option value="">{isLoadingGurus ? 'Memuat guru...' : '-- Pilih Ketua --'}</option>
+                {filteredGurus.map(g => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} ({g.position})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Sekretaris</label>
+              <select
+                name="sekretarisPanitiaId"
+                value={formData.sekretarisPanitiaId}
+                onChange={handleInputChange}
+                disabled={isLoadingGurus || isLockedForCabang}
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+              >
+                <option value="">{isLoadingGurus ? 'Memuat guru...' : '-- Pilih Sekretaris --'}</option>
+                {filteredGurus.map(g => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} ({g.position})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Bendahara</label>
+              <select
+                name="bendaharaPanitiaId"
+                value={formData.bendaharaPanitiaId}
+                onChange={handleInputChange}
+                disabled={isLoadingGurus || isLockedForCabang}
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm bg-white disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
+              >
+                <option value="">{isLoadingGurus ? 'Memuat guru...' : '-- Pilih Bendahara --'}</option>
+                {filteredGurus.map(g => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} ({g.position})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -693,14 +861,12 @@ export default function FormKegiatan() {
                   <span className="truncate">Template tersedia dari Pusat ({selectedTemplate.dokumen.length} berkas)</span>
                 </div>
               </div>
-            )}
-
-            {/* Surat Pengantar Row */}
+            )}            {/* Surat Pengantar Row */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-slate-700">Surat Pengantar</label>
-                  <p className="text-xs text-slate-400 mt-0.5">Surat pengantar kegiatan (PDF, DOC, DOCX)</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Surat pengantar (PDF & Gambar, Maks 1MB)</p>
                 </div>
                 {!isLockedForCabang && (
                   <div className="shrink-0 flex items-center gap-2">
@@ -717,7 +883,7 @@ export default function FormKegiatan() {
                     <input
                       type="file"
                       id="surat-pengantar-input"
-                      accept=".pdf,.doc,.docx"
+                      accept=".pdf,image/*"
                       onChange={handleSuratPengantarFileChange}
                       className="hidden"
                     />
@@ -725,8 +891,8 @@ export default function FormKegiatan() {
                       htmlFor="surat-pengantar-input"
                       className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                     >
-                      <Upload className="w-3.5 h-3.5" />
-                      Pilih Berkas
+                      {isCompressing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                      {isCompressing ? 'Mengompresi...' : 'Pilih Berkas'}
                     </label>
                   </div>
                 )}
@@ -768,7 +934,9 @@ export default function FormKegiatan() {
                 <div className="border border-slate-200 rounded-lg overflow-hidden bg-white divide-y divide-slate-100">
                   {suratPengantarFiles.map((file, idx) => (
                     <div key={idx} className="flex items-center justify-between px-3 py-2 text-xs">
-                      <span className="font-medium text-slate-700 truncate flex-1 mr-2">{file.name}</span>
+                      <span className="font-medium text-slate-700 truncate flex-1 mr-2">
+                        {file.name} <span className="text-slate-400 text-[10px]">({formatFileSize(file.size)})</span>
+                      </span>
                       <button
                         type="button"
                         onClick={() => removeSuratPengantarFile(idx)}
@@ -789,7 +957,7 @@ export default function FormKegiatan() {
                   <label className="block text-sm font-medium text-slate-700">
                     Dokumen BAP {activeView === 'CREATE' && <span className="text-rose-500">*</span>}
                   </label>
-                  <p className="text-xs text-slate-400 mt-0.5">Berkas berita acara (PDF, DOC, DOCX)</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Berkas berita acara (PDF & Gambar, Maks 1MB)</p>
                 </div>
                 {!isLockedForCabang && (
                   <div className="shrink-0 flex items-center gap-2">
@@ -807,7 +975,7 @@ export default function FormKegiatan() {
                       type="file"
                       multiple
                       id="doc-file-input"
-                      accept=".pdf,.doc,.docx"
+                      accept=".pdf,image/*"
                       onChange={handleDocFileChange}
                       className="hidden"
                     />
@@ -815,8 +983,8 @@ export default function FormKegiatan() {
                       htmlFor="doc-file-input"
                       className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                     >
-                      <Upload className="w-3.5 h-3.5" />
-                      Pilih Berkas
+                      {isCompressing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                      {isCompressing ? 'Mengompresi...' : 'Pilih Berkas'}
                     </label>
                   </div>
                 )}
@@ -858,7 +1026,9 @@ export default function FormKegiatan() {
                 <div className="border border-slate-200 rounded-lg overflow-hidden bg-white divide-y divide-slate-100">
                   {docFiles.map((file, idx) => (
                     <div key={idx} className="flex items-center justify-between px-3 py-2 text-xs">
-                      <span className="font-medium text-slate-700 truncate flex-1 mr-2">{file.name}</span>
+                      <span className="font-medium text-slate-700 truncate flex-1 mr-2">
+                        {file.name} <span className="text-slate-400 text-[10px]">({formatFileSize(file.size)})</span>
+                      </span>
                       <button
                         type="button"
                         onClick={() => removeDocFile(idx)}
@@ -914,7 +1084,7 @@ export default function FormKegiatan() {
                               className="absolute top-1 right-1 p-0.5 bg-black/60 hover:bg-rose-600 text-white rounded-full transition-colors cursor-pointer disabled:opacity-50 z-10"
                               title="Hapus foto"
                             >
-                              {deletingDocId === photo.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                              {deletingDocId === photo.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
                             </button>
                           )}
                         </div>
@@ -943,11 +1113,17 @@ export default function FormKegiatan() {
                     className="hidden"
                   />
                   <label htmlFor="photo-file-input" className="cursor-pointer flex flex-col items-center gap-2">
-                    <Upload className="w-6 h-6 text-indigo-500" />
+                    {isCompressing ? <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" /> : <Upload className="w-6 h-6 text-indigo-500" />}
                     <span className="text-xs text-slate-600">
-                      <span className="text-indigo-600 font-semibold hover:underline">Pilih foto</span> atau seret kemari
+                      {isCompressing ? (
+                        <span className="text-indigo-600 font-semibold">Mengompresi gambar otomatis...</span>
+                      ) : (
+                        <>
+                          <span className="text-indigo-600 font-semibold hover:underline">Pilih foto</span> atau seret kemari
+                        </>
+                      )}
                     </span>
-                    <span className="text-[10px] text-slate-400">Format Gambar JPG, PNG (Maks 10MB)</span>
+                    <span className="text-[10px] text-slate-400">Format Gambar JPG, PNG, WEBP (Auto-Compress & Maks 1MB)</span>
                   </label>
                 </div>
               )}

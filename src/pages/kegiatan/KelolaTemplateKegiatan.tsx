@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useToast } from '../../contexts/ToastContext';
+import { processMultipleKegiatanFiles, formatFileSize } from '../../utils/kegiatanCompressor';
 import { FileText, Plus, Trash2, Edit, Save, X, Loader2, AlertCircle, Calendar, Tag, Info, Upload, Download } from 'lucide-react';
 
 interface JenisKegiatan {
@@ -19,7 +20,7 @@ interface DokumenTemplate {
 interface TemplateKegiatan {
   id: string;
   judul: string;
-  deskripsi: string;
+  deskripsi?: string;
   deadline: string;
   jenisId: string;
   jenis: JenisKegiatan;
@@ -27,6 +28,12 @@ interface TemplateKegiatan {
   tanggalKegiatan?: string;
   waktuKegiatan?: string;
   tujuanKegiatan?: string;
+  tema?: string;
+  latarBelakang?: string;
+  bentukKegiatan?: string;
+  rangkaianKegiatan?: string;
+  hasilPelaksanaan?: string;
+  penutup?: string;
   createdAt: string;
 }
 
@@ -36,12 +43,17 @@ export default function KelolaTemplateKegiatan() {
 
   const [formData, setFormData] = useState({
     judul: '',
-    deskripsi: '',
     deadline: '',
     jenisId: '',
     tanggalKegiatan: '',
     waktuKegiatan: '',
     tujuanKegiatan: '',
+    tema: '',
+    latarBelakang: '',
+    bentukKegiatan: '',
+    rangkaianKegiatan: '',
+    hasilPelaksanaan: '',
+    penutup: '',
   });
 
   const [files, setFiles] = useState<File[]>([]);
@@ -88,6 +100,21 @@ export default function KelolaTemplateKegiatan() {
     }
   });
 
+  const emptyForm = {
+    judul: '',
+    deadline: '',
+    jenisId: '',
+    tanggalKegiatan: '',
+    waktuKegiatan: '',
+    tujuanKegiatan: '',
+    tema: '',
+    latarBelakang: '',
+    bentukKegiatan: '',
+    rangkaianKegiatan: '',
+    hasilPelaksanaan: '',
+    penutup: '',
+  };
+
   // Mutation to create template
   const createMutation = useMutation<any, Error, FormData>({
     mutationFn: async (data: FormData) => {
@@ -99,7 +126,7 @@ export default function KelolaTemplateKegiatan() {
     },
     onSuccess: () => {
       showToast('success', 'Template kegiatan berhasil dibuat!');
-      setFormData({ judul: '', deskripsi: '', deadline: '', jenisId: '', tanggalKegiatan: '', waktuKegiatan: '', tujuanKegiatan: '' });
+      setFormData(emptyForm);
       setFiles([]);
       queryClient.invalidateQueries({ queryKey: ['template-kegiatan'] });
     },
@@ -122,7 +149,7 @@ export default function KelolaTemplateKegiatan() {
       setEditingId(null);
       setFiles([]);
       setExistingDocs([]);
-      setFormData({ judul: '', deskripsi: '', deadline: '', jenisId: '', tanggalKegiatan: '', waktuKegiatan: '', tujuanKegiatan: '' });
+      setFormData(emptyForm);
       queryClient.invalidateQueries({ queryKey: ['template-kegiatan'] });
     },
     onError: (error: any) => {
@@ -158,19 +185,32 @@ export default function KelolaTemplateKegiatan() {
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const processDocxFiles = (inputFiles: File[]) => {
+    const valid = inputFiles.filter(f => f.name.toLowerCase().endsWith('.docx'));
+    if (valid.length < inputFiles.length) {
+      showToast('error', 'Hanya menerima berkas format DOCX (.docx) untuk template kegiatan.');
+    }
+    return valid;
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    if (e.dataTransfer.files) {
-      const newFiles = Array.from(e.dataTransfer.files);
-      setFiles(prev => [...prev, ...newFiles]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const validFiles = processDocxFiles(Array.from(e.dataTransfer.files));
+      if (validFiles.length > 0) {
+        setFiles(prev => [...prev, ...validFiles]);
+      }
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setFiles(prev => [...prev, ...newFiles]);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const validFiles = processDocxFiles(Array.from(e.target.files));
+      if (validFiles.length > 0) {
+        setFiles(prev => [...prev, ...validFiles]);
+      }
+      e.target.value = '';
     }
   };
 
@@ -180,25 +220,25 @@ export default function KelolaTemplateKegiatan() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.judul || !formData.deskripsi || !formData.deadline || !formData.jenisId) {
-      showToast('error', 'Lengkapi seluruh field wajib untuk membuat template.');
+    if (!formData.judul || !formData.deadline || !formData.jenisId) {
+      showToast('error', 'Lengkapi seluruh field wajib (Judul, Jenis, Deadline) untuk membuat template.');
       return;
     }
 
     const payload = new FormData();
     payload.append('judul', formData.judul);
-    payload.append('deskripsi', formData.deskripsi);
     payload.append('deadline', formData.deadline);
     payload.append('jenisId', formData.jenisId);
-    if (formData.tanggalKegiatan) {
-      payload.append('tanggalKegiatan', formData.tanggalKegiatan);
-    }
-    if (formData.waktuKegiatan) {
-      payload.append('waktuKegiatan', formData.waktuKegiatan);
-    }
-    if (formData.tujuanKegiatan) {
-      payload.append('tujuanKegiatan', formData.tujuanKegiatan);
-    }
+    if (formData.tanggalKegiatan) payload.append('tanggalKegiatan', formData.tanggalKegiatan);
+    if (formData.waktuKegiatan) payload.append('waktuKegiatan', formData.waktuKegiatan);
+    if (formData.tujuanKegiatan) payload.append('tujuanKegiatan', formData.tujuanKegiatan);
+    if (formData.tema) payload.append('tema', formData.tema);
+    if (formData.latarBelakang) payload.append('latarBelakang', formData.latarBelakang);
+    if (formData.bentukKegiatan) payload.append('bentukKegiatan', formData.bentukKegiatan);
+    if (formData.rangkaianKegiatan) payload.append('rangkaianKegiatan', formData.rangkaianKegiatan);
+    if (formData.hasilPelaksanaan) payload.append('hasilPelaksanaan', formData.hasilPelaksanaan);
+    if (formData.penutup) payload.append('penutup', formData.penutup);
+
     files.forEach(file => {
       payload.append('files', file);
     });
@@ -214,12 +254,17 @@ export default function KelolaTemplateKegiatan() {
     setEditingId(template.id);
     setFormData({
       judul: template.judul,
-      deskripsi: template.deskripsi,
       deadline: new Date(template.deadline).toISOString().slice(0, 16),
       jenisId: template.jenisId,
       tanggalKegiatan: template.tanggalKegiatan ? new Date(template.tanggalKegiatan).toISOString().split('T')[0] : '',
       waktuKegiatan: template.waktuKegiatan || '',
       tujuanKegiatan: template.tujuanKegiatan || '',
+      tema: template.tema || '',
+      latarBelakang: template.latarBelakang || '',
+      bentukKegiatan: template.bentukKegiatan || '',
+      rangkaianKegiatan: template.rangkaianKegiatan || '',
+      hasilPelaksanaan: template.hasilPelaksanaan || '',
+      penutup: template.penutup || '',
     });
     setFiles([]);
     setExistingDocs(template.dokumen || []);
@@ -229,7 +274,7 @@ export default function KelolaTemplateKegiatan() {
     setEditingId(null);
     setFiles([]);
     setExistingDocs([]);
-    setFormData({ judul: '', deskripsi: '', deadline: '', jenisId: '', tanggalKegiatan: '', waktuKegiatan: '', tujuanKegiatan: '' });
+    setFormData(emptyForm);
   };
 
   const handleDelete = (id: string) => {
@@ -333,33 +378,80 @@ export default function KelolaTemplateKegiatan() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tujuan Kegiatan</label>
-              <textarea
-                name="tujuanKegiatan"
-                rows={2}
-                value={formData.tujuanKegiatan}
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tema Kegiatan</label>
+              <input
+                type="text"
+                name="tema"
+                value={formData.tema}
                 onChange={handleInputChange}
-                placeholder="Tuliskan tujuan diadakannya kegiatan ini..."
+                placeholder="Tuliskan tema kegiatan..."
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Latar Belakang</label>
+              <textarea
+                name="latarBelakang"
+                rows={2}
+                value={formData.latarBelakang}
+                onChange={handleInputChange}
+                placeholder="Latar belakang diadakannya kegiatan ini..."
                 className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Deskripsi Lengkap / Petunjuk Pelaksanaan <span className="text-rose-500">*</span></label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Bentuk Kegiatan</label>
               <textarea
-                name="deskripsi"
-                rows={3}
-                required
-                value={formData.deskripsi}
+                name="bentukKegiatan"
+                rows={2}
+                value={formData.bentukKegiatan}
                 onChange={handleInputChange}
-                placeholder="Tuliskan juknis, kriteria atau rincian laporan yang diharapkan dari cabang..."
+                placeholder="Tuliskan bentuk/format pelaksanaan kegiatan..."
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Rangkaian Kegiatan</label>
+              <textarea
+                name="rangkaianKegiatan"
+                rows={3}
+                value={formData.rangkaianKegiatan}
+                onChange={handleInputChange}
+                placeholder="Tuliskan urutan / susunan acara rangkaian kegiatan..."
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Hasil Pelaksanaan</label>
+              <textarea
+                name="hasilPelaksanaan"
+                rows={2}
+                value={formData.hasilPelaksanaan}
+                onChange={handleInputChange}
+                placeholder="Tuliskan poin-poin hasil pelaksanaan yang diharapkan..."
+                className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Penutup</label>
+              <textarea
+                name="penutup"
+                rows={2}
+                value={formData.penutup}
+                onChange={handleInputChange}
+                placeholder="Tuliskan kata penutup..."
                 className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-sans"
               />
             </div>
 
             {/* Document Uploader for Template */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Unggah Template Dokumen BAP (Format DOCX)</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Unggah Template Dokumen BAP (Format DOCX untuk Diedit & TTD)</label>
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -378,7 +470,9 @@ export default function KelolaTemplateKegiatan() {
                 />
                 <label htmlFor="template-file-input" className="cursor-pointer flex flex-col items-center gap-1">
                   <Upload className="w-5 h-5 text-indigo-600" />
-                  <span className="text-xs text-slate-600"><span className="text-indigo-600 font-semibold hover:underline">Pilih file DOCX</span> atau seret kemari</span>
+                  <span className="text-xs text-slate-600">
+                    <span className="text-indigo-600 font-semibold hover:underline">Pilih berkas DOCX</span> atau seret kemari
+                  </span>
                 </label>
               </div>
 
@@ -386,7 +480,9 @@ export default function KelolaTemplateKegiatan() {
                 <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-white">
                   {files.map((file, idx) => (
                     <div key={idx} className="flex items-center justify-between p-2 text-[11px]">
-                      <span className="text-slate-700 font-medium truncate flex-1 mr-2">{file.name}</span>
+                      <span className="text-slate-700 font-medium truncate flex-1 mr-2">
+                        {file.name} <span className="text-slate-400 text-[10px]">({formatFileSize(file.size)})</span>
+                      </span>
                       <button
                         type="button"
                         onClick={() => removeFile(idx)}

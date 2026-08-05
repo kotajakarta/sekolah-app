@@ -679,21 +679,37 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                         <input type="date" value={formData.tanggalMasuk} onChange={(e) => setFormData({ ...formData, tanggalMasuk: e.target.value })} className={inputCls} />
                       </InputField>
                       <InputField label={t('siswa.form.jenis_siswa')}>
-                        <select value={formData.jenisSiswa} onChange={(e) => setFormData({ ...formData, jenisSiswa: e.target.value })} className={selectCls}>
-                          <option value="">{t('siswa.form.jenis_siswa_ph')}</option>
-                          <option value="MUADALAH">{t('siswa.form.jenis_muadalah')}</option>
-                          <option value="NON_MUADALAH">{t('siswa.form.jenis_non_muadalah')}</option>
-                        </select>
+                        <input
+                          type="text"
+                          readOnly
+                          value={
+                            formData.jenisSiswa === 'MUADALAH'
+                              ? `${t('siswa.form.jenis_muadalah')} (Otomatis dari Rombel)`
+                              : formData.jenisSiswa === 'NON_MUADALAH'
+                              ? `${t('siswa.form.jenis_non_muadalah')} (Otomatis dari Rombel)`
+                              : 'Belum Terdaftar di Rombel Kelas (Otomatis)'
+                          }
+                          className="block w-full rounded-lg border border-slate-200 bg-slate-100/80 py-2.5 px-3.5 text-sm font-medium text-slate-500 cursor-not-allowed select-none focus:outline-none"
+                        />
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          * Terisi otomatis jika santri dimasukkan ke Rombel Kelas
+                        </p>
                       </InputField>
+
                       <InputField label={t('siswa.form.grup_daimi')}>
-                        <select value={formData.grupDaimi} onChange={(e) => setFormData({ ...formData, grupDaimi: e.target.value })} className={selectCls}>
-                          <option value="">{t('siswa.form.grup_daimi_ph')}</option>
-                          {grupDaimiList?.map((grup: any) => (
-                            <option key={grup.id} value={grup.name}>
-                              {grup.name}{grup.jenis ? ` (${grup.jenis})` : ''}
-                            </option>
-                          ))}
-                        </select>
+                        <input
+                          type="text"
+                          readOnly
+                          value={
+                            formData.grupDaimi
+                              ? `${formData.grupDaimi} (Otomatis)`
+                              : 'Belum Terdaftar di Grup Daimi (Otomatis)'
+                          }
+                          className="block w-full rounded-lg border border-slate-200 bg-slate-100/80 py-2.5 px-3.5 text-sm font-medium text-slate-500 cursor-not-allowed select-none focus:outline-none"
+                        />
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          * Terisi otomatis jika santri dimasukkan ke Grup Daimi
+                        </p>
                       </InputField>
                       <InputField label={t('siswa.form.status_hafidz')}>
                         <select value={formData.statusHafidz} onChange={(e) => setFormData({ ...formData, statusHafidz: e.target.value })} className={selectCls}>

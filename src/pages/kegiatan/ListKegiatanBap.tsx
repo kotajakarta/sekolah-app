@@ -7,7 +7,14 @@ import { useToast } from '../../contexts/ToastContext';
 import { Calendar, FileText, Download, CheckCircle2, AlertCircle, Info, Building, Clock, ChevronDown, ChevronUp, Sparkles, Loader2, Plus, Tag, Eye, X, Image as ImageIcon, File, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
 
 interface Panitia {
-  user: {
+  id?: string;
+  staffId?: string;
+  staff?: {
+    id: string;
+    name: string;
+    position: string;
+  };
+  user?: {
     operatorName: string | null;
     username: string;
   };
@@ -23,7 +30,20 @@ interface Dokumen {
 
 interface Kegiatan {
   id: string;
-  deskripsi: string;
+  deskripsi?: string;
+  tanggalKegiatan?: string | null;
+  waktuKegiatan?: string | null;
+  tempatKegiatan?: string | null;
+  jumlahPeserta?: number | null;
+  totalSantri?: number | null;
+  totalGuru?: number | null;
+  ringkasanKegiatan?: string | null;
+  kesimpulan?: string | null;
+  evaluasiBaik?: string | null;
+  evaluasiPerbaikan?: string | null;
+  bentukKegiatan?: string | null;
+  rangkaianKegiatan?: string | null;
+  hasilPelaksanaan?: string | null;
   isConfirmed: boolean;
   confirmedAt: string | null;
   confirmedByUser: { operatorName: string | null; username: string } | null;
@@ -34,7 +54,7 @@ interface Kegiatan {
   createdAt: string;
   template: {
     judul: string;
-    deskripsi: string;
+    deskripsi?: string;
     deadline: string;
     jenis: { nama: string };
     dokumen?: Dokumen[];
@@ -275,8 +295,13 @@ export default function ListKegiatanBap() {
           {BAPs.map(bap => {
             const isExpired = new Date(bap.template.deadline) < new Date();
             const isOpen = expandedId === bap.id;
-            const ketua = bap.panitia.find(p => p.jabatan === 'KETUA')?.user;
-            const ketuaName = ketua?.operatorName || ketua?.username || 'Belum ditunjuk';
+            const ketuaPanitia = bap.panitia.find(p => p.jabatan === 'KETUA');
+            const sekretarisPanitia = bap.panitia.find(p => p.jabatan === 'SEKRETARIS');
+            const bendaharaPanitia = bap.panitia.find(p => p.jabatan === 'BENDAHARA');
+
+            const ketuaName = ketuaPanitia?.staff?.name || ketuaPanitia?.user?.operatorName || ketuaPanitia?.user?.username || 'Belum ditunjuk';
+            const sekretarisName = sekretarisPanitia?.staff?.name || sekretarisPanitia?.user?.operatorName || sekretarisPanitia?.user?.username || '-';
+            const bendaharaName = bendaharaPanitia?.staff?.name || bendaharaPanitia?.user?.operatorName || bendaharaPanitia?.user?.username || '-';
 
             // Categorize dokumen
             const docFiles = bap.dokumen.filter(d => !(/\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName) || d.fileType?.startsWith('image')));
@@ -384,12 +409,113 @@ export default function ListKegiatanBap() {
                       )}
                     </div>
 
-                    {/* Description */}
-                    <div className="space-y-2">
-                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Laporan Pelaksanaan Cabang:</span>
-                      <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed bg-white border border-slate-150 rounded-lg p-4 shadow-none">
-                        {bap.deskripsi}
-                      </p>
+                    {/* Data Lengkap Pelaksanaan BAP */}
+                    <div className="space-y-4">
+                      {/* Grid 1: Tempat, Waktu, Breakdown Peserta */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Waktu & Tempat */}
+                        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
+                          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                            <Building className="w-4 h-4 text-indigo-500" />
+                            Pelaksanaan & Waktu
+                          </h4>
+                          <div className="text-xs space-y-1 text-slate-600">
+                            <div><span className="font-medium text-slate-400">Tempat:</span> <span className="font-semibold text-slate-800">{bap.tempatKegiatan || bap.cabang?.name}</span></div>
+                            <div><span className="font-medium text-slate-400">Tanggal:</span> <span className="font-semibold text-slate-800">{bap.tanggalKegiatan ? new Date(bap.tanggalKegiatan).toLocaleDateString('id-ID', { dateStyle: 'full' }) : '-'}</span></div>
+                            <div><span className="font-medium text-slate-400">Waktu:</span> <span className="font-semibold text-slate-800">{bap.waktuKegiatan || '-'}</span></div>
+                          </div>
+                        </div>
+
+                        {/* Breakdown Peserta */}
+                        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
+                          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                            <Tag className="w-4 h-4 text-indigo-500" />
+                            Rincian Jumlah Peserta
+                          </h4>
+                          <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-2">
+                              <span className="block text-[10px] text-slate-400 uppercase font-semibold">Santri</span>
+                              <span className="text-sm font-bold text-slate-800">{bap.totalSantri ?? 0}</span>
+                            </div>
+                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-2">
+                              <span className="block text-[10px] text-slate-400 uppercase font-semibold">Guru</span>
+                              <span className="text-sm font-bold text-slate-800">{bap.totalGuru ?? 0}</span>
+                            </div>
+                            <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-2">
+                              <span className="block text-[10px] text-indigo-500 uppercase font-bold">Total</span>
+                              <span className="text-sm font-bold text-indigo-900">{bap.jumlahPeserta ?? ((bap.totalSantri || 0) + (bap.totalGuru || 0))}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Grid 2: Penanggung Jawab / Panitia */}
+                      <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
+                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Penanggung Jawab Pelaksana</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                          <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg">
+                            <span className="block text-[10px] text-slate-400 font-semibold uppercase">Ketua</span>
+                            <span className="font-bold text-slate-800">{ketuaName}</span>
+                          </div>
+                          <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg">
+                            <span className="block text-[10px] text-slate-400 font-semibold uppercase">Sekretaris</span>
+                            <span className="font-semibold text-slate-800">{sekretarisName}</span>
+                          </div>
+                          <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg">
+                            <span className="block text-[10px] text-slate-400 font-semibold uppercase">Bendahara</span>
+                            <span className="font-semibold text-slate-800">{bendaharaName}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Grid 3: Bentuk & Rangkaian Kegiatan */}
+                      {(bap.bentukKegiatan || bap.rangkaianKegiatan) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {bap.bentukKegiatan && (
+                            <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1.5">
+                              <span className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Bentuk Kegiatan:</span>
+                              <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{bap.bentukKegiatan}</p>
+                            </div>
+                          )}
+                          {bap.rangkaianKegiatan && (
+                            <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1.5">
+                              <span className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Rangkaian Kegiatan:</span>
+                              <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{bap.rangkaianKegiatan}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Hasil Pelaksanaan */}
+                      {(bap.hasilPelaksanaan || bap.kesimpulan || bap.deskripsi) && (
+                        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1.5">
+                          <span className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Hasil Pelaksanaan:</span>
+                          <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
+                            {bap.hasilPelaksanaan || bap.kesimpulan || bap.deskripsi}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Evaluasi Kegiatan */}
+                      {(bap.evaluasiBaik || bap.evaluasiPerbaikan) && (
+                        <div className="bg-amber-50/40 border border-amber-200/80 rounded-xl p-4 space-y-3">
+                          <span className="block text-xs font-bold text-amber-900 uppercase tracking-wider">Evaluasi Pelaksanaan</span>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                            {bap.evaluasiBaik && (
+                              <div className="bg-white border border-amber-100 rounded-lg p-3">
+                                <span className="font-bold text-emerald-700 block mb-1">Hal Yang Sudah Baik:</span>
+                                <p className="text-slate-700 whitespace-pre-wrap">{bap.evaluasiBaik}</p>
+                              </div>
+                            )}
+                            {bap.evaluasiPerbaikan && (
+                              <div className="bg-white border border-amber-100 rounded-lg p-3">
+                                <span className="font-bold text-amber-800 block mb-1">Hal Yang Perlu Ditingkatkan:</span>
+                                <p className="text-slate-700 whitespace-pre-wrap">{bap.evaluasiPerbaikan}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Dokumen Files */}

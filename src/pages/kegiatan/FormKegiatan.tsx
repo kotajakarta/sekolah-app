@@ -99,6 +99,25 @@ export default function FormKegiatan() {
     }
   });
 
+  // Fetch Cabang list as fallback for user cabangName
+  const { data: cabangList = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['master-data', 'cabang-list-fallback'],
+    queryFn: async () => {
+      const res = await apiClient.get('/master-data/cabang');
+      return res.data;
+    },
+    enabled: !!user?.cabangId && !user?.cabangName,
+  });
+
+  const userCabangObj = cabangList.find(c => c.id === user?.cabangId);
+  const effectiveCabangName = user?.cabangName || (user as any)?.cabang?.name || userCabangObj?.name || '';
+
+  React.useEffect(() => {
+    if (activeView === 'CREATE' && (!formData.tempatKegiatan || formData.tempatKegiatan === '') && effectiveCabangName) {
+      setFormData(prev => ({ ...prev, tempatKegiatan: effectiveCabangName }));
+    }
+  }, [activeView, effectiveCabangName, formData.tempatKegiatan]);
+
   // Filter gurus to only show teachers in the same branch
   const filteredGurus = gurus.filter(g => {
     if (user?.scope === 'CABANG') {
@@ -286,7 +305,7 @@ export default function FormKegiatan() {
   const startCreate = (tmpl: TemplateKegiatan) => {
     setSelectedTemplate(tmpl);
     setEditingBap(null);
-    const defaultTempat = user?.cabangName || (user as any)?.cabang?.name || '';
+    const defaultTempat = effectiveCabangName;
     setFormData({
       templateId: tmpl.id,
       deskripsi: tmpl.bentukKegiatan || tmpl.judul || '',
@@ -317,7 +336,7 @@ export default function FormKegiatan() {
     const ketua = bap.panitia?.find((p: any) => p.jabatan === 'KETUA')?.staffId || bap.panitia?.[0]?.staffId || '';
     const sekretaris = bap.panitia?.find((p: any) => p.jabatan === 'SEKRETARIS')?.staffId || '';
     const bendahara = bap.panitia?.find((p: any) => p.jabatan === 'BENDAHARA')?.staffId || '';
-    const defaultTempat = bap.tempatKegiatan || user?.cabangName || (user as any)?.cabang?.name || '';
+    const defaultTempat = bap.tempatKegiatan || bap.cabang?.name || effectiveCabangName;
 
     const santriVal = bap.totalSantri !== null && bap.totalSantri !== undefined ? String(bap.totalSantri) : '';
     const guruVal = bap.totalGuru !== null && bap.totalGuru !== undefined ? String(bap.totalGuru) : '';

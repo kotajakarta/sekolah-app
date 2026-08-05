@@ -10,3 +10,10 @@ export function getStudentFotoUrl(fotoUrl?: string | null): string | null {
   const cleanPath = fotoUrl.startsWith('/') ? fotoUrl : `/${fotoUrl}`;
   return `/api/v1${cleanPath}`;
 }
+
+export function getStudentThumbnailUrl(fotoUrl?: string | null): string | null {
+  if (!fotoUrl) return null;
+  if (fotoUrl.startsWith('data:')) return fotoUrl;
+  const cleanPath = fotoUrl.startsWith('/') ? fotoUrl : `/${fotoUrl}`;
+  return `/api/v1/students/photo-thumbnail?url=${encodeURIComponent(cleanPath)}`;
+}

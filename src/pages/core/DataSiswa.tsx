@@ -19,6 +19,7 @@ import NotificationModal from '../../components/NotificationModal';
 import AdvancedFilterBar, { FilterState } from '../../components/AdvancedFilterBar';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
+import { getStudentThumbnailUrl } from '../../utils/photo';
 
 const calculateProgress = (student: any) => {
   if (!student || !student.biodata) return 0;
@@ -419,8 +420,9 @@ export default function DataSiswa() {
                               {student.biodata?.fotoUrl ? (
                                 <div className="relative inline-block">
                                   <img
-                                    src={student.biodata.fotoUrl.startsWith('/') ? `/api/v1${student.biodata.fotoUrl}` : student.biodata.fotoUrl}
+                                    src={getStudentThumbnailUrl(student.biodata.fotoUrl)!}
                                     alt="Foto Siswa"
+                                    loading="lazy"
                                     className={`w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 ${student.biodata?.jenisKelamin === 'PEREMPUAN' ? 'blur-sm' : ''
                                       }`}
                                   />

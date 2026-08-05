@@ -67,6 +67,7 @@ import FormKegiatan from './pages/kegiatan/FormKegiatan';
 import ListKegiatanBap from './pages/kegiatan/ListKegiatanBap';
 import KelolaJenisKegiatan from './pages/kegiatan/KelolaJenisKegiatan';
 import KelolaTemplateKegiatan from './pages/kegiatan/KelolaTemplateKegiatan';
+import DashboardBapAdmin from './pages/kegiatan/DashboardBapAdmin';
 import SuratPage from './pages/surat/SuratPage';
 import PortalLayout from './components/Layout/PortalLayout';
 import { PortalStudentProvider } from './features/portal/context/PortalStudentContext';
@@ -513,6 +514,8 @@ export default function App() {
               <Route path="sarpras/fasilitas" element={<ManajemenFasilitas />} />
               <Route path="kegiatan/buat" element={<FormKegiatan />} />
               <Route path="kegiatan" element={<ListKegiatanBap />} />
+              <Route path="kegiatan/dashboard" element={<DashboardBapAdmin />} />
+              <Route path="kegiatan/stats" element={<DashboardBapAdmin />} />
               <Route path="kegiatan/jenis" element={<KelolaJenisKegiatan />} />
               <Route path="kegiatan/templates" element={<KelolaTemplateKegiatan />} />
               <Route path="surat" element={<SuratPage />} />

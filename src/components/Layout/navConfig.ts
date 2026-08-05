@@ -97,6 +97,7 @@ export function useNavEntries(): NavEntry[] {
     ];
 
     const bapItems = [
+      { to: '/dashboard/kegiatan/dashboard', label: 'Dashboard Infografik BAP', show: user?.scope === 'GLOBAL' },
       { to: '/dashboard/kegiatan', label: t('sidebar.bap_list') || 'Daftar BAP Laporan', show: true },
       { to: '/dashboard/kegiatan/buat', label: t('sidebar.bap_create') || 'Buat Laporan BAP', show: user?.scope === 'CABANG' },
       { to: '/dashboard/kegiatan/templates', label: t('sidebar.bap_templates') || 'Kelola Template Kegiatan', show: user?.scope === 'GLOBAL' },

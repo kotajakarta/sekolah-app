@@ -24,7 +24,10 @@ import {
   Loader2,
   AlertCircle,
   FolderPlus,
-  BookOpen
+  BookOpen,
+  MapPin,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 
 interface StatsSummary {
@@ -64,12 +67,41 @@ interface TemplateStat {
   totalGuru: number;
 }
 
+interface WilayahStat {
+  wilayahId: string;
+  wilayahName: string;
+  totalCabang: number;
+  activeCabangCount: number;
+  totalBapSubmitted: number;
+  totalBapConfirmed: number;
+  totalSantri: number;
+  totalGuru: number;
+  totalPeserta: number;
+  completionRate: number;
+}
+
+interface CabangProgressStat {
+  cabangId: string;
+  cabangName: string;
+  wilayahId: string;
+  wilayahName: string;
+  totalBapSubmitted: number;
+  totalBapConfirmed: number;
+  totalSantri: number;
+  totalGuru: number;
+  totalPeserta: number;
+  completionRate: number;
+  status: string; // SELESAI, SEBAGIAN, BELUM_ADA
+}
+
 interface DashboardData {
   summary: StatsSummary;
   charts: {
     byJenis: JenisStat[];
     topCabang: TopCabangStat[];
     byTemplate: TemplateStat[];
+    byWilayah: WilayahStat[];
+    byCabangProgress: CabangProgressStat[];
     byStatus: {
       confirmed: number;
       pending: number;
@@ -83,6 +115,11 @@ export default function DashboardBapAdmin() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedJenis, setSelectedJenis] = useState('');
+
+  // Search & Filter for Cabang Table
+  const [cabangSearchTerm, setCabangSearchTerm] = useState('');
+  const [selectedWilayahFilter, setSelectedWilayahFilter] = useState('');
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState('');
 
   const { data, isLoading, isError, refetch, isRefetching } = useQuery<DashboardData>({
     queryKey: ['kegiatan', 'stats'],
@@ -125,6 +162,14 @@ export default function DashboardBapAdmin() {
     return matchSearch && matchJenis;
   });
 
+  // Filter Cabang progress
+  const filteredCabangList = (charts.byCabangProgress || []).filter(c => {
+    const matchSearch = c.cabangName.toLowerCase().includes(cabangSearchTerm.toLowerCase()) || c.wilayahName.toLowerCase().includes(cabangSearchTerm.toLowerCase());
+    const matchWilayah = selectedWilayahFilter ? c.wilayahId === selectedWilayahFilter : true;
+    const matchStatus = selectedStatusFilter ? c.status === selectedStatusFilter : true;
+    return matchSearch && matchWilayah && matchStatus;
+  });
+
   // Calculate Donut Infographic Angles
   const totalBapOrOne = summary.totalBapSubmitted || 1;
   const confirmedPercent = Math.round((summary.totalBapConfirmed / totalBapOrOne) * 100);
@@ -150,7 +195,7 @@ export default function DashboardBapAdmin() {
               Dashboard Berita Acara Pelaksanaan (BAP)
             </h1>
             <p className="text-sm text-indigo-100/80 leading-relaxed">
-              Pantau kepatuhan pelaporan BAP seluruh cabang, jangkauan partisipasi santri & ustadz, serta status verifikasi laporan secara komprehensif.
+              Pantau kepatuhan pelaporan BAP seluruh wilayah & cabang, jangkauan partisipasi santri & ustadz, serta status verifikasi laporan secara komprehensif.
             </p>
           </div>
 
@@ -255,6 +300,78 @@ export default function DashboardBapAdmin() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* SECTION: PROGRES DATA MASUK PER WILAYAH */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-indigo-600" />
+              Progres Data BAP Masuk per Wilayah
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">Ringkasan tingkat kepatuhan pelaporan BAP dan partisipasi peserta di tingkat Wilayah.</p>
+          </div>
+          <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded-lg self-start sm:self-auto">
+            {charts.byWilayah?.length || 0} Wilayah Terdaftar
+          </span>
+        </div>
+
+        {(!charts.byWilayah || charts.byWilayah.length === 0) ? (
+          <div className="p-8 text-center text-xs text-slate-400">Belum ada data wilayah.</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {charts.byWilayah.map(wil => (
+              <div key={wil.wilayahId} className="bg-slate-50/70 border border-slate-200 rounded-xl p-5 space-y-3 hover:shadow-sm transition-all">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4 text-indigo-500 shrink-0" />
+                      {wil.wilayahName}
+                    </h4>
+                    <span className="text-[11px] text-slate-500 mt-0.5 block">
+                      {wil.activeCabangCount} dari {wil.totalCabang} Cabang Aktif Lapor
+                    </span>
+                  </div>
+                  <span className="text-xs font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">
+                    {wil.completionRate}% Rate
+                  </span>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="space-y-1">
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${wil.completionRate}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between items-center text-[10px] text-slate-500 font-medium">
+                    <span>{wil.totalBapSubmitted} BAP Disubmit</span>
+                    <span className="text-emerald-600 font-bold">{wil.totalBapConfirmed} Verified</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs text-slate-600">
+                  <span className="flex items-center gap-1 text-[11px]">
+                    <Users className="w-3.5 h-3.5 text-slate-400" />
+                    <strong>{wil.totalPeserta.toLocaleString('id-ID')}</strong> Peserta
+                  </span>
+                  <button
+                    onClick={() => {
+                      setSelectedWilayahFilter(wil.wilayahId);
+                      const el = document.getElementById('tabel-progres-cabang');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-0.5 cursor-pointer"
+                  >
+                    Detail Cabang <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Main Infographics Row (2 Columns) */}
@@ -406,6 +523,149 @@ export default function DashboardBapAdmin() {
           <div className="mt-4 pt-4 border-t border-slate-100 text-center">
             <p className="text-xs text-slate-400">Verifikasi BAP diperbarui secara real-time dari data Pusat.</p>
           </div>
+        </div>
+      </div>
+
+      {/* SECTION: TABEL MATRIKS DETAIL PROGRES PELAPORAN PER CABANG */}
+      <div id="tabel-progres-cabang" className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Building className="w-5 h-5 text-indigo-600" />
+              Matriks Progres Data Pelaporan per Cabang
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">Daftar lengkap status penyelesaian BAP, persentase progress, dan total partisipan per Cabang.</p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Cari cabang / wilayah..."
+                value={cabangSearchTerm}
+                onChange={e => setCabangSearchTerm(e.target.value)}
+                className="pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none w-48 sm:w-60"
+              />
+            </div>
+
+            <select
+              value={selectedWilayahFilter}
+              onChange={e => setSelectedWilayahFilter(e.target.value)}
+              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none bg-white"
+            >
+              <option value="">Semua Wilayah</option>
+              {(charts.byWilayah || []).map(w => (
+                <option key={w.wilayahId} value={w.wilayahId}>{w.wilayahName}</option>
+              ))}
+            </select>
+
+            <select
+              value={selectedStatusFilter}
+              onChange={e => setSelectedStatusFilter(e.target.value)}
+              className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none bg-white"
+            >
+              <option value="">Semua Status</option>
+              <option value="SELESAI">Selesai 100%</option>
+              <option value="SEBAGIAN">Sebagian Lapor</option>
+              <option value="BELUM_ADA">Belum Ada BAP</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-left text-xs">
+            <thead className="bg-slate-50 font-semibold text-slate-700">
+              <tr>
+                <th className="px-6 py-3.5">Nama Cabang & Wilayah</th>
+                <th className="px-6 py-3.5 text-center">Status Pelaporan</th>
+                <th className="px-6 py-3.5 text-center">Progres %</th>
+                <th className="px-6 py-3.5 text-center">BAP Disubmit / Verified</th>
+                <th className="px-6 py-3.5 text-center">Partisipasi Peserta</th>
+                <th className="px-6 py-3.5 text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredCabangList.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
+                    Tidak ada data cabang yang sesuai filter.
+                  </td>
+                </tr>
+              ) : (
+                filteredCabangList.map(cab => {
+                  return (
+                    <tr key={cab.cabangId} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <span className="font-bold text-slate-800 block text-sm">{cab.cabangName}</span>
+                        <span className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3 h-3 text-slate-400" />
+                          {cab.wilayahName}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4 text-center">
+                        {cab.status === 'SELESAI' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Selesai 100%
+                          </span>
+                        ) : cab.status === 'SEBAGIAN' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                            <Clock className="w-3 h-3 text-indigo-600" /> Sebagian
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                            <XCircle className="w-3 h-3 text-slate-400" /> Belum Lapor
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-6 py-4 text-center w-36">
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center text-[10px] font-bold text-slate-700">
+                            <span>{cab.completionRate}%</span>
+                          </div>
+                          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                cab.completionRate >= 100 ? 'bg-emerald-500' : cab.completionRate > 0 ? 'bg-indigo-600' : 'bg-slate-200'
+                              }`}
+                              style={{ width: `${cab.completionRate}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4 text-center font-bold text-slate-800">
+                        <div className="space-y-0.5">
+                          <span>{cab.totalBapSubmitted} BAP Disubmit</span>
+                          <span className="block text-[10px] text-emerald-600 font-semibold">({cab.totalBapConfirmed} Verified)</span>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4 text-center text-slate-600">
+                        <div className="space-y-0.5">
+                          <span className="font-bold text-slate-900">{cab.totalPeserta.toLocaleString('id-ID')} Total</span>
+                          <span className="block text-[10px] text-slate-400">
+                            {cab.totalSantri.toLocaleString('id-ID')} Santri | {cab.totalGuru.toLocaleString('id-ID')} Guru
+                          </span>
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => navigate('/dashboard/kegiatan')}
+                          className="px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
+                        >
+                          Lihat Laporan BAP
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

@@ -323,8 +323,8 @@ export default function DataCabang() {
   const renderTargetCell = (realisasi: number, target: number, isTotalCell: boolean = false) => {
     if (!target && !realisasi) {
       return (
-        <div className="flex flex-col items-center justify-center py-1">
-          <div className="text-xs font-semibold text-slate-300">
+        <div className="flex flex-col items-center justify-center py-0.5">
+          <div className="text-[11px] font-medium text-slate-300">
             0 <span className="font-normal text-slate-300">/ 0</span>
           </div>
         </div>
@@ -350,12 +350,12 @@ export default function DataCabang() {
 
     if (isTotalCell) {
       return (
-        <div className="flex flex-col items-center justify-center py-1 max-w-[120px] mx-auto">
-          <div className="text-base font-extrabold text-slate-900">
-            {realisasi.toLocaleString('id-ID')} <span className="text-slate-400 font-normal text-xs">/ {target.toLocaleString('id-ID')}</span>
+        <div className="flex flex-col items-center justify-center py-0.5 max-w-[110px] mx-auto">
+          <div className="text-xs font-extrabold text-slate-900">
+            {realisasi.toLocaleString('id-ID')} <span className="text-slate-400 font-normal text-[10px]">/ {target.toLocaleString('id-ID')}</span>
           </div>
-          <div className="mt-1">
-            <span className={`inline-flex px-2.5 py-0.5 text-xs font-extrabold rounded-full border shadow-2xs ${badgeColor}`}>
+          <div className="mt-0.5">
+            <span className={`inline-flex px-2 py-0.2 text-[10px] font-extrabold rounded-full border shadow-2xs ${badgeColor}`}>
               {pct}%
             </span>
           </div>
@@ -364,13 +364,13 @@ export default function DataCabang() {
     }
 
     return (
-      <div className="flex flex-col items-center justify-center py-1 max-w-[110px] mx-auto">
-        <div className="flex items-baseline justify-center gap-1 w-full text-xs">
-          <span className="font-extrabold text-slate-900 text-sm">{realisasi.toLocaleString('id-ID')}</span>
-          <span className="text-slate-400 font-normal text-xs">/{target.toLocaleString('id-ID')}</span>
-          <span className={`text-[11px] ml-0.5 ${textColor}`}>{pct}%</span>
+      <div className="flex flex-col items-center justify-center py-0.5 max-w-[95px] mx-auto">
+        <div className="flex items-baseline justify-center gap-0.5 w-full text-[11px]">
+          <span className="font-extrabold text-slate-900 text-xs">{realisasi.toLocaleString('id-ID')}</span>
+          <span className="text-slate-400 font-normal text-[10px]">/{target.toLocaleString('id-ID')}</span>
+          <span className={`text-[10px] ml-0.5 ${textColor}`}>{pct}%</span>
         </div>
-        <div className="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden mt-1 shadow-2xs">
+        <div className="w-full h-1 bg-slate-200/80 rounded-full overflow-hidden mt-0.5 shadow-2xs">
           <div
             className={`h-full rounded-full transition-all duration-300 ${barColor}`}
             style={{ width: `${clampedPct}%` }}
@@ -926,29 +926,29 @@ export default function DataCabang() {
                           {activeSubTab === 'jumlah_siswa' && (
                             <>
                               {/* WUSTHA (TINGKAT 7 - 9) - Sky Blue Accent */}
-                              <td className="py-3 px-3 text-center bg-sky-50/40 border-r border-sky-100">
+                              <td className="py-1.5 px-2 text-center bg-sky-50/40 border-r border-sky-100">
                                 {renderTargetCell(s.tingkat.tingkat7, t.targetTingkat7)}
                               </td>
-                              <td className="py-3 px-3 text-center bg-sky-50/40 border-r border-sky-100">
+                              <td className="py-1.5 px-2 text-center bg-sky-50/40 border-r border-sky-100">
                                 {renderTargetCell(s.tingkat.tingkat8, t.targetTingkat8)}
                               </td>
-                              <td className="py-3 px-3 text-center bg-sky-50/60 border-r border-sky-200">
+                              <td className="py-1.5 px-2 text-center bg-sky-50/60 border-r border-sky-200">
                                 {renderTargetCell(s.tingkat.tingkat9, t.targetTingkat9)}
                               </td>
 
                               {/* ULYA (TINGKAT 10 - 12) - Emerald Green Accent */}
-                              <td className="py-3 px-3 text-center bg-emerald-50/40 border-r border-emerald-100">
+                              <td className="py-1.5 px-2 text-center bg-emerald-50/40 border-r border-emerald-100">
                                 {renderTargetCell(s.tingkat.tingkat10, t.targetTingkat10)}
                               </td>
-                              <td className="py-3 px-3 text-center bg-emerald-50/40 border-r border-emerald-100">
+                              <td className="py-1.5 px-2 text-center bg-emerald-50/40 border-r border-emerald-100">
                                 {renderTargetCell(s.tingkat.tingkat11, t.targetTingkat11)}
                               </td>
-                              <td className="py-3 px-3 text-center bg-emerald-50/60 border-r border-emerald-200">
+                              <td className="py-1.5 px-2 text-center bg-emerald-50/60 border-r border-emerald-200">
                                 {renderTargetCell(s.tingkat.tingkat12, t.targetTingkat12)}
                               </td>
 
                               {/* TOTAL REALISASI / KAPASITAS TARGET - Indigo Accent */}
-                              <td className="py-3 px-3 text-center bg-indigo-50/50 border-r border-indigo-100 font-bold">
+                              <td className="py-1.5 px-2 text-center bg-indigo-50/50 border-r border-indigo-100 font-bold">
                                 {renderTargetCell(s.totalSiswa, item.kapasitasSantri || 0, true)}
                               </td>
                             </>

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useTranslation } from 'react-i18next';
-import { Users, Plus, Edit2, Trash2, Loader2, Upload, Search, Filter, X } from 'lucide-react';
+import { Users, Plus, Edit2, Trash2, Loader2, Upload, Search, Filter, X, ShieldCheck, ShieldOff, Key } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import UserModal from './UserModal';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -323,6 +323,7 @@ export default function UsersWilayah() {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Divisi</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Wilayah</th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Cabang</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Status 2FA</th>
                     <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
@@ -364,11 +365,24 @@ export default function UsersWilayah() {
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.cabang?.name || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {item.twoFactorEnabled ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                            2FA Aktif
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                            <ShieldOff className="w-3.5 h-3.5 text-slate-400" />
+                            Nonaktif
+                          </span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button onClick={() => handleEdit(item)} className="text-indigo-600 hover:text-blue-900 mr-4">
+                        <button onClick={() => handleEdit(item)} className="text-indigo-600 hover:text-blue-900 mr-4 cursor-pointer" title="Edit User">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => confirmDelete(item.id)} className="text-red-600 hover:text-red-900">
+                        <button onClick={() => confirmDelete(item.id)} className="text-red-600 hover:text-red-900 cursor-pointer" title="Hapus User">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </td>

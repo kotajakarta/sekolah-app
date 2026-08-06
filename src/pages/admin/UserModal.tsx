@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, ShieldCheck, ShieldOff, Key, AlertTriangle } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Select from 'react-select';
 import apiClient from '../../lib/apiClient';
 import { useGetStudents } from '../../features/core_data/hooks/useGetStudents';
+import { useToast } from '../../contexts/ToastContext';
 
 interface UserModalProps {
   isOpen: boolean;
@@ -78,6 +79,10 @@ function WaliStudentSelect({ studentIds, hubungan, onChangeStudentIds, onChangeH
 
 export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProps) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     username: '',
@@ -109,6 +114,8 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
 
   useEffect(() => {
     if (userToEdit) {
+      setIs2FAEnabled(!!userToEdit.twoFactorEnabled);
+      setIsConfirmResetOpen(false);
       setFormData({
         username: userToEdit.username || '',
         password: '',
@@ -125,6 +132,8 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
           : '',
       });
     } else {
+      setIs2FAEnabled(false);
+      setIsConfirmResetOpen(false);
       setFormData({
         username: '',
         password: '',
@@ -138,6 +147,23 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
       });
     }
   }, [userToEdit]);
+
+  const reset2FAMutation = useMutation({
+    mutationFn: async () => {
+      if (!userToEdit?.id) return;
+      const res = await apiClient.post(`/admin/users/${userToEdit.id}/reset-2fa`);
+      return res.data;
+    },
+    onSuccess: () => {
+      setIs2FAEnabled(false);
+      setIsConfirmResetOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      showToast('success', 'Autentikasi 2FA berhasil dinonaktifkan / di-reset');
+    },
+    onError: (err: any) => {
+      showToast('error', err.response?.data?.message || 'Gagal menonaktifkan 2FA');
+    }
+  });
 
   const mutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -287,6 +313,83 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
               </select>
+            </div>
+          )}
+
+          {/* Status Keamanan 2FA (Jika mode edit user) */}
+          {userToEdit && (
+            <div className="pt-4 border-t border-slate-100 space-y-2">
+              <label className="block text-sm font-medium text-slate-700">Status Keamanan 2FA</label>
+              <div className={`p-3.5 rounded-xl border flex items-center justify-between gap-3 ${
+                is2FAEnabled
+                  ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+                  : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                    is2FAEnabled ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-slate-200/70 text-slate-500 border-slate-300'
+                  }`}>
+                    {is2FAEnabled ? <ShieldCheck className="w-5 h-5" /> : <ShieldOff className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold">
+                        {is2FAEnabled ? '2FA Aktif (Terproteksi)' : '2FA Belum Aktif'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      {is2FAEnabled
+                        ? 'Pengguna ini dilindungi Autentikasi 2 Langkah (TOTP).'
+                        : 'Akun ini belum mengaktifkan 2FA.'}
+                    </p>
+                  </div>
+                </div>
+
+                {is2FAEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmResetOpen(true)}
+                    disabled={reset2FAMutation.isPending}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs"
+                  >
+                    {reset2FAMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Key className="w-3.5 h-3.5" />}
+                    <span>Reset / Hapus 2FA</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Inline Confirmation for Reset 2FA */}
+              {isConfirmResetOpen && (
+                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl space-y-2 animate-in fade-in duration-200">
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-xs font-bold text-rose-900">Konfirmasi Hapus / Reset 2FA</h4>
+                      <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                        Apakah Anda yakin ingin menonaktifkan 2FA untuk user <strong>{userToEdit.username}</strong>? User harus melakukan setup 2FA kembali jika ingin mengaktifkannya nanti.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsConfirmResetOpen(false)}
+                      className="px-3 py-1 text-xs font-semibold text-slate-600 bg-white border border-slate-300 rounded-md hover:bg-slate-100"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => reset2FAMutation.mutate()}
+                      disabled={reset2FAMutation.isPending}
+                      className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold text-white bg-rose-600 rounded-md hover:bg-rose-700"
+                    >
+                      {reset2FAMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                      Ya, Hapus 2FA
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

@@ -3,41 +3,46 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../lib/apiClient';
 import { useAuth } from '../hooks/useAuth';
-import { ShieldCheck, ShieldAlert, ArrowRight } from 'lucide-react';
-
-const STORAGE_KEY = 'dismissed_2fa_reminder';
+import { ShieldCheck, ShieldAlert, ArrowRight, X } from 'lucide-react';
 
 export default function TwoFactorReminderPopup() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isDismissed, setIsDismissed] = useState(false);
 
-  // Check 2FA status for logged in user
-  const { data: status2FA } = useQuery({
-    queryKey: ['auth/2fa/status'],
+  const storageKey = user ? `dismissed_2fa_reminder_${user.id}` : 'dismissed_2fa_reminder';
+
+  // Check 2FA status for logged in user from backend
+  const { data: status2FA, isLoading, isError } = useQuery({
+    queryKey: ['auth/2fa/status', user?.id],
     enabled: !!user && user.scope !== 'WALI',
     queryFn: async () => {
       const res = await apiClient.get('/auth/2fa/status');
       return res.data;
     },
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    retry: 2,
   });
 
   useEffect(() => {
+    if (!user) return;
     try {
-      const dismissed = sessionStorage.getItem(STORAGE_KEY);
+      const dismissed = sessionStorage.getItem(storageKey);
       if (dismissed === 'true') {
         setIsDismissed(true);
+      } else {
+        setIsDismissed(false);
       }
     } catch {
       // ignore
     }
-  }, []);
+  }, [user, storageKey]);
 
   const handleDismiss = () => {
     setIsDismissed(true);
     try {
-      sessionStorage.setItem(STORAGE_KEY, 'true');
+      sessionStorage.setItem(storageKey, 'true');
     } catch {
       // ignore
     }
@@ -48,8 +53,13 @@ export default function TwoFactorReminderPopup() {
     navigate('/dashboard/profile?tab=2fa', { state: { tab: '2fa' } });
   };
 
-  // Only show if user is logged in, 2FA is NOT enabled, and not dismissed in this session
-  if (!user || user.scope === 'WALI' || isDismissed || !status2FA || status2FA.enabled) {
+  // Do not render if user not logged in, user is WALI, or user explicitly dismissed popup in this session
+  if (!user || user.scope === 'WALI' || isDismissed) {
+    return null;
+  }
+
+  // Do not render while fetching or if 2FA is already enabled
+  if (isLoading || isError || !status2FA || status2FA.enabled === true) {
     return null;
   }
 
@@ -57,6 +67,16 @@ export default function TwoFactorReminderPopup() {
     <div className="fixed inset-0 z-[9998] flex items-center justify-center p-4 sm:p-6 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-300">
       <div className="relative bg-white rounded-3xl shadow-[0_25px_70px_-15px_rgba(0,0,0,0.35)] w-full max-w-md overflow-hidden border border-slate-200/90 animate-in zoom-in-95 duration-300">
         
+        {/* Close Button Top Right */}
+        <button
+          type="button"
+          onClick={handleDismiss}
+          className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+          title="Tutup"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
         {/* Top Decorative Gradient Line */}
         <div className="h-1.5 w-full bg-gradient-to-r from-amber-500 via-indigo-600 to-emerald-500" />
 
@@ -75,7 +95,7 @@ export default function TwoFactorReminderPopup() {
               Aktifkan 2FA Authenticator
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed px-2">
-              Akun Anda saat ini belum dilindungi oleh <strong>Autentikasi Dua Langkah (2FA)</strong>. Aktifkan 2FA sekarang menggunakan Google Authenticator / Authy agar akun Anda aman dari akses tidak sah.
+              Akun Anda (<strong>{user.username}</strong>) saat ini belum dilindungi oleh <strong>Autentikasi Dua Langkah (2FA)</strong>. Aktifkan 2FA sekarang menggunakan Google Authenticator / Authy agar akun Anda aman dari akses tidak sah.
             </p>
           </div>
 

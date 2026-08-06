@@ -8,12 +8,24 @@ import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 
+import { useLocation, useSearchParams } from 'react-router-dom';
+
 export default function ProfileUser() {
   const { user, login } = useAuth();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
 
-  const [activeTab, setActiveTab] = useState<'profile' | '2fa'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | '2fa'>(
+    searchParams.get('tab') === '2fa' || (location.state as any)?.tab === '2fa' ? '2fa' : 'profile'
+  );
+
+  useEffect(() => {
+    if (searchParams.get('tab') === '2fa' || (location.state as any)?.tab === '2fa') {
+      setActiveTab('2fa');
+    }
+  }, [location, searchParams]);
 
   const [username, setUsername] = useState(user?.username || '');
   const [operatorName, setOperatorName] = useState(user?.operatorName || '');

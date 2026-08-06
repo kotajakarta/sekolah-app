@@ -45,6 +45,7 @@ import KelolaKalender from './pages/admin/KelolaKalender';
 import KeaktifanMapel from './pages/admin/KeaktifanMapel';
 import PengumumanUmum from './pages/umum/PengumumanUmum';
 import PengumumanPopup from './components/PengumumanPopup';
+import TwoFactorReminderPopup from './components/TwoFactorReminderPopup';
 import KalenderAkademikUmum from './pages/umum/KalenderAkademikUmum';
 import LandingPage from './pages/public/LandingPage';
 import DaftarUlang from './pages/public/DaftarUlang';
@@ -251,6 +252,7 @@ const MainLayout = () => {
   return (
     <div className="bg-slate-50 flex w-full h-screen font-sans text-gray-800 overflow-hidden">
       <PengumumanPopup />
+      <TwoFactorReminderPopup />
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden relative">
         <header className="h-14 bg-white border-b border-slate-200 flex items-center gap-3 px-3 lg:px-8 shrink-0 sticky top-0 z-40 shadow-2xs">

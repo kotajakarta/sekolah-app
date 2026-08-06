@@ -185,10 +185,13 @@ export default function KelolaTemplateKegiatan() {
     setIsDragging(false);
   };
 
-  const processDocxFiles = (inputFiles: File[]) => {
-    const valid = inputFiles.filter(f => f.name.toLowerCase().endsWith('.docx'));
+  const validateTemplateFiles = (inputFiles: File[]) => {
+    const valid = inputFiles.filter(f => {
+      const name = f.name.toLowerCase();
+      return name.endsWith('.docx') || name.endsWith('.pdf');
+    });
     if (valid.length < inputFiles.length) {
-      showToast('error', 'Hanya menerima berkas format DOCX (.docx) untuk template kegiatan.');
+      showToast('error', 'Hanya menerima berkas format DOCX (.docx) dan PDF (.pdf) untuk template kegiatan.');
     }
     return valid;
   };
@@ -197,7 +200,7 @@ export default function KelolaTemplateKegiatan() {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const validFiles = processDocxFiles(Array.from(e.dataTransfer.files));
+      const validFiles = validateTemplateFiles(Array.from(e.dataTransfer.files));
       if (validFiles.length > 0) {
         setFiles(prev => [...prev, ...validFiles]);
       }
@@ -206,7 +209,7 @@ export default function KelolaTemplateKegiatan() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const validFiles = processDocxFiles(Array.from(e.target.files));
+      const validFiles = validateTemplateFiles(Array.from(e.target.files));
       if (validFiles.length > 0) {
         setFiles(prev => [...prev, ...validFiles]);
       }
@@ -451,7 +454,7 @@ export default function KelolaTemplateKegiatan() {
 
             {/* Document Uploader for Template */}
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-slate-600 mb-1">Unggah Template Dokumen BAP (Format DOCX untuk Diedit & TTD)</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Unggah Template / Surat Edaran (Format DOCX atau PDF)</label>
               <div
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -465,13 +468,13 @@ export default function KelolaTemplateKegiatan() {
                   multiple
                   id="template-file-input"
                   onChange={handleFileChange}
-                  accept=".docx"
+                  accept=".docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   className="hidden"
                 />
                 <label htmlFor="template-file-input" className="cursor-pointer flex flex-col items-center gap-1">
                   <Upload className="w-5 h-5 text-indigo-600" />
                   <span className="text-xs text-slate-600">
-                    <span className="text-indigo-600 font-semibold hover:underline">Pilih berkas DOCX</span> atau seret kemari
+                    <span className="text-indigo-600 font-semibold hover:underline">Pilih berkas DOCX / PDF</span> atau seret kemari
                   </span>
                 </label>
               </div>

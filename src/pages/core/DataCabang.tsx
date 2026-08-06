@@ -371,13 +371,15 @@ export default function DataCabang() {
         <div className="flex items-baseline justify-center gap-0.5 w-full text-[11px]">
           <span className="font-extrabold text-slate-900 text-xs">{realisasi.toLocaleString('id-ID')}</span>
           <span className="text-slate-400 font-normal text-[10px]">/{target.toLocaleString('id-ID')}</span>
-          <span className={`text-[10px] ml-0.5 ${textColor}`}>{pct}%</span>
         </div>
         <div className="w-full h-1 bg-slate-200/80 rounded-full overflow-hidden mt-0.5 shadow-2xs">
           <div
             className={`h-full rounded-full transition-all duration-300 ${barColor}`}
             style={{ width: `${clampedPct}%` }}
           />
+        </div>
+        <div className="text-center mt-0.5 leading-none">
+          <span className={`text-[10px] font-extrabold ${textColor}`}>{pct}%</span>
         </div>
       </div>
     );

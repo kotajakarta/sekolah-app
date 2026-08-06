@@ -353,11 +353,17 @@ export default function DataCabang() {
 
     if (isTotalCell) {
       return (
-        <div className="flex flex-col items-center justify-center py-0.5 max-w-[110px] mx-auto">
+        <div className="flex flex-col items-center justify-center py-0.5 max-w-[105px] mx-auto">
           <div className="text-xs font-extrabold text-slate-900">
             {realisasi.toLocaleString('id-ID')} <span className="text-slate-400 font-normal text-[10px]">/ {target.toLocaleString('id-ID')}</span>
           </div>
-          <div className="mt-0.5">
+          <div className="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden mt-1 shadow-2xs">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+              style={{ width: `${clampedPct}%` }}
+            />
+          </div>
+          <div className="mt-1">
             <span className={`inline-flex px-2 py-0.2 text-[10px] font-extrabold rounded-full border shadow-2xs ${badgeColor}`}>
               {pct}%
             </span>

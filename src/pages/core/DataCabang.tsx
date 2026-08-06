@@ -61,10 +61,6 @@ export default function DataCabang() {
 
   // Advanced Filter States
   const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState(false);
-  const [filterStatusTanah, setFilterStatusTanah] = useState('ALL');
-  const [filterStatusBangunan, setFilterStatusBangunan] = useState('ALL');
-  const [filterKeterisian, setFilterKeterisian] = useState('ALL'); // ALL | HIGH (>=90%) | MED (50-89%) | LOW (<50%)
-  const [filterPersonel, setFilterPersonel] = useState('ALL'); // ALL | HAS_STAFF | NO_STAFF
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -110,19 +106,11 @@ export default function DataCabang() {
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (filterWilayah !== 'ALL') count++;
-    if (filterStatusTanah !== 'ALL') count++;
-    if (filterStatusBangunan !== 'ALL') count++;
-    if (filterKeterisian !== 'ALL') count++;
-    if (filterPersonel !== 'ALL') count++;
     return count;
-  }, [filterWilayah, filterStatusTanah, filterStatusBangunan, filterKeterisian, filterPersonel]);
+  }, [filterWilayah]);
 
   const resetAdvancedFilters = () => {
     setFilterWilayah('ALL');
-    setFilterStatusTanah('ALL');
-    setFilterStatusBangunan('ALL');
-    setFilterKeterisian('ALL');
-    setFilterPersonel('ALL');
     setSearchQuery('');
   };
 
@@ -187,38 +175,6 @@ export default function DataCabang() {
       result = result.filter(c => c.wilayah?.id === filterWilayah);
     }
 
-    // Filter Status Tanah
-    if (filterStatusTanah !== 'ALL') {
-      result = result.filter(c => (c.statusTanah || '').toLowerCase().includes(filterStatusTanah.toLowerCase()));
-    }
-
-    // Filter Status Bangunan
-    if (filterStatusBangunan !== 'ALL') {
-      result = result.filter(c => (c.statusBangunan || '').toLowerCase().includes(filterStatusBangunan.toLowerCase()));
-    }
-
-    // Filter Personel
-    if (filterPersonel !== 'ALL') {
-      result = result.filter(c => {
-        const totalP = (c.personel?.totalLK || 0) + (c.personel?.totalPR || 0);
-        return filterPersonel === 'HAS_STAFF' ? totalP > 0 : totalP === 0;
-      });
-    }
-
-    // Filter Level Keterisian Kuota
-    if (filterKeterisian !== 'ALL') {
-      result = result.filter(c => {
-        const realisasi = c.siswaStats?.totalSiswa || c._count?.students || 0;
-        const target = c.kapasitasSantri || 0;
-        if (!target || target === 0) return filterKeterisian === 'LOW';
-        const pct = (realisasi / target) * 100;
-        if (filterKeterisian === 'HIGH') return pct >= 90;
-        if (filterKeterisian === 'MED') return pct >= 50 && pct < 90;
-        if (filterKeterisian === 'LOW') return pct < 50;
-        return true;
-      });
-    }
-
     // Sort
     result.sort((a, b) => {
       let aVal = '', bVal = '';
@@ -236,7 +192,86 @@ export default function DataCabang() {
     });
 
     return result;
-  }, [cabang, searchQuery, filterWilayah, filterStatusTanah, filterStatusBangunan, filterKeterisian, filterPersonel, sortField, sortDirection]);
+  }, [cabang, searchQuery, filterWilayah, sortField, sortDirection]);
+
+  // Aggregated totals per Wilayah (For Rekapitulasi Per Wilayah Table)
+  const wilayahSummaryList = useMemo(() => {
+    if (!filteredAndSortedCabang || filteredAndSortedCabang.length === 0) return [];
+
+    const map = new Map<string, {
+      wilayahId: string;
+      wilayahName: string;
+      totalCabang: number;
+      t7: number; targetT7: number;
+      t8: number; targetT8: number;
+      t9: number; targetT9: number;
+      t10: number; targetT10: number;
+      t11: number; targetT11: number;
+      t12: number; targetT12: number;
+      totalSiswa: number;
+      totalKapasitas: number;
+    }>();
+
+    filteredAndSortedCabang.forEach((item) => {
+      const wId = item.wilayah?.id || 'NO_WILAYAH';
+      const wName = item.wilayah?.name || 'Tanpa Wilayah';
+
+      if (!map.has(wId)) {
+        map.set(wId, {
+          wilayahId: wId,
+          wilayahName: wName,
+          totalCabang: 0,
+          t7: 0, targetT7: 0,
+          t8: 0, targetT8: 0,
+          t9: 0, targetT9: 0,
+          t10: 0, targetT10: 0,
+          t11: 0, targetT11: 0,
+          t12: 0, targetT12: 0,
+          totalSiswa: 0,
+          totalKapasitas: 0,
+        });
+      }
+
+      const entry = map.get(wId)!;
+      entry.totalCabang += 1;
+
+      const s = item.siswaStats || {
+        totalSiswa: item._count?.students || 0,
+        tingkat: { tingkat7: 0, tingkat8: 0, tingkat9: 0, tingkat10: 0, tingkat11: 0, tingkat12: 0 }
+      };
+      const t = item.targetKuota || {
+        targetTingkat7: 0, targetTingkat8: 0, targetTingkat9: 0, targetTingkat10: 0, targetTingkat11: 0, targetTingkat12: 0
+      };
+
+      const t7 = s.tingkat?.tingkat7 || 0;
+      const targetT7 = t.targetTingkat7 || 0;
+      const t8 = s.tingkat?.tingkat8 || 0;
+      const targetT8 = t.targetTingkat8 || 0;
+      const t9 = s.tingkat?.tingkat9 || 0;
+      const targetT9 = t.targetTingkat9 || 0;
+      const t10 = s.tingkat?.tingkat10 || 0;
+      const targetT10 = t.targetTingkat10 || 0;
+      const t11 = s.tingkat?.tingkat11 || 0;
+      const targetT11 = t.targetTingkat11 || 0;
+      const t12 = s.tingkat?.tingkat12 || 0;
+      const targetT12 = t.targetTingkat12 || 0;
+
+      entry.t7 += t7; entry.targetT7 += targetT7;
+      entry.t8 += t8; entry.targetT8 += targetT8;
+      entry.t9 += t9; entry.targetT9 += targetT9;
+      entry.t10 += t10; entry.targetT10 += targetT10;
+      entry.t11 += t11; entry.targetT11 += targetT11;
+      entry.t12 += t12; entry.targetT12 += targetT12;
+
+      const rowSumSiswa = t7 + t8 + t9 + t10 + t11 + t12;
+      const rowSumTarget = targetT7 + targetT8 + targetT9 + targetT10 + targetT11 + targetT12;
+
+      entry.totalSiswa += rowSumSiswa;
+      entry.totalKapasitas += rowSumTarget > 0 ? rowSumTarget : (item.kapasitasSantri || 0);
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.wilayahName.localeCompare(b.wilayahName));
+  }, [filteredAndSortedCabang]);
 
   // Aggregated Totals based on filtered & sorted cabangs
   const filteredTotals = useMemo(() => {
@@ -305,7 +340,7 @@ export default function DataCabang() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterWilayah, filterStatusTanah, filterStatusBangunan, filterKeterisian, filterPersonel, sortField, sortDirection, activeSubTab]);
+  }, [searchQuery, filterWilayah, sortField, sortDirection, activeSubTab]);
 
   const toggleSort = (field: 'name' | 'wilayah') => {
     if (sortField === field) {
@@ -657,10 +692,10 @@ export default function DataCabang() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
                   {/* Filter Wilayah */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Wilayah</label>
+                  <div className="sm:col-span-2 lg:col-span-1">
+                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Filter Wilayah</label>
                     <select
                       value={filterWilayah}
                       onChange={(e) => setFilterWilayah(e.target.value)}
@@ -672,66 +707,83 @@ export default function DataCabang() {
                       ))}
                     </select>
                   </div>
+                </div>
+              </div>
+            )}
 
-                  {/* Filter Status Tanah */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Status Lahan/Tanah</label>
-                    <select
-                      value={filterStatusTanah}
-                      onChange={(e) => setFilterStatusTanah(e.target.value)}
-                      className="w-full px-3 py-1.5 font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                    >
-                      <option value="ALL">Semua Status Tanah</option>
-                      <option value="SHM">Milik Sendiri / SHM</option>
-                      <option value="Wakaf">Wakaf</option>
-                      <option value="Sewa">Sewa / Kontrak</option>
-                      <option value="Hibah">Hibah</option>
-                    </select>
+            {/* ── REKAPITULASI PER WILAYAH TABLE (SubTab: Jumlah & Target Siswa, Hanya saat Semua Wilayah) ── */}
+            {activeSubTab === 'jumlah_siswa' && filterWilayah === 'ALL' && wilayahSummaryList.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mb-6">
+                <div className="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-emerald-400" />
+                    <h3 className="text-xs sm:text-sm font-extrabold tracking-wide uppercase">
+                      Rekapitulasi Data Per Wilayah ({wilayahSummaryList.length} Wilayah)
+                    </h3>
                   </div>
+                  <span className="text-[11px] font-semibold text-slate-300">
+                    Akumulasi Kuota & Realisasi per Wilayah
+                  </span>
+                </div>
 
-                  {/* Filter Status Bangunan */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Status Bangunan</label>
-                    <select
-                      value={filterStatusBangunan}
-                      onChange={(e) => setFilterStatusBangunan(e.target.value)}
-                      className="w-full px-3 py-1.5 font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                    >
-                      <option value="ALL">Semua Status Bangunan</option>
-                      <option value="Milik Sendiri">Milik Sendiri</option>
-                      <option value="Sewa">Sewa / Pinjam</option>
-                      <option value="Menumpang">Menumpang / Temporary</option>
-                    </select>
-                  </div>
-
-                  {/* Filter Keterisian Kuota */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Tingkat Keterisian Kuota</label>
-                    <select
-                      value={filterKeterisian}
-                      onChange={(e) => setFilterKeterisian(e.target.value)}
-                      className="w-full px-3 py-1.5 font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                    >
-                      <option value="ALL">Semua Level Kuota</option>
-                      <option value="HIGH">🟢 Hampir Full / Full (≥90%)</option>
-                      <option value="MED">🟡 Terisi Sedang (50 - 89%)</option>
-                      <option value="LOW">🔴 Di Bawah Target (&lt;50%)</option>
-                    </select>
-                  </div>
-
-                  {/* Filter Personel */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Ketersediaan Personel</label>
-                    <select
-                      value={filterPersonel}
-                      onChange={(e) => setFilterPersonel(e.target.value)}
-                      className="w-full px-3 py-1.5 font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                    >
-                      <option value="ALL">Semua Status Personel</option>
-                      <option value="HAS_STAFF">Sudah Ada Personel</option>
-                      <option value="NO_STAFF">Belum Ada Personel</option>
-                    </select>
-                  </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-50 text-slate-700 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
+                      <tr className="border-b border-slate-200">
+                        <th rowSpan={2} className="py-2.5 px-3 text-center w-12 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">No</th>
+                        <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Nama Wilayah</th>
+                        <th colSpan={3} className="py-2.5 px-3 text-center bg-[#0073B7] text-white font-extrabold tracking-wide border-r border-sky-600 shadow-2xs">
+                          WUSTHA (TINGKAT 7 - 9)
+                        </th>
+                        <th colSpan={3} className="py-2.5 px-3 text-center bg-[#7FFFD4] text-emerald-950 font-extrabold tracking-wide border-r border-emerald-300 shadow-2xs">
+                          ULYA (TINGKAT 10 - 12)
+                        </th>
+                        <th rowSpan={2} className="py-2.5 px-3 text-center bg-slate-100/90 text-slate-800 font-extrabold border-r border-slate-200 align-middle">
+                          TOTAL SISWA / KAPASITAS
+                        </th>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TINGKAT 7</th>
+                        <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TINGKAT 8</th>
+                        <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-300 text-[11px]">TINGKAT 9</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">TINGKAT 10</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">TINGKAT 11</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-300 text-[11px]">TINGKAT 12</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {wilayahSummaryList.map((w, idx) => (
+                        <tr key={w.wilayahId} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3 px-3 text-center text-slate-400 font-medium">{idx + 1}</td>
+                          <td className="py-3 px-3 font-bold text-slate-900">
+                            <div>{w.wilayahName}</div>
+                            <span className="text-[10px] font-normal text-slate-400">{w.totalCabang} Cabang Pesantren</span>
+                          </td>
+                          <td className="py-2 px-2 text-center bg-sky-50/30 border-r border-sky-100">
+                            {renderTargetCell(w.t7, w.targetT7)}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-sky-50/30 border-r border-sky-100">
+                            {renderTargetCell(w.t8, w.targetT8)}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-sky-50/50 border-r border-sky-200">
+                            {renderTargetCell(w.t9, w.targetT9)}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-emerald-50/30 border-r border-emerald-100">
+                            {renderTargetCell(w.t10, w.targetT10)}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-emerald-50/30 border-r border-emerald-100">
+                            {renderTargetCell(w.t11, w.targetT11)}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-emerald-50/50 border-r border-emerald-200">
+                            {renderTargetCell(w.t12, w.targetT12)}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-indigo-50/40 border-r border-indigo-100 font-bold">
+                            {renderTargetCell(w.totalSiswa, w.totalKapasitas, true)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

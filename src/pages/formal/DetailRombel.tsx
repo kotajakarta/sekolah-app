@@ -91,11 +91,7 @@ export default function DetailRombel({ kelas, onClose, onEdit, onDelete, isAdmin
     const isSameBranch = s.cabangId === kelasDetail?.cabangId;
     const isActive = s.statusPool === 'AKTIF_CABANG' || s.statusPool === 'TERSEDIA'; // might be TERSEDIA if pulled from pool
     const hasNoClass = !s.siswaFormal || !s.siswaFormal.kelas || !(s.siswaFormal as any).kelasId;
-    // Check tingkat match (allow if they don't have a tingkat yet)
-    const sTingkat = (s.siswaFormal as any)?.tingkat;
-    const isSameTingkat = !sTingkat || sTingkat === kelasDetail?.tingkat;
-    
-    return isSameBranch && isActive && hasNoClass && isSameTingkat;
+    return isSameBranch && isActive && hasNoClass;
   });
 
   const filteredCandidates = studentCandidates.filter((s) => {

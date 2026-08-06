@@ -45,12 +45,9 @@ export default function FormRiwayatKelasModal({ student, initialData, onClose }:
   // terdaftar di cabang siswa (tidak dibatasi isActive, supaya riwayat kelas LAMPAU/nonaktif
   // tetap bisa dipilih & tetap muncul saat edit), dibatasi hanya setingkat atau di bawah
   // tingkat siswa saat ini.
-  const currentTingkat = parseInt(String(student.siswaFormal?.kelas?.tingkat ?? ''), 10);
   const kelasOptions = useMemo(() => {
     const filtered = kelasList.filter(k => {
       if (student.cabangId && k.cabangId && k.cabangId !== student.cabangId) return false;
-      const tingkat = parseInt(String(k.tingkat ?? ''), 10);
-      if (!isNaN(currentTingkat) && !isNaN(tingkat) && tingkat > currentTingkat) return false;
       return true;
     });
     // Jaring pengaman: kalau kelas yang sudah tersimpan di riwayat ini (edit mode) ternyata
@@ -61,7 +58,7 @@ export default function FormRiwayatKelasModal({ student, initialData, onClose }:
       if (original) return [original, ...filtered];
     }
     return filtered;
-  }, [kelasList, student.cabangId, currentTingkat, initialData?.kelasId]);
+  }, [kelasList, student.cabangId, initialData?.kelasId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

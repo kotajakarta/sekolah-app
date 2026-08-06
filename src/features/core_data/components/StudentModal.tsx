@@ -186,7 +186,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
       return res.data;
     }
   });
-  
+
   const [countries, setCountries] = useState<{value: string, label: string}[]>([]);
   const [provinces, setProvinces] = useState<any[]>([]);
   const [regencies, setRegencies] = useState<any[]>([]);
@@ -268,6 +268,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     kkUrl: '',
     wilayahId: user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? user.wilayahId || '' : '',
     cabangId: user?.scope === 'CABANG' ? user.cabangId || '' : '',
+    kelasId: '',
     jenisSiswa: '',
     grupDaimi: '',
     statusHafidz: '',
@@ -282,6 +283,16 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     alamatKelId: '',
     alamatKelName: '',
     alamatJalan: '',
+  });
+
+  const { data: rombelList = [] } = useQuery<{ id: string; name: string; tingkat?: string; cabangId?: string }[]>({
+    queryKey: ['formal-kelas-active', formData.cabangId],
+    queryFn: async () => {
+      if (!formData.cabangId) return [];
+      const res = await apiClient.get('/formal/kelas');
+      return (res.data || []).filter((k: any) => k.cabangId === formData.cabangId && k.isActive !== false);
+    },
+    enabled: !!formData.cabangId
   });
 
   useEffect(() => {
@@ -358,6 +369,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
         kkUrl: student.biodata?.kkUrl || '',
         wilayahId: student.wilayahId || '',
         cabangId: student.cabangId || '',
+        kelasId: (student.siswaFormal as any)?.kelasId || '',
         jenisSiswa: student.jenisSiswa || (student.siswaFormal ? 'MUADALAH' : ''),
         grupDaimi: student.dataDaimi?.grup?.name || student.grupDaimi || '',
         statusHafidz: student.statusHafidz || '',
@@ -677,6 +689,22 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                       )}
                       <InputField label={t('siswa.form.tgl_masuk')}>
                         <input type="date" value={formData.tanggalMasuk} onChange={(e) => setFormData({ ...formData, tanggalMasuk: e.target.value })} className={inputCls} />
+                      </InputField>
+
+                      <InputField label="Rombongan Belajar (Kelas Formal Aktif)">
+                        <input
+                          type="text"
+                          readOnly
+                          value={
+                            student?.siswaFormal?.kelas
+                              ? `${student.siswaFormal.kelas.name} (Tingkat ${student.siswaFormal.kelas.tingkat || '-'})`
+                              : 'Belum Terdaftar di Rombel Kelas Aktif'
+                          }
+                          className="block w-full rounded-lg border border-slate-200 bg-slate-100/80 py-2.5 px-3.5 text-sm font-semibold text-slate-700 cursor-not-allowed select-none focus:outline-none"
+                        />
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          * Otomatis mengikuti Rombel aktif tempat santri terdaftar di menu Rombongan Belajar (/dashboard/formal/kelas).
+                        </p>
                       </InputField>
                       <InputField label={t('siswa.form.jenis_siswa')}>
                         <input

@@ -52,14 +52,15 @@ export default function AktivitasBelajarTab({ student, onStatusChange }: Aktivit
     setIsFormOpen(true);
   };
 
-  // Split: "aktif saat ini" means the kelas itself is still active
-  const pastEnrolments = histories?.filter(h => !h.kelas?.isActive) ?? [];
-  let currentEnrolments = histories?.filter(h => h.kelas?.isActive === true) ?? [];
+  const activeKelasId = (student.siswaFormal as any)?.kelasId || student.siswaFormal?.kelas?.id;
 
-  // Jika student.siswaFormal.kelas ada, aktif, dan belum ada di currentEnrolments, tambahkan sebagai "Pendidikan Aktif Saat Ini"
-  if (student.siswaFormal?.kelas?.isActive) {
-    const isAlreadyInHistory = currentEnrolments.some(h => h.kelasId === student.siswaFormal?.kelas?.id);
-    if (!isAlreadyInHistory) {
+  // Split: "Pendidikan Aktif Saat Ini" strictly refers to the ONE class where the student is currently enrolled
+  let currentEnrolments: RiwayatKelasFormal[] = [];
+  if (student.siswaFormal?.kelas && student.siswaFormal.kelas.isActive !== false) {
+    const existingHistory = histories?.find(h => h.kelasId === activeKelasId);
+    if (existingHistory) {
+      currentEnrolments = [existingHistory];
+    } else {
       currentEnrolments = [
         {
           id: 'current-active-class',
@@ -80,11 +81,13 @@ export default function AktivitasBelajarTab({ student, onStatusChange }: Aktivit
               name: student.siswaFormal.kelas.lembagaMuadalah.name
             } : undefined
           }
-        },
-        ...currentEnrolments
+        }
       ];
     }
   }
+
+  // Riwayat Pendidikan Sebelumnya (Lampau): all other history records not belonging to current active class
+  const pastEnrolments = histories?.filter(h => h.kelasId !== activeKelasId) ?? [];
 
   const canEdit = user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' || user?.scope === 'CABANG';
 

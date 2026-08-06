@@ -289,8 +289,11 @@ export default function DataCabang() {
       t12 += s.tingkat?.tingkat12 || 0;
       targetT12 += t.targetTingkat12 || 0;
 
-      totalSiswa += s.totalSiswa || 0;
-      totalKapasitas += item.kapasitasSantri || 0;
+      const rowSumSiswa = (s.tingkat?.tingkat7 || 0) + (s.tingkat?.tingkat8 || 0) + (s.tingkat?.tingkat9 || 0) + (s.tingkat?.tingkat10 || 0) + (s.tingkat?.tingkat11 || 0) + (s.tingkat?.tingkat12 || 0);
+      const rowSumTarget = (t.targetTingkat7 || 0) + (t.targetTingkat8 || 0) + (t.targetTingkat9 || 0) + (t.targetTingkat10 || 0) + (t.targetTingkat11 || 0) + (t.targetTingkat12 || 0);
+
+      totalSiswa += rowSumSiswa;
+      totalKapasitas += rowSumTarget > 0 ? rowSumTarget : (item.kapasitasSantri || 0);
     });
 
     return {
@@ -948,9 +951,17 @@ export default function DataCabang() {
                               </td>
 
                               {/* TOTAL REALISASI / KAPASITAS TARGET - Indigo Accent */}
-                              <td className="py-1.5 px-2 text-center bg-indigo-50/50 border-r border-indigo-100 font-bold">
-                                {renderTargetCell(s.totalSiswa, item.kapasitasSantri || 0, true)}
-                              </td>
+                              {(() => {
+                                const rowTotalSiswa = (s.tingkat?.tingkat7 || 0) + (s.tingkat?.tingkat8 || 0) + (s.tingkat?.tingkat9 || 0) + (s.tingkat?.tingkat10 || 0) + (s.tingkat?.tingkat11 || 0) + (s.tingkat?.tingkat12 || 0);
+                                const rowSumTarget = (t.targetTingkat7 || 0) + (t.targetTingkat8 || 0) + (t.targetTingkat9 || 0) + (t.targetTingkat10 || 0) + (t.targetTingkat11 || 0) + (t.targetTingkat12 || 0);
+                                const rowTotalTarget = rowSumTarget > 0 ? rowSumTarget : (item.kapasitasSantri || 0);
+
+                                return (
+                                  <td className="py-1.5 px-2 text-center bg-indigo-50/50 border-r border-indigo-100 font-bold">
+                                    {renderTargetCell(rowTotalSiswa, rowTotalTarget, true)}
+                                  </td>
+                                );
+                              })()}
                             </>
                           )}
 

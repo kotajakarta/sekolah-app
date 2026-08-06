@@ -320,57 +320,62 @@ export default function DataCabang() {
       <ArrowDown className="w-3.5 h-3.5 text-emerald-700 ml-1 inline font-bold" />;
   };
 
-  const renderTotalTargetCell = (realisasi: number, target: number) => {
-    if (!target || target === 0) {
+  const renderTargetCell = (realisasi: number, target: number, isTotalCell: boolean = false) => {
+    if (!target && !realisasi) {
       return (
-        <div className="flex flex-col items-center">
-          <span className="font-extrabold text-slate-900 text-xs">{realisasi.toLocaleString('id-ID')}</span>
-          <span className="text-[10px] text-slate-400 font-normal">/ 0</span>
+        <div className="flex flex-col items-center justify-center py-1">
+          <div className="text-xs font-semibold text-slate-300">
+            0 <span className="font-normal text-slate-300">/ 0</span>
+          </div>
         </div>
       );
     }
-    const pct = Math.round((realisasi / target) * 100);
-    let color = 'bg-slate-100 text-slate-800 border-slate-300';
-    if (pct >= 90) color = 'bg-emerald-100 text-emerald-900 border-emerald-300';
-    else if (pct >= 50) color = 'bg-amber-100 text-amber-900 border-amber-300';
-    else color = 'bg-rose-100 text-rose-900 border-rose-300';
 
-    return (
-      <div className="flex flex-col items-center gap-0.5 py-0.5">
-        <div className="text-xs">
-          <span className="font-extrabold text-slate-900">{realisasi.toLocaleString('id-ID')}</span>
-          <span className="text-slate-500 font-normal"> / {target.toLocaleString('id-ID')}</span>
-        </div>
-        <span className={`inline-flex px-1.5 py-0.2 text-[10px] font-extrabold rounded-full border ${color}`}>
-          {pct}%
-        </span>
-      </div>
-    );
-  };
+    const pct = target > 0 ? Math.round((realisasi / target) * 100) : (realisasi > 0 ? 100 : 0);
+    const clampedPct = Math.min(pct, 100);
 
-  const renderTargetCell = (realisasi: number, target: number) => {
-    if (!target || target === 0) {
+    let textColor = 'text-emerald-600 font-bold';
+    let barColor = 'bg-emerald-500';
+    let badgeColor = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+
+    if (pct < 50) {
+      textColor = 'text-rose-600 font-bold';
+      barColor = 'bg-rose-500';
+      badgeColor = 'bg-rose-100 text-rose-800 border-rose-300';
+    } else if (pct < 80) {
+      textColor = 'text-amber-600 font-bold';
+      barColor = 'bg-amber-500';
+      badgeColor = 'bg-amber-100 text-amber-800 border-amber-300';
+    }
+
+    if (isTotalCell) {
       return (
-        <div className="flex flex-col items-center">
-          <span className="font-bold text-slate-800">{realisasi}</span>
-          <span className="text-[10px] text-slate-400 font-normal">/ 0</span>
+        <div className="flex flex-col items-center justify-center py-1 max-w-[120px] mx-auto">
+          <div className="text-base font-extrabold text-slate-900">
+            {realisasi.toLocaleString('id-ID')} <span className="text-slate-400 font-normal text-xs">/ {target.toLocaleString('id-ID')}</span>
+          </div>
+          <div className="mt-1">
+            <span className={`inline-flex px-2.5 py-0.5 text-xs font-extrabold rounded-full border shadow-2xs ${badgeColor}`}>
+              {pct}%
+            </span>
+          </div>
         </div>
       );
     }
-    const pct = Math.round((realisasi / target) * 100);
-    let color = 'bg-slate-100 text-slate-700 border-slate-200';
-    if (pct >= 90) color = 'bg-emerald-50 text-emerald-800 border-emerald-200';
-    else if (pct >= 50) color = 'bg-amber-50 text-amber-800 border-amber-200';
-    else color = 'bg-rose-50 text-rose-800 border-rose-200';
 
     return (
-      <div className="flex flex-col items-center gap-0.5">
-        <div className="font-semibold text-slate-800 text-xs">
-          <span className="font-bold">{realisasi}</span> <span className="text-slate-400 font-normal">/ {target}</span>
+      <div className="flex flex-col items-center justify-center py-1 max-w-[110px] mx-auto">
+        <div className="flex items-baseline justify-center gap-1 w-full text-xs">
+          <span className="font-extrabold text-slate-900 text-sm">{realisasi.toLocaleString('id-ID')}</span>
+          <span className="text-slate-400 font-normal text-xs">/{target.toLocaleString('id-ID')}</span>
+          <span className={`text-[11px] ml-0.5 ${textColor}`}>{pct}%</span>
         </div>
-        <span className={`inline-flex px-1.5 py-0.2 text-[10px] font-bold rounded-full border ${color}`}>
-          {pct}%
-        </span>
+        <div className="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden mt-1 shadow-2xs">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+            style={{ width: `${clampedPct}%` }}
+          />
+        </div>
       </div>
     );
   };
@@ -772,55 +777,55 @@ export default function DataCabang() {
                   {activeSubTab === 'jumlah_siswa' && (
                     <>
                       <tr className="border-b border-slate-200">
-                        <th rowSpan={2} className="py-2.5 px-3 text-center w-12 bg-slate-100/90 text-slate-700 font-bold border-r border-slate-200 align-middle">No</th>
-                        <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-bold border-r border-slate-200 align-middle">Nama Cabang</th>
-                        <th colSpan={3} className="py-2 px-3 text-center bg-sky-600 text-white font-bold tracking-wide border-r border-sky-500 shadow-2xs">
+                        <th rowSpan={2} className="py-2.5 px-3 text-center w-12 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">No</th>
+                        <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Nama Cabang</th>
+                        <th colSpan={3} className="py-2.5 px-3 text-center bg-[#0073B7] text-white font-extrabold tracking-wide border-r border-sky-600 shadow-2xs">
                           WUSTHA (TINGKAT 7 - 9)
                         </th>
-                        <th colSpan={3} className="py-2 px-3 text-center bg-emerald-600 text-white font-bold tracking-wide border-r border-emerald-500 shadow-2xs">
+                        <th colSpan={3} className="py-2.5 px-3 text-center bg-[#7FFFD4] text-emerald-950 font-extrabold tracking-wide border-r border-emerald-300 shadow-2xs">
                           ULYA (TINGKAT 10 - 12)
                         </th>
-                        <th rowSpan={2} className="py-2.5 px-3 text-center bg-indigo-100/90 text-indigo-950 font-bold border-r border-indigo-200 align-middle">
-                          Total Siswa / Kapasitas
+                        <th rowSpan={2} className="py-2.5 px-3 text-center bg-slate-100/90 text-slate-800 font-extrabold border-r border-slate-200 align-middle">
+                          TOTAL SISWA / KAPASITAS
                         </th>
-                        <th rowSpan={2} className="py-2.5 px-3 text-right bg-slate-100/90 text-slate-700 font-bold align-middle">Aksi</th>
+                        <th rowSpan={2} className="py-2.5 px-3 text-right bg-slate-100/90 text-slate-700 font-extrabold align-middle">Aksi</th>
                       </tr>
                       <tr className="border-b border-slate-200">
-                        <th className="py-2 px-3 text-center bg-sky-100 text-sky-950 font-bold border-r border-sky-200">Tingkat 7</th>
-                        <th className="py-2 px-3 text-center bg-sky-100 text-sky-950 font-bold border-r border-sky-200">Tingkat 8</th>
-                        <th className="py-2 px-3 text-center bg-sky-100 text-sky-950 font-bold border-r border-sky-300">Tingkat 9</th>
-                        <th className="py-2 px-3 text-center bg-emerald-100 text-emerald-950 font-bold border-r border-emerald-200">Tingkat 10</th>
-                        <th className="py-2 px-3 text-center bg-emerald-100 text-emerald-950 font-bold border-r border-emerald-200">Tingkat 11</th>
-                        <th className="py-2 px-3 text-center bg-emerald-100 text-emerald-950 font-bold border-r border-emerald-300">Tingkat 12</th>
+                        <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TINGKAT 7</th>
+                        <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TINGKAT 8</th>
+                        <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-300 text-[11px]">TINGKAT 9</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">TINGKAT 10</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">TINGKAT 11</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-300 text-[11px]">TINGKAT 12</th>
                       </tr>
 
-                      {/* ── TOTAL SUMMARY ROW (DIRECTLY BELOW CLASS HEADERS) ── */}
-                      <tr className="bg-slate-100/90 border-b-2 border-slate-300 text-xs font-bold shadow-2xs">
-                        <td colSpan={2} className="py-2.5 px-3 text-right font-extrabold text-slate-800 bg-slate-200/90 border-r border-slate-300 uppercase tracking-wider">
+                      {/* ── TOP TOTAL SUMMARY ROW ── */}
+                      <tr className="bg-[#DCEBFB] border-b-2 border-sky-300 text-xs font-bold shadow-2xs">
+                        <td colSpan={2} className="py-3 px-3 text-right font-extrabold text-slate-800 bg-[#CFE2F9] border-r border-sky-300 uppercase tracking-wider">
                           TOTAL ({filteredAndSortedCabang.length} CABANG):
                         </td>
-                        <td className="py-2 px-3 text-center bg-sky-100/70 border-r border-sky-200">
-                          {renderTotalTargetCell(filteredTotals.t7, filteredTotals.targetT7)}
+                        <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200">
+                          {renderTargetCell(filteredTotals.t7, filteredTotals.targetT7)}
                         </td>
-                        <td className="py-2 px-3 text-center bg-sky-100/70 border-r border-sky-200">
-                          {renderTotalTargetCell(filteredTotals.t8, filteredTotals.targetT8)}
+                        <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200">
+                          {renderTargetCell(filteredTotals.t8, filteredTotals.targetT8)}
                         </td>
-                        <td className="py-2 px-3 text-center bg-sky-100/90 border-r border-sky-300">
-                          {renderTotalTargetCell(filteredTotals.t9, filteredTotals.targetT9)}
+                        <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-300">
+                          {renderTargetCell(filteredTotals.t9, filteredTotals.targetT9)}
                         </td>
-                        <td className="py-2 px-3 text-center bg-emerald-100/70 border-r border-emerald-200">
-                          {renderTotalTargetCell(filteredTotals.t10, filteredTotals.targetT10)}
+                        <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200">
+                          {renderTargetCell(filteredTotals.t10, filteredTotals.targetT10)}
                         </td>
-                        <td className="py-2 px-3 text-center bg-emerald-100/70 border-r border-emerald-200">
-                          {renderTotalTargetCell(filteredTotals.t11, filteredTotals.targetT11)}
+                        <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200">
+                          {renderTargetCell(filteredTotals.t11, filteredTotals.targetT11)}
                         </td>
-                        <td className="py-2 px-3 text-center bg-emerald-100/90 border-r border-emerald-300">
-                          {renderTotalTargetCell(filteredTotals.t12, filteredTotals.targetT12)}
+                        <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-300">
+                          {renderTargetCell(filteredTotals.t12, filteredTotals.targetT12)}
                         </td>
-                        <td className="py-2 px-3 text-center bg-indigo-100/90 border-r border-indigo-200 font-extrabold">
-                          {renderTotalTargetCell(filteredTotals.totalSiswa, filteredTotals.totalKapasitas)}
+                        <td className="py-2.5 px-3 text-center bg-[#D4E5FA] border-r border-sky-300 font-extrabold">
+                          {renderTargetCell(filteredTotals.totalSiswa, filteredTotals.totalKapasitas, true)}
                         </td>
-                        <td className="py-2 px-3 bg-slate-200/50"></td>
+                        <td className="py-2.5 px-3 bg-[#DCEBFB]"></td>
                       </tr>
                     </>
                   )}
@@ -840,202 +845,173 @@ export default function DataCabang() {
                       </td>
                     </tr>
                   ) : (
-                    filteredAndSortedCabang
-                      .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                      .map((item, idx) => {
-                        const rowNo = (currentPage - 1) * itemsPerPage + idx + 1;
-                        const p = item.personel || { pendidikLK: 0, pendidikPR: 0, kependidikanLK: 0, kependidikanPR: 0, totalLK: 0, totalPR: 0, guruMatematika: 0, guruIndo: 0, guruInggris: 0, guruIpa: 0, guruPkn: 0, totalGuruMapel: 0 };
-                        const s = item.siswaStats || { totalSiswa: 0, grup: { hazirlik: 0, hafizlik: 0, ibtidai: 0, ihzari: 0 }, tingkat: { tingkat7: 0, tingkat8: 0, tingkat9: 0, tingkat10: 0, tingkat11: 0, tingkat12: 0, lulus: 0, sekolahLain: 0 } };
-                        const t = item.targetKuota || { targetHazirlik: 0, targetHafizlik: 0, targetIbtidai: 0, targetIhzari: 0, targetTingkat7: 0, targetTingkat8: 0, targetTingkat9: 0, targetTingkat10: 0, targetTingkat11: 0, targetTingkat12: 0 };
+                    (activeSubTab === 'jumlah_siswa'
+                      ? filteredAndSortedCabang
+                      : filteredAndSortedCabang.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                    ).map((item, idx) => {
+                      const rowNo = activeSubTab === 'jumlah_siswa' ? idx + 1 : (currentPage - 1) * itemsPerPage + idx + 1;
+                      const p = item.personel || { pendidikLK: 0, pendidikPR: 0, kependidikanLK: 0, kependidikanPR: 0, totalLK: 0, totalPR: 0, guruMatematika: 0, guruIndo: 0, guruInggris: 0, guruIpa: 0, guruPkn: 0, totalGuruMapel: 0 };
+                      const s = item.siswaStats || { totalSiswa: 0, grup: { hazirlik: 0, hafizlik: 0, ibtidai: 0, ihzari: 0 }, tingkat: { tingkat7: 0, tingkat8: 0, tingkat9: 0, tingkat10: 0, tingkat11: 0, tingkat12: 0, lulus: 0, sekolahLain: 0 } };
+                      const t = item.targetKuota || { targetHazirlik: 0, targetHafizlik: 0, targetIbtidai: 0, targetIhzari: 0, targetTingkat7: 0, targetTingkat8: 0, targetTingkat9: 0, targetTingkat10: 0, targetTingkat11: 0, targetTingkat12: 0 };
 
-                        return (
-                          <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="py-3.5 px-3 text-center text-slate-400 font-medium">{rowNo}</td>
-                            
-                            {/* NAMA CABANG & WILAYAH (Always shown in first columns) */}
-                            <td className="py-3.5 px-3 font-semibold text-slate-800">
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-3.5 px-3 text-center text-slate-400 font-medium">{rowNo}</td>
+                          
+                          {/* NAMA CABANG & WILAYAH (Always shown in first columns) */}
+                          <td className="py-3.5 px-3 font-semibold text-slate-800">
+                            <button
+                              onClick={() => setProfileCabangId(item.id)}
+                              className="hover:text-indigo-600 text-left font-bold transition-colors cursor-pointer"
+                            >
+                              {item.nameGlodemy || item.name}
+                            </button>
+                            {item.nameResmi && item.nameResmi !== item.nameGlodemy && (
+                              <p className="text-[11px] font-normal text-slate-400">{item.nameResmi}</p>
+                            )}
+                          </td>
+
+                          {/* ── SUB-TAB 1: IDENTITAS ── */}
+                          {activeSubTab === 'identitas' && (
+                            <>
+                              <td className="py-3.5 px-3 text-slate-600 font-medium">{item.wilayah?.name || '-'}</td>
+                              <td className="py-3.5 px-3 text-slate-600 max-w-xs truncate">
+                                {[item.alamatJalan, item.alamatKecName, item.alamatKabName, item.alamatProvName].filter(Boolean).join(', ') || '-'}
+                              </td>
+                              <td className="py-3.5 px-3 text-slate-700 font-medium">{item.pimpinanCabang || '-'}</td>
+                              <td className="py-3.5 px-3 text-slate-700 font-medium">{item.pjMuadalah || '-'}</td>
+                              <td className="py-3.5 px-3 text-slate-600 text-center">
+                                <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700">
+                                  {item.statusBangunan || 'N/A'} / {item.statusTanah || 'N/A'}
+                                </span>
+                              </td>
+                            </>
+                          )}
+
+                          {/* ── SUB-TAB 2: PERSONEL ── */}
+                          {activeSubTab === 'personel' && (
+                            <>
+                              <td className="py-3.5 px-3 text-center text-slate-700 font-semibold">
+                                {p.pendidikLK} LK / {p.pendidikPR} PR
+                              </td>
+                              <td className="py-3.5 px-3 text-center text-slate-700 font-semibold">
+                                {p.kependidikanLK} LK / {p.kependidikanPR} PR
+                              </td>
+                              <td className="py-3.5 px-3 text-center text-slate-700 text-[11px]">
+                                Mtk:{p.guruMatematika} | Ind:{p.guruIndo} | Ing:{p.guruInggris} | IPA:{p.guruIpa} | PKn:{p.guruPkn}
+                              </td>
+                              <td className="py-3.5 px-3 text-center font-bold text-indigo-700 text-sm">
+                                {p.totalLK + p.totalPR}
+                              </td>
+                            </>
+                          )}
+
+                          {/* ── SUB-TAB 3: SARPRAS ── */}
+                          {activeSubTab === 'sarpras' && (
+                            <>
+                              <td className="py-3.5 px-3 text-center font-bold text-slate-800">
+                                {item.kapasitasSantri || 0} Santri
+                              </td>
+                              <td className="py-3.5 px-3 text-center text-slate-700">{item.statusBangunan || '-'}</td>
+                              <td className="py-3.5 px-3 text-center text-slate-700">{item.statusTanah || '-'}</td>
+                              <td className="py-3.5 px-3 text-center">
+                                <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                  {[item.fotoPlang, item.fotoGedung, item.fotoKelas, item.fotoMushala].filter(Boolean).length} / 4 Foto
+                                </span>
+                              </td>
+                            </>
+                          )}
+
+                          {/* ── SUB-TAB 4: JUMLAH SISWA & TARGET KUOTA ── */}
+                          {activeSubTab === 'jumlah_siswa' && (
+                            <>
+                              {/* WUSTHA (TINGKAT 7 - 9) - Sky Blue Accent */}
+                              <td className="py-3 px-3 text-center bg-sky-50/40 border-r border-sky-100">
+                                {renderTargetCell(s.tingkat.tingkat7, t.targetTingkat7)}
+                              </td>
+                              <td className="py-3 px-3 text-center bg-sky-50/40 border-r border-sky-100">
+                                {renderTargetCell(s.tingkat.tingkat8, t.targetTingkat8)}
+                              </td>
+                              <td className="py-3 px-3 text-center bg-sky-50/60 border-r border-sky-200">
+                                {renderTargetCell(s.tingkat.tingkat9, t.targetTingkat9)}
+                              </td>
+
+                              {/* ULYA (TINGKAT 10 - 12) - Emerald Green Accent */}
+                              <td className="py-3 px-3 text-center bg-emerald-50/40 border-r border-emerald-100">
+                                {renderTargetCell(s.tingkat.tingkat10, t.targetTingkat10)}
+                              </td>
+                              <td className="py-3 px-3 text-center bg-emerald-50/40 border-r border-emerald-100">
+                                {renderTargetCell(s.tingkat.tingkat11, t.targetTingkat11)}
+                              </td>
+                              <td className="py-3 px-3 text-center bg-emerald-50/60 border-r border-emerald-200">
+                                {renderTargetCell(s.tingkat.tingkat12, t.targetTingkat12)}
+                              </td>
+
+                              {/* TOTAL REALISASI / KAPASITAS TARGET - Indigo Accent */}
+                              <td className="py-3 px-3 text-center bg-indigo-50/50 border-r border-indigo-100 font-bold">
+                                {renderTargetCell(s.totalSiswa, item.kapasitasSantri || 0, true)}
+                              </td>
+                            </>
+                          )}
+
+                          {/* ── ACTION COLUMN (Per Sub-Tab) ── */}
+                          <td className="py-3.5 px-3 text-right space-x-1.5 whitespace-nowrap">
+                            {activeSubTab === 'jumlah_siswa' && isAdmin && (
                               <button
-                                onClick={() => setProfileCabangId(item.id)}
-                                className="hover:text-indigo-600 text-left font-bold transition-colors cursor-pointer"
+                                onClick={() => setTargetCabangToEdit(item)}
+                                className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors cursor-pointer"
+                                title="Edit Target Kuota"
                               >
-                                {item.nameGlodemy || item.name}
+                                <Target className="w-3.5 h-3.5" />
                               </button>
-                              {item.nameResmi && item.nameResmi !== item.nameGlodemy && (
-                                <p className="text-[11px] font-normal text-slate-400">{item.nameResmi}</p>
-                              )}
-                            </td>
-
-                            {/* ── SUB-TAB 1: IDENTITAS ── */}
-                            {activeSubTab === 'identitas' && (
-                              <>
-                                <td className="py-3.5 px-3 text-slate-600 font-medium">{item.wilayah?.name || '-'}</td>
-                                <td className="py-3.5 px-3 text-slate-600 max-w-xs truncate">
-                                  {[item.alamatJalan, item.alamatKecName, item.alamatKabName, item.alamatProvName].filter(Boolean).join(', ') || '-'}
-                                </td>
-                                <td className="py-3.5 px-3 text-slate-700 font-medium">{item.pimpinanCabang || '-'}</td>
-                                <td className="py-3.5 px-3 text-slate-700 font-medium">{item.pjMuadalah || '-'}</td>
-                                <td className="py-3.5 px-3 text-slate-600 text-center">
-                                  <span className="inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700">
-                                    {item.statusBangunan || 'N/A'} / {item.statusTanah || 'N/A'}
-                                  </span>
-                                </td>
-                              </>
                             )}
 
-                            {/* ── SUB-TAB 2: PERSONEL ── */}
-                            {activeSubTab === 'personel' && (
+                            <button
+                              onClick={() => setProfileCabangId(item.id)}
+                              className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                              title="Lihat Profile Cabang"
+                            >
+                              <Building2 className="w-3.5 h-3.5" />
+                            </button>
+
+                            {isAdmin && (
                               <>
-                                <td className="py-3.5 px-3 text-center text-slate-700 font-semibold">
-                                  {p.pendidikLK} LK / {p.pendidikPR} PR
-                                </td>
-                                <td className="py-3.5 px-3 text-center text-slate-700 font-semibold">
-                                  {p.kependidikanLK} LK / {p.kependidikanPR} PR
-                                </td>
-                                <td className="py-3.5 px-3 text-center text-slate-700 text-[11px]">
-                                  Mtk:{p.guruMatematika} | Ind:{p.guruIndo} | Ing:{p.guruInggris} | IPA:{p.guruIpa} | PKn:{p.guruPkn}
-                                </td>
-                                <td className="py-3.5 px-3 text-center font-bold text-indigo-700 text-sm">
-                                  {p.totalLK + p.totalPR}
-                                </td>
-                              </>
-                            )}
-
-                            {/* ── SUB-TAB 3: SARPRAS ── */}
-                            {activeSubTab === 'sarpras' && (
-                              <>
-                                <td className="py-3.5 px-3 text-center font-bold text-slate-800">
-                                  {item.kapasitasSantri || 0} Santri
-                                </td>
-                                <td className="py-3.5 px-3 text-center text-slate-700">{item.statusBangunan || '-'}</td>
-                                <td className="py-3.5 px-3 text-center text-slate-700">{item.statusTanah || '-'}</td>
-                                <td className="py-3.5 px-3 text-center">
-                                  <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                                    {[item.fotoPlang, item.fotoGedung, item.fotoKelas, item.fotoMushala].filter(Boolean).length} / 4 Foto
-                                  </span>
-                                </td>
-                              </>
-                            )}
-
-                            {/* ── SUB-TAB 4: JUMLAH SISWA & TARGET KUOTA ── */}
-                            {activeSubTab === 'jumlah_siswa' && (
-                              <>
-                                {/* WUSTHA (TINGKAT 7 - 9) - Sky Blue Accent */}
-                                <td className="py-3 px-3 text-center bg-sky-50/40 border-r border-sky-100">
-                                  {renderTargetCell(s.tingkat.tingkat7, t.targetTingkat7)}
-                                </td>
-                                <td className="py-3 px-3 text-center bg-sky-50/40 border-r border-sky-100">
-                                  {renderTargetCell(s.tingkat.tingkat8, t.targetTingkat8)}
-                                </td>
-                                <td className="py-3 px-3 text-center bg-sky-50/60 border-r border-sky-200">
-                                  {renderTargetCell(s.tingkat.tingkat9, t.targetTingkat9)}
-                                </td>
-
-                                {/* ULYA (TINGKAT 10 - 12) - Emerald Green Accent */}
-                                <td className="py-3 px-3 text-center bg-emerald-50/40 border-r border-emerald-100">
-                                  {renderTargetCell(s.tingkat.tingkat10, t.targetTingkat10)}
-                                </td>
-                                <td className="py-3 px-3 text-center bg-emerald-50/40 border-r border-emerald-100">
-                                  {renderTargetCell(s.tingkat.tingkat11, t.targetTingkat11)}
-                                </td>
-                                <td className="py-3 px-3 text-center bg-emerald-50/60 border-r border-emerald-200">
-                                  {renderTargetCell(s.tingkat.tingkat12, t.targetTingkat12)}
-                                </td>
-
-                                {/* TOTAL REALISASI / KAPASITAS TARGET - Indigo Accent */}
-                                <td className="py-3 px-3 text-center bg-indigo-50/50 border-r border-indigo-100 font-bold">
-                                  {renderTargetCell(s.totalSiswa, item.kapasitasSantri || 0)}
-                                </td>
-                              </>
-                            )}
-
-                            {/* ── ACTION COLUMN (Per Sub-Tab) ── */}
-                            <td className="py-3.5 px-3 text-right space-x-1.5 whitespace-nowrap">
-                              {activeSubTab === 'jumlah_siswa' && isAdmin && (
                                 <button
-                                  onClick={() => setTargetCabangToEdit(item)}
-                                  className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors cursor-pointer"
-                                  title="Edit Target Kuota"
+                                  onClick={() => { setCabangToEdit(item); setIsModalOpen(true); }}
+                                  className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 transition-colors cursor-pointer"
+                                  title="Edit Data Cabang"
                                 >
-                                  <Target className="w-3.5 h-3.5" />
+                                  <Edit2 className="w-3.5 h-3.5" />
                                 </button>
-                              )}
 
-                              <button
-                                onClick={() => setProfileCabangId(item.id)}
-                                className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
-                                title="Lihat Profile Cabang"
-                              >
-                                <Building2 className="w-3.5 h-3.5" />
-                              </button>
-
-                              {isAdmin && (
-                                <>
-                                  <button
-                                    onClick={() => { setCabangToEdit(item); setIsModalOpen(true); }}
-                                    className="p-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 transition-colors cursor-pointer"
-                                    title="Edit Data Cabang"
-                                  >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                  </button>
-
-                                  <button
-                                    onClick={() => handleDelete(item.id)}
-                                    className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors cursor-pointer"
-                                    title="Hapus Cabang"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
+                                <button
+                                  onClick={() => handleDelete(item.id)}
+                                  className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors cursor-pointer"
+                                  title="Hapus Cabang"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
-
-                {activeSubTab === 'jumlah_siswa' && filteredAndSortedCabang.length > 0 && (
-                  <tfoot className="bg-slate-100/90 border-t-2 border-slate-300 font-bold text-xs">
-                    <tr>
-                      <td colSpan={2} className="py-3 px-3 text-right font-extrabold text-slate-800 bg-slate-200/90 border-r border-slate-300 uppercase tracking-wider">
-                        TOTAL ({filteredAndSortedCabang.length} CABANG):
-                      </td>
-                      <td className="py-2.5 px-3 text-center bg-sky-100/70 border-r border-sky-200">
-                        {renderTotalTargetCell(filteredTotals.t7, filteredTotals.targetT7)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center bg-sky-100/70 border-r border-sky-200">
-                        {renderTotalTargetCell(filteredTotals.t8, filteredTotals.targetT8)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center bg-sky-100/90 border-r border-sky-300">
-                        {renderTotalTargetCell(filteredTotals.t9, filteredTotals.targetT9)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center bg-emerald-100/70 border-r border-emerald-200">
-                        {renderTotalTargetCell(filteredTotals.t10, filteredTotals.targetT10)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center bg-emerald-100/70 border-r border-emerald-200">
-                        {renderTotalTargetCell(filteredTotals.t11, filteredTotals.targetT11)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center bg-emerald-100/90 border-r border-emerald-300">
-                        {renderTotalTargetCell(filteredTotals.t12, filteredTotals.targetT12)}
-                      </td>
-                      <td className="py-2.5 px-3 text-center bg-indigo-100/90 border-r border-indigo-200 font-extrabold">
-                        {renderTotalTargetCell(filteredTotals.totalSiswa, filteredTotals.totalKapasitas)}
-                      </td>
-                      <td className="py-2.5 px-3 bg-slate-200/50"></td>
-                    </tr>
-                  </tfoot>
-                )}
               </table>
             </div>
 
-            {/* Pagination */}
-            <Pagination
-              currentPage={currentPage}
-              totalPages={Math.ceil(filteredAndSortedCabang.length / itemsPerPage)}
-              onPageChange={setCurrentPage}
-              totalItems={filteredAndSortedCabang.length}
-              itemsPerPage={itemsPerPage}
-            />
+            {/* Pagination (Hidden for jumlah_siswa subtab as admin requested to view all) */}
+            {activeSubTab !== 'jumlah_siswa' && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(filteredAndSortedCabang.length / itemsPerPage)}
+                onPageChange={setCurrentPage}
+                totalItems={filteredAndSortedCabang.length}
+                itemsPerPage={itemsPerPage}
+              />
+            )}
           </div>
         </div>
       )}

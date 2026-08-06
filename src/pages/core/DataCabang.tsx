@@ -238,6 +238,68 @@ export default function DataCabang() {
     return result;
   }, [cabang, searchQuery, filterWilayah, filterStatusTanah, filterStatusBangunan, filterKeterisian, filterPersonel, sortField, sortDirection]);
 
+  // Aggregated Totals based on filtered & sorted cabangs
+  const filteredTotals = useMemo(() => {
+    if (!filteredAndSortedCabang || filteredAndSortedCabang.length === 0) {
+      return {
+        t7: 0, targetT7: 0,
+        t8: 0, targetT8: 0,
+        t9: 0, targetT9: 0,
+        t10: 0, targetT10: 0,
+        t11: 0, targetT11: 0,
+        t12: 0, targetT12: 0,
+        totalSiswa: 0,
+        totalKapasitas: 0,
+      };
+    }
+
+    let t7 = 0, targetT7 = 0;
+    let t8 = 0, targetT8 = 0;
+    let t9 = 0, targetT9 = 0;
+    let t10 = 0, targetT10 = 0;
+    let t11 = 0, targetT11 = 0;
+    let t12 = 0, targetT12 = 0;
+    let totalSiswa = 0;
+    let totalKapasitas = 0;
+
+    filteredAndSortedCabang.forEach((item) => {
+      const s = item.siswaStats || {
+        totalSiswa: item._count?.students || 0,
+        tingkat: { tingkat7: 0, tingkat8: 0, tingkat9: 0, tingkat10: 0, tingkat11: 0, tingkat12: 0 }
+      };
+      const t = item.targetKuota || {
+        targetTingkat7: 0, targetTingkat8: 0, targetTingkat9: 0, targetTingkat10: 0, targetTingkat11: 0, targetTingkat12: 0
+      };
+
+      t7 += s.tingkat?.tingkat7 || 0;
+      targetT7 += t.targetTingkat7 || 0;
+
+      t8 += s.tingkat?.tingkat8 || 0;
+      targetT8 += t.targetTingkat8 || 0;
+
+      t9 += s.tingkat?.tingkat9 || 0;
+      targetT9 += t.targetTingkat9 || 0;
+
+      t10 += s.tingkat?.tingkat10 || 0;
+      targetT10 += t.targetTingkat10 || 0;
+
+      t11 += s.tingkat?.tingkat11 || 0;
+      targetT11 += t.targetTingkat11 || 0;
+
+      t12 += s.tingkat?.tingkat12 || 0;
+      targetT12 += t.targetTingkat12 || 0;
+
+      totalSiswa += s.totalSiswa || 0;
+      totalKapasitas += item.kapasitasSantri || 0;
+    });
+
+    return {
+      t7, targetT7, t8, targetT8, t9, targetT9,
+      t10, targetT10, t11, targetT11, t12, targetT12,
+      totalSiswa, totalKapasitas
+    };
+  }, [filteredAndSortedCabang]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterWilayah, filterStatusTanah, filterStatusBangunan, filterKeterisian, filterPersonel, sortField, sortDirection, activeSubTab]);
@@ -256,6 +318,34 @@ export default function DataCabang() {
     return sortDirection === 'asc' ? 
       <ArrowUp className="w-3.5 h-3.5 text-emerald-700 ml-1 inline font-bold" /> : 
       <ArrowDown className="w-3.5 h-3.5 text-emerald-700 ml-1 inline font-bold" />;
+  };
+
+  const renderTotalTargetCell = (realisasi: number, target: number) => {
+    if (!target || target === 0) {
+      return (
+        <div className="flex flex-col items-center">
+          <span className="font-extrabold text-slate-900 text-xs">{realisasi.toLocaleString('id-ID')}</span>
+          <span className="text-[10px] text-slate-400 font-normal">/ 0</span>
+        </div>
+      );
+    }
+    const pct = Math.round((realisasi / target) * 100);
+    let color = 'bg-slate-100 text-slate-800 border-slate-300';
+    if (pct >= 90) color = 'bg-emerald-100 text-emerald-900 border-emerald-300';
+    else if (pct >= 50) color = 'bg-amber-100 text-amber-900 border-amber-300';
+    else color = 'bg-rose-100 text-rose-900 border-rose-300';
+
+    return (
+      <div className="flex flex-col items-center gap-0.5 py-0.5">
+        <div className="text-xs">
+          <span className="font-extrabold text-slate-900">{realisasi.toLocaleString('id-ID')}</span>
+          <span className="text-slate-500 font-normal"> / {target.toLocaleString('id-ID')}</span>
+        </div>
+        <span className={`inline-flex px-1.5 py-0.2 text-[10px] font-extrabold rounded-full border ${color}`}>
+          {pct}%
+        </span>
+      </div>
+    );
   };
 
   const renderTargetCell = (realisasi: number, target: number) => {
@@ -695,13 +785,42 @@ export default function DataCabang() {
                         </th>
                         <th rowSpan={2} className="py-2.5 px-3 text-right bg-slate-100/90 text-slate-700 font-bold align-middle">Aksi</th>
                       </tr>
-                      <tr>
+                      <tr className="border-b border-slate-200">
                         <th className="py-2 px-3 text-center bg-sky-100 text-sky-950 font-bold border-r border-sky-200">Tingkat 7</th>
                         <th className="py-2 px-3 text-center bg-sky-100 text-sky-950 font-bold border-r border-sky-200">Tingkat 8</th>
                         <th className="py-2 px-3 text-center bg-sky-100 text-sky-950 font-bold border-r border-sky-300">Tingkat 9</th>
                         <th className="py-2 px-3 text-center bg-emerald-100 text-emerald-950 font-bold border-r border-emerald-200">Tingkat 10</th>
                         <th className="py-2 px-3 text-center bg-emerald-100 text-emerald-950 font-bold border-r border-emerald-200">Tingkat 11</th>
                         <th className="py-2 px-3 text-center bg-emerald-100 text-emerald-950 font-bold border-r border-emerald-300">Tingkat 12</th>
+                      </tr>
+
+                      {/* ── TOTAL SUMMARY ROW (DIRECTLY BELOW CLASS HEADERS) ── */}
+                      <tr className="bg-slate-100/90 border-b-2 border-slate-300 text-xs font-bold shadow-2xs">
+                        <td colSpan={2} className="py-2.5 px-3 text-right font-extrabold text-slate-800 bg-slate-200/90 border-r border-slate-300 uppercase tracking-wider">
+                          TOTAL ({filteredAndSortedCabang.length} CABANG):
+                        </td>
+                        <td className="py-2 px-3 text-center bg-sky-100/70 border-r border-sky-200">
+                          {renderTotalTargetCell(filteredTotals.t7, filteredTotals.targetT7)}
+                        </td>
+                        <td className="py-2 px-3 text-center bg-sky-100/70 border-r border-sky-200">
+                          {renderTotalTargetCell(filteredTotals.t8, filteredTotals.targetT8)}
+                        </td>
+                        <td className="py-2 px-3 text-center bg-sky-100/90 border-r border-sky-300">
+                          {renderTotalTargetCell(filteredTotals.t9, filteredTotals.targetT9)}
+                        </td>
+                        <td className="py-2 px-3 text-center bg-emerald-100/70 border-r border-emerald-200">
+                          {renderTotalTargetCell(filteredTotals.t10, filteredTotals.targetT10)}
+                        </td>
+                        <td className="py-2 px-3 text-center bg-emerald-100/70 border-r border-emerald-200">
+                          {renderTotalTargetCell(filteredTotals.t11, filteredTotals.targetT11)}
+                        </td>
+                        <td className="py-2 px-3 text-center bg-emerald-100/90 border-r border-emerald-300">
+                          {renderTotalTargetCell(filteredTotals.t12, filteredTotals.targetT12)}
+                        </td>
+                        <td className="py-2 px-3 text-center bg-indigo-100/90 border-r border-indigo-200 font-extrabold">
+                          {renderTotalTargetCell(filteredTotals.totalSiswa, filteredTotals.totalKapasitas)}
+                        </td>
+                        <td className="py-2 px-3 bg-slate-200/50"></td>
                       </tr>
                     </>
                   )}
@@ -874,6 +993,38 @@ export default function DataCabang() {
                       })
                   )}
                 </tbody>
+
+                {activeSubTab === 'jumlah_siswa' && filteredAndSortedCabang.length > 0 && (
+                  <tfoot className="bg-slate-100/90 border-t-2 border-slate-300 font-bold text-xs">
+                    <tr>
+                      <td colSpan={2} className="py-3 px-3 text-right font-extrabold text-slate-800 bg-slate-200/90 border-r border-slate-300 uppercase tracking-wider">
+                        TOTAL ({filteredAndSortedCabang.length} CABANG):
+                      </td>
+                      <td className="py-2.5 px-3 text-center bg-sky-100/70 border-r border-sky-200">
+                        {renderTotalTargetCell(filteredTotals.t7, filteredTotals.targetT7)}
+                      </td>
+                      <td className="py-2.5 px-3 text-center bg-sky-100/70 border-r border-sky-200">
+                        {renderTotalTargetCell(filteredTotals.t8, filteredTotals.targetT8)}
+                      </td>
+                      <td className="py-2.5 px-3 text-center bg-sky-100/90 border-r border-sky-300">
+                        {renderTotalTargetCell(filteredTotals.t9, filteredTotals.targetT9)}
+                      </td>
+                      <td className="py-2.5 px-3 text-center bg-emerald-100/70 border-r border-emerald-200">
+                        {renderTotalTargetCell(filteredTotals.t10, filteredTotals.targetT10)}
+                      </td>
+                      <td className="py-2.5 px-3 text-center bg-emerald-100/70 border-r border-emerald-200">
+                        {renderTotalTargetCell(filteredTotals.t11, filteredTotals.targetT11)}
+                      </td>
+                      <td className="py-2.5 px-3 text-center bg-emerald-100/90 border-r border-emerald-300">
+                        {renderTotalTargetCell(filteredTotals.t12, filteredTotals.targetT12)}
+                      </td>
+                      <td className="py-2.5 px-3 text-center bg-indigo-100/90 border-r border-indigo-200 font-extrabold">
+                        {renderTotalTargetCell(filteredTotals.totalSiswa, filteredTotals.totalKapasitas)}
+                      </td>
+                      <td className="py-2.5 px-3 bg-slate-200/50"></td>
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
 

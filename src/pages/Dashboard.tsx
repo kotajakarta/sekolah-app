@@ -497,14 +497,14 @@ export default function Dashboard() {
                 const percent = (item.value / maxVal) * 100;
                 return (
                   <div key={i} className="flex flex-col items-center flex-1 h-full justify-end">
-                    <span className="text-xs font-semibold text-slate-500 mb-1">{item.value}</span>
+                    <span className="text-xs font-bold text-slate-600 mb-1">{item.value.toLocaleString('id-ID')}</span>
                     <div className="w-full max-w-6 bg-slate-100 rounded-t-md flex flex-col justify-end overflow-hidden" style={{ height: '5.5rem' }}>
                       <div
                         className="w-full bg-brand rounded-t-md transition-all duration-300"
                         style={{ height: `${percent}%` }}
                       />
                     </div>
-                    <span className="text-[11px] font-medium text-slate-400 text-center uppercase tracking-tight mt-2 w-full truncate" title={item.name}>
+                    <span className="text-[11px] font-semibold text-slate-500 text-center uppercase tracking-tight mt-2 w-full truncate" title={item.name}>
                       {item.name}
                     </span>
                   </div>

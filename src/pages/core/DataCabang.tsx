@@ -752,6 +752,34 @@ export default function DataCabang() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
+                      {/* Top Summary Row for All Wilayahs */}
+                      <tr className="bg-blue-50/90 font-extrabold text-slate-900 border-b-2 border-blue-200 shadow-2xs">
+                        <td colSpan={2} className="py-2.5 px-3 text-center bg-blue-100/80 text-blue-950 font-black border-r border-blue-200 text-xs">
+                          TOTAL ({wilayahSummaryList.length} WILAYAH):
+                        </td>
+                        <td className="py-2 px-2 text-center bg-blue-50 border-r border-sky-200">
+                          {renderTargetCell(filteredTotals.t7, filteredTotals.targetT7, false)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-blue-50 border-r border-sky-200">
+                          {renderTargetCell(filteredTotals.t8, filteredTotals.targetT8, false)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-blue-50/90 border-r border-sky-300">
+                          {renderTargetCell(filteredTotals.t9, filteredTotals.targetT9, false)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-emerald-50 border-r border-emerald-200">
+                          {renderTargetCell(filteredTotals.t10, filteredTotals.targetT10, false)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-emerald-50 border-r border-emerald-200">
+                          {renderTargetCell(filteredTotals.t11, filteredTotals.targetT11, false)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-emerald-50/90 border-r border-emerald-300">
+                          {renderTargetCell(filteredTotals.t12, filteredTotals.targetT12, false)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-indigo-100/70 border-r border-indigo-200 font-extrabold">
+                          {renderTargetCell(filteredTotals.totalSiswa, filteredTotals.totalKapasitas, true)}
+                        </td>
+                      </tr>
+
                       {wilayahSummaryList.map((w, idx) => (
                         <tr key={w.wilayahId} className="hover:bg-slate-50 transition-colors">
                           <td className="py-3 px-3 text-center text-slate-400 font-medium">{idx + 1}</td>

@@ -18,7 +18,7 @@ export default function StudentPoolTable() {
   const itemsPerPage = 10;
   const [isConfirmDeleteAllOpen, setIsConfirmDeleteAllOpen] = useState(false);
 
-  const { data: students, isLoading, isError } = useGetPoolStudents();
+  const { data: students, isLoading, isError } = useGetPoolStudents(searchQuery);
   const { user } = useAuth();
   const { showToast } = useToast();
   const isAdmin = user?.scope === 'GLOBAL';

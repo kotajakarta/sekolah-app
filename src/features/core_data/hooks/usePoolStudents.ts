@@ -2,11 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
 import { Student } from './useGetStudents';
 
-export const useGetPoolStudents = () => {
+export const useGetPoolStudents = (search?: string) => {
   return useQuery<Student[]>({
-    queryKey: ['students', 'pool'],
+    queryKey: ['students', 'pool', search || ''],
     queryFn: async () => {
-      const response = await apiClient.get<Student[]>('/students/pool');
+      const response = await apiClient.get<Student[]>('/students/pool', {
+        params: search ? { search } : undefined
+      });
       return response.data;
     },
   });

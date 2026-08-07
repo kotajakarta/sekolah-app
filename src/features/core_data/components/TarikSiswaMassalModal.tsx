@@ -12,15 +12,16 @@ interface TarikSiswaMassalModalProps {
 export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModalProps) {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { data: poolStudents, isLoading: isLoadingPool } = useGetPoolStudents();
-  const { data: cabangList, isLoading: loadingCabang } = useGetCabang();
-  
-  const tarikMassalMutation = useTarikMassalSiswa();
   
   const isCabangUser = user?.scope === 'CABANG';
   const [selectedCabangId, setSelectedCabangId] = useState(isCabangUser ? (user.cabangId || '') : '');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const { data: poolStudents, isLoading: isLoadingPool } = useGetPoolStudents(searchQuery);
+  const { data: cabangList, isLoading: loadingCabang } = useGetCabang();
+  
+  const tarikMassalMutation = useTarikMassalSiswa();
 
   const filteredCabang = cabangList?.filter(c => {
     if (user?.scope === 'WILAYAH') return c.wilayahId === user.wilayahId;
@@ -29,8 +30,9 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
 
   const filteredStudents = poolStudents?.filter(student => {
     const fullName = student.biodata?.fullName || '';
-    const matchSearch = fullName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchSearch;
+    const nik = student.biodata?.nik || '';
+    const q = searchQuery.toLowerCase();
+    return fullName.toLowerCase().includes(q) || nik.toLowerCase().includes(q);
   }) || [];
 
   const toggleStudentSelection = (id: string) => {

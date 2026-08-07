@@ -489,48 +489,55 @@ export default function Dashboard() {
 
         {/* Distribusi Grup Daimi */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('dashboard.dist_grup_daimi')}</h3>
-            {statsData?.chartGrupDaimi && statsData.chartGrupDaimi.length > 0 && (
-              <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-0.5 rounded-full">
-                {statsData.chartGrupDaimi.length} Jenis Grup
-              </span>
-            )}
-          </div>
+          {(() => {
+            const daimiItems = (statsData?.chartGrupDaimi || []).filter(item => item.value > 0);
+            return (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('dashboard.dist_grup_daimi')}</h3>
+                  {daimiItems.length > 0 && (
+                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-0.5 rounded-full">
+                      {daimiItems.length} Jenis Grup
+                    </span>
+                  )}
+                </div>
 
-          <div className="overflow-x-auto overflow-y-hidden pb-1 scrollbar-thin scrollbar-thumb-slate-200">
-            <div className="flex items-end justify-start sm:justify-around gap-2 sm:gap-3 h-40 min-w-full pt-2 px-1">
-              {statsData?.chartGrupDaimi && statsData.chartGrupDaimi.length > 0 ? (
-                statsData.chartGrupDaimi.map((item, i) => {
-                  const maxVal = Math.max(...statsData.chartGrupDaimi.map(d => d.value), 1);
-                  const percent = (item.value / maxVal) * 100;
-                  const isNoGrup = item.name === 'No. Grup';
-                  return (
-                    <div key={i} className="flex flex-col items-center min-w-[56px] flex-1 shrink-0 h-full justify-end group cursor-default">
-                      <span className="text-[11px] font-extrabold text-slate-700 group-hover:text-indigo-600 transition-colors mb-1">
-                        {item.value.toLocaleString('id-ID')}
-                      </span>
-                      <div className="w-full max-w-[28px] bg-slate-100 rounded-t-lg flex flex-col justify-end overflow-hidden shadow-2xs group-hover:bg-slate-200/80 transition-colors" style={{ height: '5.5rem' }}>
-                        <div
-                          className={`w-full rounded-t-lg transition-all duration-500 ${
-                            isNoGrup
-                              ? 'bg-slate-400 group-hover:bg-slate-500'
-                              : 'bg-gradient-to-t from-indigo-600 to-indigo-500 group-hover:from-indigo-700 group-hover:to-indigo-600'
-                          }`}
-                          style={{ height: `${Math.max(percent, item.value > 0 ? 6 : 0)}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-500 group-hover:text-slate-900 text-center uppercase tracking-tight mt-2.5 w-full truncate px-0.5" title={item.name}>
-                        {item.name}
-                      </span>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="text-xs text-slate-400 py-4 text-center w-full">{t('common.no_data')}</div>
-              )}
-            </div>
-          </div>
+                <div className="overflow-x-auto overflow-y-hidden pb-1 scrollbar-thin scrollbar-thumb-slate-200">
+                  <div className="flex items-end justify-start sm:justify-around gap-2 sm:gap-3 h-40 min-w-full pt-2 px-1">
+                    {daimiItems.length > 0 ? (
+                      daimiItems.map((item, i) => {
+                        const maxVal = Math.max(...daimiItems.map(d => d.value), 1);
+                        const percent = (item.value / maxVal) * 100;
+                        const isNoGrup = item.name === 'No. Grup';
+                        return (
+                          <div key={i} className="flex flex-col items-center min-w-[56px] flex-1 shrink-0 h-full justify-end group cursor-default">
+                            <span className="text-[11px] font-extrabold text-slate-700 group-hover:text-indigo-600 transition-colors mb-1">
+                              {item.value.toLocaleString('id-ID')}
+                            </span>
+                            <div className="w-full max-w-[28px] bg-slate-100 rounded-t-lg flex flex-col justify-end overflow-hidden shadow-2xs group-hover:bg-slate-200/80 transition-colors" style={{ height: '5.5rem' }}>
+                              <div
+                                className={`w-full rounded-t-lg transition-all duration-500 ${
+                                  isNoGrup
+                                    ? 'bg-slate-400 group-hover:bg-slate-500'
+                                    : 'bg-gradient-to-t from-indigo-600 to-indigo-500 group-hover:from-indigo-700 group-hover:to-indigo-600'
+                                }`}
+                                style={{ height: `${Math.max(percent, 6)}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-500 group-hover:text-slate-900 text-center uppercase tracking-tight mt-2.5 w-full truncate px-0.5" title={item.name}>
+                              {item.name}
+                            </span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-xs text-slate-400 py-4 text-center w-full">{t('common.no_data')}</div>
+                    )}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* Kategori Siswa */}

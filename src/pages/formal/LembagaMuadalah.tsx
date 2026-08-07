@@ -450,6 +450,156 @@ export default function LembagaMuadalahPage() {
     return matchName && matchJenjang;
   });
 
+  const filteredTotals = React.useMemo(() => {
+    let t7 = 0, t7L = 0, t7P = 0;
+    let t8 = 0, t8L = 0, t8P = 0;
+    let t9 = 0, t9L = 0, t9P = 0;
+    let t10 = 0, t10L = 0, t10P = 0;
+    let t11 = 0, t11L = 0, t11P = 0;
+    let t12 = 0, t12L = 0, t12P = 0;
+    let totalL = 0, totalP = 0, totalAll = 0;
+
+    filteredList.forEach(m => {
+      const js = m.jumlahSantri;
+      if (js) {
+        t7L += js.wustha?.tingkat7?.l || 0;
+        t7P += js.wustha?.tingkat7?.p || 0;
+        t7 += js.wustha?.tingkat7?.total || 0;
+
+        t8L += js.wustha?.tingkat8?.l || 0;
+        t8P += js.wustha?.tingkat8?.p || 0;
+        t8 += js.wustha?.tingkat8?.total || 0;
+
+        t9L += js.wustha?.tingkat9?.l || 0;
+        t9P += js.wustha?.tingkat9?.p || 0;
+        t9 += js.wustha?.tingkat9?.total || 0;
+
+        t10L += js.ulya?.tingkat10?.l || 0;
+        t10P += js.ulya?.tingkat10?.p || 0;
+        t10 += js.ulya?.tingkat10?.total || 0;
+
+        t11L += js.ulya?.tingkat11?.l || 0;
+        t11P += js.ulya?.tingkat11?.p || 0;
+        t11 += js.ulya?.tingkat11?.total || 0;
+
+        t12L += js.ulya?.tingkat12?.l || 0;
+        t12P += js.ulya?.tingkat12?.p || 0;
+        t12 += js.ulya?.tingkat12?.total || 0;
+
+        totalL += js.totalL || 0;
+        totalP += js.totalP || 0;
+        totalAll += js.totalAll || 0;
+      }
+    });
+
+    return {
+      t7, t7L, t7P,
+      t8, t8L, t8P,
+      t9, t9L, t9P,
+      t10, t10L, t10P,
+      t11, t11L, t11P,
+      t12, t12L, t12P,
+      totalL, totalP, totalAll
+    };
+  }, [filteredList]);
+
+  const renderTargetCell = (
+    realisasi: number, 
+    target: number = 0, 
+    isTotalCell: boolean = false,
+    lCount?: number,
+    pCount?: number
+  ) => {
+    if (!target && !realisasi) {
+      return (
+        <div className="flex flex-col items-center justify-center py-0.5">
+          <div className="text-[11px] font-medium text-slate-300">
+            0
+          </div>
+        </div>
+      );
+    }
+
+    if (!target) {
+      return (
+        <div className="flex flex-col items-center justify-center py-0.5 max-w-[95px] mx-auto">
+          <span className="font-extrabold text-slate-900 text-xs">{realisasi.toLocaleString('id-ID')}</span>
+          {lCount !== undefined && pCount !== undefined && (lCount > 0 || pCount > 0) && (
+            <span className="text-[10px] font-semibold text-slate-400 mt-0.5">
+              {lCount}L / {pCount}P
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    const pct = target > 0 ? Math.round((realisasi / target) * 100) : (realisasi > 0 ? 100 : 0);
+    const clampedPct = Math.min(pct, 100);
+
+    let textColor = 'text-emerald-600 font-bold';
+    let barColor = 'bg-emerald-500';
+    let badgeColor = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+
+    if (pct < 50) {
+      textColor = 'text-rose-600 font-bold';
+      barColor = 'bg-rose-500';
+      badgeColor = 'bg-rose-100 text-rose-800 border-rose-300';
+    } else if (pct < 80) {
+      textColor = 'text-amber-600 font-bold';
+      barColor = 'bg-amber-500';
+      badgeColor = 'bg-amber-100 text-amber-800 border-amber-300';
+    }
+
+    if (isTotalCell) {
+      return (
+        <div className="flex flex-col items-center justify-center py-0.5 max-w-[105px] mx-auto">
+          <div className="text-xs font-extrabold text-slate-900">
+            {realisasi.toLocaleString('id-ID')} <span className="text-slate-400 font-normal text-[10px]">/ {target.toLocaleString('id-ID')}</span>
+          </div>
+          <div className="w-full h-1.5 bg-slate-200/80 rounded-full overflow-hidden mt-1 shadow-2xs">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+              style={{ width: `${clampedPct}%` }}
+            />
+          </div>
+          <div className="mt-1">
+            <span className={`inline-flex px-2 py-0.2 text-[10px] font-extrabold rounded-full border shadow-2xs ${badgeColor}`}>
+              {pct}%
+            </span>
+          </div>
+          {lCount !== undefined && pCount !== undefined && (lCount > 0 || pCount > 0) && (
+            <span className="text-[10px] font-semibold text-slate-400 mt-0.5">
+              {lCount}L / {pCount}P
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col items-center justify-center py-0.5 max-w-[95px] mx-auto">
+        <div className="flex items-baseline justify-center gap-0.5 w-full text-[11px]">
+          <span className="font-extrabold text-slate-900 text-xs">{realisasi.toLocaleString('id-ID')}</span>
+          <span className="text-slate-400 font-normal text-[10px]">/{target.toLocaleString('id-ID')}</span>
+        </div>
+        <div className="w-full h-1 bg-slate-200/80 rounded-full overflow-hidden mt-0.5 shadow-2xs">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+            style={{ width: `${clampedPct}%` }}
+          />
+        </div>
+        <div className="text-center mt-0.5 leading-none">
+          <span className={`text-[10px] font-extrabold ${textColor}`}>{pct}%</span>
+        </div>
+        {lCount !== undefined && pCount !== undefined && (lCount > 0 || pCount > 0) && (
+          <span className="text-[10px] font-semibold text-slate-400 mt-0.5">
+            {lCount}L / {pCount}P
+          </span>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 font-sans">
       {/* ── HEADER HALAMAN ── */}
@@ -567,44 +717,61 @@ export default function LembagaMuadalahPage() {
                 </thead>
               )}
 
-              {/* ── SUB-TAB 2: JUMLAH SANTRI HEADER (Nested) ── */}
+              {/* ── SUB-TAB 2: JUMLAH SANTRI HEADER ── */}
               {activeSubTab === 'jumlah_santri' && (
-                <thead className="bg-slate-50/90 text-slate-600 font-bold text-[11px] border-b border-slate-200">
-                  <tr>
-                    <th rowSpan={3} className="py-3 px-2 text-center border-r border-slate-200 w-10">No</th>
-                    <th rowSpan={3} className="py-3 px-3 border-r border-slate-200 min-w-[180px]">Nama Lembaga</th>
-                    <th rowSpan={3} className="py-3 px-2 text-center border-r border-slate-200 w-16">Jenjang</th>
-                    <th colSpan={6} className="py-1.5 px-2 text-center border-r border-slate-200 bg-indigo-50/60 text-indigo-900 uppercase">Wustha</th>
-                    <th colSpan={6} className="py-1.5 px-2 text-center border-r border-slate-200 bg-emerald-50/60 text-emerald-900 uppercase">Ulya</th>
-                    <th colSpan={3} className="py-1.5 px-2 text-center border-r border-slate-200 bg-slate-100 uppercase">Total Santri</th>
-                    <th rowSpan={3} className="py-3 px-3 text-right">Aksi</th>
+                <>
+                  <tr className="border-b border-slate-200">
+                    <th rowSpan={2} className="py-2.5 px-3 text-center w-12 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">No</th>
+                    <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Nama Lembaga</th>
+                    <th colSpan={3} className="py-2.5 px-3 text-center bg-[#0073B7] text-white font-extrabold tracking-wide border-r border-sky-600 shadow-2xs">
+                      WUSTHA (TINGKAT 7 - 9)
+                    </th>
+                    <th colSpan={3} className="py-2.5 px-3 text-center bg-[#7FFFD4] text-emerald-950 font-extrabold tracking-wide border-r border-emerald-300 shadow-2xs">
+                      ULYA (TINGKAT 10 - 12)
+                    </th>
+                    <th rowSpan={2} className="py-2.5 px-3 text-center bg-slate-100/90 text-slate-800 font-extrabold border-r border-slate-200 align-middle">
+                      TOTAL SANTRI
+                    </th>
+                    <th rowSpan={2} className="py-2.5 px-3 text-right bg-slate-100/90 text-slate-700 font-extrabold align-middle">Aksi</th>
                   </tr>
-                  <tr>
-                    <th colSpan={2} className="py-1 px-1 text-center border-r border-b border-slate-200 bg-indigo-50/40">Tingkat 7</th>
-                    <th colSpan={2} className="py-1 px-1 text-center border-r border-b border-slate-200 bg-indigo-50/40">Tingkat 8</th>
-                    <th colSpan={2} className="py-1 px-1 text-center border-r border-b border-slate-200 bg-indigo-50/40">Tingkat 9</th>
-                    <th colSpan={2} className="py-1 px-1 text-center border-r border-b border-slate-200 bg-emerald-50/40">Tingkat 10</th>
-                    <th colSpan={2} className="py-1 px-1 text-center border-r border-b border-slate-200 bg-emerald-50/40">Tingkat 11</th>
-                    <th colSpan={2} className="py-1 px-1 text-center border-r border-b border-slate-200 bg-emerald-50/40">Tingkat 12</th>
-                    <th rowSpan={2} className="py-1 px-2 text-center border-r border-slate-200 bg-slate-100 font-bold">L</th>
-                    <th rowSpan={2} className="py-1 px-2 text-center border-r border-slate-200 bg-slate-100 font-bold">P</th>
-                    <th rowSpan={2} className="py-1 px-2 text-center border-r border-slate-200 bg-slate-100 font-bold">Total</th>
+                  <tr className="border-b border-slate-200">
+                    <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TINGKAT 7</th>
+                    <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TINGKAT 8</th>
+                    <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-300 text-[11px]">TINGKAT 9</th>
+                    <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">TINGKAT 10</th>
+                    <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">TINGKAT 11</th>
+                    <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-300 text-[11px]">TINGKAT 12</th>
                   </tr>
-                  <tr>
-                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">L</th>
-                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">P</th>
-                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">L</th>
-                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">P</th>
-                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">L</th>
-                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">P</th>
-                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">L</th>
-                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">P</th>
-                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">L</th>
-                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">P</th>
-                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">L</th>
-                    <th className="py-1 px-1 text-center border-r border-slate-200 text-[10px]">P</th>
+
+                  {/* ── TOP TOTAL SUMMARY ROW ── */}
+                  <tr className="bg-[#DCEBFB] border-b-2 border-sky-300 text-xs font-bold shadow-2xs">
+                    <td colSpan={2} className="py-3 px-3 text-right font-extrabold text-slate-800 bg-[#CFE2F9] border-r border-sky-300 uppercase tracking-wider">
+                      TOTAL ({filteredList.length} LEMBAGA):
+                    </td>
+                    <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200">
+                      {renderTargetCell(filteredTotals.t7, 0, false, filteredTotals.t7L, filteredTotals.t7P)}
+                    </td>
+                    <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200">
+                      {renderTargetCell(filteredTotals.t8, 0, false, filteredTotals.t8L, filteredTotals.t8P)}
+                    </td>
+                    <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-300">
+                      {renderTargetCell(filteredTotals.t9, 0, false, filteredTotals.t9L, filteredTotals.t9P)}
+                    </td>
+                    <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200">
+                      {renderTargetCell(filteredTotals.t10, 0, false, filteredTotals.t10L, filteredTotals.t10P)}
+                    </td>
+                    <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200">
+                      {renderTargetCell(filteredTotals.t11, 0, false, filteredTotals.t11L, filteredTotals.t11P)}
+                    </td>
+                    <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-300">
+                      {renderTargetCell(filteredTotals.t12, 0, false, filteredTotals.t12L, filteredTotals.t12P)}
+                    </td>
+                    <td className="py-2.5 px-3 text-center bg-[#D4E5FA] border-r border-sky-300 font-extrabold">
+                      {renderTargetCell(filteredTotals.totalAll, 0, true, filteredTotals.totalL, filteredTotals.totalP)}
+                    </td>
+                    <td className="py-2.5 px-3 bg-[#DCEBFB]"></td>
                   </tr>
-                </thead>
+                </>
               )}
 
               {/* ── SUB-TAB 3: BERKAS HEADER ── */}
@@ -631,85 +798,90 @@ export default function LembagaMuadalahPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredList
-                    .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                    .map((item, idx) => {
-                      const rowNo = (currentPage - 1) * itemsPerPage + idx + 1;
-                      const js = item.jumlahSantri;
+                  (activeSubTab === 'jumlah_santri'
+                    ? filteredList
+                    : filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  ).map((item, idx) => {
+                    const rowNo = activeSubTab === 'jumlah_santri' ? idx + 1 : (currentPage - 1) * itemsPerPage + idx + 1;
+                    const js = item.jumlahSantri;
 
-                      return (
-                        <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-3.5 px-2 text-center text-slate-400 font-medium">{rowNo}</td>
+                    return (
+                      <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3.5 px-2 text-center text-slate-400 font-medium">{rowNo}</td>
 
-                          {/* NAMA LEMBAGA */}
-                          <td className="py-3.5 px-3 font-semibold text-slate-800">
-                            <button
-                              onClick={() => { setSelectedProfileMuadalah(item); setProfileTab('info'); }}
-                              className="hover:text-indigo-600 text-left font-bold transition-colors cursor-pointer"
-                            >
-                              {item.name}
-                            </button>
-                            {activeSubTab === 'identitas' && (
-                              <p className="text-[11px] font-medium text-slate-500 mt-0.5">
-                                NPSN: <span className="font-bold text-slate-700">{item.npsn || '-'}</span>
-                              </p>
-                            )}
-                          </td>
-
-                          {/* ── SUB-TAB 1: IDENTITAS BODY ── */}
+                        {/* NAMA LEMBAGA */}
+                        <td className="py-3.5 px-3 font-semibold text-slate-800">
+                          <button
+                            onClick={() => { setSelectedProfileMuadalah(item); setProfileTab('info'); }}
+                            className="hover:text-indigo-600 text-left font-bold transition-colors cursor-pointer"
+                          >
+                            {item.name}
+                          </button>
                           {activeSubTab === 'identitas' && (
-                            <>
-                              <td className="py-3.5 px-3 text-slate-700 font-medium">
-                                <p className="font-semibold text-slate-800">{item.pesantrenInduk || '-'}</p>
-                                <p className="text-[11px] font-medium text-slate-500 mt-0.5">
-                                  NSPP: <span className="font-bold text-slate-700">{item.nspp || '-'}</span>
-                                </p>
-                              </td>
-                              <td className="py-3.5 px-3 text-center">
-                                <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                                  {item.jenjang || 'WUSTHA'}
-                                </span>
-                              </td>
-                              <td className="py-3.5 px-3 text-center text-slate-700 font-medium">{item.tahunBerdiri || '-'}</td>
-                              <td className="py-3.5 px-3 text-slate-700 font-medium">{item.namaKetua || '-'}</td>
-                              <td className="py-3.5 px-3 text-slate-700 font-medium">{item.operator || '-'}</td>
-                              <td className="py-3.5 px-3 text-center font-semibold text-slate-700">{item.emisPontren || '-'}</td>
-                              <td className="py-3.5 px-3 text-center font-semibold text-slate-700">{item.emisSpm || '-'}</td>
-                              <td className="py-3.5 px-3 text-center">
-                                <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${item.isActive ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
-                                  {item.isActive ? 'Aktif' : 'Nonaktif'}
-                                </span>
-                              </td>
-                            </>
+                            <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                              NPSN: <span className="font-bold text-slate-700">{item.npsn || '-'}</span>
+                            </p>
                           )}
+                        </td>
 
-                          {/* ── SUB-TAB 2: JUMLAH SANTRI BODY ── */}
-                          {activeSubTab === 'jumlah_santri' && (
-                            <>
-                              <td className="py-3.5 px-2 text-center font-bold text-slate-700">{item.jenjang || 'WUSTHA'}</td>
-                              
-                              {/* WUSTHA T7, T8, T9 */}
-                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.wustha.tingkat7.l || 0}</td>
-                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.wustha.tingkat7.p || 0}</td>
-                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.wustha.tingkat8.l || 0}</td>
-                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.wustha.tingkat8.p || 0}</td>
-                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.wustha.tingkat9.l || 0}</td>
-                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-200">{js?.wustha.tingkat9.p || 0}</td>
+                        {/* ── SUB-TAB 1: IDENTITAS BODY ── */}
+                        {activeSubTab === 'identitas' && (
+                          <>
+                            <td className="py-3.5 px-3 text-slate-700 font-medium">
+                              <p className="font-semibold text-slate-800">{item.pesantrenInduk || '-'}</p>
+                              <p className="text-[11px] font-medium text-slate-500 mt-0.5">
+                                NSPP: <span className="font-bold text-slate-700">{item.nspp || '-'}</span>
+                              </p>
+                            </td>
+                            <td className="py-3.5 px-3 text-center">
+                              <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                {item.jenjang || 'WUSTHA'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-3 text-center text-slate-700 font-medium">{item.tahunBerdiri || '-'}</td>
+                            <td className="py-3.5 px-3 text-slate-700 font-medium">{item.namaKetua || '-'}</td>
+                            <td className="py-3.5 px-3 text-slate-700 font-medium">{item.operator || '-'}</td>
+                            <td className="py-3.5 px-3 text-center font-semibold text-slate-700">{item.emisPontren || '-'}</td>
+                            <td className="py-3.5 px-3 text-center font-semibold text-slate-700">{item.emisSpm || '-'}</td>
+                            <td className="py-3.5 px-3 text-center">
+                              <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${item.isActive ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
+                                {item.isActive ? 'Aktif' : 'Nonaktif'}
+                              </span>
+                            </td>
+                          </>
+                        )}
 
-                              {/* ULYA T10, T11, T12 */}
-                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.ulya.tingkat10.l || 0}</td>
-                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.ulya.tingkat10.p || 0}</td>
-                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.ulya.tingkat11.l || 0}</td>
-                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.ulya.tingkat11.p || 0}</td>
-                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-100">{js?.ulya.tingkat12.l || 0}</td>
-                              <td className="py-3.5 px-1 text-center font-semibold text-slate-700 border-r border-slate-200">{js?.ulya.tingkat12.p || 0}</td>
+                        {/* ── SUB-TAB 2: JUMLAH SANTRI BODY ── */}
+                        {activeSubTab === 'jumlah_santri' && (
+                          <>
+                            {/* WUSTHA (TINGKAT 7 - 9) - Sky Blue Accent */}
+                            <td className="py-1.5 px-2 text-center bg-sky-50/40 border-r border-sky-100">
+                              {renderTargetCell(js?.wustha?.tingkat7?.total || 0, 0, false, js?.wustha?.tingkat7?.l, js?.wustha?.tingkat7?.p)}
+                            </td>
+                            <td className="py-1.5 px-2 text-center bg-sky-50/40 border-r border-sky-100">
+                              {renderTargetCell(js?.wustha?.tingkat8?.total || 0, 0, false, js?.wustha?.tingkat8?.l, js?.wustha?.tingkat8?.p)}
+                            </td>
+                            <td className="py-1.5 px-2 text-center bg-sky-50/60 border-r border-sky-200">
+                              {renderTargetCell(js?.wustha?.tingkat9?.total || 0, 0, false, js?.wustha?.tingkat9?.l, js?.wustha?.tingkat9?.p)}
+                            </td>
 
-                              {/* TOTAL L, P, ALL */}
-                              <td className="py-3.5 px-2 text-center font-bold text-indigo-700 bg-indigo-50/20">{js?.totalL || 0}</td>
-                              <td className="py-3.5 px-2 text-center font-bold text-emerald-700 bg-emerald-50/20">{js?.totalP || 0}</td>
-                              <td className="py-3.5 px-2 text-center font-extrabold text-slate-900 bg-slate-100/50">{js?.totalAll || 0}</td>
-                            </>
-                          )}
+                            {/* ULYA (TINGKAT 10 - 12) - Emerald Green Accent */}
+                            <td className="py-1.5 px-2 text-center bg-emerald-50/40 border-r border-emerald-100">
+                              {renderTargetCell(js?.ulya?.tingkat10?.total || 0, 0, false, js?.ulya?.tingkat10?.l, js?.ulya?.tingkat10?.p)}
+                            </td>
+                            <td className="py-1.5 px-2 text-center bg-emerald-50/40 border-r border-emerald-100">
+                              {renderTargetCell(js?.ulya?.tingkat11?.total || 0, 0, false, js?.ulya?.tingkat11?.l, js?.ulya?.tingkat11?.p)}
+                            </td>
+                            <td className="py-1.5 px-2 text-center bg-emerald-50/60 border-r border-emerald-200">
+                              {renderTargetCell(js?.ulya?.tingkat12?.total || 0, 0, false, js?.ulya?.tingkat12?.l, js?.ulya?.tingkat12?.p)}
+                            </td>
+
+                            {/* TOTAL SANTRI - Indigo Accent */}
+                            <td className="py-1.5 px-2 text-center bg-indigo-50/50 border-r border-indigo-100 font-bold">
+                              {renderTargetCell(js?.totalAll || 0, 0, true, js?.totalL, js?.totalP)}
+                            </td>
+                          </>
+                        )}
 
                           {/* ── SUB-TAB 3: BERKAS DOKUMEN BODY ── */}
                           {activeSubTab === 'berkas' && (
@@ -813,14 +985,16 @@ export default function LembagaMuadalahPage() {
           )}
         </div>
 
-        {/* Pagination */}
-        <Pagination 
-          currentPage={currentPage} 
-          totalPages={Math.ceil((filteredList.length || 0) / itemsPerPage)} 
-          onPageChange={setCurrentPage} 
-          totalItems={filteredList.length || 0} 
-          itemsPerPage={itemsPerPage} 
-        />
+        {/* Pagination (Hidden for jumlah_santri subtab to view all institutions) */}
+        {activeSubTab !== 'jumlah_santri' && (
+          <Pagination 
+            currentPage={currentPage} 
+            totalPages={Math.ceil((filteredList.length || 0) / itemsPerPage)} 
+            onPageChange={setCurrentPage} 
+            totalItems={filteredList.length || 0} 
+            itemsPerPage={itemsPerPage} 
+          />
+        )}
       </div>
 
       {/* ── MODAL TAMBAH / EDIT LEMBAGA ── */}

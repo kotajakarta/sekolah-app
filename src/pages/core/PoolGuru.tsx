@@ -75,8 +75,8 @@ export default function PoolGuru() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-800">{t('pool_guru.title')}</h1>
-          <p className="text-sm text-slate-500 mt-1.5">{t('pool_guru.subtitle')}</p>
+          <h1 className="text-2xl font-semibold text-slate-800">{t('pool_guru.title') || 'Data Pool Guru'}</h1>
+          <p className="text-sm text-slate-500 mt-1.5">{t('pool_guru.subtitle') || 'Daftar guru yang tersedia di pool untuk ditarik atau ditugaskan antar cabang.'}</p>
         </div>
         {isAdmin && guruPool && guruPool.length > 0 && (
           <div className="flex items-center gap-2">

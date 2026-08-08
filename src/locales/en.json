@@ -12,6 +12,14 @@
     "action_needed": "Action Needed",
     "all_completed": "All tasks and announcements completed!"
   },
+  "pool_siswa": {
+    "title": "Student Pool Data",
+    "subtitle": "List of students available in the pool to be transferred or assigned between branches."
+  },
+  "pool_guru": {
+    "title": "Teacher Pool Data",
+    "subtitle": "List of teachers available in the pool to be transferred or assigned between branches."
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "kelembagaan": "Institutional",

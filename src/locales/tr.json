@@ -12,6 +12,14 @@
     "action_needed": "Eylem Gerekli",
     "all_completed": "Tüm görevler ve duyurular tamamlandı!"
   },
+  "pool_siswa": {
+    "title": "Öğrenci Havuz Verileri",
+    "subtitle": "Şubeler arasında aktarılmak veya atanmak üzere havuzda bulunan öğrencilerin listesi."
+  },
+  "pool_guru": {
+    "title": "Öğretmen Havuz Verileri",
+    "subtitle": "Şubeler arasında aktarılmak veya atanmak üzere havuzda bulunan öğretmenlerin listesi."
+  },
   "sidebar": {
     "dashboard": "Gösterge Paneli",
     "kelembagaan": "Kurumsal",

@@ -11,8 +11,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
 import { useToast } from '../../../contexts/ToastContext';
 import AdvancedFilterBar, { FilterState } from '../../../components/AdvancedFilterBar';
+import { useTranslation } from 'react-i18next';
 
 export default function StudentPoolTable() {
+  const { t } = useTranslation();
   const [currentPage, setCurrentPage] = useState(1);
   const [inputQuery, setInputQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,7 +94,7 @@ export default function StudentPoolTable() {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
       <div className="p-4 sm:p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
-        <h2 className="text-lg font-semibold text-gray-900">Data Pool Siswa</h2>
+        <h2 className="text-lg font-semibold text-gray-900">{t('pool_siswa.title') || 'Data Pool Siswa'}</h2>
         <div className="flex items-center gap-4">
           {isAdmin && students && students.length > 0 && (
             <button 
@@ -100,7 +102,7 @@ export default function StudentPoolTable() {
               className="inline-flex items-center justify-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Hapus Semua
+              {t('common.delete_all') || 'Hapus Semua'}
             </button>
           )}
           <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">

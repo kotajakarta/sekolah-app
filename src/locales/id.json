@@ -12,6 +12,14 @@
     "action_needed": "Butuh Tindakan",
     "all_completed": "Semua tugas & pengumuman selesai!"
   },
+  "pool_siswa": {
+    "title": "Data Pool Santri",
+    "subtitle": "Daftar santri yang tersedia di pool untuk ditarik atau dipindahkan antar cabang."
+  },
+  "pool_guru": {
+    "title": "Data Pool Guru",
+    "subtitle": "Daftar guru yang tersedia di pool untuk ditarik atau ditugaskan antar cabang."
+  },
   "sidebar": {
     "dashboard": "Beranda",
     "kelembagaan": "Kelembagaan",

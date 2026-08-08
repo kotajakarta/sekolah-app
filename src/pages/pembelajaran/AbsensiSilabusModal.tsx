@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
-import { Loader2, Save, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Loader2, Save, AlertCircle, CheckCircle, X, Search } from 'lucide-react';
 
 interface AbsensiSilabusRow {
   studentId: string;
@@ -42,6 +42,7 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
   const [rows, setRows] = useState<AbsensiSilabusRow[]>([]);
   const [tanggal, setTanggal] = useState(propTanggal || todayStr());
   const [isSavedSuccessfully, setIsSavedSuccessfully] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data, isLoading, isError } = useQuery<AbsensiSilabusResponse>({
     queryKey: ['absensi-silabus', kelasId, silabusId, propTanggal],
@@ -90,6 +91,15 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
     setIsSavedSuccessfully(false);
   };
 
+  const filteredRows = rows.filter(r => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      r.fullName.toLowerCase().includes(q) ||
+      (r.nisLokal && r.nisLokal.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/40" onClick={onClose}>
       <div
@@ -123,7 +133,7 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
             </div>
           ) : (
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <label className="block text-[11px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Tanggal</label>
                   <input
@@ -134,11 +144,27 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
                     className="px-3 py-1.5 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
                   />
                 </div>
-                <div className="flex-1" />
+
+                <div className="flex-1 min-w-[200px] max-w-xs">
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Cari Santri</label>
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Cari nama santri / NIS..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-md text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                    />
+                  </div>
+                </div>
+
                 {isSavedSuccessfully && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full text-[11px] font-bold">
-                    <CheckCircle className="w-3 h-3" /> Tersimpan
-                  </span>
+                  <div className="self-end pb-0.5">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full text-[11px] font-bold">
+                      <CheckCircle className="w-3 h-3" /> Tersimpan
+                    </span>
+                  </div>
                 )}
               </div>
 
@@ -148,94 +174,105 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
                 <button onClick={() => markAll('SAKIT')} className="px-2.5 py-1 bg-white hover:bg-blue-50 text-blue-700 border border-gray-300 hover:border-blue-200 text-[11px] font-semibold rounded-full transition-all">Sakit</button>
                 <button onClick={() => markAll('IZIN')} className="px-2.5 py-1 bg-white hover:bg-amber-50 text-amber-700 border border-gray-300 hover:border-amber-200 text-[11px] font-semibold rounded-full transition-all">Izin</button>
                 <button onClick={() => markAll('ALPA')} className="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-700 border border-gray-300 hover:border-rose-200 text-[11px] font-semibold rounded-full transition-all">Alpa</button>
+                {searchQuery && (
+                  <span className="ml-auto text-[11px] text-gray-500 font-medium">
+                    Tampil {filteredRows.length} dari {rows.length} santri
+                  </span>
+                )}
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                {/* Mobile: compact card list */}
-                <div className="sm:hidden divide-y divide-gray-100">
-                  {rows.map((row, idx) => (
-                    <div key={row.studentId} className="p-2.5 space-y-1.5">
-                      <p className="text-sm font-semibold text-gray-800 truncate">
-                        <span className="text-gray-400 font-normal mr-1.5">{idx + 1}.</span>
-                        {row.fullName}
-                      </p>
-                      <p className="text-[11px] text-gray-400 font-mono -mt-1">NIS: {row.nisLokal || '-'}</p>
-                      <div className="grid grid-cols-4 gap-1">
-                        {STATUS_OPTIONS.map(opt => {
-                          const active = row.status === opt.key;
-                          return (
-                            <button
-                              key={opt.key}
-                              type="button"
-                              onClick={() => handleStatusChange(row.studentId, opt.key)}
-                              className={`py-1 text-[11px] font-semibold rounded-md border transition-all text-center ${active ? opt.activeBg : opt.hoverBg}`}
-                            >
-                              {opt.label}
-                            </button>
-                          );
-                        })}
+              {filteredRows.length === 0 ? (
+                <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-sm text-gray-400">
+                  Tidak ada santri yang sesuai dengan pencarian &quot;{searchQuery}&quot;.
+                </div>
+              ) : (
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Mobile: compact card list */}
+                  <div className="sm:hidden divide-y divide-gray-100">
+                    {filteredRows.map((row, idx) => (
+                      <div key={row.studentId} className="p-2.5 space-y-1.5">
+                        <p className="text-sm font-semibold text-gray-800 truncate">
+                          <span className="text-gray-400 font-normal mr-1.5">{idx + 1}.</span>
+                          {row.fullName}
+                        </p>
+                        <p className="text-[11px] text-gray-400 font-mono -mt-1">NIS: {row.nisLokal || '-'}</p>
+                        <div className="grid grid-cols-4 gap-1">
+                          {STATUS_OPTIONS.map(opt => {
+                            const active = row.status === opt.key;
+                            return (
+                              <button
+                                key={opt.key}
+                                type="button"
+                                onClick={() => handleStatusChange(row.studentId, opt.key)}
+                                className={`py-1 text-[11px] font-semibold rounded-md border transition-all text-center ${active ? opt.activeBg : opt.hoverBg}`}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Catatan (opsional)"
+                          value={row.catatan}
+                          onChange={e => handleCatatanChange(row.studentId, e.target.value)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                        />
                       </div>
-                      <input
-                        type="text"
-                        placeholder="Catatan (opsional)"
-                        value={row.catatan}
-                        onChange={e => handleCatatanChange(row.studentId, e.target.value)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
-                      />
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
 
-                {/* Desktop: full table */}
-                <div className="hidden sm:block overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-100">
-                    <thead className="bg-gray-50">
-                      <tr className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide text-left">
-                        <th className="px-3 py-2 w-10 text-center">No</th>
-                        <th className="px-3 py-2 w-24">NIS Lokal</th>
-                        <th className="px-3 py-2">Nama Lengkap</th>
-                        <th className="px-3 py-2 w-72 text-center">Kehadiran</th>
-                        <th className="px-3 py-2">Catatan</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 text-sm">
-                      {rows.map((row, idx) => (
-                        <tr key={row.studentId} className="hover:bg-gray-50/60 transition-colors">
-                          <td className="px-3 py-2 text-center font-medium text-gray-400">{idx + 1}</td>
-                          <td className="px-3 py-2 font-mono text-gray-600">{row.nisLokal || '-'}</td>
-                          <td className="px-3 py-2 font-semibold text-gray-800">{row.fullName}</td>
-                          <td className="px-3 py-2">
-                            <div className="flex items-center justify-center gap-1">
-                              {STATUS_OPTIONS.map(opt => {
-                                const active = row.status === opt.key;
-                                return (
-                                  <button
-                                    key={opt.key}
-                                    type="button"
-                                    onClick={() => handleStatusChange(row.studentId, opt.key)}
-                                    className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all shrink-0 w-14 text-center ${active ? opt.activeBg : opt.hoverBg}`}
-                                  >
-                                    {opt.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2">
-                            <input
-                              type="text"
-                              placeholder="Catatan (opsional)"
-                              value={row.catatan}
-                              onChange={e => handleCatatanChange(row.studentId, e.target.value)}
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
-                            />
-                          </td>
+                  {/* Desktop: full table */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-100">
+                      <thead className="bg-gray-50">
+                        <tr className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide text-left">
+                          <th className="px-3 py-2 w-10 text-center">No</th>
+                          <th className="px-3 py-2 w-24">NIS Lokal</th>
+                          <th className="px-3 py-2">Nama Lengkap</th>
+                          <th className="px-3 py-2 w-72 text-center">Kehadiran</th>
+                          <th className="px-3 py-2">Catatan</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 text-sm">
+                        {filteredRows.map((row, idx) => (
+                          <tr key={row.studentId} className="hover:bg-gray-50/60 transition-colors">
+                            <td className="px-3 py-2 text-center font-medium text-gray-400">{idx + 1}</td>
+                            <td className="px-3 py-2 font-mono text-gray-600">{row.nisLokal || '-'}</td>
+                            <td className="px-3 py-2 font-semibold text-gray-800">{row.fullName}</td>
+                            <td className="px-3 py-2">
+                              <div className="flex items-center justify-center gap-1">
+                                {STATUS_OPTIONS.map(opt => {
+                                  const active = row.status === opt.key;
+                                  return (
+                                    <button
+                                      key={opt.key}
+                                      type="button"
+                                      onClick={() => handleStatusChange(row.studentId, opt.key)}
+                                      className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all shrink-0 w-14 text-center ${active ? opt.activeBg : opt.hoverBg}`}
+                                    >
+                                      {opt.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                type="text"
+                                placeholder="Catatan (opsional)"
+                                value={row.catatan}
+                                onChange={e => handleCatatanChange(row.studentId, e.target.value)}
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>

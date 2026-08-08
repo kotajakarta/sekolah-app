@@ -114,6 +114,7 @@ export default function ManajemenKelas() {
   const [filterMuadalah, setFilterMuadalah] = useState('');
   const [filterWilayah, setFilterWilayah] = useState(user?.scope === 'CABANG' || user?.scope === 'WILAYAH' ? user?.wilayahId || '' : '');
   const [filterCabang, setFilterCabang] = useState(user?.scope === 'CABANG' ? user?.cabangId || '' : '');
+  const [filterStatus, setFilterStatus] = useState('');
 
   const { data: kelasList, isLoading } = useQuery<Kelas[]>({
     queryKey: ['kelas'],
@@ -336,6 +337,12 @@ export default function ManajemenKelas() {
     if (filterCabang && kelas.cabangId !== filterCabang) {
       return false;
     }
+    if (filterStatus === 'AKTIF' && !kelas.isActive) {
+      return false;
+    }
+    if (filterStatus === 'NONAKTIF' && kelas.isActive) {
+      return false;
+    }
     return true;
   });
 
@@ -484,7 +491,7 @@ export default function ManajemenKelas() {
                     <Filter className="w-4 h-4 text-indigo-600" />
                     <span>Filter Wilayah & Cabang (RBAC)</span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Lembaga Muadalah</label>
                       <select
@@ -534,6 +541,19 @@ export default function ManajemenKelas() {
                         {filteredFilterCabangList.map((c) => (
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Status Kelas</label>
+                      <select
+                        value={filterStatus}
+                        onChange={e => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
+                      >
+                        <option value="">-- Semua Status --</option>
+                        <option value="AKTIF">Aktif</option>
+                        <option value="NONAKTIF">Tidak Aktif</option>
                       </select>
                     </div>
                   </div>

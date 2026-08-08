@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGetPoolStudents } from '../hooks/usePoolStudents';
 import { useAuth } from '../../../hooks/useAuth';
 import { Student } from '../hooks/useGetStudents';
@@ -14,9 +14,19 @@ import AdvancedFilterBar, { FilterState } from '../../../components/AdvancedFilt
 
 export default function StudentPoolTable() {
   const [currentPage, setCurrentPage] = useState(1);
+  const [inputQuery, setInputQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const itemsPerPage = 10;
   const [isConfirmDeleteAllOpen, setIsConfirmDeleteAllOpen] = useState(false);
+
+  // Debounce: only update searchQuery (used for API call) after user stops typing for 500ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(inputQuery);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [inputQuery]);
 
   const { data: students, isLoading, isError } = useGetPoolStudents(searchQuery);
   const { user } = useAuth();
@@ -47,7 +57,7 @@ export default function StudentPoolTable() {
     if (advancedFilters.kelasId && s.siswaFormal?.kelasId !== advancedFilters.kelasId) return false;
     if (advancedFilters.lembagaMuadalahId && s.siswaFormal?.kelas?.lembagaMuadalah?.id !== advancedFilters.lembagaMuadalahId) return false;
 
-    // Search query
+    // Search query (server-side handles the filtering already, client-side is just safety net)
     const q = searchQuery.toLowerCase();
     if (q) {
       return s.biodata?.fullName?.toLowerCase().includes(q) ||
@@ -117,12 +127,9 @@ export default function StudentPoolTable() {
           </div>
           <input
             type="text"
-            placeholder="Cari nama, NIK, atau NISN..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
+            placeholder="Cari nama, NIK, atau NISN... (tekan Enter atau berhenti mengetik)"
+            value={inputQuery}
+            onChange={(e) => setInputQuery(e.target.value)}
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150 ease-in-out"
           />
         </div>

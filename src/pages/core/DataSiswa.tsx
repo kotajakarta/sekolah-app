@@ -214,6 +214,109 @@ export default function DataSiswa() {
     XLSX.writeFile(workbook, `Data_Siswa_${dateStr}.xlsx`);
   };
 
+  const handleExportEmis = () => {
+    if (!filteredStudents || filteredStudents.length === 0) return;
+
+    const formatDate = (dateStr?: string | null): string => {
+      if (!dateStr) return '';
+      try {
+        const d = new Date(dateStr);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+      } catch {
+        return '';
+      }
+    };
+
+    const formatPhone = (phone?: string | null): string => {
+      if (!phone) return '';
+      let cleaned = phone.replace(/\D/g, '');
+      if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1);
+      if (!cleaned.startsWith('62')) cleaned = '62' + cleaned;
+      return cleaned;
+    };
+
+    const emisData = filteredStudents.map((student: Student) => {
+      // Use earliest riwayat masuk date
+      const riwayatSorted = (student.riwayatPendidikan || []).slice().sort(
+        (a, b) => new Date(a.tanggalMasuk).getTime() - new Date(b.tanggalMasuk).getTime()
+      );
+      const tanggalMasuk = riwayatSorted.length > 0 ? formatDate(riwayatSorted[0].tanggalMasuk) : '';
+
+      const tingkat = student.siswaFormal?.kelas?.tingkat;
+      const tingkatLabel = tingkat && tingkat !== 'Non Muadalah' ? `Kelas ${tingkat}` : (tingkat || '');
+
+      // Derive jenjang from tingkat
+      let jenjang = '';
+      if (tingkat) {
+        const t = parseInt(tingkat);
+        if (t >= 7 && t <= 9) jenjang = 'Wustha';
+        else if (t >= 10 && t <= 12) jenjang = 'Ulya';
+        else if (tingkat === 'Non Muadalah') jenjang = 'Non Muadalah';
+      }
+
+      return {
+        'Tanggal Masuk': tanggalMasuk,
+        'Nama Lengkap': student.biodata?.fullName || '',
+        'Kewarganegaraan': student.biodata?.kewarganegaraan || 'WNI',
+        'NIK': student.biodata?.nik || '',
+        'NISN': student.biodata?.nisn || '',
+        'Jenis Kelamin': student.biodata?.jenisKelamin || '',
+        'Tempat Lahir': student.biodata?.tempatLahir || '',
+        'Tanggal Lahir': formatDate(student.biodata?.tanggalLahir),
+        'Agama': 'Islam',
+        'No Handphone': formatPhone(student.biodata?.phone),
+        'Nama Ayah Kandung': student.biodata?.namaAyah || '',
+        'Status Ayah Kandung': student.biodata?.statusHidupAyah || '',
+        'NIK Ayah': student.biodata?.nikAyah || '',
+        'Nama Ibu Kandung': student.biodata?.namaIbu || '',
+        'Status Ibu Kandung': student.biodata?.statusHidupIbu || '',
+        'NIK Ibu': student.biodata?.nikIbu || '',
+        'Status Wali': '',
+        'Nama Wali': '',
+        'Jenjang': jenjang,
+        'Tingkat Kelas': tingkatLabel,
+        'KITAS': '',
+        'Asal Negara': '',
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(emisData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data EMIS');
+
+    const colWidths = [
+      { wch: 14 }, // Tanggal Masuk
+      { wch: 28 }, // Nama Lengkap
+      { wch: 16 }, // Kewarganegaraan
+      { wch: 18 }, // NIK
+      { wch: 15 }, // NISN
+      { wch: 14 }, // JK
+      { wch: 18 }, // Tempat Lahir
+      { wch: 14 }, // Tanggal Lahir
+      { wch: 10 }, // Agama
+      { wch: 18 }, // No HP
+      { wch: 28 }, // Nama Ayah
+      { wch: 16 }, // Status Ayah
+      { wch: 18 }, // NIK Ayah
+      { wch: 28 }, // Nama Ibu
+      { wch: 16 }, // Status Ibu
+      { wch: 18 }, // NIK Ibu
+      { wch: 14 }, // Status Wali
+      { wch: 22 }, // Nama Wali
+      { wch: 14 }, // Jenjang
+      { wch: 14 }, // Tingkat Kelas
+      { wch: 12 }, // KITAS
+      { wch: 14 }, // Asal Negara
+    ];
+    worksheet['!cols'] = colWidths;
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(workbook, `Data_EMIS_${dateStr}.xlsx`);
+  };
+
   const deleteAllMutation = useMutation({
     mutationFn: async () => {
       return apiClient.delete('/students/all');
@@ -289,6 +392,14 @@ export default function DataSiswa() {
           >
             <FileSpreadsheet className="w-4 h-4 mr-2" />
             {t('siswa.export_xlsx') || 'Export XLSX'}
+          </button>
+          <button
+            onClick={handleExportEmis}
+            disabled={!filteredStudents || filteredStudents.length === 0}
+            className="inline-flex items-center justify-center px-4 py-2 border border-sky-200 shadow-sm text-sm font-medium rounded-xl text-sky-700 bg-sky-50 hover:bg-sky-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            Export XLSX EMIS
           </button>
           {user?.scope !== 'AUDITOR' && (
             <>

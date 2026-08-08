@@ -263,7 +263,7 @@ export default function DataSiswa() {
         'Kewarganegaraan': student.biodata?.kewarganegaraan || 'WNI',
         'NIK': student.biodata?.nik || '',
         'NISN': student.biodata?.nisn || '',
-        'Jenis Kelamin': student.biodata?.jenisKelamin === 'L' ? 'Laki-laki' : student.biodata?.jenisKelamin === 'P' ? 'Perempuan' : (student.biodata?.jenisKelamin || ''),,
+        'Jenis Kelamin': student.biodata?.jenisKelamin === 'L' ? 'Laki-laki' : student.biodata?.jenisKelamin === 'P' ? 'Perempuan' : (student.biodata?.jenisKelamin || ''),
         'Tempat Lahir': student.biodata?.tempatLahir || '',
         'Tanggal Lahir': formatDate(student.biodata?.tanggalLahir),
         'Agama': 'Islam',

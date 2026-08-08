@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { ClipboardCheck, Search, RefreshCw, UserPlus, UserCog, Calendar, MapPin } from 'lucide-react';
+import Pagination from '../../components/Pagination';
 
 interface DaftarUlangStudent {
   id: string;
@@ -24,6 +25,12 @@ export default function DaftarUlangSiswa() {
   const [search, setSearch] = useState('');
   const [jenisFilter, setJenisFilter] = useState<'ALL' | 'BARU' | 'PEMBARUAN'>('ALL');
   const [periodeFilter, setPeriodeFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, jenisFilter, periodeFilter]);
 
   const { data: students = [], isLoading, isError, refetch, isFetching } = useQuery<DaftarUlangStudent[]>({
     queryKey: ['daftar-ulang-list'],
@@ -164,7 +171,9 @@ export default function DaftarUlangSiswa() {
                   </td>
                 </tr>
               ) : (
-                filtered.map(s => {
+                filtered
+                  .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                  .map(s => {
                   const meta = s.daftarUlangJenis ? JENIS_META[s.daftarUlangJenis] : null;
                   const Icon = meta?.icon;
                   const penempatan = s.cabang?.name || (s.statusPool === 'TERSEDIA' ? null : s.wilayah?.name);
@@ -213,6 +222,18 @@ export default function DaftarUlangSiswa() {
             </tbody>
           </table>
         </div>
+
+        {filtered.length > 0 && (
+          <div className="p-4 border-t border-slate-200 bg-slate-50/50">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(filtered.length / itemsPerPage)}
+              onPageChange={setCurrentPage}
+              totalItems={filtered.length}
+              itemsPerPage={itemsPerPage}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

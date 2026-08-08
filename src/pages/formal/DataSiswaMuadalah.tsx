@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Users, Edit2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
@@ -26,6 +26,10 @@ export default function DataSiswaMuadalah() {
   });
 
   const { t } = useTranslation();
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [advancedFilters]);
 
   const { data: students, isLoading } = useQuery({
     queryKey: ['siswa-formal'],
@@ -90,6 +94,9 @@ export default function DataSiswaMuadalah() {
           <h1 className="text-2xl font-semibold text-slate-800">{t('formal.siswa_title')}</h1>
           <p className="text-sm text-slate-500 mt-1.5">{t('formal.siswa_subtitle')}</p>
         </div>
+        <span className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-700/10 self-start sm:self-auto">
+          Total {filteredStudents.length} Santri Formal
+        </span>
       </div>
       
       <AdvancedFilterBar 
@@ -102,7 +109,7 @@ export default function DataSiswaMuadalah() {
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-slate-500">{t('common.loading')}</div>
-        ) : students && students.length > 0 ? (<>
+        ) : filteredStudents && filteredStudents.length > 0 ? (<>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50/80 border-b border-slate-200">

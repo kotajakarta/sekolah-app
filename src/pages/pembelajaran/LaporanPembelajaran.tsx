@@ -18,6 +18,7 @@ interface RekapCabang {
   cabangName: string;
   wilayahName: string;
   jumlahRombel?: number;
+  jumlahSiswa?: number;
   persenSilabus: number;
   silabusCompleted: number;
   silabusTotal: number;
@@ -129,6 +130,7 @@ export default function LaporanPembelajaran() {
       wilayahName: string;
       totalCabang: number;
       jumlahRombel: number;
+      jumlahSiswa: number;
       silabusCompleted: number;
       silabusTotal: number;
       hadir: number;
@@ -144,6 +146,7 @@ export default function LaporanPembelajaran() {
           wilayahName: wName,
           totalCabang: 0,
           jumlahRombel: 0,
+          jumlahSiswa: 0,
           silabusCompleted: 0,
           silabusTotal: 0,
           hadir: 0,
@@ -155,6 +158,7 @@ export default function LaporanPembelajaran() {
       const entry = map.get(wName)!;
       entry.totalCabang += 1;
       entry.jumlahRombel += (r.jumlahRombel || 0);
+      entry.jumlahSiswa += (r.jumlahSiswa || 0);
       entry.silabusCompleted += r.silabusCompleted;
       entry.silabusTotal += r.silabusTotal;
       entry.hadir += r.hadir;
@@ -173,6 +177,7 @@ export default function LaporanPembelajaran() {
         totalWilayah: 0,
         totalCabang: 0,
         totalRombel: 0,
+        totalSiswa: 0,
         silabusCompleted: 0,
         silabusTotal: 0,
         persenSilabus: 0,
@@ -187,6 +192,7 @@ export default function LaporanPembelajaran() {
     const totalWilayah = wilayahSummaryList.length;
     const totalCabang = wilayahSummaryList.reduce((acc, w) => acc + w.totalCabang, 0);
     const totalRombel = wilayahSummaryList.reduce((acc, w) => acc + w.jumlahRombel, 0);
+    const totalSiswa = wilayahSummaryList.reduce((acc, w) => acc + w.jumlahSiswa, 0);
     const silabusCompleted = wilayahSummaryList.reduce((acc, w) => acc + w.silabusCompleted, 0);
     const silabusTotal = wilayahSummaryList.reduce((acc, w) => acc + w.silabusTotal, 0);
     const hadir = wilayahSummaryList.reduce((acc, w) => acc + w.hadir, 0);
@@ -198,6 +204,7 @@ export default function LaporanPembelajaran() {
       totalWilayah,
       totalCabang,
       totalRombel,
+      totalSiswa,
       silabusCompleted,
       silabusTotal,
       persenSilabus: silabusTotal > 0 ? Math.round((silabusCompleted / silabusTotal) * 100) : 0,
@@ -227,6 +234,7 @@ export default function LaporanPembelajaran() {
       return {
         totalCabang: 0,
         totalRombel: 0,
+        totalSiswa: 0,
         silabusCompleted: 0,
         silabusTotal: 0,
         persenSilabus: 0,
@@ -239,6 +247,7 @@ export default function LaporanPembelajaran() {
       };
     }
     const totalRombel = filteredCabangList.reduce((acc, r) => acc + (r.jumlahRombel || 0), 0);
+    const totalSiswa = filteredCabangList.reduce((acc, r) => acc + (r.jumlahSiswa || 0), 0);
     const silabusCompleted = filteredCabangList.reduce((acc, r) => acc + r.silabusCompleted, 0);
     const silabusTotal = filteredCabangList.reduce((acc, r) => acc + r.silabusTotal, 0);
     const hadir = filteredCabangList.reduce((acc, r) => acc + r.hadir, 0);
@@ -249,6 +258,7 @@ export default function LaporanPembelajaran() {
     return {
       totalCabang: filteredCabangList.length,
       totalRombel,
+      totalSiswa,
       silabusCompleted,
       silabusTotal,
       persenSilabus: silabusTotal > 0 ? Math.round((silabusCompleted / silabusTotal) * 100) : 0,
@@ -550,8 +560,8 @@ export default function LaporanPembelajaran() {
                       <th colSpan={2} className="py-2.5 px-3 text-center bg-[#10B981] text-white font-extrabold tracking-wide border-r border-emerald-600 shadow-2xs">
                         KEHADIRAN SISWA
                       </th>
-                      <th rowSpan={2} className="py-2.5 px-3 text-center bg-slate-100/90 text-slate-800 font-extrabold align-middle">
-                        STATUS PERFORMA
+                      <th rowSpan={2} className="py-2.5 px-3 text-center bg-indigo-900 text-white font-extrabold align-middle">
+                        JUMLAH SISWA AKTIF DIROMBEL
                       </th>
                     </tr>
                     <tr className="border-b border-slate-200">
@@ -593,13 +603,12 @@ export default function LaporanPembelajaran() {
                       <td className="py-2 px-3 text-center bg-emerald-50/90 border-r border-emerald-300">
                         {renderProgressCell(wilayahTotals.hadir, wilayahTotals.totalAbsensi, true)}
                       </td>
-                      <td className="py-2 px-3 text-center bg-indigo-100/70 border-r border-indigo-200">
-                        {renderStatusBadge(wilayahTotals.persenSilabus)}
+                      <td className="py-2 px-3 text-center bg-indigo-100/70 border-r border-indigo-200 font-extrabold text-slate-900">
+                        {wilayahTotals.totalSiswa.toLocaleString('id-ID')} Siswa
                       </td>
                     </tr>
 
                     {wilayahSummaryList.map((w, idx) => {
-                      const pctSilabus = w.silabusTotal > 0 ? Math.round((w.silabusCompleted / w.silabusTotal) * 100) : 0;
                       return (
                         <tr key={w.wilayahName} className="hover:bg-slate-50 transition-colors">
                           <td className="py-3 px-3 text-center text-slate-400 font-medium">{idx + 1}</td>
@@ -630,8 +639,8 @@ export default function LaporanPembelajaran() {
                           <td className="py-2 px-3 text-center bg-emerald-50/50 border-r border-emerald-200">
                             {renderProgressCell(w.hadir, w.totalAbsensi)}
                           </td>
-                          <td className="py-2 px-3 text-center bg-indigo-50/40">
-                            {renderStatusBadge(pctSilabus)}
+                          <td className="py-2 px-3 text-center font-extrabold text-indigo-950 bg-indigo-50/60">
+                            {(w.jumlahSiswa || 0).toLocaleString('id-ID')} Siswa
                           </td>
                         </tr>
                       );
@@ -682,8 +691,8 @@ export default function LaporanPembelajaran() {
                     <th colSpan={2} className="py-2.5 px-3 text-center bg-[#10B981] text-white font-extrabold tracking-wide border-r border-emerald-600 shadow-2xs">
                       KEHADIRAN SISWA
                     </th>
-                    <th rowSpan={2} className="py-2.5 px-3 text-center bg-slate-100/90 text-slate-800 font-extrabold align-middle">
-                      STATUS PERFORMA
+                    <th rowSpan={2} className="py-2.5 px-3 text-center bg-indigo-900 text-white font-extrabold align-middle">
+                      JUMLAH SISWA AKTIF DIROMBEL
                     </th>
                   </tr>
                   <tr className="border-b border-slate-200">
@@ -722,8 +731,8 @@ export default function LaporanPembelajaran() {
                     <td className="py-2.5 px-3 text-center bg-[#D1FAE5] border-r border-emerald-300">
                       {renderProgressCell(filteredTotals.hadir, filteredTotals.totalAbsensi, true)}
                     </td>
-                    <td className="py-2.5 px-3 text-center bg-indigo-100/70">
-                      {renderStatusBadge(filteredTotals.persenSilabus)}
+                    <td className="py-2.5 px-3 text-center bg-indigo-100/70 font-extrabold text-slate-900">
+                      {filteredTotals.totalSiswa.toLocaleString('id-ID')} Siswa
                     </td>
                   </tr>
 
@@ -764,8 +773,8 @@ export default function LaporanPembelajaran() {
                         <td className="py-2 px-3 text-center bg-emerald-50/50 border-r border-emerald-200">
                           {renderProgressCell(row.hadir, row.totalAbsensi)}
                         </td>
-                        <td className="py-2 px-3 text-center">
-                          {renderStatusBadge(row.persenSilabus)}
+                        <td className="py-2 px-3 text-center font-extrabold text-indigo-950 bg-indigo-50/60">
+                          {(row.jumlahSiswa || 0).toLocaleString('id-ID')} Siswa
                         </td>
                       </tr>
                     ))

@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
@@ -14,6 +15,8 @@ type TabKey = 'ringkasan' | 'silabus' | 'kontrol-silabus' | 'progres-silabus' | 
 
 export default function KontrolPembelajaran() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const { data: pengaturanAkademik } = useQuery({
     queryKey: ['pengaturan-akademik'],
@@ -37,7 +40,27 @@ export default function KontrolPembelajaran() {
     return list;
   }, [user?.scope]);
 
-  const [activeTab, setActiveTab] = useState<TabKey>(tabs[0]?.key || 'kontrol-silabus');
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab') as TabKey;
+    if (tabParam && tabs.some(t => t.key === tabParam)) {
+      return tabParam;
+    }
+    return tabs[0]?.key || 'kontrol-silabus';
+  });
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab') as TabKey;
+    if (tabParam && tabs.some(t => t.key === tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search, tabs]);
+
+  const handleTabChange = (key: TabKey) => {
+    setActiveTab(key);
+    navigate({ search: `?tab=${key}` }, { replace: true });
+  };
 
   return (
     <div className="font-sans text-[#191c1d] animate-in fade-in duration-300 pb-12">
@@ -64,7 +87,7 @@ export default function KontrolPembelajaran() {
           {tabs.map(tab => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => handleTabChange(tab.key)}
               className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-semibold rounded-t-md transition-all border-b-2 shrink-0 ${
                 activeTab === tab.key
                   ? 'border-blue-800 text-blue-800 bg-blue-50/60'

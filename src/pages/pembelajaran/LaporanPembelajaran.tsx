@@ -376,7 +376,7 @@ export default function LaporanPembelajaran() {
                     mode === m ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
-                  {m === 'weekly' ? 'Mingguan (Minggu-Sabtu)' : m === 'monthly' ? 'Bulanan' : 'Semester'}
+                  {m === 'weekly' ? 'Mingguan' : m === 'monthly' ? 'Bulanan' : 'Semester'}
                 </button>
               ))}
             </div>
@@ -384,7 +384,7 @@ export default function LaporanPembelajaran() {
 
           {mode === 'weekly' ? (
             <div className="flex-1 w-full">
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Minggu Laporan (Minggu - Sabtu)</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Minggu Laporan</label>
               <input
                 type="date"
                 value={weekStart}

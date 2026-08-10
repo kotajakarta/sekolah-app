@@ -23,6 +23,9 @@ interface RekapCabang {
   persenKehadiran: number;
   hadir: number;
   totalAbsensi: number;
+  persenPelaksanaan?: number;
+  pelaksanaanCompleted?: number;
+  pelaksanaanTotal?: number;
 }
 
 interface LaporanResponse {
@@ -128,6 +131,8 @@ export default function LaporanPembelajaran() {
       silabusTotal: number;
       hadir: number;
       totalAbsensi: number;
+      pelaksanaanCompleted: number;
+      pelaksanaanTotal: number;
     }>();
 
     laporan.rekap.forEach(r => {
@@ -139,7 +144,9 @@ export default function LaporanPembelajaran() {
           silabusCompleted: 0,
           silabusTotal: 0,
           hadir: 0,
-          totalAbsensi: 0
+          totalAbsensi: 0,
+          pelaksanaanCompleted: 0,
+          pelaksanaanTotal: 0
         });
       }
       const entry = map.get(wName)!;
@@ -148,6 +155,8 @@ export default function LaporanPembelajaran() {
       entry.silabusTotal += r.silabusTotal;
       entry.hadir += r.hadir;
       entry.totalAbsensi += r.totalAbsensi;
+      entry.pelaksanaanCompleted += (r.pelaksanaanCompleted || 0);
+      entry.pelaksanaanTotal += (r.pelaksanaanTotal || 0);
     });
 
     return Array.from(map.values()).sort((a, b) => a.wilayahName.localeCompare(b.wilayahName));
@@ -164,7 +173,10 @@ export default function LaporanPembelajaran() {
         persenSilabus: 0,
         hadir: 0,
         totalAbsensi: 0,
-        persenKehadiran: 0
+        persenKehadiran: 0,
+        pelaksanaanCompleted: 0,
+        pelaksanaanTotal: 0,
+        persenPelaksanaan: 0
       };
     }
     const totalWilayah = wilayahSummaryList.length;
@@ -173,6 +185,8 @@ export default function LaporanPembelajaran() {
     const silabusTotal = wilayahSummaryList.reduce((acc, w) => acc + w.silabusTotal, 0);
     const hadir = wilayahSummaryList.reduce((acc, w) => acc + w.hadir, 0);
     const totalAbsensi = wilayahSummaryList.reduce((acc, w) => acc + w.totalAbsensi, 0);
+    const pelaksanaanCompleted = wilayahSummaryList.reduce((acc, w) => acc + w.pelaksanaanCompleted, 0);
+    const pelaksanaanTotal = wilayahSummaryList.reduce((acc, w) => acc + w.pelaksanaanTotal, 0);
 
     return {
       totalWilayah,
@@ -182,7 +196,10 @@ export default function LaporanPembelajaran() {
       persenSilabus: silabusTotal > 0 ? Math.round((silabusCompleted / silabusTotal) * 100) : 0,
       hadir,
       totalAbsensi,
-      persenKehadiran: totalAbsensi > 0 ? Math.round((hadir / totalAbsensi) * 100) : 0
+      persenKehadiran: totalAbsensi > 0 ? Math.round((hadir / totalAbsensi) * 100) : 0,
+      pelaksanaanCompleted,
+      pelaksanaanTotal,
+      persenPelaksanaan: pelaksanaanTotal > 0 ? Math.round((pelaksanaanCompleted / pelaksanaanTotal) * 100) : 0
     };
   }, [wilayahSummaryList]);
 
@@ -207,13 +224,18 @@ export default function LaporanPembelajaran() {
         persenSilabus: 0,
         hadir: 0,
         totalAbsensi: 0,
-        persenKehadiran: 0
+        persenKehadiran: 0,
+        pelaksanaanCompleted: 0,
+        pelaksanaanTotal: 0,
+        persenPelaksanaan: 0
       };
     }
     const silabusCompleted = filteredCabangList.reduce((acc, r) => acc + r.silabusCompleted, 0);
     const silabusTotal = filteredCabangList.reduce((acc, r) => acc + r.silabusTotal, 0);
     const hadir = filteredCabangList.reduce((acc, r) => acc + r.hadir, 0);
     const totalAbsensi = filteredCabangList.reduce((acc, r) => acc + r.totalAbsensi, 0);
+    const pelaksanaanCompleted = filteredCabangList.reduce((acc, r) => acc + (r.pelaksanaanCompleted || 0), 0);
+    const pelaksanaanTotal = filteredCabangList.reduce((acc, r) => acc + (r.pelaksanaanTotal || 0), 0);
 
     return {
       totalCabang: filteredCabangList.length,
@@ -222,26 +244,31 @@ export default function LaporanPembelajaran() {
       persenSilabus: silabusTotal > 0 ? Math.round((silabusCompleted / silabusTotal) * 100) : 0,
       hadir,
       totalAbsensi,
-      persenKehadiran: totalAbsensi > 0 ? Math.round((hadir / totalAbsensi) * 100) : 0
+      persenKehadiran: totalAbsensi > 0 ? Math.round((hadir / totalAbsensi) * 100) : 0,
+      pelaksanaanCompleted,
+      pelaksanaanTotal,
+      persenPelaksanaan: pelaksanaanTotal > 0 ? Math.round((pelaksanaanCompleted / pelaksanaanTotal) * 100) : 0
     };
   }, [filteredCabangList]);
 
-  const renderProgressCell = (completed: number, total: number, isTotalCell: boolean = false) => {
+  const renderProgressCell = (completed: number, total: number, isTotalCell: boolean = false, customColor?: { bar: string; badge: string; text: string }) => {
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
     const clampedPct = Math.min(pct, 100);
 
-    let textColor = 'text-emerald-600 font-bold';
-    let barColor = 'bg-emerald-500';
-    let badgeColor = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    let textColor = customColor?.text || 'text-emerald-600 font-bold';
+    let barColor = customColor?.bar || 'bg-emerald-500';
+    let badgeColor = customColor?.badge || 'bg-emerald-100 text-emerald-800 border-emerald-300';
 
-    if (pct < 70) {
-      textColor = 'text-rose-600 font-bold';
-      barColor = 'bg-rose-500';
-      badgeColor = 'bg-rose-100 text-rose-800 border-rose-300';
-    } else if (pct < 90) {
-      textColor = 'text-amber-600 font-bold';
-      barColor = 'bg-amber-500';
-      badgeColor = 'bg-amber-100 text-amber-800 border-amber-300';
+    if (!customColor) {
+      if (pct < 70) {
+        textColor = 'text-rose-600 font-bold';
+        barColor = 'bg-rose-500';
+        badgeColor = 'bg-rose-100 text-rose-800 border-rose-300';
+      } else if (pct < 90) {
+        textColor = 'text-amber-600 font-bold';
+        barColor = 'bg-amber-500';
+        badgeColor = 'bg-amber-100 text-amber-800 border-amber-300';
+      }
     }
 
     if (isTotalCell) {
@@ -349,7 +376,7 @@ export default function LaporanPembelajaran() {
                     mode === m ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
-                  {m === 'weekly' ? 'Mingguan' : m === 'monthly' ? 'Bulanan' : 'Semester'}
+                  {m === 'weekly' ? 'Mingguan (Minggu-Sabtu)' : m === 'monthly' ? 'Bulanan' : 'Semester'}
                 </button>
               ))}
             </div>
@@ -357,7 +384,7 @@ export default function LaporanPembelajaran() {
 
           {mode === 'weekly' ? (
             <div className="flex-1 w-full">
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Mulai Minggu (Senin)</label>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Minggu Laporan (Minggu - Sabtu)</label>
               <input
                 type="date"
                 value={weekStart}
@@ -451,6 +478,16 @@ export default function LaporanPembelajaran() {
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Rata-Rata Pelaksanaan</p>
+                <h4 className="text-xl font-black text-slate-900 tracking-tight">{filteredTotals.persenPelaksanaan}%</h4>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
                 <BookOpen className="w-5 h-5" />
               </div>
@@ -469,18 +506,6 @@ export default function LaporanPembelajaran() {
                 <h4 className="text-xl font-black text-slate-900 tracking-tight">{filteredTotals.persenKehadiran}%</h4>
               </div>
             </div>
-
-            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Status Optimal</p>
-                <h4 className="text-xl font-black text-slate-900 tracking-tight">
-                  {laporan.rekap.filter(r => r.persenSilabus >= 90).length} / {laporan.rekap.length}
-                </h4>
-              </div>
-            </div>
           </div>
 
           {/* ── REKAPITULASI PER WILAYAH TABLE (Hanya muncul jika Filter Wilayah = Semua Wilayah / empty) ── */}
@@ -494,7 +519,7 @@ export default function LaporanPembelajaran() {
                   </h3>
                 </div>
                 <span className="text-[11px] font-semibold text-slate-300">
-                  Akumulasi Progres Silabus & Kehadiran per Wilayah
+                  Akumulasi Pelaksanaan, Silabus & Kehadiran per Wilayah
                 </span>
               </div>
 
@@ -505,6 +530,9 @@ export default function LaporanPembelajaran() {
                       <th rowSpan={2} className="py-2.5 px-3 text-center w-12 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">No</th>
                       <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Nama Wilayah</th>
                       <th rowSpan={2} className="py-2.5 px-3 text-center bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Jumlah Cabang</th>
+                      <th colSpan={2} className="py-2.5 px-3 text-center bg-[#6B21A8] text-white font-extrabold tracking-wide border-r border-purple-600 shadow-2xs">
+                        PELAKSANAAN PEMBELAJARAN
+                      </th>
                       <th colSpan={2} className="py-2.5 px-3 text-center bg-[#0073B7] text-white font-extrabold tracking-wide border-r border-sky-600 shadow-2xs">
                         PROGRES SILABUS
                       </th>
@@ -516,6 +544,8 @@ export default function LaporanPembelajaran() {
                       </th>
                     </tr>
                     <tr className="border-b border-slate-200">
+                      <th className="py-2 px-3 text-center bg-purple-50 text-purple-950 font-bold border-r border-purple-200 text-[11px]">TERLAKSANA & TARGET</th>
+                      <th className="py-2 px-3 text-center bg-purple-50 text-purple-950 font-bold border-r border-purple-300 text-[11px]">% PELAKSANAAN</th>
                       <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TARGET & COMPLETED</th>
                       <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-300 text-[11px]">% SILABUS</th>
                       <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">HADIR & TOTAL ABSENSI</th>
@@ -530,6 +560,12 @@ export default function LaporanPembelajaran() {
                       </td>
                       <td className="py-2.5 px-3 text-center bg-blue-100/60 font-black border-r border-blue-200 text-xs">
                         {wilayahTotals.totalCabang} Cabang
+                      </td>
+                      <td className="py-2 px-3 text-center bg-purple-50 border-r border-purple-200 font-bold">
+                        {wilayahTotals.pelaksanaanCompleted.toLocaleString('id-ID')} / {wilayahTotals.pelaksanaanTotal.toLocaleString('id-ID')}
+                      </td>
+                      <td className="py-2 px-3 text-center bg-purple-50/90 border-r border-purple-300">
+                        {renderProgressCell(wilayahTotals.pelaksanaanCompleted, wilayahTotals.pelaksanaanTotal, true)}
                       </td>
                       <td className="py-2 px-3 text-center bg-blue-50 border-r border-sky-200 font-bold">
                         {wilayahTotals.silabusCompleted.toLocaleString('id-ID')} / {wilayahTotals.silabusTotal.toLocaleString('id-ID')}
@@ -558,6 +594,12 @@ export default function LaporanPembelajaran() {
                           </td>
                           <td className="py-3 px-3 text-center font-bold text-slate-700 border-r border-slate-100">
                             {w.totalCabang} Cabang
+                          </td>
+                          <td className="py-2 px-3 text-center bg-purple-50/30 border-r border-purple-100 font-semibold text-slate-700">
+                            {w.pelaksanaanCompleted.toLocaleString('id-ID')} / {w.pelaksanaanTotal.toLocaleString('id-ID')}
+                          </td>
+                          <td className="py-2 px-3 text-center bg-purple-50/50 border-r border-purple-200">
+                            {renderProgressCell(w.pelaksanaanCompleted, w.pelaksanaanTotal)}
                           </td>
                           <td className="py-2 px-3 text-center bg-sky-50/30 border-r border-sky-100 font-semibold text-slate-700">
                             {w.silabusCompleted.toLocaleString('id-ID')} / {w.silabusTotal.toLocaleString('id-ID')}
@@ -613,6 +655,9 @@ export default function LaporanPembelajaran() {
                     <th rowSpan={2} className="py-2.5 px-3 text-center w-12 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">No</th>
                     <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Nama Cabang</th>
                     <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Wilayah</th>
+                    <th colSpan={2} className="py-2.5 px-3 text-center bg-[#6B21A8] text-white font-extrabold tracking-wide border-r border-purple-600 shadow-2xs">
+                      PELAKSANAAN PEMBELAJARAN
+                    </th>
                     <th colSpan={2} className="py-2.5 px-3 text-center bg-[#0073B7] text-white font-extrabold tracking-wide border-r border-sky-600 shadow-2xs">
                       PROGRES SILABUS
                     </th>
@@ -624,6 +669,8 @@ export default function LaporanPembelajaran() {
                     </th>
                   </tr>
                   <tr className="border-b border-slate-200">
+                    <th className="py-2 px-3 text-center bg-purple-50 text-purple-950 font-bold border-r border-purple-200 text-[11px]">TERLAKSANA & TARGET</th>
+                    <th className="py-2 px-3 text-center bg-purple-50 text-purple-950 font-bold border-r border-purple-300 text-[11px]">% PELAKSANAAN</th>
                     <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TARGET & COMPLETED</th>
                     <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-300 text-[11px]">% SILABUS</th>
                     <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">HADIR & TOTAL ABSENSI</th>
@@ -635,6 +682,12 @@ export default function LaporanPembelajaran() {
                   <tr className="bg-[#DCEBFB] border-b-2 border-sky-300 text-xs font-bold shadow-2xs">
                     <td colSpan={3} className="py-3 px-3 text-right font-extrabold text-slate-800 bg-[#CFE2F9] border-r border-sky-300 uppercase tracking-wider">
                       TOTAL ({filteredTotals.totalCabang} CABANG):
+                    </td>
+                    <td className="py-2.5 px-3 text-center bg-[#F3E8FF] border-r border-purple-200 font-bold">
+                      {filteredTotals.pelaksanaanCompleted.toLocaleString('id-ID')} / {filteredTotals.pelaksanaanTotal.toLocaleString('id-ID')}
+                    </td>
+                    <td className="py-2.5 px-3 text-center bg-[#F3E8FF] border-r border-purple-300">
+                      {renderProgressCell(filteredTotals.pelaksanaanCompleted, filteredTotals.pelaksanaanTotal, true)}
                     </td>
                     <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200 font-bold">
                       {filteredTotals.silabusCompleted.toLocaleString('id-ID')} / {filteredTotals.silabusTotal.toLocaleString('id-ID')}
@@ -655,7 +708,7 @@ export default function LaporanPembelajaran() {
 
                   {filteredCabangList.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-slate-400 text-xs font-medium">
+                      <td colSpan={10} className="py-8 text-center text-slate-400 text-xs font-medium">
                         Tidak ada cabang yang cocok dengan pencarian "{searchQuery}".
                       </td>
                     </tr>
@@ -668,6 +721,12 @@ export default function LaporanPembelajaran() {
                         </td>
                         <td className="py-3 px-3 font-semibold text-slate-600 border-r border-slate-100">
                           {row.wilayahName}
+                        </td>
+                        <td className="py-2 px-3 text-center bg-purple-50/30 border-r border-purple-100 font-semibold text-slate-700">
+                          {(row.pelaksanaanCompleted || 0).toLocaleString('id-ID')} / {(row.pelaksanaanTotal || 0).toLocaleString('id-ID')}
+                        </td>
+                        <td className="py-2 px-3 text-center bg-purple-50/50 border-r border-purple-200">
+                          {renderProgressCell(row.pelaksanaanCompleted || 0, row.pelaksanaanTotal || 0)}
                         </td>
                         <td className="py-2 px-3 text-center bg-sky-50/30 border-r border-sky-100 font-semibold text-slate-700">
                           {row.silabusCompleted.toLocaleString('id-ID')} / {row.silabusTotal.toLocaleString('id-ID')}

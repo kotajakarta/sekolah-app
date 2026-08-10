@@ -17,6 +17,7 @@ interface RekapCabang {
   cabangId: string;
   cabangName: string;
   wilayahName: string;
+  jumlahRombel?: number;
   persenSilabus: number;
   silabusCompleted: number;
   silabusTotal: number;
@@ -127,6 +128,7 @@ export default function LaporanPembelajaran() {
     const map = new Map<string, {
       wilayahName: string;
       totalCabang: number;
+      jumlahRombel: number;
       silabusCompleted: number;
       silabusTotal: number;
       hadir: number;
@@ -141,6 +143,7 @@ export default function LaporanPembelajaran() {
         map.set(wName, {
           wilayahName: wName,
           totalCabang: 0,
+          jumlahRombel: 0,
           silabusCompleted: 0,
           silabusTotal: 0,
           hadir: 0,
@@ -151,6 +154,7 @@ export default function LaporanPembelajaran() {
       }
       const entry = map.get(wName)!;
       entry.totalCabang += 1;
+      entry.jumlahRombel += (r.jumlahRombel || 0);
       entry.silabusCompleted += r.silabusCompleted;
       entry.silabusTotal += r.silabusTotal;
       entry.hadir += r.hadir;
@@ -168,6 +172,7 @@ export default function LaporanPembelajaran() {
       return {
         totalWilayah: 0,
         totalCabang: 0,
+        totalRombel: 0,
         silabusCompleted: 0,
         silabusTotal: 0,
         persenSilabus: 0,
@@ -181,6 +186,7 @@ export default function LaporanPembelajaran() {
     }
     const totalWilayah = wilayahSummaryList.length;
     const totalCabang = wilayahSummaryList.reduce((acc, w) => acc + w.totalCabang, 0);
+    const totalRombel = wilayahSummaryList.reduce((acc, w) => acc + w.jumlahRombel, 0);
     const silabusCompleted = wilayahSummaryList.reduce((acc, w) => acc + w.silabusCompleted, 0);
     const silabusTotal = wilayahSummaryList.reduce((acc, w) => acc + w.silabusTotal, 0);
     const hadir = wilayahSummaryList.reduce((acc, w) => acc + w.hadir, 0);
@@ -191,6 +197,7 @@ export default function LaporanPembelajaran() {
     return {
       totalWilayah,
       totalCabang,
+      totalRombel,
       silabusCompleted,
       silabusTotal,
       persenSilabus: silabusTotal > 0 ? Math.round((silabusCompleted / silabusTotal) * 100) : 0,
@@ -219,6 +226,7 @@ export default function LaporanPembelajaran() {
     if (!filteredCabangList.length) {
       return {
         totalCabang: 0,
+        totalRombel: 0,
         silabusCompleted: 0,
         silabusTotal: 0,
         persenSilabus: 0,
@@ -230,6 +238,7 @@ export default function LaporanPembelajaran() {
         persenPelaksanaan: 0
       };
     }
+    const totalRombel = filteredCabangList.reduce((acc, r) => acc + (r.jumlahRombel || 0), 0);
     const silabusCompleted = filteredCabangList.reduce((acc, r) => acc + r.silabusCompleted, 0);
     const silabusTotal = filteredCabangList.reduce((acc, r) => acc + r.silabusTotal, 0);
     const hadir = filteredCabangList.reduce((acc, r) => acc + r.hadir, 0);
@@ -239,6 +248,7 @@ export default function LaporanPembelajaran() {
 
     return {
       totalCabang: filteredCabangList.length,
+      totalRombel,
       silabusCompleted,
       silabusTotal,
       persenSilabus: silabusTotal > 0 ? Math.round((silabusCompleted / silabusTotal) * 100) : 0,
@@ -530,6 +540,7 @@ export default function LaporanPembelajaran() {
                       <th rowSpan={2} className="py-2.5 px-3 text-center w-12 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">No</th>
                       <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Nama Wilayah</th>
                       <th rowSpan={2} className="py-2.5 px-3 text-center bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Jumlah Cabang</th>
+                      <th rowSpan={2} className="py-2.5 px-3 text-center bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Rombel Aktif</th>
                       <th colSpan={2} className="py-2.5 px-3 text-center bg-[#6B21A8] text-white font-extrabold tracking-wide border-r border-purple-600 shadow-2xs">
                         PELAKSANAAN PEMBELAJARAN
                       </th>
@@ -560,6 +571,9 @@ export default function LaporanPembelajaran() {
                       </td>
                       <td className="py-2.5 px-3 text-center bg-blue-100/60 font-black border-r border-blue-200 text-xs">
                         {wilayahTotals.totalCabang} Cabang
+                      </td>
+                      <td className="py-2.5 px-3 text-center bg-blue-100/60 font-black border-r border-blue-200 text-xs">
+                        {wilayahTotals.totalRombel} Rombel
                       </td>
                       <td className="py-2 px-3 text-center bg-purple-50 border-r border-purple-200 font-bold">
                         {wilayahTotals.pelaksanaanCompleted.toLocaleString('id-ID')} / {wilayahTotals.pelaksanaanTotal.toLocaleString('id-ID')}
@@ -594,6 +608,9 @@ export default function LaporanPembelajaran() {
                           </td>
                           <td className="py-3 px-3 text-center font-bold text-slate-700 border-r border-slate-100">
                             {w.totalCabang} Cabang
+                          </td>
+                          <td className="py-3 px-3 text-center font-bold text-slate-700 border-r border-slate-100">
+                            {w.jumlahRombel} Rombel
                           </td>
                           <td className="py-2 px-3 text-center bg-purple-50/30 border-r border-purple-100 font-semibold text-slate-700">
                             {w.pelaksanaanCompleted.toLocaleString('id-ID')} / {w.pelaksanaanTotal.toLocaleString('id-ID')}
@@ -655,6 +672,7 @@ export default function LaporanPembelajaran() {
                     <th rowSpan={2} className="py-2.5 px-3 text-center w-12 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">No</th>
                     <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Nama Cabang</th>
                     <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Wilayah</th>
+                    <th rowSpan={2} className="py-2.5 px-3 text-center bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Rombel Aktif</th>
                     <th colSpan={2} className="py-2.5 px-3 text-center bg-[#6B21A8] text-white font-extrabold tracking-wide border-r border-purple-600 shadow-2xs">
                       PELAKSANAAN PEMBELAJARAN
                     </th>
@@ -683,6 +701,9 @@ export default function LaporanPembelajaran() {
                     <td colSpan={3} className="py-3 px-3 text-right font-extrabold text-slate-800 bg-[#CFE2F9] border-r border-sky-300 uppercase tracking-wider">
                       TOTAL ({filteredTotals.totalCabang} CABANG):
                     </td>
+                    <td className="py-3 px-3 text-center font-extrabold text-slate-800 bg-[#CFE2F9] border-r border-sky-300 text-xs">
+                      {filteredTotals.totalRombel} Rombel
+                    </td>
                     <td className="py-2.5 px-3 text-center bg-[#F3E8FF] border-r border-purple-200 font-bold">
                       {filteredTotals.pelaksanaanCompleted.toLocaleString('id-ID')} / {filteredTotals.pelaksanaanTotal.toLocaleString('id-ID')}
                     </td>
@@ -708,7 +729,7 @@ export default function LaporanPembelajaran() {
 
                   {filteredCabangList.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="py-8 text-center text-slate-400 text-xs font-medium">
+                      <td colSpan={11} className="py-8 text-center text-slate-400 text-xs font-medium">
                         Tidak ada cabang yang cocok dengan pencarian "{searchQuery}".
                       </td>
                     </tr>
@@ -721,6 +742,9 @@ export default function LaporanPembelajaran() {
                         </td>
                         <td className="py-3 px-3 font-semibold text-slate-600 border-r border-slate-100">
                           {row.wilayahName}
+                        </td>
+                        <td className="py-3 px-3 text-center font-bold text-slate-700 border-r border-slate-100">
+                          {(row.jumlahRombel || 0)} Rombel
                         </td>
                         <td className="py-2 px-3 text-center bg-purple-50/30 border-r border-purple-100 font-semibold text-slate-700">
                           {(row.pelaksanaanCompleted || 0).toLocaleString('id-ID')} / {(row.pelaksanaanTotal || 0).toLocaleString('id-ID')}

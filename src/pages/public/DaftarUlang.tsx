@@ -248,11 +248,46 @@ export default function DaftarUlang() {
   }, [formData.alamatKabId]);
 
   useEffect(() => {
-    if (formData.alamatKecId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${formData.alamatKecId}.json`)
-        .then((r) => r.json()).then((d) => setVillages(d)).catch(console.error);
-    } else { setVillages([]); }
-  }, [formData.alamatKecId]);
+    if (formData.nisn && formData.nisn.length === 10) {
+      const timer = setTimeout(async () => {
+        try {
+          const res = await apiClient.get('/students/check-duplicate', {
+            params: { nisn: formData.nisn, excludeStudentId: studentId || undefined }
+          });
+          if (res.data?.nisnDuplicate?.exists) {
+            setFieldErrors(prev => ({
+              ...prev,
+              nisn: `NISN sudah terpakai atas nama ${res.data.nisnDuplicate.fullName}`
+            }));
+          }
+        } catch (e) {
+          console.error('Check NISN duplicate error', e);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [formData.nisn, studentId]);
+
+  useEffect(() => {
+    if (nik && nik.length === 16) {
+      const timer = setTimeout(async () => {
+        try {
+          const res = await apiClient.get('/students/check-duplicate', {
+            params: { nik }
+          });
+          if (res.data?.nikDuplicate?.exists) {
+            setFieldErrors(prev => ({
+              ...prev,
+              nik: `NIK sudah terpakai atas nama ${res.data.nikDuplicate.fullName}`
+            }));
+          }
+        } catch (e) {
+          console.error('Check NIK duplicate error', e);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [nik]);
 
   const verifyMutation = useMutation({
     mutationFn: async () => {
@@ -337,20 +372,24 @@ export default function DaftarUlang() {
       setStep(4); // Success step
     },
     onError: (err: any) => {
-      setFieldErrors({});
-      const msg = err.response?.data?.message || 'Terjadi kesalahan saat menyimpan data';
-      if (msg.includes('duplikat')) {
+      const msg = err.response?.data?.message || err.message || 'Terjadi kesalahan saat menyimpan data';
+      const newErrors: Record<string, string> = {};
+      if (msg.includes('NIK sudah terpakai atas nama')) {
+        newErrors['nik'] = msg;
+        setStep(2);
+      } else if (msg.includes('NISN sudah terpakai atas nama')) {
+        newErrors['nisn'] = msg;
+        setStep(2);
+      } else if (msg.includes('duplikat')) {
         const fieldStr = msg.replace('Data ', '').replace(' yang Anda masukkan sudah terdaftar (duplikat).', '');
         const fields = fieldStr.split(', ');
-        const newErrors: Record<string, string> = {};
         fields.forEach((f: string) => {
           newErrors[f] = 'Data sudah terdaftar (duplikat)';
         });
-        setFieldErrors(newErrors);
-        showToast('error', 'Silakan periksa kembali data yang ditandai merah.');
-      } else {
-        showToast('error', msg);
+        setStep(2);
       }
+      setFieldErrors(newErrors);
+      showToast('error', msg);
     }
   });
 

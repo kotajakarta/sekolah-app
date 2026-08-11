@@ -228,7 +228,6 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
   const [isCompressing, setIsCompressing] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-
   const [formData, setFormData] = useState({
     nik: '',
     noKk: '',
@@ -284,6 +283,48 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     alamatKelName: '',
     alamatJalan: '',
   });
+
+  useEffect(() => {
+    if (formData.nik && formData.nik.length === 16) {
+      const timer = setTimeout(async () => {
+        try {
+          const res = await apiClient.get('/students/check-duplicate', {
+            params: { nik: formData.nik, excludeStudentId: student?.id }
+          });
+          if (res.data?.nikDuplicate?.exists) {
+            setFieldErrors(prev => ({
+              ...prev,
+              nik: `NIK sudah terpakai atas nama ${res.data.nikDuplicate.fullName}`
+            }));
+          }
+        } catch (e) {
+          console.error('Check NIK duplicate error', e);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [formData.nik, student?.id]);
+
+  useEffect(() => {
+    if (formData.nisn && formData.nisn.length === 10) {
+      const timer = setTimeout(async () => {
+        try {
+          const res = await apiClient.get('/students/check-duplicate', {
+            params: { nisn: formData.nisn, excludeStudentId: student?.id }
+          });
+          if (res.data?.nisnDuplicate?.exists) {
+            setFieldErrors(prev => ({
+              ...prev,
+              nisn: `NISN sudah terpakai atas nama ${res.data.nisnDuplicate.fullName}`
+            }));
+          }
+        } catch (e) {
+          console.error('Check NISN duplicate error', e);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [formData.nisn, student?.id]);
 
   const { data: rombelList = [] } = useQuery<{ id: string; name: string; tingkat?: string; cabangId?: string }[]>({
     queryKey: ['formal-kelas-active', formData.cabangId],
@@ -419,18 +460,24 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
       });
     },
     onError: (error: any) => {
-      setFieldErrors({});
       const msg = error.response?.data?.message || error.message || 'Internal error.';
+      const newErrors: Record<string, string> = { ...fieldErrors };
       
-      if (msg.includes('duplikat')) {
+      if (msg.includes('NIK sudah terpakai atas nama')) {
+        newErrors['nik'] = msg;
+        setActiveTab('SANTRI');
+      } else if (msg.includes('NISN sudah terpakai atas nama')) {
+        newErrors['nisn'] = msg;
+        setActiveTab('SANTRI');
+      } else if (msg.includes('duplikat')) {
         const fieldStr = msg.replace('Data ', '').replace(' yang Anda masukkan sudah terdaftar (duplikat).', '');
         const fields = fieldStr.split(', ');
-        const newErrors: Record<string, string> = {};
         fields.forEach((f: string) => {
           newErrors[f] = 'Data sudah terdaftar (duplikat)';
         });
-        setFieldErrors(newErrors);
+        setActiveTab('SANTRI');
       }
+      setFieldErrors(newErrors);
 
       setNotification({
         isOpen: true,

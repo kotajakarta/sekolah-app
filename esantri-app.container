@@ -14,7 +14,7 @@ ContainerName=esantri-app
 Network=global_net
 
 # Mount direktori kode aplikasi (dengan label keamanan SELinux ':Z')
-Volume=/webku/appsku/esantri/sekolah-app:/app:Z
+Volume=/webku/appsku/esantri/sekolah-app:/app:ro,Z
 
 # Menjalankan frontend app
 Environment=NODE_ENV=production

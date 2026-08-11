@@ -505,6 +505,28 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
     checkRequired('kontakDaruratTelp', formData.kontakDaruratTelp, t('siswa.form.darurat_telp'), 'ALAMAT');
     checkRequired('kontakDaruratHubungan', formData.kontakDaruratHubungan, t('siswa.form.darurat_hub'), 'ALAMAT');
 
+    // Digit length validations
+    if (formData.nik && !/^\d{16}$/.test(formData.nik.trim())) {
+      errors['nik'] = 'NIK Siswa harus 16 digit angka';
+      if (!firstErrorTab) firstErrorTab = 'SANTRI';
+    }
+    if (formData.nisn && !/^\d{10}$/.test(formData.nisn.trim())) {
+      errors['nisn'] = 'NISN harus 10 digit angka';
+      if (!firstErrorTab) firstErrorTab = 'SANTRI';
+    }
+    if (formData.noKk && !/^\d{16}$/.test(formData.noKk.trim())) {
+      errors['noKk'] = 'Nomor KK harus 16 digit angka';
+      if (!firstErrorTab) firstErrorTab = 'SANTRI';
+    }
+    if (formData.nikAyah && (formData.statusHidupAyah !== 'Wafat' || formData.nikAyah.trim()) && !/^\d{16}$/.test(formData.nikAyah.trim())) {
+      errors['nikAyah'] = 'NIK Ayah harus 16 digit angka';
+      if (!firstErrorTab) firstErrorTab = 'ORANG_TUA';
+    }
+    if (formData.nikIbu && (formData.statusHidupIbu !== 'Wafat' || formData.nikIbu.trim()) && !/^\d{16}$/.test(formData.nikIbu.trim())) {
+      errors['nikIbu'] = 'NIK Ibu harus 16 digit angka';
+      if (!firstErrorTab) firstErrorTab = 'ORANG_TUA';
+    }
+
     setFieldErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -699,10 +721,10 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                         </InputField>
                       </div>
                       <InputField label={t('siswa.form.nik')} required error={fieldErrors['nik']}>
-                        <input type="text" value={formData.nik} onChange={(e) => { setFormData({ ...formData, nik: e.target.value }); setFieldErrors({ ...fieldErrors, nik: '' }); }} className={`${inputCls} ${fieldErrors['nik'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder={t('siswa.form.nik_ph')} />
+                        <input type="text" value={formData.nik} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 16); setFormData({ ...formData, nik: val }); setFieldErrors({ ...fieldErrors, nik: '' }); }} className={`${inputCls} ${fieldErrors['nik'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder="Masukkan 16 digit NIK" maxLength={16} />
                       </InputField>
                       <InputField label={t('siswa.form.nisn_label')} required error={fieldErrors['nisn']}>
-                        <input type="text" value={formData.nisn} onChange={(e) => { setFormData({ ...formData, nisn: e.target.value }); setFieldErrors({ ...fieldErrors, nisn: '' }); }} className={`${inputCls} ${fieldErrors['nisn'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder={t('siswa.form.nisn_ph')} />
+                        <input type="text" value={formData.nisn} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData({ ...formData, nisn: val }); setFieldErrors({ ...fieldErrors, nisn: '' }); }} className={`${inputCls} ${fieldErrors['nisn'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder="Masukkan 10 digit NISN" maxLength={10} />
                       </InputField>
                       <InputField label={`${t('siswa.form.nis_lokal')} / NISM`}>
                         <input type="text" value={formData.nisLokal} readOnly className={`${inputCls} bg-slate-100 cursor-not-allowed`} />
@@ -750,7 +772,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                         />
                       </InputField>
                       <InputField label={t('siswa.form.no_kk')} required error={fieldErrors['noKk']}>
-                        <input type="text" value={formData.noKk} onChange={(e) => { setFormData({ ...formData, noKk: e.target.value }); setFieldErrors({ ...fieldErrors, noKk: '' }); }} className={`${inputCls} ${fieldErrors['noKk'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder={t('siswa.form.no_kk_ph')} />
+                        <input type="text" value={formData.noKk} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 16); setFormData({ ...formData, noKk: val }); setFieldErrors({ ...fieldErrors, noKk: '' }); }} className={`${inputCls} ${fieldErrors['noKk'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder="Masukkan 16 digit Nomor KK" maxLength={16} />
                       </InputField>
                       <InputField label={t('siswa.form.anak_ke')} required error={fieldErrors['anakKe']}>
                         <input type="number" min={1} value={formData.anakKe} onChange={(e) => { setFormData({ ...formData, anakKe: e.target.value }); setFieldErrors({ ...fieldErrors, anakKe: '' }); }} className={`${inputCls} ${fieldErrors['anakKe'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} />
@@ -866,7 +888,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                         <input type="text" value={formData.namaAyah} onChange={(e) => { setFormData({ ...formData, namaAyah: e.target.value }); setFieldErrors({ ...fieldErrors, namaAyah: '' }); }} className={`${inputCls} ${fieldErrors['namaAyah'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder={t('siswa.form.nama_ayah_ph')} />
                       </InputField>
                       <InputField label={t('siswa.form.nik_ayah')} required error={fieldErrors['nikAyah']}>
-                        <input type="text" value={formData.nikAyah} onChange={(e) => { setFormData({ ...formData, nikAyah: e.target.value }); setFieldErrors({ ...fieldErrors, nikAyah: '' }); }} className={`${inputCls} ${fieldErrors['nikAyah'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder={t('siswa.form.nik_ph')} maxLength={16} />
+                        <input type="text" value={formData.nikAyah} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 16); setFormData({ ...formData, nikAyah: val }); setFieldErrors({ ...fieldErrors, nikAyah: '' }); }} className={`${inputCls} ${fieldErrors['nikAyah'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder="Masukkan 16 digit NIK Ayah" maxLength={16} />
                       </InputField>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <InputField label={t('siswa.form.tempat_lahir_ayah')} required error={fieldErrors['tempatLahirAyah']}>
@@ -918,7 +940,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                         <input type="text" value={formData.namaIbu} onChange={(e) => { setFormData({ ...formData, namaIbu: e.target.value }); setFieldErrors({ ...fieldErrors, namaIbu: '' }); }} className={`${inputCls} ${fieldErrors['namaIbu'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder={t('siswa.form.nama_ibu_ph')} />
                       </InputField>
                       <InputField label={t('siswa.form.nik_ibu')} required error={fieldErrors['nikIbu']}>
-                        <input type="text" value={formData.nikIbu} onChange={(e) => { setFormData({ ...formData, nikIbu: e.target.value }); setFieldErrors({ ...fieldErrors, nikIbu: '' }); }} className={`${inputCls} ${fieldErrors['nikIbu'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder={t('siswa.form.nik_ph')} maxLength={16} />
+                        <input type="text" value={formData.nikIbu} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 16); setFormData({ ...formData, nikIbu: val }); setFieldErrors({ ...fieldErrors, nikIbu: '' }); }} className={`${inputCls} ${fieldErrors['nikIbu'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`} placeholder="Masukkan 16 digit NIK Ibu" maxLength={16} />
                       </InputField>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <InputField label={t('siswa.form.tempat_lahir_ibu')} required error={fieldErrors['tempatLahirIbu']}>

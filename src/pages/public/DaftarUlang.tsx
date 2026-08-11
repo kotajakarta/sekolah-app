@@ -256,6 +256,9 @@ export default function DaftarUlang() {
 
   const verifyMutation = useMutation({
     mutationFn: async () => {
+      if (nik && !/^\d{16}$/.test(nik.trim())) {
+        throw new Error('NIK harus 16 digit angka');
+      }
       const res = await apiClient.post('/students/daftar-ulang/verify', { nik, kodeDaftarUlang });
       return res.data;
     },
@@ -355,6 +358,36 @@ export default function DaftarUlang() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleProceedToStep3 = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errors: Record<string, string> = {};
+
+    if (formData.nik && !/^\d{16}$/.test(formData.nik.trim())) {
+      errors.nik = 'NIK Siswa harus 16 digit angka';
+    }
+    if (formData.noKk && !/^\d{16}$/.test(formData.noKk.trim())) {
+      errors.noKk = 'Nomor KK harus 16 digit angka';
+    }
+    if (formData.nisn && !/^\d{10}$/.test(formData.nisn.trim())) {
+      errors.nisn = 'NISN harus 10 digit angka';
+    }
+    if (formData.nikAyah && formData.statusHidupAyah !== 'Wafat' && !/^\d{16}$/.test(formData.nikAyah.trim())) {
+      errors.nikAyah = 'NIK Ayah harus 16 digit angka';
+    }
+    if (formData.nikIbu && formData.statusHidupIbu !== 'Wafat' && !/^\d{16}$/.test(formData.nikIbu.trim())) {
+      errors.nikIbu = 'NIK Ibu harus 16 digit angka';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      showToast('error', 'Harap periksa kembali NIK, Nomor KK, dan NISN yang belum sesuai (16 digit NIK/KK & 10 digit NISN).');
+      return;
+    }
+
+    setFieldErrors({});
+    setStep(3);
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-900">
       <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200/80 sticky top-0 z-50">
@@ -413,7 +446,7 @@ export default function DaftarUlang() {
                       type="text"
                       required
                       value={nik}
-                      onChange={(e) => setNik(e.target.value)}
+                      onChange={(e) => setNik(e.target.value.replace(/\D/g, '').slice(0, 16))}
                       className="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 outline-none transition-all font-medium text-gray-900 placeholder:text-gray-400 placeholder:font-normal"
                       placeholder="Masukkan 16 digit NIK"
                       maxLength={16}
@@ -453,7 +486,7 @@ export default function DaftarUlang() {
               <p className="text-gray-500 text-sm mt-1">Pastikan seluruh data yang dimasukkan sesuai dengan dokumen resmi.</p>
             </div>
 
-            <form className="p-8 space-y-10" onSubmit={(e) => { e.preventDefault(); setStep(3); }}>
+            <form className="p-8 space-y-10" onSubmit={handleProceedToStep3}>
               <div>
                 <h3 className="text-sm font-bold text-indigo-600 uppercase tracking-wider mb-5 flex items-center gap-2">
                   <User className="w-4 h-4" /> Informasi Pribadi
@@ -461,10 +494,10 @@ export default function DaftarUlang() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                   <InputField label="Nama Lengkap" required><input name="fullName" value={formData.fullName} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="NIK" required error={fieldErrors['nik']}><input name="nik" value={formData.nik} readOnly className={`${inputCls} bg-gray-100 text-gray-500 border-dashed ${fieldErrors['nik'] ? 'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500' : ''}`} /></InputField>
-                  <InputField label="Nomor KK" required><input name="noKk" value={formData.noKk} onChange={handleChange} required maxLength={16} placeholder="Masukkan 16 digit Nomor KK" className={inputCls} /></InputField>
+                  <InputField label="Nomor KK" required error={fieldErrors['noKk']}><input name="noKk" value={formData.noKk} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 16); setFormData(prev => ({ ...prev, noKk: val })); setFieldErrors(prev => ({ ...prev, noKk: '' })); }} required maxLength={16} placeholder="Masukkan 16 digit Nomor KK" className={`${inputCls} ${fieldErrors['noKk'] ? 'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500' : ''}`} /></InputField>
                   <InputField label="Anak Ke-" required><input type="number" name="anakKe" value={formData.anakKe} onChange={handleChange} required min={1} className={inputCls} /></InputField>
                   <InputField label="Jumlah Saudara" required><input type="number" name="jumlahSaudara" value={formData.jumlahSaudara} onChange={handleChange} required min={0} className={inputCls} /></InputField>
-                  <InputField label="NISN" required error={fieldErrors['nisn']}><input name="nisn" value={formData.nisn} onChange={(e) => { handleChange(e); setFieldErrors({ ...fieldErrors, nisn: '' }); }} required placeholder="Masukkan NISN" className={`${inputCls} ${fieldErrors['nisn'] ? 'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500' : ''}`} /></InputField>
+                  <InputField label="NISN" required error={fieldErrors['nisn']}><input name="nisn" value={formData.nisn} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 10); setFormData(prev => ({ ...prev, nisn: val })); setFieldErrors(prev => ({ ...prev, nisn: '' })); }} required maxLength={10} placeholder="Masukkan 10 digit NISN" className={`${inputCls} ${fieldErrors['nisn'] ? 'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500' : ''}`} /></InputField>
                   <InputField label="No. Handphone" required><input name="phone" value={formData.phone} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="Tempat Lahir" required><input name="tempatLahir" value={formData.tempatLahir} onChange={handleChange} required className={inputCls} /></InputField>
                   <InputField label="Tanggal Lahir" required><input type="date" name="tanggalLahir" value={formData.tanggalLahir} onChange={handleChange} required className={inputCls} /></InputField>
@@ -494,7 +527,7 @@ export default function DaftarUlang() {
                         <option value="Wafat">Wafat</option>
                       </select>
                     </InputField>
-                    <InputField label="NIK Ayah" required={formData.statusHidupAyah !== 'Wafat'}><input name="nikAyah" value={formData.nikAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} maxLength={16} placeholder="Masukkan 16 digit NIK Ayah" className={inputCls} /></InputField>
+                    <InputField label="NIK Ayah" required={formData.statusHidupAyah !== 'Wafat'} error={fieldErrors['nikAyah']}><input name="nikAyah" value={formData.nikAyah} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 16); setFormData(prev => ({ ...prev, nikAyah: val })); setFieldErrors(prev => ({ ...prev, nikAyah: '' })); }} required={formData.statusHidupAyah !== 'Wafat'} maxLength={16} placeholder="Masukkan 16 digit NIK Ayah" className={`${inputCls} ${fieldErrors['nikAyah'] ? 'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500' : ''}`} /></InputField>
                     <InputField label="Tempat Lahir Ayah" required={formData.statusHidupAyah !== 'Wafat'}><input name="tempatLahirAyah" value={formData.tempatLahirAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} className={inputCls} /></InputField>
                     <InputField label="Tanggal Lahir Ayah" required={formData.statusHidupAyah !== 'Wafat'}><input type="date" name="tanggalLahirAyah" value={formData.tanggalLahirAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} className={inputCls} /></InputField>
                     <InputField label="Pekerjaan Ayah" required={formData.statusHidupAyah !== 'Wafat'}>
@@ -525,7 +558,7 @@ export default function DaftarUlang() {
                         <option value="Wafat">Wafat</option>
                       </select>
                     </InputField>
-                    <InputField label="NIK Ibu" required={formData.statusHidupIbu !== 'Wafat'}><input name="nikIbu" value={formData.nikIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} maxLength={16} placeholder="Masukkan 16 digit NIK Ibu" className={inputCls} /></InputField>
+                    <InputField label="NIK Ibu" required={formData.statusHidupIbu !== 'Wafat'} error={fieldErrors['nikIbu']}><input name="nikIbu" value={formData.nikIbu} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 16); setFormData(prev => ({ ...prev, nikIbu: val })); setFieldErrors(prev => ({ ...prev, nikIbu: '' })); }} required={formData.statusHidupIbu !== 'Wafat'} maxLength={16} placeholder="Masukkan 16 digit NIK Ibu" className={`${inputCls} ${fieldErrors['nikIbu'] ? 'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500' : ''}`} /></InputField>
                     <InputField label="Tempat Lahir Ibu" required={formData.statusHidupIbu !== 'Wafat'}><input name="tempatLahirIbu" value={formData.tempatLahirIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} className={inputCls} /></InputField>
                     <InputField label="Tanggal Lahir Ibu" required={formData.statusHidupIbu !== 'Wafat'}><input type="date" name="tanggalLahirIbu" value={formData.tanggalLahirIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} className={inputCls} /></InputField>
                     <InputField label="Pekerjaan Ibu" required={formData.statusHidupIbu !== 'Wafat'}>

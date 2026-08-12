@@ -38,10 +38,11 @@ function proxyRequest(
 }
 
 async function startServer() {
-  const server = express();
+  const app = express();
+  const httpServer = http.createServer(app);
 
   // Security headers
-  server.use(helmet({
+  app.use(helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
   }));
@@ -56,7 +57,7 @@ async function startServer() {
   const backendUrl = new URL(backendHost);
 
   // Proxy ALL /api requests to backend — works in both dev and production
-  server.use("/api", (req, res) => {
+  app.use("/api", (req, res) => {
     proxyRequest(req, res, backendUrl);
   });
 
@@ -65,14 +66,14 @@ async function startServer() {
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
-        hmr: process.env.DISABLE_HMR !== "true",
+        hmr: process.env.DISABLE_HMR !== "true" ? { server: httpServer } : false,
       },
       appType: "spa",
     });
-    server.use(vite.middlewares);
+    app.use(vite.middlewares);
 
     // SPA fallback — only for non-API routes
-    server.use(async (req, res, next) => {
+    app.use(async (req, res, next) => {
       if (req.originalUrl.startsWith("/api")) return next();
       try {
         let template = fs.readFileSync(
@@ -89,14 +90,14 @@ async function startServer() {
   } else {
     // Production: serve pre-built static files
     const distPath = path.join(process.cwd(), "dist");
-    server.use(express.static(distPath));
-    server.get("*all", (req, res, next) => {
+    app.use(express.static(distPath));
+    app.get("*all", (req, res, next) => {
       if (req.originalUrl.startsWith("/api")) return next();
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
 
-  server.listen(PORT, "0.0.0.0", () => {
+  httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`🏫 Sekolah App running on http://0.0.0.0:${PORT}`);
     console.log(`📡 /api proxied to: ${backendHost}`);
   });

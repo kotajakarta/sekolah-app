@@ -248,6 +248,13 @@ export default function DaftarUlang() {
   }, [formData.alamatKabId]);
 
   useEffect(() => {
+    if (formData.alamatKecId) {
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${formData.alamatKecId}.json`)
+        .then((r) => r.json()).then((d) => setVillages(d)).catch(console.error);
+    } else { setVillages([]); }
+  }, [formData.alamatKecId]);
+
+  useEffect(() => {
     if (formData.nisn && formData.nisn.length === 10) {
       const timer = setTimeout(async () => {
         try {

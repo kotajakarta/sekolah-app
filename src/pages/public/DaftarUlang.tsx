@@ -227,30 +227,30 @@ export default function DaftarUlang() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetch('https://wilindo.aithendi.my.id/api/wilayah')
+    fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
       .then((r) => r.json())
-      .then((data) => setProvinces(Array.isArray(data) ? data : []))
+      .then((data) => setProvinces(data))
       .catch(console.error);
   }, []);
 
   useEffect(() => {
     if (formData.alamatProvId) {
-      fetch(`https://wilindo.aithendi.my.id/api/wilayah?parent=${formData.alamatProvId}`)
-        .then((r) => r.json()).then((d) => setRegencies(Array.isArray(d) ? d : [])).catch(console.error);
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${formData.alamatProvId}.json`)
+        .then((r) => r.json()).then((d) => setRegencies(d)).catch(console.error);
     } else { setRegencies([]); }
   }, [formData.alamatProvId]);
 
   useEffect(() => {
     if (formData.alamatKabId) {
-      fetch(`https://wilindo.aithendi.my.id/api/wilayah?parent=${formData.alamatKabId}`)
-        .then((r) => r.json()).then((d) => setDistricts(Array.isArray(d) ? d : [])).catch(console.error);
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${formData.alamatKabId}.json`)
+        .then((r) => r.json()).then((d) => setDistricts(d)).catch(console.error);
     } else { setDistricts([]); }
   }, [formData.alamatKabId]);
 
   useEffect(() => {
     if (formData.alamatKecId) {
-      fetch(`https://wilindo.aithendi.my.id/api/wilayah?parent=${formData.alamatKecId}`)
-        .then((r) => r.json()).then((d) => setVillages(Array.isArray(d) ? d : [])).catch(console.error);
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${formData.alamatKecId}.json`)
+        .then((r) => r.json()).then((d) => setVillages(d)).catch(console.error);
     } else { setVillages([]); }
   }, [formData.alamatKecId]);
 
@@ -655,66 +655,34 @@ export default function DaftarUlang() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                   <InputField label="Provinsi" required>
                     <select name="alamatProvId" value={formData.alamatProvId} required onChange={(e) => {
-                      const selText = e.target.options[e.target.selectedIndex]?.text || '';
-                      setFormData(prev => ({
-                        ...prev,
-                        alamatProvId: e.target.value,
-                        alamatProvName: selText,
-                        alamatKabId: '',
-                        alamatKabName: '',
-                        alamatKecId: '',
-                        alamatKecName: '',
-                        alamatKelId: '',
-                        alamatKelName: '',
-                      }));
+                      setFormData({ ...formData, alamatProvId: e.target.value, alamatProvName: e.target.options[e.target.selectedIndex].text });
                     }} className={selectCls}>
                       <option value="">Pilih Provinsi</option>
-                      {provinces.map(p => <option key={p.kode} value={p.kode}>{p.nama}</option>)}
+                      {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                     </select>
                   </InputField>
                   <InputField label="Kabupaten/Kota" required>
                     <select name="alamatKabId" value={formData.alamatKabId} required disabled={!formData.alamatProvId} onChange={(e) => {
-                      const selText = e.target.options[e.target.selectedIndex]?.text || '';
-                      setFormData(prev => ({
-                        ...prev,
-                        alamatKabId: e.target.value,
-                        alamatKabName: selText,
-                        alamatKecId: '',
-                        alamatKecName: '',
-                        alamatKelId: '',
-                        alamatKelName: '',
-                      }));
+                      setFormData({ ...formData, alamatKabId: e.target.value, alamatKabName: e.target.options[e.target.selectedIndex].text });
                     }} className={selectCls}>
                       <option value="">Pilih Kabupaten/Kota</option>
-                      {regencies.map(r => <option key={r.kode} value={r.kode}>{r.nama}</option>)}
+                      {regencies.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                     </select>
                   </InputField>
                   <InputField label="Kecamatan" required>
                     <select name="alamatKecId" value={formData.alamatKecId} required disabled={!formData.alamatKabId} onChange={(e) => {
-                      const selText = e.target.options[e.target.selectedIndex]?.text || '';
-                      setFormData(prev => ({
-                        ...prev,
-                        alamatKecId: e.target.value,
-                        alamatKecName: selText,
-                        alamatKelId: '',
-                        alamatKelName: '',
-                      }));
+                      setFormData({ ...formData, alamatKecId: e.target.value, alamatKecName: e.target.options[e.target.selectedIndex].text });
                     }} className={selectCls}>
                       <option value="">Pilih Kecamatan</option>
-                      {districts.map(d => <option key={d.kode} value={d.kode}>{d.nama}</option>)}
+                      {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
                   </InputField>
                   <InputField label="Kelurahan/Desa" required>
                     <select name="alamatKelId" value={formData.alamatKelId} required disabled={!formData.alamatKecId} onChange={(e) => {
-                      const selText = e.target.options[e.target.selectedIndex]?.text || '';
-                      setFormData(prev => ({
-                        ...prev,
-                        alamatKelId: e.target.value,
-                        alamatKelName: selText,
-                      }));
+                      setFormData({ ...formData, alamatKelId: e.target.value, alamatKelName: e.target.options[e.target.selectedIndex].text });
                     }} className={selectCls}>
                       <option value="">Pilih Kelurahan/Desa</option>
-                      {villages.map(v => <option key={v.kode} value={v.kode}>{v.nama}</option>)}
+                      {villages.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                     </select>
                   </InputField>
                   <InputField label="Alamat Lengkap (Jalan, RT/RW)" required colSpan>

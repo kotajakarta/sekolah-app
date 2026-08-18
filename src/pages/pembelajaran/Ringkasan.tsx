@@ -142,11 +142,10 @@ const formatMonthLabel = (v: string) => {
   return new Date(year, month - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 };
 
-type FilterMode = 'weekly' | 'monthly' | 'semester' | 'yearly';
+type FilterMode = 'monthly' | 'semester' | 'yearly';
 
 export default function Ringkasan() {
   const [filterMode, setFilterMode] = useState<FilterMode>('monthly');
-  const [weekFilter, setWeekFilter] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [monthFilter, setMonthFilter] = useState(currentMonthValue());
   const [semesterFilter, setSemesterFilter] = useState<'GANJIL' | 'GENAP'>('GANJIL');
   const [tahunAjaranFilter, setTahunAjaranFilter] = useState<string>('2026/2027');
@@ -163,11 +162,10 @@ export default function Ringkasan() {
   const tableLimit = 8;
 
   const { data, isLoading, isError } = useQuery<RingkasanResponse>({
-    queryKey: ['pembelajaran-ringkasan', filterMode, weekFilter, monthFilter, semesterFilter, tahunAjaranFilter, kelasFilter, selectedWilayahFilter, selectedCabangFilter],
+    queryKey: ['pembelajaran-ringkasan', filterMode, monthFilter, semesterFilter, tahunAjaranFilter, kelasFilter, selectedWilayahFilter, selectedCabangFilter],
     queryFn: async () => (await apiClient.get('/pembelajaran/ringkasan', {
       params: {
         mode: filterMode,
-        weekStart: filterMode === 'weekly' ? weekFilter : undefined,
         month: filterMode === 'monthly' ? monthFilter : undefined,
         semester: filterMode === 'semester' ? semesterFilter : undefined,
         tahunAjaran: (filterMode === 'semester' || filterMode === 'yearly') ? tahunAjaranFilter : undefined,
@@ -256,12 +254,6 @@ export default function Ringkasan() {
           {/* Period Mode Selector Buttons */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl gap-1">
             <button
-              onClick={() => { setFilterMode('weekly'); setTablePage(1); }}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${filterMode === 'weekly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-            >
-              Per Minggu
-            </button>
-            <button
               onClick={() => { setFilterMode('monthly'); setTablePage(1); }}
               className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${filterMode === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             >
@@ -280,19 +272,6 @@ export default function Ringkasan() {
               Per Tahun
             </button>
           </div>
-
-          {/* Dynamic Input based on Mode */}
-          {filterMode === 'weekly' && (
-            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1">
-              <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <input
-                type="date"
-                value={weekFilter}
-                onChange={e => { setWeekFilter(e.target.value); setTablePage(1); }}
-                className="bg-transparent text-slate-700 font-semibold text-xs focus:outline-none"
-              />
-            </div>
-          )}
 
           {filterMode === 'monthly' && (
             <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-2 py-1">

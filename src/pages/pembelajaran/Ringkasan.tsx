@@ -461,8 +461,8 @@ export default function Ringkasan() {
             <thead>
               <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wide border-b border-slate-100 bg-slate-50/50">
                 <th className="px-4 py-3 sticky left-0 bg-slate-50 z-10 min-w-[150px]">Nama {data.unitLabel}</th>
-                {data.scopeLevel === 'GLOBAL' && <th className="px-3 py-3 text-center min-w-[100px]">Jumlah Cabang</th>}
-                {(data.scopeLevel === 'GLOBAL' || data.scopeLevel === 'WILAYAH') && <th className="px-3 py-3 text-center min-w-[100px]">Jumlah Kelas</th>}
+                {data.unitLabel === 'Wilayah' && <th className="px-3 py-3 text-center min-w-[100px]">Jumlah Cabang</th>}
+                {(data.unitLabel === 'Wilayah' || data.unitLabel === 'Cabang') && <th className="px-3 py-3 text-center min-w-[100px]">Jumlah Kelas</th>}
                 <th className="px-3 py-3 text-center min-w-[100px]">Jumlah Siswa</th>
 
                 {/* Multi-Week Columns */}
@@ -487,8 +487,8 @@ export default function Ringkasan() {
                     {/* Unit Name (Wilayah / Cabang / Kelas) */}
                     <td className="px-4 py-3.5 font-bold text-slate-800 sticky left-0 bg-white z-10">{item.name}</td>
 
-                    {/* Jumlah Cabang (for Admin/Global) */}
-                    {data.scopeLevel === 'GLOBAL' && (
+                    {/* Jumlah Cabang (when unit is Wilayah) */}
+                    {data.unitLabel === 'Wilayah' && (
                       <td className="px-3 py-3.5 text-center">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-xs font-bold border border-purple-100">
                           {item.jumlahCabang || 0} Cabang
@@ -496,8 +496,8 @@ export default function Ringkasan() {
                       </td>
                     )}
 
-                    {/* Jumlah Kelas (for Admin & Wilayah) */}
-                    {(data.scopeLevel === 'GLOBAL' || data.scopeLevel === 'WILAYAH') && (
+                    {/* Jumlah Kelas (when unit is Wilayah or Cabang) */}
+                    {(data.unitLabel === 'Wilayah' || data.unitLabel === 'Cabang') && (
                       <td className="px-3 py-3.5 text-center">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
                           {item.jumlahKelas || 0} Kelas

@@ -4,7 +4,7 @@ import {
   Users, LayoutDashboard, Loader2,
   Calendar, ChevronRight, Activity,
   CheckCircle2, AlertCircle, FileText, Filter, Pencil, ArrowUpRight,
-  ShieldCheck, Phone
+  ShieldCheck, Phone, GraduationCap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import apiClient from '../lib/apiClient';
@@ -628,62 +628,96 @@ export default function Dashboard() {
       {/* 4. Complete Status & Availability Grid: Entity Completeness (6 cols) & Ketersediaan Guru (6 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         {/* Progres Kelengkapan Data per Unit (Complete List, No Slice) - 6 cols */}
-        <div className="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-            <div>
-              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <FileText className="w-4 h-4 text-indigo-600" />
-                Progres Kelengkapan Data {user?.scope === 'GLOBAL' ? '(Per Wilayah)' : user?.scope === 'WILAYAH' ? '(Per Cabang)' : '(Per Kelas)'}
-              </h3>
-              <p className="text-[10px] text-slate-400 mt-0.5">Persentase kelengkapan data berkas santri & guru</p>
+        <div className="lg:col-span-6 bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  Progres Kelengkapan Data {user?.scope === 'GLOBAL' ? '(Per Wilayah)' : user?.scope === 'WILAYAH' ? '(Per Cabang)' : '(Per Kelas)'}
+                </h3>
+                <p className="text-[10px] text-slate-400 mt-0.5">Persentase kelengkapan data berkas santri &amp; guru</p>
+              </div>
             </div>
-            <span className="text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full border border-slate-200">
+            <span className="text-[10px] font-extrabold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full border border-slate-200">
               {statsData.kelengkapanEntities?.length || 0} Unit Total
             </span>
           </div>
 
-          <div className="max-h-[220px] overflow-y-auto custom-scrollbar pr-1 space-y-2">
+          <div className="max-h-[260px] overflow-y-auto custom-scrollbar pr-1 space-y-2.5">
             {statsData.kelengkapanEntities && statsData.kelengkapanEntities.length > 0 ? (
               statsData.kelengkapanEntities.map((entity: any, idx: number) => (
-                <div key={idx} className="bg-slate-50/80 hover:bg-slate-50 transition-colors rounded-xl p-2.5 border border-slate-150 space-y-1.5">
+                <div
+                  key={idx}
+                  className="bg-slate-50/70 hover:bg-slate-100/70 transition-all rounded-xl p-3 border border-slate-200/80 space-y-2"
+                >
+                  {/* Unit Name Header & Badges */}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800 truncate max-w-[200px]" title={entity.name}>
+                    <span className="text-xs font-extrabold text-slate-800 tracking-tight" title={entity.name}>
                       {entity.name}
                     </span>
-                    <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                      Siswa: {entity.siswa.percent}%
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        Siswa: {entity.siswa?.percent || 0}%
+                      </span>
+                      {entity.guru && (
+                        <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                          Guru: {entity.guru?.percent || 0}%
+                        </span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-bold text-slate-500 uppercase w-10">Siswa:</span>
-                      <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                  {/* Progress Bars Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5">
+                    {/* Siswa Bar */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-semibold text-slate-500 flex items-center gap-1">
+                          <Users className="w-3 h-3 text-emerald-600 shrink-0" /> Siswa:
+                        </span>
+                        <span className="font-bold text-slate-700">{entity.siswa?.lengkap || 0}/{entity.siswa?.total || 0}</span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-200/70 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full ${entity.siswa.percent === 100 ? 'bg-emerald-500' : entity.siswa.percent >= 50 ? 'bg-indigo-500' : 'bg-amber-500'}`}
-                          style={{ width: `${entity.siswa.percent}%` }}
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            (entity.siswa?.percent || 0) === 100 ? 'bg-emerald-500' :
+                            (entity.siswa?.percent || 0) >= 50 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-amber-500'
+                          }`}
+                          style={{ width: `${entity.siswa?.percent || 0}%` }}
                         />
                       </div>
-                      <span className="text-[10px] font-semibold text-slate-600">{entity.siswa.lengkap}/{entity.siswa.total}</span>
                     </div>
 
+                    {/* Guru Bar */}
                     {entity.guru && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase w-10">Guru:</span>
-                        <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="font-semibold text-slate-500 flex items-center gap-1">
+                            <GraduationCap className="w-3 h-3 text-indigo-600 shrink-0" /> Guru:
+                          </span>
+                          <span className="font-bold text-slate-700">{entity.guru?.lengkap || 0}/{entity.guru?.total || 0}</span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-200/70 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${entity.guru.percent === 100 ? 'bg-emerald-500' : entity.guru.percent >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`}
-                            style={{ width: `${entity.guru.percent}%` }}
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              (entity.guru?.percent || 0) === 100 ? 'bg-emerald-500' :
+                              (entity.guru?.percent || 0) >= 50 ? 'bg-gradient-to-r from-indigo-500 to-purple-400' : 'bg-amber-500'
+                            }`}
+                            style={{ width: `${entity.guru?.percent || 0}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-semibold text-slate-600">{entity.guru.lengkap}/{entity.guru.total}</span>
                       </div>
                     )}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-xs text-slate-400 py-6 text-center italic">Tidak ada unit kelengkapan data</div>
+              <div className="text-xs text-slate-400 py-8 text-center italic bg-slate-50 border border-slate-200 rounded-xl">
+                Tidak ada unit kelengkapan data.
+              </div>
             )}
           </div>
         </div>

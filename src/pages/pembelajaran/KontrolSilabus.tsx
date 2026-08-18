@@ -110,17 +110,20 @@ const formatTanggalShort = (date: string) =>
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const isFutureDate = (date: string) => date > todayStr();
 
-// Find nearest Saturday date string YYYY-MM-DD
-const nearestSaturdayStr = () => {
-  const d = new Date();
+// Ensure any date string or Date object snaps to the Saturday of that week (YYYY-MM-DD)
+const toSaturdayStr = (dateInput?: string | Date) => {
+  const d = dateInput
+    ? new Date(typeof dateInput === 'string' ? `${dateInput}T00:00:00` : dateInput)
+    : new Date();
   const day = d.getDay();
-  const diff = day === 6 ? 0 : 6 - day;
+  const diff = day === 0 ? -1 : 6 - day;
   d.setDate(d.getDate() + diff);
   return d.toISOString().slice(0, 10);
 };
 
 const shiftSaturday = (dateStr: string, weeksDelta: number) => {
-  const d = new Date(`${dateStr}T00:00:00`);
+  const currentSat = toSaturdayStr(dateStr);
+  const d = new Date(`${currentSat}T00:00:00`);
   d.setDate(d.getDate() + weeksDelta * 7);
   return d.toISOString().slice(0, 10);
 };
@@ -142,8 +145,8 @@ export default function KontrolSilabus() {
   const [selectedKelas, setSelectedKelas] = useState<string>('');
   const [selectedMapel, setSelectedMapel] = useState<string>('');
 
-  // Daily Mode State
-  const [selectedDate, setSelectedDate] = useState(nearestSaturdayStr());
+  // Daily Mode State (defaults to Saturday of current week)
+  const [selectedDate, setSelectedDate] = useState(() => toSaturdayStr());
   const [dailyFormState, setDailyFormState] = useState<Record<string, {
     status: 'PENDING' | 'COMPLETED' | 'LIBUR';
     guruId: string | null;
@@ -631,7 +634,7 @@ export default function KontrolSilabus() {
               <input
                 type="date"
                 value={selectedDate}
-                onChange={e => setSelectedDate(e.target.value)}
+                onChange={e => setSelectedDate(toSaturdayStr(e.target.value))}
                 className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-bold focus:outline-none focus:ring-1 focus:ring-brand"
               />
 

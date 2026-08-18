@@ -53,10 +53,17 @@ interface LiburMarker {
 
 // ── Interfaces for Daily Batch Mode ──
 
+interface SilabusOption {
+  silabusId: string;
+  bab: string;
+  section: string;
+}
+
 interface DailyMapelItem {
   mataPelajaranId: string;
   mataPelajaranName: string;
   silabusId: string | null;
+  silabusOptions?: SilabusOption[];
   bab: string;
   section: string;
   defaultGuruId: string | null;
@@ -320,6 +327,16 @@ export default function KontrolSilabus() {
     setDailySavedSuccess(false);
   };
 
+  const handleDailySilabusChange = (kelasId: string, mapelId: string, silabusId: string) => {
+    if (isFutureDate(selectedDate)) return;
+    const key = `${kelasId}__${mapelId}`;
+    setDailyFormState(prev => ({
+      ...prev,
+      [key]: { ...prev[key], silabusId: silabusId || null }
+    }));
+    setDailySavedSuccess(false);
+  };
+
   const handleDailyGuruChange = (kelasId: string, mapelId: string, guruId: string) => {
     if (isFutureDate(selectedDate)) return;
     const key = `${kelasId}__${mapelId}`;
@@ -327,6 +344,18 @@ export default function KontrolSilabus() {
       ...prev,
       [key]: { ...prev[key], guruId: guruId || null }
     }));
+    setDailySavedSuccess(false);
+  };
+
+  const markDailyAll = (status: 'COMPLETED' | 'LIBUR') => {
+    if (isFutureDate(selectedDate)) return;
+    setDailyFormState(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(key => {
+        next[key] = { ...next[key], status };
+      });
+      return next;
+    });
     setDailySavedSuccess(false);
   };
 
@@ -638,8 +667,32 @@ export default function KontrolSilabus() {
               </div>
             </div>
 
-            {/* Stepper Buttons & Datepicker */}
+            {/* Stepper Buttons, Quick Actions & Datepicker */}
             <div className="flex flex-wrap items-center gap-2 text-xs">
+              {/* Quick Action Buttons */}
+              <div className="flex items-center gap-1.5 mr-2">
+                <button
+                  type="button"
+                  onClick={() => markDailyAll('COMPLETED')}
+                  disabled={isFutureDate(selectedDate)}
+                  className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold border border-emerald-200 rounded-xl transition-all flex items-center gap-1 disabled:opacity-40"
+                  title="Tandai seluruh mapel di semua kelas Dikerjakan"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Dikerjakan Semua</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => markDailyAll('LIBUR')}
+                  disabled={isFutureDate(selectedDate)}
+                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 rounded-xl transition-all flex items-center gap-1 disabled:opacity-40"
+                  title="Tandai seluruh mapel di semua kelas Libur"
+                >
+                  <span>Libur Semua</span>
+                </button>
+              </div>
+
               <button
                 onClick={() => setSelectedDate(shiftSaturday(selectedDate, -1))}
                 className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold border border-slate-200 rounded-xl transition-all flex items-center gap-1"
@@ -745,12 +798,28 @@ export default function KontrolSilabus() {
 
                             return (
                               <tr key={m.mataPelajaranId} className="hover:bg-slate-50/60 transition-colors">
-                                {/* Mapel & Silabus Info */}
+                                {/* Mapel & Selectable Silabus Target */}
                                 <td className="px-4 py-3">
                                   <div className="font-bold text-slate-900 text-xs">{m.mataPelajaranName}</div>
-                                  <div className="text-[11px] text-slate-500 mt-0.5 font-medium truncate max-w-xs" title={`${m.bab} — ${m.section}`}>
-                                    {m.bab ? `${m.bab} — ${m.section}` : 'Materi silabus belum diset'}
-                                  </div>
+                                  {m.silabusOptions && m.silabusOptions.length > 0 ? (
+                                    <select
+                                      value={currentForm.silabusId || ''}
+                                      onChange={e => handleDailySilabusChange(cls.kelasId, m.mataPelajaranId, e.target.value)}
+                                      disabled={isFuture || currentForm.status === 'LIBUR'}
+                                      className="mt-1 w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium text-[11px] focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50"
+                                    >
+                                      <option value="">-- Pilih Materi Target --</option>
+                                      {m.silabusOptions.map(opt => (
+                                        <option key={opt.silabusId} value={opt.silabusId}>
+                                          {opt.bab} — {opt.section}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <div className="text-[11px] text-slate-400 mt-0.5 font-medium italic">
+                                      {m.bab ? `${m.bab} — ${m.section}` : 'Materi silabus belum diset'}
+                                    </div>
+                                  )}
                                 </td>
 
                                 {/* Guru Selection Dropdown */}
@@ -798,23 +867,30 @@ export default function KontrolSilabus() {
                                       onClick={() => setAbsensiTarget({
                                         kelasId: cls.kelasId,
                                         kelasName: cls.kelasName,
-                                        silabusId: m.silabusId || '',
+                                        silabusId: currentForm.silabusId || m.silabusId || '',
                                         tanggal: selectedDate
                                       })}
-                                      disabled={!m.silabusId || currentForm.status === 'LIBUR'}
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 text-brand font-bold text-xs border border-blue-100 hover:bg-blue-100 transition-colors disabled:opacity-40"
+                                      disabled={(!currentForm.silabusId && !m.silabusId) || currentForm.status === 'LIBUR'}
+                                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs border transition-all disabled:opacity-40 ${
+                                        m.absensiSummary && m.absensiSummary.total > 0
+                                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100 shadow-xs'
+                                          : 'bg-blue-50 text-brand border-blue-100 hover:bg-blue-100'
+                                      }`}
+                                      title={
+                                        m.absensiSummary && m.absensiSummary.total > 0
+                                          ? `Absensi Terisi: ${m.absensiSummary.hadir} Hadir, ${m.absensiSummary.sakit} Sakit, ${m.absensiSummary.izin} Izin, ${m.absensiSummary.alpa} Alpa`
+                                          : 'Input Absensi Siswa'
+                                      }
                                     >
-                                      <ClipboardList className="w-3.5 h-3.5" />
-                                      <span>Input Absensi</span>
+                                      <ClipboardList className="w-3.5 h-3.5 shrink-0" />
+                                      {m.absensiSummary && m.absensiSummary.total > 0 ? (
+                                        <span>
+                                          H: {m.absensiSummary.hadir}, S: {m.absensiSummary.sakit}, I: {m.absensiSummary.izin}, A: {m.absensiSummary.alpa}
+                                        </span>
+                                      ) : (
+                                        <span>Input Absensi</span>
+                                      )}
                                     </button>
-
-                                    {m.absensiSummary ? (
-                                      <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                        Hadir: {m.absensiSummary.hadir}/{m.absensiSummary.total}
-                                      </span>
-                                    ) : (
-                                      <span className="text-[10px] text-slate-400">—</span>
-                                    )}
                                   </div>
                                 </td>
                               </tr>

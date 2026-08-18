@@ -678,12 +678,15 @@ export default function Ringkasan() {
                             </span>
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded">H: {d.hadir}</span>
-                              <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 font-bold rounded">A: {d.alpa}</span>
-                              <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 font-bold rounded">I: {d.izin}</span>
-                              <span className="px-1.5 py-0.5 bg-sky-100 text-sky-800 font-bold rounded">S: {d.sakit}</span>
-                              <span className="ml-1.5 font-bold text-brand">{d.persenHadirMapel}%</span>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded" title="Hadir">H: {d.hadir}</span>
+                              <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 font-bold rounded" title="Alpa">A: {d.alpa}</span>
+                              <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 font-bold rounded" title="Izin">I: {d.izin}</span>
+                              <span className="px-1.5 py-0.5 bg-sky-100 text-sky-800 font-bold rounded" title="Sakit">S: {d.sakit}</span>
+                              <div className="ml-1.5 flex flex-col items-start leading-none">
+                                <span className="font-bold text-brand">{Math.min(100, d.persenHadirMapel)}%</span>
+                                <span className="text-[9px] text-slate-400 font-normal">({d.hadir}/{d.totalSiswa || 1} Siswa)</span>
+                              </div>
                             </div>
                           </td>
                         </tr>

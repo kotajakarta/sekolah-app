@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import {
   Loader2, AlertCircle, Building2, CheckCircle2, Users, BookOpen,
-  ChevronLeft, ChevronRight, Eye, Search, ArrowUpRight, Calendar, X
+  ChevronLeft, ChevronRight, Eye, Search, ArrowUpRight, Calendar, X, Info
 } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 
@@ -62,12 +62,14 @@ interface MapelDetailItem {
 interface ClassWeekBreakdown {
   weekNumber: number;
   dateLabel: string;
+  isFuture?: boolean;
   mapelCompleted: number;
   mapelTarget: number;
   persenMapel: number;
   hadir: number;
   totalAbsensi: number;
   persenKehadiran: number;
+  details?: MapelDetailItem[];
 }
 
 interface UnitBreakdownItem {
@@ -485,7 +487,7 @@ export default function Ringkasan() {
 
                 {/* Multi-Week Columns for Month */}
                 {isClassMode && weeksHeaderInfo.map((wHeader, wIdx) => (
-                  <th key={wIdx} className="px-3 py-3 text-center border-l border-slate-200/60 min-w-[130px]">
+                  <th key={wIdx} className="px-3 py-3 text-center border-l border-slate-200/60 min-w-[150px]">
                     <div className="text-slate-800 font-bold normal-case text-xs">{wHeader.dateLabel}</div>
                     <div className="text-[10px] text-slate-400 font-normal">Minggu {wHeader.weekNumber}</div>
                   </th>
@@ -496,9 +498,6 @@ export default function Ringkasan() {
                   <div className="text-slate-800 font-bold normal-case text-xs">Total Ringkasan</div>
                   <div className="text-[10px] text-slate-400 font-normal">Mapel &amp; Kehadiran</div>
                 </th>
-
-                {/* Action */}
-                {isClassMode && <th className="px-4 py-3 text-center min-w-[110px]">Aksi</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
@@ -520,18 +519,42 @@ export default function Ringkasan() {
                     {/* Week-by-Week Columns */}
                     {isClassMode && weeksHeaderInfo.map((wHeader, wIdx) => {
                       const wData = item.weeks?.[wIdx];
+                      const isFuture = wData?.isFuture;
+
                       return (
                         <td key={wIdx} className="px-3 py-3.5 text-center border-l border-slate-100">
                           {wData ? (
                             <div className="space-y-1">
-                              {/* Mapel Week Badge */}
-                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
-                                <span>Mapel: {wData.mapelCompleted}/5</span>
-                                <span>({wData.persenMapel}%)</span>
+                              {/* Mapel Week Badge + (!) Detail Button */}
+                              <div className="flex items-center justify-center gap-1">
+                                <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border ${
+                                  isFuture
+                                    ? 'bg-slate-100 text-slate-400 border-slate-200'
+                                    : wData.mapelCompleted > 0
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                                }`}>
+                                  <span>Mapel: {wData.mapelCompleted}/5</span>
+                                  <span>({wData.persenMapel}%)</span>
+                                </div>
+
+                                {/* (!) Info button for weekly detail */}
+                                <button
+                                  onClick={() => setDetailModalItem({
+                                    ...item,
+                                    name: `${item.name} — ${wHeader.dateLabel}`,
+                                    details: wData.details || []
+                                  })}
+                                  title={`Detail Pengerjaan & Kehadiran ${wHeader.dateLabel}`}
+                                  className="p-1 text-slate-400 hover:text-brand hover:bg-blue-50 rounded-lg transition-all shrink-0"
+                                >
+                                  <Info className="w-3.5 h-3.5" />
+                                </button>
                               </div>
-                              {/* Kehadiran Week Badge */}
-                              <div className="text-[10px] font-semibold text-slate-500">
-                                Hadir: <span className="text-brand font-bold">{wData.persenKehadiran}%</span>
+
+                              {/* Kehadiran Week Text */}
+                              <div className={`text-[10px] font-semibold ${isFuture ? 'text-slate-400' : 'text-slate-500'}`}>
+                                Hadir: <span className={`font-bold ${isFuture ? 'text-slate-400' : 'text-brand'}`}>{wData.persenKehadiran}%</span>
                               </div>
                             </div>
                           ) : (
@@ -564,24 +587,11 @@ export default function Ringkasan() {
                           <span className="text-slate-600">Hadir:</span>
                           <span className={`${
                             item.persenKehadiran >= 85 ? 'text-emerald-700' :
-                            item.persenKehadiran >= 70 ? 'text-blue-700' : 'text-rose-700'
+                            item.persenKehadiran >= 70 ? 'text-blue-700' : 'text-slate-700'
                           }`}>{item.persenKehadiran}%</span>
                         </div>
                       </div>
                     </td>
-
-                    {/* Action Button */}
-                    {isClassMode && (
-                      <td className="px-4 py-3.5 text-center">
-                        <button
-                          onClick={() => setDetailModalItem(item)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-brand hover:text-white text-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          Detail
-                        </button>
-                      </td>
-                    )}
                   </tr>
                 ))
               ) : (

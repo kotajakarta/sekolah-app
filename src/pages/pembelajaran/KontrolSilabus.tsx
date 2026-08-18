@@ -124,11 +124,20 @@ const formatYYYYMMDD = (d: Date): string => {
 const todayStr = () => formatYYYYMMDD(new Date());
 const isFutureDate = (date: string) => date > todayStr();
 
+// Returns the most recent Saturday that has already occurred (<= today)
+const getInitialSaturdayStr = () => {
+  const d = new Date();
+  const day = d.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const diff = day === 6 ? 0 : -(day + 1);
+  d.setDate(d.getDate() + diff);
+  return formatYYYYMMDD(d);
+};
+
 // Ensure any date string or Date object snaps to the Saturday of that week (YYYY-MM-DD)
 const toSaturdayStr = (dateInput?: string | Date) => {
   let d: Date;
   if (!dateInput) {
-    d = new Date();
+    return getInitialSaturdayStr();
   } else if (typeof dateInput === 'string') {
     const parts = dateInput.split('-').map(Number);
     if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
@@ -141,7 +150,7 @@ const toSaturdayStr = (dateInput?: string | Date) => {
   }
 
   const dayOfWeek = d.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-  const diff = dayOfWeek === 0 ? -1 : 6 - dayOfWeek;
+  const diff = dayOfWeek === 6 ? 0 : (dayOfWeek === 0 ? -1 : 6 - dayOfWeek);
   d.setDate(d.getDate() + diff);
   return formatYYYYMMDD(d);
 };
@@ -170,8 +179,8 @@ export default function KontrolSilabus() {
   const [selectedKelas, setSelectedKelas] = useState<string>('');
   const [selectedMapel, setSelectedMapel] = useState<string>('');
 
-  // Daily Mode State (defaults to Saturday of current week)
-  const [selectedDate, setSelectedDate] = useState(() => toSaturdayStr());
+  // Daily Mode State (defaults to most recent completed Saturday <= today)
+  const [selectedDate, setSelectedDate] = useState(() => getInitialSaturdayStr());
   const [dailyFormState, setDailyFormState] = useState<Record<string, {
     status: 'PENDING' | 'COMPLETED' | 'LIBUR';
     guruId: string | null;
@@ -304,16 +313,20 @@ export default function KontrolSilabus() {
         };
       });
 
-      return apiClient.post('/pembelajaran/pelaksanaan/daily-bulk', {
+      const res = await apiClient.post('/pembelajaran/pelaksanaan/daily-bulk', {
         cabangId: selectedCabang || user?.cabangId,
         tanggal: selectedDate,
         logs
       });
+      return res.data;
     },
     onSuccess: () => {
       setDailySavedSuccess(true);
       refetchDaily();
       invalidateDependents();
+    },
+    onError: (err: any) => {
+      alert(err?.response?.data?.message || 'Gagal menyimpan status pelaksanaan harian');
     }
   });
 

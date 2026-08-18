@@ -144,6 +144,34 @@ const formatMonthLabel = (v: string) => {
   return new Date(year, month - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 };
 
+const getMapelBadgeClass = (persen: number, isFuture?: boolean) => {
+  if (isFuture) {
+    return 'bg-slate-100 text-slate-400 border-slate-200';
+  }
+  if (persen === 0) {
+    return 'bg-rose-50 text-rose-700 border-rose-200';
+  }
+  if (persen < 50) {
+    return 'bg-amber-50 text-amber-700 border-amber-200';
+  }
+  if (persen < 80) {
+    return 'bg-blue-50 text-blue-700 border-blue-200';
+  }
+  if (persen < 100) {
+    return 'bg-teal-50 text-teal-700 border-teal-200';
+  }
+  return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+};
+
+const getKehadiranTextClass = (persen: number, isFuture?: boolean) => {
+  if (isFuture) return 'text-slate-400 font-bold';
+  if (persen === 0) return 'text-rose-600 font-bold';
+  if (persen < 50) return 'text-amber-600 font-bold';
+  if (persen < 80) return 'text-blue-600 font-bold';
+  if (persen < 100) return 'text-teal-600 font-bold';
+  return 'text-emerald-600 font-bold';
+};
+
 type FilterMode = 'monthly' | 'semester' | 'yearly';
 
 export default function Ringkasan() {
@@ -523,13 +551,7 @@ export default function Ringkasan() {
                             <div className="space-y-1">
                               {/* Mapel Week Badge + (!) Detail Button */}
                               <div className="flex items-center justify-center gap-1">
-                                <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border ${
-                                  isFuture
-                                    ? 'bg-slate-100 text-slate-400 border-slate-200'
-                                    : wData.mapelCompleted > 0
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                                }`}>
+                                <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border ${getMapelBadgeClass(wData.persenMapel, isFuture)}`}>
                                   <span>Mapel: {wData.mapelCompleted}/{wData.mapelTarget || 5}</span>
                                   <span>({wData.persenMapel}%)</span>
                                 </div>
@@ -549,8 +571,8 @@ export default function Ringkasan() {
                               </div>
 
                               {/* Kehadiran Week Text */}
-                              <div className={`text-[10px] font-semibold ${isFuture ? 'text-slate-400' : 'text-slate-500'}`}>
-                                Hadir: <span className={`font-bold ${isFuture ? 'text-slate-400' : 'text-brand'}`}>{wData.persenKehadiran}%</span>
+                              <div className="text-[10px] font-semibold text-slate-500">
+                                Hadir: <span className={getKehadiranTextClass(wData.persenKehadiran, isFuture)}>{wData.persenKehadiran}%</span>
                               </div>
                             </div>
                           ) : (

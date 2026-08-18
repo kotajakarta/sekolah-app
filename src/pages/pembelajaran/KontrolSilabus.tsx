@@ -107,25 +107,43 @@ const formatTanggal = (date: string) =>
 const formatTanggalShort = (date: string) =>
   new Date(`${date}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const formatYYYYMMDD = (d: Date): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const todayStr = () => formatYYYYMMDD(new Date());
 const isFutureDate = (date: string) => date > todayStr();
 
 // Ensure any date string or Date object snaps to the Saturday of that week (YYYY-MM-DD)
 const toSaturdayStr = (dateInput?: string | Date) => {
-  const d = dateInput
-    ? new Date(typeof dateInput === 'string' ? `${dateInput}T00:00:00` : dateInput)
-    : new Date();
-  const day = d.getDay();
-  const diff = day === 0 ? -1 : 6 - day;
+  let d: Date;
+  if (!dateInput) {
+    d = new Date();
+  } else if (typeof dateInput === 'string') {
+    const parts = dateInput.split('-').map(Number);
+    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      d = new Date(parts[0], parts[1] - 1, parts[2]);
+    } else {
+      d = new Date(dateInput);
+    }
+  } else {
+    d = new Date(dateInput.getTime());
+  }
+
+  const dayOfWeek = d.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const diff = dayOfWeek === 0 ? -1 : 6 - dayOfWeek;
   d.setDate(d.getDate() + diff);
-  return d.toISOString().slice(0, 10);
+  return formatYYYYMMDD(d);
 };
 
 const shiftSaturday = (dateStr: string, weeksDelta: number) => {
   const currentSat = toSaturdayStr(dateStr);
-  const d = new Date(`${currentSat}T00:00:00`);
-  d.setDate(d.getDate() + weeksDelta * 7);
-  return d.toISOString().slice(0, 10);
+  const parts = currentSat.split('-').map(Number);
+  const d = new Date(parts[0], parts[1] - 1, parts[2] + weeksDelta * 7);
+  return formatYYYYMMDD(d);
 };
 
 export const PEMBELAJARAN_DEPENDENT_KEYS = [['pembelajaran-ringkasan'], ['laporan-pembelajaran']];

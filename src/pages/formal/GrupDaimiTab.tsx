@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useGetStudents, Student } from '../../features/core_data/hooks/useGetStudents';
-import { Plus, Edit2, Trash2, Loader2, Eye, User, Settings, UserPlus, UserMinus, Search, X, Check, Users, Tag } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, Eye, User, Settings, UserPlus, UserMinus, Search, X, Check, Users, Tag, BarChart3, BookOpen, School, CheckCircle2, GraduationCap, Filter } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -72,6 +72,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [selectedJenisForChart, setSelectedJenisForChart] = useState<string>('ALL');
 
   // Queries
   const { data: grupList, isLoading } = useQuery<GrupDaimi[]>({
@@ -294,7 +295,9 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
   // Student filtering for Add Student
   const studentCandidates = allStudents.filter(s => {
     const isNotInThisGrup = !studentsInGrup.some(ex => ex.id === s.id);
-    const isSameCabang = user?.scope !== 'CABANG' || s.cabangId === user.cabangId;
+    const isSameCabang = selectedDetailGrup?.cabangId 
+      ? s.cabangId === selectedDetailGrup.cabangId
+      : (user?.scope !== 'CABANG' || s.cabangId === user.cabangId);
     return isNotInThisGrup && s.isActive && isSameCabang;
   });
 
@@ -305,6 +308,18 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
     const nisn = (s.biodata?.nisn || '').toLowerCase();
     return fullName.includes(query) || nisn.includes(query);
   });
+
+  const isAllCandidatesSelected = filteredCandidates.length > 0 && filteredCandidates.every(s => selectedStudentIds.includes(s.id));
+
+  const handleSelectAllCandidates = (checked: boolean) => {
+    if (checked) {
+      const candidateIds = filteredCandidates.map(s => s.id);
+      setSelectedStudentIds(prev => Array.from(new Set([...prev, ...candidateIds])));
+    } else {
+      const candidateIdSet = new Set(filteredCandidates.map(s => s.id));
+      setSelectedStudentIds(prev => prev.filter(id => !candidateIdSet.has(id)));
+    }
+  };
 
   const handleSelectStudentToggle = (id: string) => {
     setSelectedStudentIds(prev =>
@@ -330,6 +345,105 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
       return true;
     });
   }, [grupList, filterWilayah, filterCabang, filterJenis]);
+
+  // Analytical Calculations for Grup Daimi Cross-Tabulation Charts & Top Header
+  const daimiStats = React.useMemo(() => {
+    const relevantStudents = (allStudents || []).filter(s => {
+      const hasDaimi = !!(s.dataDaimi?.grupId || s.dataDaimi?.grup?.jenis || s.grupDaimi || s.dataDaimi?.grup?.name);
+      if (!hasDaimi) return false;
+      if (user?.scope === 'CABANG' && s.cabangId !== user.cabangId) return false;
+      if (filterWilayah) {
+        const wId = s.wilayahId || (s as any).cabang?.wilayahId || (s as any).cabang?.wilayah?.id;
+        if (wId !== filterWilayah) return false;
+      }
+      if (filterCabang && s.cabangId !== filterCabang) return false;
+      const jenisName = s.dataDaimi?.grup?.jenis || s.grupDaimi;
+      if (filterJenis && jenisName !== filterJenis) return false;
+      return true;
+    });
+
+    const totalSantriDaimi = relevantStudents.length;
+
+    const masterJenisNames = (jenisGrupDaimiList || []).map(j => j.name);
+    
+    // Matrix: jenisName -> { '7': 0, '8': 0, '9': 0, '10': 0, '11': 0, '12': 0, 'Non Muadalah': 0 }
+    const matrix: Record<string, Record<string, number>> = {};
+
+    const initTingkatObj = () => ({
+      '7': 0, '8': 0, '9': 0, '10': 0, '11': 0, '12': 0, 'Non Muadalah': 0
+    });
+
+    masterJenisNames.forEach(jName => {
+      matrix[jName] = initTingkatObj();
+    });
+
+    let santriFormalCount = 0;
+
+    relevantStudents.forEach(s => {
+      // 1. Determine jenisName
+      const rawJenis = s.dataDaimi?.grup?.jenis || s.grupDaimi || 'Tanpa Jenis';
+      const matchedMaster = (jenisGrupDaimiList || []).find(j => j.name.trim().toLowerCase() === rawJenis.trim().toLowerCase());
+      const jKey = matchedMaster ? matchedMaster.name : rawJenis;
+
+      if (!matrix[jKey]) {
+        matrix[jKey] = initTingkatObj();
+      }
+
+      // 2. Determine tingkatKey
+      let tKey = 'Non Muadalah';
+      if (s.siswaFormal?.kelas) {
+        santriFormalCount++;
+        const rawTingkat = String(s.siswaFormal.kelas.tingkat || s.siswaFormal.kelas.name || '').toUpperCase().trim();
+        if (rawTingkat.includes('12') || rawTingkat.includes('XII')) tKey = '12';
+        else if (rawTingkat.includes('11') || rawTingkat.includes('XI')) tKey = '11';
+        else if (rawTingkat.includes('10') || rawTingkat.includes('X')) tKey = '10';
+        else if (rawTingkat.includes('9') || rawTingkat.includes('IX')) tKey = '9';
+        else if (rawTingkat.includes('8') || rawTingkat.includes('VIII')) tKey = '8';
+        else if (rawTingkat.includes('7') || rawTingkat.includes('VII')) tKey = '7';
+        else if (s.siswaFormal.kelas.tingkat) tKey = String(s.siswaFormal.kelas.tingkat);
+      }
+
+      matrix[jKey][tKey] = (matrix[jKey][tKey] || 0) + 1;
+    });
+
+    const activeJenisCount = Object.keys(matrix).filter(jKey => {
+      const sum = Object.values(matrix[jKey]).reduce((a, b) => a + b, 0);
+      return sum > 0;
+    }).length;
+
+    return {
+      totalSantriDaimi,
+      santriFormalCount,
+      matrix,
+      activeJenisCount
+    };
+  }, [allStudents, jenisGrupDaimiList, user, filterWilayah, filterCabang, filterJenis]);
+
+  // Filter out jenis grup with 0 total santri
+  const activeJenisEntries = React.useMemo(() => {
+    return Object.entries(daimiStats.matrix).filter(([_, tObj]) => {
+      return Object.values(tObj).reduce((a, b) => a + b, 0) > 0;
+    });
+  }, [daimiStats.matrix]);
+
+  const ALL_TINGKAT_KEYS = ['7', '8', '9', '10', '11', '12', 'Non Muadalah'];
+
+  // Filter out Tingkat keys that have 0 santri for selected filter
+  const visibleTingkatKeys = React.useMemo(() => {
+    return ALL_TINGKAT_KEYS.filter((tingkatKey) => {
+      if (selectedJenisForChart === 'ALL') {
+        return Object.values(daimiStats.matrix).some(tObj => (tObj[tingkatKey] || 0) > 0);
+      }
+      return (daimiStats.matrix[selectedJenisForChart]?.[tingkatKey] || 0) > 0;
+    });
+  }, [daimiStats.matrix, selectedJenisForChart]);
+
+  // Overall active tingkat keys for matrix table columns
+  const activeMatrixTingkatKeys = React.useMemo(() => {
+    return ALL_TINGKAT_KEYS.filter((tingkatKey) => {
+      return Object.values(daimiStats.matrix).some(tObj => (tObj[tingkatKey] || 0) > 0);
+    });
+  }, [daimiStats.matrix]);
 
   return (
     <div className="space-y-6">
@@ -430,6 +544,240 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
               <option key={j.id} value={j.name}>{j.name}</option>
             ))}
           </select>
+        </div>
+      </div>
+
+      {/* Top Section: Compact Stat Cards & Cross-Tabulation Charts (Grup Daimi x Tingkat) */}
+      <div className="space-y-3">
+        {/* 1. Compact 4 Stat Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* Card 1: Total Santri Daimi */}
+          <div className="rounded-2xl bg-gradient-to-br from-indigo-900 via-indigo-800 to-slate-900 p-3 shadow-sm flex items-center justify-between text-white border border-indigo-700/30">
+            <div>
+              <span className="text-[10px] font-bold text-indigo-200 uppercase tracking-wider block">Santri Daimi</span>
+              <span className="text-xl font-extrabold tracking-tight mt-0.5 block">{daimiStats.totalSantriDaimi.toLocaleString('id-ID')}</span>
+              <span className="text-[10px] text-indigo-300 block">Total Santri Terdaftar</span>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-400/20 flex items-center justify-center shrink-0">
+              <Users className="w-4 h-4 text-indigo-200" />
+            </div>
+          </div>
+
+          {/* Card 2: Jumlah Grup Daimi */}
+          <div className="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm flex items-center justify-between hover:border-indigo-200 transition-all">
+            <div>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Jumlah Grup</span>
+              <span className="text-xl font-extrabold text-slate-800 tracking-tight mt-0.5 block">{filteredGrupList.length.toLocaleString('id-ID')}</span>
+              <span className="text-[10px] text-slate-400 block">Kelompok Daimi Aktif</span>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+
+          {/* Card 3: Jenis Grup Terisi */}
+          <div className="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm flex items-center justify-between hover:border-indigo-200 transition-all">
+            <div>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Jenis Grup</span>
+              <span className="text-xl font-extrabold text-slate-800 tracking-tight mt-0.5 block">{daimiStats.activeJenisCount}</span>
+              <span className="text-[10px] text-emerald-600 font-semibold block">Jenis Terisi Santri</span>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+              <BookOpen className="w-4 h-4" />
+            </div>
+          </div>
+
+          {/* Card 4: Siswa Muadalah */}
+          <div className="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm flex items-center justify-between hover:border-indigo-200 transition-all">
+            <div>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Siswa Muadalah</span>
+              <span className="text-xl font-extrabold text-slate-800 tracking-tight mt-0.5 block">{daimiStats.santriFormalCount.toLocaleString('id-ID')}</span>
+              <span className="text-[10px] text-amber-600 font-semibold block">
+                {daimiStats.totalSantriDaimi > 0 ? `${Math.round((daimiStats.santriFormalCount / daimiStats.totalSantriDaimi) * 100)}% Terdaftar` : '0%'}
+              </span>
+            </div>
+            <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+              <Tag className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Side-by-Side Chart (7 cols) & Matrix Table (5 cols) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+          {/* Bar Chart Element (7 cols) */}
+          <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-3.5 shadow-sm flex flex-col justify-between space-y-2.5">
+            {/* Chart Header & Interactive Filter Pills */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
+              <div className="flex items-center gap-1.5">
+                <BarChart3 className="w-4 h-4 text-indigo-600" />
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Grafik Sebaran per Tingkat
+                </h3>
+              </div>
+
+              {/* Filter Pills for Jenis Grup */}
+              <div className="flex items-center gap-1 overflow-x-auto pb-0.5 sm:pb-0 custom-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setSelectedJenisForChart('ALL')}
+                  className={`px-2 py-0.5 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
+                    selectedJenisForChart === 'ALL'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  Semua Jenis
+                </button>
+                {activeJenisEntries.map(([jName]) => (
+                  <button
+                    key={jName}
+                    type="button"
+                    onClick={() => setSelectedJenisForChart(jName)}
+                    className={`px-2 py-0.5 text-[11px] font-bold rounded-lg transition-all whitespace-nowrap ${
+                      selectedJenisForChart === jName
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {jName}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Bar Chart Body */}
+            <div className="pt-1">
+              {visibleTingkatKeys.length === 0 ? (
+                <div className="h-28 flex items-center justify-center text-center text-xs font-medium text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+                  Belum ada santri terdaftar pada jenis grup / tingkat ini.
+                </div>
+              ) : (
+                <div className="h-28 flex items-end justify-around gap-1.5 sm:gap-3 pb-1 border-b border-slate-200 overflow-x-auto">
+                  {visibleTingkatKeys.map((tingkatKey) => {
+                    let count = 0;
+                    if (selectedJenisForChart === 'ALL') {
+                      Object.values(daimiStats.matrix).forEach(tObj => {
+                        count += (tObj[tingkatKey] || 0);
+                      });
+                    } else {
+                      count = daimiStats.matrix[selectedJenisForChart]?.[tingkatKey] || 0;
+                    }
+
+                    let selectedTotal = 0;
+                    if (selectedJenisForChart === 'ALL') {
+                      selectedTotal = daimiStats.totalSantriDaimi;
+                    } else {
+                      selectedTotal = Object.values(daimiStats.matrix[selectedJenisForChart] || {}).reduce((a, b) => a + b, 0);
+                    }
+
+                    const maxVal = Math.max(...visibleTingkatKeys.map(t => {
+                      if (selectedJenisForChart === 'ALL') {
+                        return Object.values(daimiStats.matrix).reduce((acc, tObj) => acc + (tObj[t] || 0), 0);
+                      }
+                      return daimiStats.matrix[selectedJenisForChart]?.[t] || 0;
+                    }), 1);
+
+                    const heightPercent = maxVal > 0 ? Math.max(Math.round((count / maxVal) * 100), 10) : 10;
+                    const formattedTingkat = /^\d+$/.test(tingkatKey) ? `Tingkat ${tingkatKey}` : tingkatKey;
+                    const percentageOfTotal = selectedTotal > 0 ? Math.round((count / selectedTotal) * 100) : 0;
+
+                    return (
+                      <div key={tingkatKey} className="group relative flex-1 flex flex-col items-center h-full justify-end min-w-[36px] max-w-[55px]">
+                        {/* Tooltip */}
+                        <div className="absolute -top-11 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none bg-slate-900 text-white text-[10px] py-1 px-2 rounded-lg shadow-lg z-20 whitespace-nowrap flex flex-col items-center">
+                          <span className="font-semibold">{formattedTingkat} ({selectedJenisForChart === 'ALL' ? 'Semua' : selectedJenisForChart})</span>
+                          <span className="text-indigo-300 font-mono">{count.toLocaleString('id-ID')} santri ({percentageOfTotal}%)</span>
+                          <div className="w-1.5 h-1.5 bg-slate-900 rotate-45 -mb-1 mt-0.5" />
+                        </div>
+
+                        {/* Value Label Above Bar */}
+                        <span className="text-[10px] font-bold text-slate-700 mb-0.5 group-hover:text-indigo-600 transition-colors">
+                          {count.toLocaleString('id-ID')}
+                        </span>
+
+                        {/* Bar Element */}
+                        <div 
+                          style={{ height: `${heightPercent}%` }}
+                          className="w-full bg-gradient-to-t from-indigo-600 via-indigo-500 to-indigo-400 rounded-t-md group-hover:from-indigo-500 group-hover:to-indigo-300 transition-all duration-300 shadow-sm cursor-pointer relative overflow-hidden"
+                        />
+
+                        {/* Label Below Bar */}
+                        <span className="mt-1 text-[10px] font-semibold text-slate-600 truncate max-w-full text-center group-hover:text-indigo-600 transition-colors" title={formattedTingkat}>
+                          {/^\d+$/.test(tingkatKey) ? `Tkg ${tingkatKey}` : (tingkatKey === 'Non Muadalah' ? 'Non-M' : tingkatKey)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Matriks Ringkasan Tabel (5 cols) */}
+          <div className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-3.5 shadow-sm flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <BookOpen className="w-4 h-4 text-emerald-600" />
+                Matriks Ringkasan
+              </h3>
+              <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">
+                {activeJenisEntries.length} Jenis
+              </span>
+            </div>
+
+            <div className="max-h-[140px] overflow-y-auto custom-scrollbar border border-slate-200 rounded-xl">
+              {activeJenisEntries.length === 0 ? (
+                <div className="p-4 text-center text-[11px] text-slate-400 italic">
+                  Belum ada data jenis grup daimi yang terisi santri.
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-slate-200 text-[11px]">
+                  <thead className="bg-slate-50 font-bold text-slate-600 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-2.5 py-1.5 text-left">Jenis</th>
+                      {activeMatrixTingkatKeys.map(tKey => (
+                        <th key={tKey} className="px-1.5 py-1.5 text-center">
+                          {/^\d+$/.test(tKey) ? `Tkg ${tKey}` : (tKey === 'Non Muadalah' ? 'Non-M' : tKey)}
+                        </th>
+                      ))}
+                      <th className="px-2 py-1.5 text-right bg-slate-100">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-150 bg-white">
+                    {activeJenisEntries.map(([jName, tObj]) => {
+                      const rowTotal = Object.values(tObj).reduce((a, b) => a + b, 0);
+                      const isSelected = selectedJenisForChart === jName;
+                      return (
+                        <tr 
+                          key={jName} 
+                          onClick={() => setSelectedJenisForChart(jName)}
+                          className={`cursor-pointer transition-colors hover:bg-indigo-50/50 ${isSelected ? 'bg-indigo-50/90 font-bold text-indigo-900' : 'text-slate-700'}`}
+                        >
+                          <td className="px-2.5 py-1 font-semibold truncate max-w-[90px]" title={jName}>
+                            <span className="inline-block w-1.5 h-1.5 rounded-full mr-1 bg-indigo-500" />
+                            {jName}
+                          </td>
+                          {activeMatrixTingkatKeys.map(tKey => {
+                            const val = tObj[tKey] || 0;
+                            return (
+                              <td key={tKey} className="px-1.5 py-1 text-center">
+                                {val > 0 ? (
+                                  <span className="font-semibold text-slate-800">{val}</span>
+                                ) : (
+                                  <span className="text-slate-300">-</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td className="px-2 py-1 text-right font-bold bg-slate-50 text-indigo-700">{rowTotal}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -815,7 +1163,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
               </button>
             </div>
 
-            <div className="p-4 bg-slate-50/55 border-b border-slate-100">
+            <div className="p-4 bg-slate-50/55 border-b border-slate-100 space-y-3">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                 <input
@@ -825,6 +1173,28 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                   onChange={(e) => setStudentSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white"
                 />
+              </div>
+
+              <div className="flex items-center justify-between px-1 text-xs text-slate-600 font-medium">
+                <label className="flex items-center gap-2 cursor-pointer select-none font-semibold text-slate-700 hover:text-slate-900">
+                  <input
+                    type="checkbox"
+                    checked={isAllCandidatesSelected}
+                    onChange={(e) => handleSelectAllCandidates(e.target.checked)}
+                    disabled={filteredCandidates.length === 0}
+                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer disabled:opacity-50"
+                  />
+                  <span>Pilih Semua ({filteredCandidates.length} santri)</span>
+                </label>
+                {selectedStudentIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentIds([])}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
+                  >
+                    Batal Pilih ({selectedStudentIds.length})
+                  </button>
+                )}
               </div>
             </div>
 

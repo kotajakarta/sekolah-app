@@ -473,6 +473,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<LandingPage />} />
             <Route path="/daftar-ulang" element={<DaftarUlang />} />
+            <Route path="/dafta-ulng" element={<Navigate to="/daftar-ulang" replace />} />
             <Route path="/dashboard" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="profile-cabang" element={<ProfilCabang />} />

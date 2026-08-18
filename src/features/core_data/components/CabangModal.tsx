@@ -23,6 +23,7 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
     nameResmi: '',
     kapasitasSantri: '',
     totalSantriManual: '',
+    urlGoogleMaps: '',
     ketuaCabangId: '',
     ketuaMuadalahId: '',
     ketuaIslerId: '',
@@ -117,6 +118,7 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
             alamatKelName: data.alamatKelName || '',
             alamatJalan: data.alamatJalan || '',
             alamatNegara: data.alamatNegara || '',
+            urlGoogleMaps: data.urlGoogleMaps || '',
             statusTanah: data.statusTanah || '',
             statusBangunan: data.statusBangunan || '',
           });
@@ -139,7 +141,7 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
           ketuaCabangId: '', ketuaMuadalahId: '', ketuaIslerId: '',
           alamatProvId: '', alamatProvName: '', alamatKabId: '', alamatKabName: '',
           alamatKecId: '', alamatKecName: '', alamatKelId: '', alamatKelName: '', alamatJalan: '',
-          alamatNegara: '', statusTanah: '', statusBangunan: '',
+          alamatNegara: '', urlGoogleMaps: '', statusTanah: '', statusBangunan: '',
         });
         setProfile(null);
       }
@@ -211,8 +213,8 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
                     <input type="number" value={formData.kapasitasSantri} onChange={(e) => setFormData({ ...formData, kapasitasSantri: e.target.value })} className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 uppercase">Total Santri (Manual)</label>
-                    <input type="number" value={formData.totalSantriManual} onChange={(e) => setFormData({ ...formData, totalSantriManual: e.target.value })} className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                    <label className="block text-xs font-semibold text-slate-600 uppercase">Total Santri (Otomatis)</label>
+                    <input type="number" readOnly value={profile?.totalSantriOtomatis ?? cabangToEdit?.siswaStats?.totalSiswa ?? cabangToEdit?._count?.students ?? 0} className="mt-1.5 block w-full rounded-lg border border-slate-200 bg-slate-50 py-2 px-3 text-sm text-slate-500 cursor-not-allowed focus:outline-none" />
                   </div>
                 </div>
               </div>
@@ -288,6 +290,10 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
                   <div className="sm:col-span-2">
                     <label className="block text-xs font-semibold text-slate-600 uppercase">Alamat Jalan / Kampung</label>
                     <textarea value={formData.alamatJalan} onChange={(e) => setFormData({ ...formData, alamatJalan: e.target.value })} rows={2} className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm" placeholder="Contoh: Jl. Sudirman No. 123" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-600 uppercase">URL Google Maps</label>
+                    <input type="url" value={formData.urlGoogleMaps} onChange={(e) => setFormData({ ...formData, urlGoogleMaps: e.target.value })} className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm" placeholder="https://maps.google.com/..." />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase">Status Tanah</label>

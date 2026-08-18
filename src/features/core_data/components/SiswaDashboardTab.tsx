@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '../../../lib/apiClient';
 import {
   Users, UserCheck, ShieldCheck, School, BookOpen,
   PieChart, BarChart3, TrendingUp, CheckCircle2,
@@ -15,6 +17,23 @@ interface SiswaDashboardTabProps {
   userWilayahId?: string;
   userCabangId?: string;
 }
+
+const COLOR_PALETTES = [
+  { color: 'bg-emerald-500', barColor: 'from-emerald-500 to-teal-600', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  { color: 'bg-blue-500', barColor: 'from-blue-500 to-indigo-600', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
+  { color: 'bg-purple-500', barColor: 'from-purple-500 to-violet-600', badge: 'bg-purple-50 text-purple-700 border-purple-200' },
+  { color: 'bg-amber-500', barColor: 'from-amber-500 to-orange-600', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+  { color: 'bg-rose-500', barColor: 'from-rose-500 to-pink-600', badge: 'bg-rose-50 text-rose-700 border-rose-200' },
+  { color: 'bg-cyan-500', barColor: 'from-cyan-500 to-sky-600', badge: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+  { color: 'bg-teal-500', barColor: 'from-teal-500 to-emerald-600', badge: 'bg-teal-50 text-teal-700 border-teal-200' },
+  { color: 'bg-indigo-500', barColor: 'from-indigo-500 to-purple-600', badge: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+];
+
+const TANPA_GRUP_STYLE = {
+  color: 'bg-slate-400',
+  barColor: 'from-slate-400 to-slate-500',
+  badge: 'bg-slate-100 text-slate-600 border-slate-200'
+};
 
 const calculateProgress = (student: Student) => {
   if (!student || !student.biodata) return 0;
@@ -58,15 +77,12 @@ const getTingkatKey = (sf?: any) => {
   return sf.kelas.tingkat || 'Lainnya';
 };
 
-const getDaimiKey = (s: Student) => {
+const getDaimiKey = (s: Student, masterTypes: { id: string; name: string }[]) => {
   const d = s.dataDaimi?.grup?.jenis || s.grupDaimi;
-  if (!d) return 'Tanpa Grup';
-  const u = d.toUpperCase().trim();
-  if (u.includes('HAZIRLIK')) return 'HAZIRLIK';
-  if (u.includes('HAFIZLIK')) return 'HAFIZLIK';
-  if (u.includes('IBTIDAI')) return 'IBTIDAI';
-  if (u.includes('IHZARI')) return 'IHZARI';
-  return d;
+  if (!d || !d.trim()) return 'Tanpa Grup';
+  const trimmed = d.trim();
+  const matched = masterTypes.find(t => t.name.trim().toLowerCase() === trimmed.toLowerCase());
+  return matched ? matched.name : trimmed;
 };
 
 export default function SiswaDashboardTab({
@@ -85,6 +101,14 @@ export default function SiswaDashboardTab({
     tingkat: ''
   });
 
+  const { data: jenisGrupDaimiList = [] } = useQuery<{ id: string; name: string }[]>({
+    queryKey: ['jenis-grup-daimi'],
+    queryFn: async () => {
+      const res = await apiClient.get('/pesantren/jenis-grup-daimi');
+      return res.data;
+    }
+  });
+
   // Filter students dynamically based on selected filters
   const filteredStudents = useMemo(() => {
     return (Array.isArray(students) ? students : []).filter((s: Student) => {
@@ -92,7 +116,10 @@ export default function SiswaDashboardTab({
       if (filters.cabangId && s.cabangId !== filters.cabangId) return false;
       if (filters.kelasId && s.siswaFormal?.kelasId !== filters.kelasId) return false;
       if (filters.lembagaMuadalahId && s.siswaFormal?.kelas?.lembagaMuadalah?.id !== filters.lembagaMuadalahId) return false;
-      if (filters.jenisDaimi && s.dataDaimi?.grup?.jenis !== filters.jenisDaimi) return false;
+      if (filters.jenisDaimi) {
+        const daimiVal = s.dataDaimi?.grup?.jenis || s.grupDaimi;
+        if (!daimiVal || daimiVal.trim().toLowerCase() !== filters.jenisDaimi.trim().toLowerCase()) return false;
+      }
       if (filters.tingkat && s.siswaFormal?.kelas?.tingkat !== filters.tingkat) return false;
       return true;
     });
@@ -100,6 +127,12 @@ export default function SiswaDashboardTab({
 
   // Analytical Calculations
   const stats = useMemo(() => {
+    const daimiMapInit: Record<string, number> = {};
+    jenisGrupDaimiList.forEach(j => {
+      daimiMapInit[j.name] = 0;
+    });
+    daimiMapInit['Tanpa Grup'] = 0;
+
     const total = filteredStudents.length;
     if (total === 0) {
       return {
@@ -117,7 +150,7 @@ export default function SiswaDashboardTab({
         tingkatMap: { '7': 0, '8': 0, '9': 0, '10': 0, '11': 0, '12': 0, 'Non Muadalah': 0 },
         wusthaTotal: 0,
         ulyaTotal: 0,
-        daimiMap: { HAZIRLIK: 0, HAFIZLIK: 0, IBTIDAI: 0, IHZARI: 0, 'Tanpa Grup': 0 },
+        daimiMap: daimiMapInit,
         poolMap: { AKTIF_CABANG: 0, TERSEDIA: 0, MUTASI: 0, LAINNYA: 0 },
         docCompleteness: {
           foto: 0,
@@ -142,9 +175,7 @@ export default function SiswaDashboardTab({
       '7': 0, '8': 0, '9': 0, '10': 0, '11': 0, '12': 0, 'Non Muadalah': 0
     };
 
-    const daimiMap: Record<string, number> = {
-      HAZIRLIK: 0, HAFIZLIK: 0, IBTIDAI: 0, IHZARI: 0, 'Tanpa Grup': 0
-    };
+    const daimiMap: Record<string, number> = { ...daimiMapInit };
 
     const poolMap: Record<string, number> = {
       AKTIF_CABANG: 0, TERSEDIA: 0, MUTASI: 0, LAINNYA: 0
@@ -169,7 +200,7 @@ export default function SiswaDashboardTab({
 
       if (s.siswaFormal?.kelas) formalCount++;
 
-      const dKey = getDaimiKey(s);
+      const dKey = getDaimiKey(s, jenisGrupDaimiList);
       if (daimiMap[dKey] !== undefined) {
         daimiMap[dKey]++;
       } else {
@@ -224,6 +255,41 @@ export default function SiswaDashboardTab({
       docCompleteness
     };
   }, [filteredStudents]);
+
+  const daimiListToDisplay = useMemo(() => {
+    const list: { name: string; desc: string; count: number; color: string; barColor: string; badge: string }[] = [];
+
+    jenisGrupDaimiList.forEach((j, idx) => {
+      const palette = COLOR_PALETTES[idx % COLOR_PALETTES.length];
+      list.push({
+        name: j.name,
+        desc: `Program ${j.name}`,
+        count: stats.daimiMap[j.name] || 0,
+        ...palette
+      });
+    });
+
+    Object.keys(stats.daimiMap).forEach((key) => {
+      if (key !== 'Tanpa Grup' && !jenisGrupDaimiList.some(j => j.name === key)) {
+        const palette = COLOR_PALETTES[list.length % COLOR_PALETTES.length];
+        list.push({
+          name: key,
+          desc: `Program ${key}`,
+          count: stats.daimiMap[key] || 0,
+          ...palette
+        });
+      }
+    });
+
+    list.push({
+      name: 'Tanpa Grup',
+      desc: 'Belum Terdaftar Grup Daimi',
+      count: stats.daimiMap['Tanpa Grup'] || 0,
+      ...TANPA_GRUP_STYLE
+    });
+
+    return list;
+  }, [jenisGrupDaimiList, stats.daimiMap]);
 
   const maxTingkatVal = Math.max(...Object.values(stats.tingkatMap), 1);
   const maxDaimiVal = Math.max(...Object.values(stats.daimiMap), 1);
@@ -427,67 +493,77 @@ export default function SiswaDashboardTab({
         </div>
 
         {/* CHART 2: Grafik & Distribusi Grup Daimi - 5 cols */}
-        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between space-y-4">
           <div>
-            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-emerald-600" />
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-emerald-600" />
                   Grup Daimi (Pesantren)
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Distribusi kelompok bimbingan & program daimi santri
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Sebaran santri per jenis grup daimi & program
                 </p>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                {stats.daimiCount} Terdaftar
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 whitespace-nowrap">
+                {stats.daimiCount} / {stats.total} Terdaftar
               </span>
             </div>
 
-            <div className="space-y-4">
-              {[
-                { name: 'HAZIRLIK', desc: 'Program Persiapan', color: 'bg-emerald-500', barColor: 'from-emerald-500 to-green-600', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-                { name: 'HAFIZLIK', desc: 'Program Tahfidz Al-Qur\'an', color: 'bg-blue-500', barColor: 'from-blue-500 to-indigo-600', badge: 'bg-blue-50 text-blue-700 border-blue-200' },
-                { name: 'IBTIDAI', desc: 'Program Tingkat Ibtidai', color: 'bg-purple-500', barColor: 'from-purple-500 to-violet-600', badge: 'bg-purple-50 text-purple-700 border-purple-200' },
-                { name: 'IHZARI', desc: 'Program Matrikulasi Ihzari', color: 'bg-amber-500', barColor: 'from-amber-500 to-orange-600', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
-                { name: 'Tanpa Grup', desc: 'Belum Terdaftar Grup Daimi', color: 'bg-slate-400', barColor: 'from-slate-400 to-slate-500', badge: 'bg-slate-100 text-slate-600 border-slate-200' },
-              ].map((g) => {
-                const count = stats.daimiMap[g.name] || 0;
+            {/* Multi-segment distribution bar */}
+            {stats.total > 0 && (
+              <div className="mt-3">
+                <div className="h-2.5 w-full bg-slate-100 rounded-full flex overflow-hidden p-0.5 border border-slate-200/60 shadow-inner">
+                  {daimiListToDisplay.map((g) => {
+                    if (g.count <= 0) return null;
+                    const percent = (g.count / stats.total) * 100;
+                    return (
+                      <div
+                        key={g.name}
+                        title={`${g.name}: ${g.count} santri (${Math.round(percent)}%)`}
+                        className={`h-full transition-all duration-500 ${g.color} first:rounded-l-full last:rounded-r-full hover:opacity-85 cursor-pointer`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Compact 2-Column Grid */}
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {daimiListToDisplay.map((g) => {
+                const count = g.count;
                 const percent = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
-                const widthPercent = Math.max(Math.round((count / maxDaimiVal) * 100), count > 0 ? 4 : 0);
 
                 return (
-                  <div key={g.name} className="p-3 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-white hover:border-slate-200 transition-all space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${g.color}`}></div>
-                        <div>
-                          <span className="text-xs font-bold text-slate-800">{g.name}</span>
-                          <span className="text-[11px] text-slate-400 block leading-tight">{g.desc}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-xs font-extrabold text-slate-800">{count} Santri</span>
-                        <span className={`block text-[10px] font-bold px-1.5 py-0.2 rounded border text-center mt-0.5 ${g.badge}`}>
-                          {percent}%
+                  <div 
+                    key={g.name} 
+                    className="p-2 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-white hover:border-slate-200 hover:shadow-xs transition-all flex items-center justify-between gap-2"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${g.color}`}></div>
+                      <div className="truncate">
+                        <span className="text-xs font-bold text-slate-800 truncate block leading-tight" title={g.name}>
+                          {g.name}
+                        </span>
+                        <span className="text-[10px] text-slate-500 block leading-tight">
+                          {count} Santri
                         </span>
                       </div>
                     </div>
-                    <div className="h-2 w-full bg-slate-200/60 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full bg-gradient-to-r ${g.barColor} transition-all duration-500`}
-                        style={{ width: `${widthPercent}%` }}
-                      ></div>
-                    </div>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border shrink-0 text-center ${g.badge}`}>
+                      {percent}%
+                    </span>
                   </div>
                 );
               })}
             </div>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>Rasio Daimi: <strong>{stats.total > 0 ? Math.round((stats.daimiCount / stats.total) * 100) : 0}% Santri</strong></span>
-            <span>Tanpa Grup: <strong>{stats.tanpaDaimiCount} Santri</strong></span>
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>Rasio Daimi: <strong className="text-emerald-600">{stats.total > 0 ? Math.round((stats.daimiCount / stats.total) * 100) : 0}% Santri</strong></span>
+            <span>Tanpa Grup: <strong className="text-slate-600">{stats.tanpaDaimiCount} Santri</strong></span>
           </div>
         </div>
 

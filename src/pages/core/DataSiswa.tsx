@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Users, Plus, UserMinus, UserPlus, Edit2, Trash2, Search, User, AlertCircle, FileSpreadsheet, LayoutDashboard, BarChart3 } from 'lucide-react';
+import { Users, Plus, UserMinus, UserPlus, Edit2, Trash2, Search, User, AlertCircle, FileSpreadsheet, LayoutDashboard, BarChart3, Lock, Building, ExternalLink } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useGetStudents, Student } from '../../features/core_data/hooks/useGetStudents';
 import LepasSiswaModal from '../../features/core_data/components/LepasSiswaModal';
@@ -17,7 +17,7 @@ import Pagination from '../../components/Pagination';
 import ConfirmModal from '../../components/ConfirmModal';
 import NotificationModal from '../../components/NotificationModal';
 import AdvancedFilterBar, { FilterState } from '../../components/AdvancedFilterBar';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { getStudentThumbnailUrl } from '../../utils/photo';
 
@@ -62,6 +62,33 @@ export default function DataSiswa() {
 
   const isAdmin = user?.scope === 'GLOBAL';
   const queryClient = useQueryClient();
+
+  const targetCabangId = user?.scope === 'CABANG' ? user?.cabangId : (advancedFilters.cabangId || null);
+
+  const { data: currentCabangProfile, isLoading: isCabangProfileLoading } = useQuery({
+    queryKey: ['cabang-profile-check', targetCabangId],
+    queryFn: async () => {
+      if (!targetCabangId) return null;
+      const res = await apiClient.get(`/master-data/cabang/${targetCabangId}/profile`);
+      return res.data;
+    },
+    enabled: !!targetCabangId
+  });
+
+  const isProfileComplete = useMemo(() => {
+    if (!targetCabangId) return true;
+    if (!currentCabangProfile) return false;
+    return Boolean(
+      currentCabangProfile.nameResmi &&
+      (currentCabangProfile.kapasitasSantri ?? 0) > 0 &&
+      currentCabangProfile.alamatProvId &&
+      currentCabangProfile.alamatKabId &&
+      currentCabangProfile.alamatKecId &&
+      currentCabangProfile.alamatKelId &&
+      currentCabangProfile.alamatJalan &&
+      currentCabangProfile.urlGoogleMaps
+    );
+  }, [targetCabangId, currentCabangProfile]);
 
   const { data: students, isLoading, isError } = useGetStudents();
 
@@ -126,7 +153,10 @@ export default function DataSiswa() {
     if (advancedFilters.cabangId && s.cabangId !== advancedFilters.cabangId) return false;
     if (advancedFilters.kelasId && s.siswaFormal?.kelasId !== advancedFilters.kelasId) return false;
     if (advancedFilters.lembagaMuadalahId && s.siswaFormal?.kelas?.lembagaMuadalah?.id !== advancedFilters.lembagaMuadalahId) return false;
-    if (advancedFilters.jenisDaimi && s.dataDaimi?.grup?.jenis !== advancedFilters.jenisDaimi) return false;
+    if (advancedFilters.jenisDaimi) {
+      const d = s.dataDaimi?.grup?.jenis || s.grupDaimi;
+      if (!d || d.trim().toLowerCase() !== advancedFilters.jenisDaimi.trim().toLowerCase()) return false;
+    }
     if (advancedFilters.tingkat && s.siswaFormal?.kelas?.tingkat !== advancedFilters.tingkat) return false;
 
     // Search query
@@ -173,7 +203,11 @@ export default function DataSiswa() {
         'NIK Ibu': student.biodata?.nikIbu || '-',
         'Pekerjaan Ibu': student.biodata?.pekerjaanIbu || '-',
         'No Telepon': student.biodata?.phone || '-',
-        'Alamat': student.biodata?.address || student.biodata?.alamatJalan || '-',
+        'Alamat': student.biodata?.alamatJalan || student.biodata?.address || '-',
+        'Kel': student.biodata?.alamatKelName || '-',
+        'Kec': student.biodata?.alamatKecName || '-',
+        'Kab/Kota': student.biodata?.alamatKabName || '-',
+        'Provinsi': student.biodata?.alamatProvName || '-',
       };
     });
 
@@ -207,6 +241,10 @@ export default function DataSiswa() {
       { wch: 18 }, // Pekerjaan Ibu
       { wch: 16 }, // Phone
       { wch: 30 }, // Alamat
+      { wch: 20 }, // Kel
+      { wch: 20 }, // Kec
+      { wch: 20 }, // Kab/Kota
+      { wch: 20 }, // Provinsi
     ];
     worksheet['!cols'] = colWidths;
 
@@ -460,6 +498,11 @@ export default function DataSiswa() {
         >
           <Users className="w-4 h-4" />
           Data Semua Santri
+          {!isProfileComplete && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 ml-1">
+              <Lock className="w-2.5 h-2.5" /> Terkunci
+            </span>
+          )}
         </button>
       </div>
 
@@ -471,6 +514,33 @@ export default function DataSiswa() {
           userWilayahId={user?.wilayahId}
           userCabangId={user?.cabangId}
         />
+      ) : !isProfileComplete ? (
+        <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100/60 rounded-2xl border border-amber-200 p-8 text-center max-w-2xl mx-auto my-8 shadow-sm space-y-5 animate-in fade-in duration-300">
+          <div className="w-16 h-16 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center mx-auto ring-8 ring-amber-100/50 shadow-inner">
+            <Lock className="w-8 h-8" />
+          </div>
+          
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold text-slate-800">
+              Akses Data Santri Terkunci
+            </h3>
+            <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
+              Untuk membuka <strong>Data Santri</strong> wajib mengisi data <strong>Profil Cabang</strong> secara lengkap (termasuk Nama Resmi, Kapasitas, Alamat Kelurahan s/d Provinsi, dan URL Google Maps).
+            </p>
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard/profile-cabang')}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm rounded-xl shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
+            >
+              <Building className="w-4 h-4" />
+              <span>Isi Profil Cabang Sekarang</span>
+              <ExternalLink className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       ) : (
         <>
           <AdvancedFilterBar

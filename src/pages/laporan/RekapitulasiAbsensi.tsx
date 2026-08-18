@@ -181,7 +181,7 @@ export default function RekapitulasiAbsensi() {
       if (selectedWilayah) url += `wilayahId=${selectedWilayah}&`;
       if (selectedCabang) url += `cabangId=${selectedCabang}&`;
       if (selectedKelas) url += `kelasId=${selectedKelas}&`;
-      
+
       if (filterMode === 'date') {
         url += `startDate=${startDate}&endDate=${endDate}`;
       } else if (filterMode === 'semester') {
@@ -248,15 +248,15 @@ export default function RekapitulasiAbsensi() {
 
   return (
     <div className="font-sans text-[#1d1d1f] animate-in fade-in duration-300 pb-12 print:pb-0">
-      
+
       {/* Title Header */}
       <div className="mb-6 print:hidden">
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
           <Activity className="w-6 h-6 text-indigo-500" />
-          Rekapitulasi Absensi Siswa
+          Rekapitulasi Absensi Santri
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Laporan rekapitulasi kehadiran siswa formal per kelas berdasarkan rentang tanggal atau semester.
+          Laporan rekapitulasi kehadiran santri formal per kelas berdasarkan rentang tanggal atau semester.
         </p>
       </div>
 
@@ -328,33 +328,30 @@ export default function RekapitulasiAbsensi() {
               <button
                 type="button"
                 onClick={() => setFilterMode('date')}
-                className={`flex-1 text-center py-1.5 text-xs font-semibold transition-all ${
-                  filterMode === 'date'
+                className={`flex-1 text-center py-1.5 text-xs font-semibold transition-all ${filterMode === 'date'
                     ? 'bg-indigo-600 text-white'
                     : 'bg-[#fbfbfb] text-slate-600 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 Rentang Tanggal
               </button>
               <button
                 type="button"
                 onClick={() => setFilterMode('semester')}
-                className={`flex-1 text-center py-1.5 text-xs font-semibold transition-all border-l border-slate-200 ${
-                  filterMode === 'semester'
+                className={`flex-1 text-center py-1.5 text-xs font-semibold transition-all border-l border-slate-200 ${filterMode === 'semester'
                     ? 'bg-indigo-600 text-white'
                     : 'bg-[#fbfbfb] text-slate-600 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 Per Semester
               </button>
               <button
                 type="button"
                 onClick={() => setFilterMode('month')}
-                className={`flex-1 text-center py-1.5 text-xs font-semibold transition-all border-l border-slate-200 ${
-                  filterMode === 'month'
+                className={`flex-1 text-center py-1.5 text-xs font-semibold transition-all border-l border-slate-200 ${filterMode === 'month'
                     ? 'bg-indigo-600 text-white'
                     : 'bg-[#fbfbfb] text-slate-600 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 Bulan
               </button>
@@ -455,7 +452,7 @@ export default function RekapitulasiAbsensi() {
         </div>
       ) : (
         <div className="space-y-4">
-          
+
           {/* Action Header Panel */}
           <div className="flex justify-between items-center bg-slate-50 border border-slate-200 p-4 rounded print:hidden">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -481,7 +478,7 @@ export default function RekapitulasiAbsensi() {
 
           {/* Printable Report Header */}
           <div className="hidden print:block mb-6 border-b-2 border-slate-300 pb-4">
-            <h1 className="text-xl font-bold text-center uppercase tracking-wide">Laporan Rekapitulasi Absensi Siswa</h1>
+            <h1 className="text-xl font-bold text-center uppercase tracking-wide">Laporan Rekapitulasi Absensi Santri</h1>
             <div className="grid grid-cols-2 text-xs mt-3">
               <div>
                 <p><span className="font-semibold">Wilayah:</span> {selectedWilayah ? wilayahs.find((w: any) => w.id === selectedWilayah)?.name : 'Semua Wilayah'}</p>
@@ -510,14 +507,14 @@ export default function RekapitulasiAbsensi() {
                     <th className="px-4 py-3 w-12 text-center">No</th>
                     <th className="px-4 py-3 w-28">NIS</th>
                     <th className="px-4 py-3 w-48">Nama Lengkap</th>
-                    
+
                     {/* Render Date columns */}
                     {recapData.programs.map(p => (
                       <th key={p.id} className="px-2 py-3 text-center text-[10px] min-w-14" title={p.name}>
                         {new Date(p.date).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' })}
                       </th>
                     ))}
-                    
+
                     {/* Summary columns */}
                     <th className="px-3 py-3 w-14 text-center text-emerald-700 bg-emerald-50/30">H</th>
                     <th className="px-3 py-3 w-14 text-center text-blue-700 bg-blue-50/30">S</th>
@@ -558,13 +555,12 @@ export default function RekapitulasiAbsensi() {
                       <td className="px-3 py-3 text-center font-bold text-blue-600 bg-blue-50/10">{row.summary.sakit}</td>
                       <td className="px-3 py-3 text-center font-bold text-amber-600 bg-amber-50/10">{row.summary.izin}</td>
                       <td className="px-3 py-3 text-center font-bold text-rose-600 bg-rose-50/10">{row.summary.alpa}</td>
-                      <td className={`px-4 py-3 text-center font-bold bg-slate-50/50 ${
-                        row.summary.percentage >= 90
+                      <td className={`px-4 py-3 text-center font-bold bg-slate-50/50 ${row.summary.percentage >= 90
                           ? 'text-emerald-750'
                           : row.summary.percentage >= 80
                             ? 'text-amber-650'
                             : 'text-rose-700'
-                      }`}>
+                        }`}>
                         {row.summary.percentage}%
                       </td>
                     </tr>
@@ -584,7 +580,7 @@ export default function RekapitulasiAbsensi() {
               />
             </div>
           </div>
-          
+
           {/* Bottom Summary Legend */}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-slate-500 bg-slate-50 border border-slate-200 p-3 rounded print:hidden">
             <span className="font-bold text-slate-600 uppercase tracking-wider text-[10px]">Legenda Status:</span>

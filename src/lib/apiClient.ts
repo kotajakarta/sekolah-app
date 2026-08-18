@@ -35,21 +35,61 @@ apiClient.interceptors.request.use(
   }
 );
 
+const isPublicEndpoint = (url: string) => {
+  const publicPatterns = [
+    '/auth/login',
+    '/auth/signin',
+    '/signin',
+    '/students/daftar-ulang',
+    '/students/check-duplicate',
+    '/faq',
+    '/pengaturan/modules',
+    '/pengaturan/kalender',
+    '/pengaturan/pengumuman',
+    '/pengaturan/uploads',
+    '/uploads',
+  ];
+  return publicPatterns.some((p) => url.includes(p));
+};
+
+const isPublicPage = () => {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname;
+  return (
+    path === '/' ||
+    path.startsWith('/daftar-ulang') ||
+    path.startsWith('/dafta-ulng') ||
+    path.startsWith('/login') ||
+    path.startsWith('/faq')
+  );
+};
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
       const requestUrl = error.config?.url || '';
-      // Jangan redirect jika ini adalah endpoint login itu sendiri
-      // (401 di login = salah password, bukan sesi expired)
-      if (!requestUrl.includes('/auth/login') && !requestUrl.includes('/auth/signin') && !requestUrl.includes('/signin')) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+      
+      // Jika di halaman publik atau mengakses endpoint publik, jangan redirect ke /login
+      if (isPublicEndpoint(requestUrl) || isPublicPage()) {
+        // Jika token basi menyebabkan 401 di endpoint publik, bersihkan token tapi jangan pindah halaman
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
         if (typeof document !== 'undefined') {
           document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         }
-        window.location.href = '/login';
+        return Promise.reject(error);
       }
+
+      // Sesi kedaluwarsa pada halaman terproteksi: hapus token dan redirect ke login
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (typeof document !== 'undefined') {
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      }
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

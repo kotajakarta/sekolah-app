@@ -38,9 +38,11 @@ export interface Cabang {
   kapasitasSantri?: number;
   totalSantriManual?: number;
   alamatJalan?: string;
+  alamatKelName?: string;
   alamatKecName?: string;
   alamatKabName?: string;
   alamatProvName?: string;
+  urlGoogleMaps?: string;
   statusTanah?: string;
   statusBangunan?: string;
   fotoPlang?: string;
@@ -83,6 +85,19 @@ export interface Cabang {
       lulus: number;
       sekolahLain: number;
     };
+    byGrup?: Record<string, {
+      totalSiswa: number;
+      tingkat: {
+        tingkat7: number;
+        tingkat8: number;
+        tingkat9: number;
+        tingkat10: number;
+        tingkat11: number;
+        tingkat12: number;
+        lulus: number;
+        sekolahLain: number;
+      };
+    }>;
   };
   _count?: {
     students: number;

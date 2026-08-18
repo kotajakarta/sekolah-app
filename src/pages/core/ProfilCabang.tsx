@@ -39,6 +39,7 @@ export default function ProfilCabang() {
   const [alamatKelId, setAlamatKelId] = useState('');
   const [alamatKelName, setAlamatKelName] = useState('');
   const [alamatJalan, setAlamatJalan] = useState('');
+  const [urlGoogleMaps, setUrlGoogleMaps] = useState('');
 
   // Form states for status
   const [statusTanah, setStatusTanah] = useState('');
@@ -137,6 +138,7 @@ export default function ProfilCabang() {
         setAlamatKelId(data.alamatKelId || '');
         setAlamatKelName(data.alamatKelName || '');
         setAlamatJalan(data.alamatJalan || '');
+        setUrlGoogleMaps(data.urlGoogleMaps || '');
 
         setStatusTanah(data.statusTanah || '');
         setStatusBangunan(data.statusBangunan || '');
@@ -214,6 +216,7 @@ export default function ProfilCabang() {
       alamatKelId: alamatKelId || null,
       alamatKelName: alamatKelName || null,
       alamatJalan: alamatJalan || null,
+      urlGoogleMaps: urlGoogleMaps || null,
       statusTanah: statusTanah || null,
       statusBangunan: statusBangunan || null,
       // Photos
@@ -545,6 +548,18 @@ export default function ProfilCabang() {
                       rows={2}
                       className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none" 
                       placeholder="Masukkan alamat lengkap RT/RW, nama jalan atau kampung..."
+                    />
+                  </div>
+
+                  {/* URL Google Maps */}
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-slate-600 uppercase">URL Google Maps</label>
+                    <input 
+                      type="url" 
+                      value={urlGoogleMaps}
+                      onChange={(e) => setUrlGoogleMaps(e.target.value)}
+                      className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none" 
+                      placeholder="https://maps.google.com/..."
                     />
                   </div>
                 </div>

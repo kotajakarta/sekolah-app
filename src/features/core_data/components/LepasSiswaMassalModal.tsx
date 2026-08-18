@@ -17,15 +17,15 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
   const [statusAkhir, setStatusAkhir] = useState('TERSEDIA');
   const [catatan, setCatatan] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  
+
   // Only students with statusPool === 'AKTIF_CABANG' can be released
   const releasableStudents = students.filter(s => s.statusPool === 'AKTIF_CABANG');
 
   const filteredStudents = releasableStudents.filter(s => {
     const q = searchTerm.toLowerCase();
     return s.biodata?.fullName?.toLowerCase().includes(q) ||
-           s.biodata?.nik?.toLowerCase().includes(q) ||
-           s.cabang?.name?.toLowerCase().includes(q);
+      s.biodata?.nik?.toLowerCase().includes(q) ||
+      s.cabang?.name?.toLowerCase().includes(q);
   });
 
   const handleSelectAll = (checked: boolean) => {
@@ -37,7 +37,7 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
   };
 
   const handleToggleSelect = (id: string) => {
-    setSelectedIds(prev => 
+    setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
@@ -129,7 +129,7 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
                   <span>{Math.round((progress.processed / (progress.total || 1)) * 100)}%</span>
                 </div>
                 <div className="w-full bg-amber-200 rounded-full h-3 overflow-hidden shadow-inner">
-                  <div 
+                  <div
                     className="bg-amber-600 h-3 rounded-full transition-all duration-300"
                     style={{ width: `${Math.round((progress.processed / (progress.total || 1)) * 100)}%` }}
                   />
@@ -157,7 +157,7 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Cari siswa dalam daftar ini..."
+                    placeholder="Cari santri dalam daftar ini..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all bg-white"
@@ -242,7 +242,7 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
               </div>
             )}
           </div>
-          
+
           <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 rounded-b-2xl border-t border-slate-100">
             <button
               type="button"

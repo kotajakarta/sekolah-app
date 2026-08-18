@@ -276,17 +276,22 @@ export default function DaftarUlang() {
   }, [formData.nisn, studentId]);
 
   useEffect(() => {
-    if (nik && nik.length === 16) {
+    if (step === 2 && formData.nik && formData.nik.length === 16) {
       const timer = setTimeout(async () => {
         try {
           const res = await apiClient.get('/students/check-duplicate', {
-            params: { nik }
+            params: { nik: formData.nik, excludeStudentId: studentId || undefined }
           });
           if (res.data?.nikDuplicate?.exists) {
             setFieldErrors(prev => ({
               ...prev,
               nik: `NIK sudah terpakai atas nama ${res.data.nikDuplicate.fullName}`
             }));
+          } else {
+            setFieldErrors(prev => {
+              const { nik: _, ...rest } = prev;
+              return rest;
+            });
           }
         } catch (e) {
           console.error('Check NIK duplicate error', e);
@@ -294,7 +299,7 @@ export default function DaftarUlang() {
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [nik]);
+  }, [step, formData.nik, studentId]);
 
   const verifyMutation = useMutation({
     mutationFn: async () => {

@@ -51,11 +51,11 @@ const AVAILABLE_COLUMNS: ColumnOption[] = [
   { key: 'penghasilanIbu', label: 'Penghasilan Ibu', category: 'ORTU', defaultSelected: false, getValue: (s) => (s.biodata as any)?.penghasilanIbu || '-' },
 
   // Alamat Domisili
-  { key: 'alamatProvName', label: 'Provinsi Domisili', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatProvName || '-' },
-  { key: 'alamatKabName', label: 'Kabupaten / Kota', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatKabName || '-' },
-  { key: 'alamatKecName', label: 'Kecamatan', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatKecName || '-' },
-  { key: 'alamatKelName', label: 'Kelurahan / Desa', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatKelName || '-' },
-  { key: 'alamatJalan', label: 'Alamat Lengkap (Jalan/RT/RW)', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatJalan || s.biodata?.address || '-' },
+  { key: 'alamatJalan', label: 'Alamat', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatJalan || s.biodata?.address || '-' },
+  { key: 'alamatKelName', label: 'Kel', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatKelName || '-' },
+  { key: 'alamatKecName', label: 'Kec', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatKecName || '-' },
+  { key: 'alamatKabName', label: 'Kab/Kota', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatKabName || '-' },
+  { key: 'alamatProvName', label: 'Provinsi', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatProvName || '-' },
 
   // Kelembagaan & Status Pusdatin
   { key: 'wilayah', label: 'Wilayah', category: 'KELEMBAGAAN', defaultSelected: true, getValue: (s) => s.wilayah?.name || '-' },

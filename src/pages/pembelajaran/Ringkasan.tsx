@@ -59,6 +59,17 @@ interface MapelDetailItem {
   persenHadirMapel: number;
 }
 
+interface ClassWeekBreakdown {
+  weekNumber: number;
+  dateLabel: string;
+  mapelCompleted: number;
+  mapelTarget: number;
+  persenMapel: number;
+  hadir: number;
+  totalAbsensi: number;
+  persenKehadiran: number;
+}
+
 interface UnitBreakdownItem {
   id: string;
   name: string;
@@ -71,6 +82,7 @@ interface UnitBreakdownItem {
   totalAbsensi: number;
   persenKehadiran: number;
   status: 'Optimal' | 'Sesuai Jalur' | 'Berisiko';
+  weeks?: ClassWeekBreakdown[];
   details?: MapelDetailItem[];
 }
 
@@ -128,14 +140,6 @@ const formatMonthLabel = (v: string) => {
   return new Date(year, month - 1, 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 };
 
-const CELL_STATUS_META: Record<string, { label: string; bg: string; text: string }> = {
-  COMPLETED: { label: 'Terlaksana', bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700' },
-  PENDING:   { label: 'Belum',      bg: 'bg-amber-50 border-amber-200',     text: 'text-amber-700' },
-  LIBUR:     { label: 'Libur',      bg: 'bg-sky-50 border-sky-200',         text: 'text-sky-700' }
-};
-const cellMeta = (s: WeekCell['status']) =>
-  s ? CELL_STATUS_META[s] : { label: '—', bg: 'bg-slate-50 border-slate-200', text: 'text-slate-400' };
-
 type FilterMode = 'weekly' | 'monthly' | 'semester' | 'yearly';
 
 export default function Ringkasan() {
@@ -183,7 +187,6 @@ export default function Ringkasan() {
   const filteredUnitBreakdown = useMemo(() => {
     if (!data?.unitBreakdown) return [];
     return data.unitBreakdown.filter(item => {
-      // Hide inactive classes if scope is CABANG / unit is Kelas and total students is 0
       if ((data.scopeLevel === 'CABANG' || data.unitLabel === 'Kelas') && item.jumlahSiswa === 0) {
         return false;
       }
@@ -227,6 +230,8 @@ export default function Ringkasan() {
   const isClassMode = data.scopeLevel === 'CABANG' || data.unitLabel === 'Kelas';
   const deltaCls = data.kehadiranDelta > 0 ? 'text-emerald-700 bg-emerald-50' : data.kehadiranDelta < 0 ? 'text-rose-700 bg-rose-50' : 'text-slate-500 bg-slate-100';
   const deltaLabel = data.kehadiranDelta > 0 ? `+${data.kehadiranDelta}%` : data.kehadiranDelta < 0 ? `${data.kehadiranDelta}%` : '0%';
+
+  const weeksHeaderInfo = data.weeksInfo || [];
 
   return (
     <div className="font-sans text-slate-900 pb-10 space-y-4">
@@ -450,7 +455,9 @@ export default function Ringkasan() {
               Ringkasan Ketercapaian per {data.unitLabel} — {data.periodeLabel}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Data ketercapaian silabus &amp; absensi per {data.unitLabel.toLowerCase()} untuk pengambilan keputusan cepat
+              Data ketercapaian silabus &amp; absensi per {data.unitLabel.toLowerCase()} (Target Penyebut: {
+                filterMode === 'weekly' ? '5/minggu' : filterMode === 'monthly' ? 'Jumlah Sabtu x 5' : filterMode === 'semester' ? 'Jumlah Sabtu x 6' : '12/tahun'
+              })
             </p>
           </div>
 
@@ -468,104 +475,118 @@ export default function Ringkasan() {
           </div>
         </div>
 
-        {/* Breakdown Table */}
+        {/* Breakdown Table with Multi-Week Columns */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-max">
             <thead>
               <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wide border-b border-slate-100 bg-slate-50/50">
-                <th className="px-5 py-3">Nama {data.unitLabel}</th>
-                {isClassMode && <th className="px-5 py-3 text-center">Jumlah Siswa</th>}
-                {!isClassMode && data.scopeLevel !== 'GLOBAL' && <th className="px-5 py-3">Induk / Wilayah</th>}
-                <th className="px-5 py-3">Status Kegiatan Mapel</th>
-                <th className="px-5 py-3">Status Kehadiran</th>
-                {isClassMode && <th className="px-5 py-3 text-center">Aksi</th>}
-                {!isClassMode && <th className="px-5 py-3 text-center">Status Evaluasi</th>}
+                <th className="px-4 py-3 sticky left-0 bg-slate-50 z-10 min-w-[140px]">Nama {data.unitLabel}</th>
+                {isClassMode && <th className="px-3 py-3 text-center min-w-[100px]">Jumlah Siswa</th>}
+
+                {/* Multi-Week Columns for Month */}
+                {isClassMode && weeksHeaderInfo.map((wHeader, wIdx) => (
+                  <th key={wIdx} className="px-3 py-3 text-center border-l border-slate-200/60 min-w-[130px]">
+                    <div className="text-slate-800 font-bold normal-case text-xs">{wHeader.dateLabel}</div>
+                    <div className="text-[10px] text-slate-400 font-normal">Minggu {wHeader.weekNumber}</div>
+                  </th>
+                ))}
+
+                {/* Total / Summary Column */}
+                <th className="px-4 py-3 text-center border-l border-slate-200/60 min-w-[160px]">
+                  <div className="text-slate-800 font-bold normal-case text-xs">Total Ringkasan</div>
+                  <div className="text-[10px] text-slate-400 font-normal">Mapel &amp; Kehadiran</div>
+                </th>
+
+                {/* Action */}
+                {isClassMode && <th className="px-4 py-3 text-center min-w-[110px]">Aksi</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
               {paginatedUnitBreakdown.length > 0 ? (
                 paginatedUnitBreakdown.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-5 py-3.5 font-bold text-slate-800">{item.name}</td>
+                    {/* Class Name */}
+                    <td className="px-4 py-3.5 font-bold text-slate-800 sticky left-0 bg-white z-10">{item.name}</td>
 
+                    {/* Total Students */}
                     {isClassMode && (
-                      <td className="px-5 py-3.5 text-center">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-blue-50 text-brand text-xs font-bold border border-blue-100">
+                      <td className="px-3 py-3.5 text-center">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-brand text-xs font-bold border border-blue-100">
                           {item.jumlahSiswa || 0} Siswa
                         </span>
                       </td>
                     )}
 
-                    {!isClassMode && data.scopeLevel !== 'GLOBAL' && (
-                      <td className="px-5 py-3.5 text-slate-500 text-xs font-medium">{item.parentName || '-'}</td>
-                    )}
+                    {/* Week-by-Week Columns */}
+                    {isClassMode && weeksHeaderInfo.map((wHeader, wIdx) => {
+                      const wData = item.weeks?.[wIdx];
+                      return (
+                        <td key={wIdx} className="px-3 py-3.5 text-center border-l border-slate-100">
+                          {wData ? (
+                            <div className="space-y-1">
+                              {/* Mapel Week Badge */}
+                              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
+                                <span>Mapel: {wData.mapelCompleted}/5</span>
+                                <span>({wData.persenMapel}%)</span>
+                              </div>
+                              {/* Kehadiran Week Badge */}
+                              <div className="text-[10px] font-semibold text-slate-500">
+                                Hadir: <span className="text-brand font-bold">{wData.persenKehadiran}%</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-slate-300 text-xs">—</span>
+                          )}
+                        </td>
+                      );
+                    })}
 
-                    {/* Status Kegiatan Mapel */}
-                    <td className="px-5 py-3.5">
-                      <div className="space-y-1 max-w-xs">
-                        <div className="flex items-center justify-between text-xs font-semibold">
-                          <span className="text-slate-700">
-                            {item.silabusCompleted}/{item.silabusTotal} Mapel
-                          </span>
-                          <span className="text-brand font-bold">{item.persenSilabus}%</span>
+                    {/* Total Ringkasan Column */}
+                    <td className="px-4 py-3.5 border-l border-slate-100">
+                      <div className="space-y-1.5">
+                        {/* Mapel Summary */}
+                        <div className="flex items-center justify-between text-xs font-bold">
+                          <span className="text-slate-600">Mapel:</span>
+                          <span className="text-brand">{item.silabusCompleted}/{item.silabusTotal} ({item.persenSilabus}%)</span>
                         </div>
-                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all duration-500 ${
+                            className={`h-full rounded-full transition-all duration-300 ${
                               item.persenSilabus >= 85 ? 'bg-emerald-500' :
                               item.persenSilabus >= 70 ? 'bg-brand' : 'bg-rose-500'
                             }`}
                             style={{ width: `${item.persenSilabus}%` }}
                           />
                         </div>
-                      </div>
-                    </td>
 
-                    {/* Status Kehadiran */}
-                    <td className="px-5 py-3.5">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                            item.persenKehadiran >= 85 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                            item.persenKehadiran >= 70 ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                            'bg-rose-50 text-rose-700 border-rose-200'
-                          }`}>
-                            {item.persenKehadiran}%
-                          </span>
+                        {/* Kehadiran Summary */}
+                        <div className="flex items-center justify-between text-xs font-bold pt-0.5">
+                          <span className="text-slate-600">Hadir:</span>
+                          <span className={`${
+                            item.persenKehadiran >= 85 ? 'text-emerald-700' :
+                            item.persenKehadiran >= 70 ? 'text-blue-700' : 'text-rose-700'
+                          }`}>{item.persenKehadiran}%</span>
                         </div>
-                        <p className="text-[11px] text-slate-400">
-                          Hadir: {item.hadir} / Target: {item.totalAbsensi}
-                        </p>
                       </div>
                     </td>
 
-                    {/* Action or Evaluation */}
-                    {isClassMode ? (
-                      <td className="px-5 py-3.5 text-center">
+                    {/* Action Button */}
+                    {isClassMode && (
+                      <td className="px-4 py-3.5 text-center">
                         <button
                           onClick={() => setDetailModalItem(item)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-brand hover:text-white text-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm"
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-brand hover:text-white text-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          Detail Lengkap
+                          Detail
                         </button>
-                      </td>
-                    ) : (
-                      <td className="px-5 py-3.5 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                          item.status === 'Optimal' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                          item.status === 'Sesuai Jalur' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                          'bg-rose-50 text-rose-700 border-rose-200'
-                        }`}>
-                          {item.status}
-                        </span>
                       </td>
                     )}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={isClassMode ? 5 : 6} className="px-5 py-8 text-center text-slate-400 text-sm">
+                  <td colSpan={isClassMode ? (3 + weeksHeaderInfo.length) : 6} className="px-5 py-8 text-center text-slate-400 text-sm">
                     Tidak ada data {data.unitLabel.toLowerCase()} yang sesuai.
                   </td>
                 </tr>

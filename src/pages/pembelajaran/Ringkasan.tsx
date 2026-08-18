@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import {
   Loader2, AlertCircle, Building2, CheckCircle2, Users, BookOpen,
-  ChevronLeft, ChevronRight, Eye, Search, ArrowUpRight, Calendar, X, Info
+  ChevronLeft, ChevronRight, Search, ArrowUpRight, Calendar, X, Info
 } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 
@@ -76,6 +76,8 @@ interface UnitBreakdownItem {
   id: string;
   name: string;
   parentName: string;
+  jumlahCabang?: number;
+  jumlahKelas?: number;
   jumlahSiswa?: number;
   silabusCompleted: number;
   silabusTotal: number;
@@ -187,14 +189,11 @@ export default function Ringkasan() {
   const filteredUnitBreakdown = useMemo(() => {
     if (!data?.unitBreakdown) return [];
     return data.unitBreakdown.filter(item => {
-      if ((data.scopeLevel === 'CABANG' || data.unitLabel === 'Kelas') && item.jumlahSiswa === 0) {
-        return false;
-      }
       if (!searchTerm) return true;
       const term = searchTerm.toLowerCase();
       return item.name.toLowerCase().includes(term) || item.parentName.toLowerCase().includes(term);
     });
-  }, [data?.unitBreakdown, data?.scopeLevel, data?.unitLabel, searchTerm]);
+  }, [data?.unitBreakdown, searchTerm]);
 
   const totalTablePages = Math.ceil(filteredUnitBreakdown.length / tableLimit) || 1;
   const paginatedUnitBreakdown = useMemo(() => {
@@ -227,7 +226,6 @@ export default function Ringkasan() {
     );
   }
 
-  const isClassMode = data.scopeLevel === 'CABANG' || data.unitLabel === 'Kelas';
   const deltaCls = data.kehadiranDelta > 0 ? 'text-emerald-700 bg-emerald-50' : data.kehadiranDelta < 0 ? 'text-rose-700 bg-rose-50' : 'text-slate-500 bg-slate-100';
   const deltaLabel = data.kehadiranDelta > 0 ? `+${data.kehadiranDelta}%` : data.kehadiranDelta < 0 ? `${data.kehadiranDelta}%` : '0%';
 
@@ -273,6 +271,7 @@ export default function Ringkasan() {
             </button>
           </div>
 
+          {/* Dynamic Input based on Mode */}
           {filterMode === 'monthly' && (
             <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-2 py-1">
               <button
@@ -437,7 +436,7 @@ export default function Ringkasan() {
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
               Data ketercapaian silabus &amp; absensi per {data.unitLabel.toLowerCase()} (Target Penyebut: {
-                filterMode === 'weekly' ? '5/minggu' : filterMode === 'monthly' ? 'Jumlah Sabtu x 5' : filterMode === 'semester' ? 'Jumlah Sabtu x 6' : '12/tahun'
+                filterMode === 'monthly' ? 'Jumlah Sabtu x 5' : filterMode === 'semester' ? 'Jumlah Sabtu x 6' : '12/tahun'
               })
             </p>
           </div>
@@ -457,15 +456,17 @@ export default function Ringkasan() {
         </div>
 
         {/* Breakdown Table with Multi-Week Columns */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse min-w-max">
             <thead>
               <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wide border-b border-slate-100 bg-slate-50/50">
-                <th className="px-4 py-3 sticky left-0 bg-slate-50 z-10 min-w-[140px]">Nama {data.unitLabel}</th>
-                {isClassMode && <th className="px-3 py-3 text-center min-w-[100px]">Jumlah Siswa</th>}
+                <th className="px-4 py-3 sticky left-0 bg-slate-50 z-10 min-w-[150px]">Nama {data.unitLabel}</th>
+                {data.scopeLevel === 'GLOBAL' && <th className="px-3 py-3 text-center min-w-[100px]">Jumlah Cabang</th>}
+                {(data.scopeLevel === 'GLOBAL' || data.scopeLevel === 'WILAYAH') && <th className="px-3 py-3 text-center min-w-[100px]">Jumlah Kelas</th>}
+                <th className="px-3 py-3 text-center min-w-[100px]">Jumlah Siswa</th>
 
-                {/* Multi-Week Columns for Month */}
-                {isClassMode && weeksHeaderInfo.map((wHeader, wIdx) => (
+                {/* Multi-Week Columns */}
+                {weeksHeaderInfo.map((wHeader, wIdx) => (
                   <th key={wIdx} className="px-3 py-3 text-center border-l border-slate-200/60 min-w-[150px]">
                     <div className="text-slate-800 font-bold normal-case text-xs">{wHeader.dateLabel}</div>
                     <div className="text-[10px] text-slate-400 font-normal">Minggu {wHeader.weekNumber}</div>
@@ -483,20 +484,36 @@ export default function Ringkasan() {
               {paginatedUnitBreakdown.length > 0 ? (
                 paginatedUnitBreakdown.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                    {/* Class Name */}
+                    {/* Unit Name (Wilayah / Cabang / Kelas) */}
                     <td className="px-4 py-3.5 font-bold text-slate-800 sticky left-0 bg-white z-10">{item.name}</td>
 
-                    {/* Total Students */}
-                    {isClassMode && (
+                    {/* Jumlah Cabang (for Admin/Global) */}
+                    {data.scopeLevel === 'GLOBAL' && (
                       <td className="px-3 py-3.5 text-center">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-brand text-xs font-bold border border-blue-100">
-                          {item.jumlahSiswa || 0} Siswa
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-xs font-bold border border-purple-100">
+                          {item.jumlahCabang || 0} Cabang
                         </span>
                       </td>
                     )}
 
+                    {/* Jumlah Kelas (for Admin & Wilayah) */}
+                    {(data.scopeLevel === 'GLOBAL' || data.scopeLevel === 'WILAYAH') && (
+                      <td className="px-3 py-3.5 text-center">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
+                          {item.jumlahKelas || 0} Kelas
+                        </span>
+                      </td>
+                    )}
+
+                    {/* Total Students */}
+                    <td className="px-3 py-3.5 text-center">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-brand text-xs font-bold border border-blue-100">
+                        {item.jumlahSiswa || 0} Siswa
+                      </span>
+                    </td>
+
                     {/* Week-by-Week Columns */}
-                    {isClassMode && weeksHeaderInfo.map((wHeader, wIdx) => {
+                    {weeksHeaderInfo.map((wHeader, wIdx) => {
                       const wData = item.weeks?.[wIdx];
                       const isFuture = wData?.isFuture;
 
@@ -513,7 +530,7 @@ export default function Ringkasan() {
                                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                     : 'bg-amber-50 text-amber-700 border-amber-200'
                                 }`}>
-                                  <span>Mapel: {wData.mapelCompleted}/5</span>
+                                  <span>Mapel: {wData.mapelCompleted}/{wData.mapelTarget || 5}</span>
                                   <span>({wData.persenMapel}%)</span>
                                 </div>
 
@@ -575,7 +592,7 @@ export default function Ringkasan() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={isClassMode ? (3 + weeksHeaderInfo.length) : 6} className="px-5 py-8 text-center text-slate-400 text-sm">
+                  <td colSpan={6 + weeksHeaderInfo.length} className="px-5 py-8 text-center text-slate-400 text-sm">
                     Tidak ada data {data.unitLabel.toLowerCase()} yang sesuai.
                   </td>
                 </tr>
@@ -606,10 +623,22 @@ export default function Ringkasan() {
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <span>Detail Lengkap Ketercapaian Kelas</span>
+                  <span>Detail Lengkap Ketercapaian</span>
                   <span className="px-2.5 py-0.5 text-xs rounded-full bg-brand/10 text-brand font-extrabold">{detailModalItem.name}</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-3">
+                  {detailModalItem.jumlahCabang !== undefined && detailModalItem.jumlahCabang > 0 && (
+                    <>
+                      <span>Cabang: <strong>{detailModalItem.jumlahCabang} Cabang</strong></span>
+                      <span>&bull;</span>
+                    </>
+                  )}
+                  {detailModalItem.jumlahKelas !== undefined && detailModalItem.jumlahKelas > 0 && (
+                    <>
+                      <span>Kelas: <strong>{detailModalItem.jumlahKelas} Kelas</strong></span>
+                      <span>&bull;</span>
+                    </>
+                  )}
                   <span>Jumlah Siswa: <strong>{detailModalItem.jumlahSiswa || 0} Siswa</strong></span>
                   <span>&bull;</span>
                   <span>Periode: <strong>{data.periodeLabel}</strong></span>
@@ -675,7 +704,7 @@ export default function Ringkasan() {
                 </div>
               ) : (
                 <div className="p-8 text-center text-slate-400 text-sm bg-slate-50 border border-slate-200 rounded-xl">
-                  Belum ada rincian pengerjaan mapel atau absensi untuk kelas ini di periode yang dipilih.
+                  Belum ada rincian pengerjaan mapel atau absensi di unit ini pada periode yang dipilih.
                 </div>
               )}
             </div>

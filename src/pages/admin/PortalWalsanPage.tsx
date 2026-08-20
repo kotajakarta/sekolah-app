@@ -118,11 +118,28 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
   const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'izin' | 'cctv'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Fetch Module Settings from Backend
+  const { data: moduleSettings, refetch: refetchSettings } = useQuery({
+    queryKey: ['admin-module-settings'],
+    queryFn: async () => {
+      const res = await apiClient.get('/pengaturan/modules');
+      return res.data;
+    },
+  });
+
   // CCTV Access Code PIN States
-  const [cctvPinInput, setCctvPinInput] = useState(() => localStorage.getItem('cctv_access_code') || '123456');
-  const [cctvProtectionEnabled, setCctvProtectionEnabled] = useState(() => localStorage.getItem('cctv_protection_enabled') !== 'false');
+  const [cctvPinInput, setCctvPinInput] = useState('123456');
+  const [cctvProtectionEnabled, setCctvProtectionEnabled] = useState(true);
   const [showPinText, setShowPinText] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [isSavingPin, setIsSavingPin] = useState(false);
+
+  useEffect(() => {
+    if (moduleSettings) {
+      if (moduleSettings.cctvPin !== undefined) setCctvPinInput(moduleSettings.cctvPin);
+      if (moduleSettings.cctvProtectionEnabled !== undefined) setCctvProtectionEnabled(moduleSettings.cctvProtectionEnabled);
+    }
+  }, [moduleSettings]);
 
   // Fetch CCTV Channels from DB
   const { data: dbCctvList = [] } = useQuery({
@@ -230,18 +247,6 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
       (ws.student?.biodata?.fullName || '').toLowerCase().includes(term)
     );
     return nameMatch || userMatch || studentMatch;
-  });
-  const { data: moduleSettings } = useQuery({
-    queryKey: ['module-settings'],
-    queryFn: async () => {
-      try {
-        const res = await apiClient.get('/pengaturan/modules');
-        return res.data;
-      } catch (e) {
-        return { portalWalsanEnabled: true, raporMuadalahEnabled: true };
-      }
-    },
-    staleTime: 30000,
   });
 
   if (moduleSettings && moduleSettings.portalWalsanEnabled === false) {
@@ -608,12 +613,24 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
+                  disabled={isSavingPin}
+                  onClick={async () => {
                     const newStatus = !cctvProtectionEnabled;
                     setCctvProtectionEnabled(newStatus);
-                    localStorage.setItem('cctv_protection_enabled', newStatus ? 'true' : 'false');
-                    setSaveSuccessMsg(newStatus ? 'Proteksi PIN CCTV Diaktifkan!' : 'Proteksi PIN CCTV Dinonaktifkan!');
-                    setTimeout(() => setSaveSuccessMsg(''), 3000);
+                    setIsSavingPin(true);
+                    try {
+                      await apiClient.put('/pengaturan/modules', {
+                        cctvProtectionEnabled: newStatus,
+                        cctvPin: cctvPinInput.trim(),
+                      });
+                      refetchSettings();
+                      setSaveSuccessMsg(newStatus ? 'Proteksi PIN CCTV Diaktifkan (Tersimpan di Server)!' : 'Proteksi PIN CCTV Dinonaktifkan (Tersimpan di Server)!');
+                    } catch {
+                      showToast('error', 'Gagal menyimpan pengaturan CCTV ke server');
+                    } finally {
+                      setIsSavingPin(false);
+                      setTimeout(() => setSaveSuccessMsg(''), 3000);
+                    }
                   }}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs flex items-center gap-2 ${
                     cctvProtectionEnabled
@@ -650,16 +667,30 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
 
               <div>
                 <button
-                  onClick={() => {
-                    if (!cctvPinInput.trim()) return;
-                    localStorage.setItem('cctv_access_code', cctvPinInput.trim());
-                    localStorage.setItem('cctv_protection_enabled', cctvProtectionEnabled ? 'true' : 'false');
-                    setSaveSuccessMsg('Kode PIN Akses CCTV berhasil disimpan!');
-                    setTimeout(() => setSaveSuccessMsg(''), 3000);
+                  disabled={isSavingPin}
+                  onClick={async () => {
+                    if (!cctvPinInput.trim()) {
+                      showToast('warning', 'Kode PIN tidak boleh kosong');
+                      return;
+                    }
+                    setIsSavingPin(true);
+                    try {
+                      await apiClient.put('/pengaturan/modules', {
+                        cctvProtectionEnabled,
+                        cctvPin: cctvPinInput.trim(),
+                      });
+                      refetchSettings();
+                      setSaveSuccessMsg('Kode PIN Akses CCTV berhasil disimpan ke Server!');
+                    } catch {
+                      showToast('error', 'Gagal menyimpan PIN ke server');
+                    } finally {
+                      setIsSavingPin(false);
+                      setTimeout(() => setSaveSuccessMsg(''), 3000);
+                    }
                   }}
-                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <Save className="w-4 h-4" /> Simpan Kode Akses PIN
+                  <Save className="w-4 h-4" /> {isSavingPin ? 'Menyimpan...' : 'Simpan Kode Akses PIN'}
                 </button>
               </div>
             </div>

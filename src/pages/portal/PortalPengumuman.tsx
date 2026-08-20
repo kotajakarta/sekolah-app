@@ -1,4 +1,5 @@
 import React from 'react';
+import DOMPurify from 'dompurify';
 import { usePortalStudent } from '../../features/portal/context/PortalStudentContext';
 import { useGetPengumuman } from '../../features/portal/hooks/useGetPengumuman';
 import { Megaphone, Loader2, Calendar, Bell, ExternalLink, Link2 } from 'lucide-react';
@@ -76,7 +77,7 @@ export default function PortalPengumuman() {
                   {/* HTML Content Rendering */}
                   <div
                     className="mt-3 text-xs sm:text-sm text-slate-700 leading-relaxed bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 prose prose-slate max-w-none prose-p:my-1.5 prose-ul:my-1.5 prose-li:my-0.5 prose-a:text-indigo-600 prose-a:font-semibold hover:prose-a:underline"
-                    dangerouslySetInnerHTML={{ __html: item.content }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.content) }}
                   />
 
                   {/* Links attached to announcement */}

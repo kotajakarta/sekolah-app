@@ -1,4 +1,5 @@
 import React from 'react';
+import DOMPurify from 'dompurify';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { Loader2, ExternalLink, Calendar, Info, Megaphone, Link as LinkIcon, Mail, Key } from 'lucide-react';
@@ -71,7 +72,7 @@ export default function PengumumanUmum() {
                   <h2 className="text-2xl font-bold text-slate-800 mb-6">{item.title}</h2>
                   <div
                     className="prose prose-slate max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5"
-                    dangerouslySetInnerHTML={{ __html: item.content }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.content) }}
                   />
                 </div>
 

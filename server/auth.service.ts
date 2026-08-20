@@ -2,7 +2,10 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from './db.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-pusdatin-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is not set.');
+}
 
 export const authService = {
   async login(username: string, passwordPlain: string) {

@@ -133,15 +133,25 @@ export default function PortalCctv() {
     streamUrl: c.streamUrl,
   }));
 
-  // Check protection & lock status
-  const isProtectionEnabled = localStorage.getItem('cctv_protection_enabled') !== 'false';
+  // Check protection & lock status from server
+  const { data: moduleSettings } = useQuery({
+    queryKey: ['module-settings-cctv'],
+    queryFn: async () => {
+      const res = await apiClient.get('/pengaturan/modules');
+      return res.data;
+    },
+    staleTime: 60_000,
+  });
+
+  const isProtectionEnabled = moduleSettings?.cctvProtectionEnabled !== false;
   const [isUnlocked, setIsUnlocked] = useState(
-    () => !isProtectionEnabled || localStorage.getItem('cctv_unlocked_session') === 'true'
+    () => !isProtectionEnabled || sessionStorage.getItem('cctv_unlocked_session') === 'true'
   );
 
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [showPin, setShowPin] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const [selectedChannel, setSelectedChannel] = useState<CCTVChannel | null>(null);
 
@@ -174,21 +184,32 @@ export default function PortalCctv() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleUnlock = (e: React.FormEvent) => {
+  const handleUnlock = async (e: React.FormEvent) => {
     e.preventDefault();
     setPinError('');
-    const targetCode = localStorage.getItem('cctv_access_code') || '123456';
+    if (!pinInput.trim()) {
+      setPinError('Masukkan kode PIN');
+      return;
+    }
 
-    if (pinInput.trim() === targetCode) {
-      setIsUnlocked(true);
-      localStorage.setItem('cctv_unlocked_session', 'true');
-    } else {
-      setPinError('Kode Akses PIN salah! Silakan tanyakan kode PIN ke pihak pengelola sekolah.');
+    setIsVerifying(true);
+    try {
+      const res = await apiClient.post('/pengaturan/cctv/verify-pin', { pin: pinInput.trim() });
+      if (res.data?.success) {
+        setIsUnlocked(true);
+        sessionStorage.setItem('cctv_unlocked_session', 'true');
+      } else {
+        setPinError('Kode Akses PIN salah! Silakan tanyakan kode PIN ke pihak pengelola sekolah.');
+      }
+    } catch {
+      setPinError('Gagal memverifikasi PIN. Silakan coba lagi.');
+    } finally {
+      setIsVerifying(false);
     }
   };
 
   const handleLockSession = () => {
-    localStorage.removeItem('cctv_unlocked_session');
+    sessionStorage.removeItem('cctv_unlocked_session');
     setIsUnlocked(false);
     setPinInput('');
   };
@@ -200,18 +221,6 @@ export default function PortalCctv() {
 
   const studentName = selectedLink?.student?.biodata?.fullName ?? 'Anak Anda';
   const kelasName = selectedLink?.student?.siswaFormal?.kelas?.name ?? 'Kelas Santri';
-  const { data: moduleSettings } = useQuery({
-    queryKey: ['module-settings'],
-    queryFn: async () => {
-      try {
-        const res = await apiClient.get('/pengaturan/modules');
-        return res.data;
-      } catch (e) {
-        return { portalWalsanEnabled: true, raporMuadalahEnabled: true };
-      }
-    },
-    staleTime: 30000,
-  });
 
   if (moduleSettings && moduleSettings.portalWalsanEnabled === false) {
     return (

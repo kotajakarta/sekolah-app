@@ -183,12 +183,19 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
   }, [src, autoPlay]);
 
   if (isIframe && src.includes('<iframe')) {
-    return (
-      <div
-        className="w-full h-full overflow-hidden [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:border-0"
-        dangerouslySetInnerHTML={{ __html: src }}
-      />
-    );
+    const match = src.match(/src=["']([^"']+)["']/i);
+    const iframeSrc = match ? match[1] : '';
+    if (iframeSrc && (iframeSrc.startsWith('http://') || iframeSrc.startsWith('https://') || iframeSrc.startsWith('/'))) {
+      return (
+        <iframe
+          src={iframeSrc}
+          title={title || 'CCTV Stream'}
+          className="w-full h-full border-0"
+          allow="autoplay; fullscreen"
+          sandbox="allow-scripts allow-same-origin"
+        />
+      );
+    }
   }
 
   if (isIframe && (src.includes('http') || src.includes('https'))) {

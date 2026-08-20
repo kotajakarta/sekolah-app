@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../lib/apiClient';
+import DOMPurify from 'dompurify';
 import { X, Megaphone, ExternalLink, Calendar, ArrowRight, Link2, Sparkles, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
 interface LinkItem {
@@ -121,7 +122,7 @@ export default function PengumumanPopup() {
         <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-6 bg-white">
           <div
             className="prose prose-slate max-w-none text-slate-700 text-[15px] leading-relaxed prose-headings:font-bold prose-headings:text-slate-900 prose-a:text-indigo-600 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline prose-p:my-2.5 prose-ul:my-2.5 prose-li:my-1"
-            dangerouslySetInnerHTML={{ __html: popup.content }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(popup.content) }}
           />
 
           {/* Links Grid (Enterprise Portal Style) */}

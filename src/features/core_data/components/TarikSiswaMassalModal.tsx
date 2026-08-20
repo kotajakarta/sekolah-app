@@ -33,7 +33,7 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
     const timer = setTimeout(() => {
       setDebouncedSearch(inputSearch.trim());
       setIsDebouncing(false);
-    }, 2000); // 2 detik jeda ketik
+    }, 1000); // 1 detik jeda ketik
 
     return () => {
       clearTimeout(timer);
@@ -230,7 +230,7 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
                   </label>
                   {isDebouncing ? (
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 animate-pulse">
-                      <Clock className="w-3 h-3" /> Menunggu 2 detik...
+                      <Clock className="w-3 h-3" /> Menunggu 1 detik...
                     </span>
                   ) : null}
                 </div>
@@ -303,7 +303,7 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
                 </div>
                 <h4 className="text-base font-bold text-slate-800">Cari Data Santri</h4>
                 <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                  Data santri hanya akan dimuat setelah Anda mengetik pencarian. Sistem akan memproses pencarian secara otomatis setelah Anda berhenti mengetik selama <strong>2 detik</strong>.
+                  Data santri hanya akan dimuat setelah Anda mengetik pencarian. Sistem akan memproses pencarian secara otomatis setelah Anda berhenti mengetik selama <strong>1 detik</strong> (atau tekan <strong>Enter</strong> / tombol <strong>Cari</strong>).
                 </p>
               </div>
             ) : isLoadingPool || isFetching ? (

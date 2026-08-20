@@ -554,12 +554,14 @@ export default function DataCabang() {
     }
 
     const exportData = filteredAndSortedCabang.map((item, idx) => {
-      const alamatFull = [item.alamatJalan, item.alamatKecName, item.alamatKabName, item.alamatProvName].filter(Boolean).join(', ') || '-';
-      const p = item.personel || {
-        pendidikLK: 0, pendidikPR: 0, kependidikanLK: 0, kependidikanPR: 0,
-        totalLK: 0, totalPR: 0, guruMatematika: 0, guruIndo: 0, guruInggris: 0,
-        guruIpa: 0, guruPkn: 0, totalGuruMapel: 0
-      };
+      const alamatFull = [
+        item.alamatJalan,
+        item.alamatKelName ? `KEL. ${item.alamatKelName}` : '',
+        item.alamatKecName ? `KEC. ${item.alamatKecName}` : '',
+        item.alamatKabName,
+        item.alamatProvName
+      ].filter(Boolean).join(', ') || '-';
+
       const s = item.siswaStats || {
         totalSiswa: item._count?.students || 0,
         grup: { hazirlik: 0, hafizlik: 0, ibtidai: 0, ihzari: 0 },
@@ -572,25 +574,61 @@ export default function DataCabang() {
 
       return {
         'NO': idx + 1,
-        'Wilayah': item.wilayah?.name || '-',
-        'Nama Cabang (Glodemy)': item.nameGlodemy || item.name,
-        'Nama Cabang (Resmi)': item.nameResmi || item.name,
-        'Alamat': alamatFull,
-        'Pimpinan Cabang': item.pimpinanCabang || '-',
-        'PJ Muadalah': item.pjMuadalah || '-',
-        'Total Siswa (Realisasi)': s.totalSiswa,
-        'Kapasitas Santri': item.kapasitasSantri || 0,
-        'Wustha - Tingkat 7 (Realisasi/Target)': `${s.tingkat.tingkat7} / ${t.targetTingkat7}`,
-        'Wustha - Tingkat 8 (Realisasi/Target)': `${s.tingkat.tingkat8} / ${t.targetTingkat8}`,
-        'Wustha - Tingkat 9 (Realisasi/Target)': `${s.tingkat.tingkat9} / ${t.targetTingkat9}`,
-        'Ulya - Tingkat 10 (Realisasi/Target)': `${s.tingkat.tingkat10} / ${t.targetTingkat10}`,
-        'Ulya - Tingkat 11 (Realisasi/Target)': `${s.tingkat.tingkat11} / ${t.targetTingkat11}`,
-        'Ulya - Tingkat 12 (Realisasi/Target)': `${s.tingkat.tingkat12} / ${t.targetTingkat12}`,
-        'Non Muadalah': s.tingkat.sekolahLain || 0,
+        'WILAYAH': (item.wilayah?.name || '-').toUpperCase(),
+        'NAMA CABANG (GLODEMY)': (item.nameGlodemy || item.name || '-').toUpperCase(),
+        'NAMA CABANG (RESMI)': (item.nameResmi || item.name || '-').toUpperCase(),
+        'ALAMAT JALAN': (item.alamatJalan || '-').toUpperCase(),
+        'KELURAHAN / DESA': (item.alamatKelName || '-').toUpperCase(),
+        'KECAMATAN': (item.alamatKecName || '-').toUpperCase(),
+        'KABUPATEN / KOTA': (item.alamatKabName || '-').toUpperCase(),
+        'PROVINSI': (item.alamatProvName || '-').toUpperCase(),
+        'ALAMAT LENGKAP': alamatFull.toUpperCase(),
+        'URL GOOGLE MAPS': item.urlGoogleMaps || '-',
+        'PIMPINAN CABANG': (item.pimpinanCabang || '-').toUpperCase(),
+        'PJ MUADALAH': (item.pjMuadalah || '-').toUpperCase(),
+        'STATUS BANGUNAN': (item.statusBangunan || '-').toUpperCase(),
+        'STATUS TANAH': (item.statusTanah || '-').toUpperCase(),
+        'TOTAL SISWA (REALISASI)': s.totalSiswa,
+        'KAPASITAS SANTRI': item.kapasitasSantri || 0,
+        'WUSTHA - TINGKAT 7 (REALISASI/TARGET)': `${s.tingkat.tingkat7} / ${t.targetTingkat7}`,
+        'WUSTHA - TINGKAT 8 (REALISASI/TARGET)': `${s.tingkat.tingkat8} / ${t.targetTingkat8}`,
+        'WUSTHA - TINGKAT 9 (REALISASI/TARGET)': `${s.tingkat.tingkat9} / ${t.targetTingkat9}`,
+        'ULYA - TINGKAT 10 (REALISASI/TARGET)': `${s.tingkat.tingkat10} / ${t.targetTingkat10}`,
+        'ULYA - TINGKAT 11 (REALISASI/TARGET)': `${s.tingkat.tingkat11} / ${t.targetTingkat11}`,
+        'ULYA - TINGKAT 12 (REALISASI/TARGET)': `${s.tingkat.tingkat12} / ${t.targetTingkat12}`,
+        'NON MUADALAH': s.tingkat.sekolahLain || 0,
       };
     });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const colWidths = [
+      { wch: 6 },  // NO
+      { wch: 20 }, // WILAYAH
+      { wch: 30 }, // NAMA CABANG (GLODEMY)
+      { wch: 30 }, // NAMA CABANG (RESMI)
+      { wch: 35 }, // ALAMAT JALAN
+      { wch: 22 }, // KELURAHAN / DESA
+      { wch: 22 }, // KECAMATAN
+      { wch: 24 }, // KABUPATEN / KOTA
+      { wch: 22 }, // PROVINSI
+      { wch: 50 }, // ALAMAT LENGKAP
+      { wch: 35 }, // URL GOOGLE MAPS
+      { wch: 26 }, // PIMPINAN CABANG
+      { wch: 26 }, // PJ MUADALAH
+      { wch: 20 }, // STATUS BANGUNAN
+      { wch: 20 }, // STATUS TANAH
+      { wch: 24 }, // TOTAL SISWA (REALISASI)
+      { wch: 18 }, // KAPASITAS SANTRI
+      { wch: 26 }, // WUSTHA - TINGKAT 7 (REALISASI/TARGET)
+      { wch: 26 }, // WUSTHA - TINGKAT 8 (REALISASI/TARGET)
+      { wch: 26 }, // WUSTHA - TINGKAT 9 (REALISASI/TARGET)
+      { wch: 26 }, // ULYA - TINGKAT 10 (REALISASI/TARGET)
+      { wch: 26 }, // ULYA - TINGKAT 11 (REALISASI/TARGET)
+      { wch: 26 }, // ULYA - TINGKAT 12 (REALISASI/TARGET)
+      { wch: 16 }, // NON MUADALAH
+    ];
+    worksheet['!cols'] = colWidths;
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Cabang');
     
@@ -1240,32 +1278,38 @@ export default function DataCabang() {
                                 {(() => {
                                   const parts = [
                                     item.alamatJalan,
-                                    item.alamatKelName ? `Kel. ${item.alamatKelName}` : '',
-                                    item.alamatKecName ? `Kec. ${item.alamatKecName}` : '',
+                                    item.alamatKelName ? `KEL. ${item.alamatKelName}` : '',
+                                    item.alamatKecName ? `KEC. ${item.alamatKecName}` : '',
                                     item.alamatKabName,
                                     item.alamatProvName
                                   ].filter(Boolean);
-                                  const addressStr = parts.join(', ');
+                                  const addressStr = parts.join(', ').toUpperCase();
+                                  const cabangName = (item.nameGlodemy || item.name || '').toUpperCase();
 
                                   const handleCopy = (e: React.MouseEvent) => {
                                     e.stopPropagation();
-                                    const textToCopy = item.urlGoogleMaps ? `${addressStr}\nGoogle Maps: ${item.urlGoogleMaps}` : addressStr;
+                                    const lines = [
+                                      cabangName,
+                                      addressStr,
+                                      item.urlGoogleMaps ? `Google Maps: ${item.urlGoogleMaps}` : ''
+                                    ].filter(Boolean);
+                                    const textToCopy = lines.join('\n');
                                     navigator.clipboard.writeText(textToCopy);
-                                    showToast('success', 'Alamat cabang berhasil disalin!');
+                                    showToast('success', 'Nama dan alamat cabang berhasil disalin!');
                                   };
 
                                   return (
                                     <div className="space-y-1">
                                       <div className="flex items-start justify-between gap-2">
-                                        <span className="text-xs text-slate-700 font-medium leading-relaxed">
+                                        <span className="text-xs text-slate-700 font-medium leading-relaxed uppercase">
                                           {addressStr || '-'}
                                         </span>
-                                        {addressStr && (
+                                        {(cabangName || addressStr) && (
                                           <button
                                             type="button"
                                             onClick={handleCopy}
-                                            title="Salin alamat ke clipboard"
-                                            className="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-indigo-600 transition-colors shrink-0"
+                                            title="Salin nama & alamat cabang ke clipboard"
+                                            className="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-indigo-600 transition-colors shrink-0 cursor-pointer"
                                           >
                                             <Copy className="w-3.5 h-3.5" />
                                           </button>

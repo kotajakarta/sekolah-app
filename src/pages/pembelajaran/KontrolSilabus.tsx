@@ -4,7 +4,7 @@ import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import {
   Loader2, Save, AlertCircle, CheckCircle, Info, ClipboardList, ChevronLeft, ChevronRight,
-  Calendar, Layers, CheckCircle2, UserCheck, Zap, Sparkles
+  Calendar, Layers, CheckCircle2, UserCheck, Zap, Sparkles, Trash2
 } from 'lucide-react';
 import AbsensiSilabusModal from './AbsensiSilabusModal';
 
@@ -282,19 +282,22 @@ export default function KontrolSilabus() {
 
   useEffect(() => {
     if (dailyData?.classes) {
-      const initial: Record<string, { status: 'PENDING' | 'COMPLETED' | 'LIBUR'; guruId: string | null; catatan: string; silabusId: string | null }> = {};
-      dailyData.classes.forEach(c => {
-        c.mapels.forEach(m => {
-          const key = `${c.kelasId}__${m.mataPelajaranId}`;
-          initial[key] = {
-            status: m.status,
-            guruId: m.guruId || m.defaultGuruId,
-            catatan: m.catatan || '',
-            silabusId: m.silabusId
-          };
+      setDailyFormState(prev => {
+        const next = { ...prev };
+        dailyData.classes.forEach(c => {
+          c.mapels.forEach(m => {
+            const key = `${c.kelasId}__${m.mataPelajaranId}`;
+            const existing = next[key];
+            next[key] = {
+              status: m.status !== 'PENDING' ? m.status : (existing?.status || 'PENDING'),
+              guruId: existing?.guruId || m.guruId || m.defaultGuruId,
+              catatan: existing?.catatan || m.catatan || '',
+              silabusId: existing?.silabusId || m.silabusId
+            };
+          });
         });
+        return next;
       });
-      setDailyFormState(initial);
       setDailySavedSuccess(false);
     }
   }, [dailyData]);
@@ -370,6 +373,28 @@ export default function KontrolSilabus() {
       return next;
     });
     setDailySavedSuccess(false);
+  };
+
+  const handleResetDailyAbsensi = async (kelasId: string, silabusId: string, mataPelajaranId: string, mapelName: string, kelasName: string) => {
+    if (isFutureDate(selectedDate)) return;
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus / mereset data absensi mapel "${mapelName}" untuk kelas "${kelasName}" pada tanggal ini?`)) {
+      return;
+    }
+
+    try {
+      await apiClient.delete('/pembelajaran/absensi-mapel', {
+        params: {
+          kelasId,
+          silabusId: silabusId || undefined,
+          mataPelajaranId,
+          tanggal: selectedDate
+        }
+      });
+      refetchDaily();
+      invalidateDependents();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Gagal menghapus data absensi');
+    }
   };
 
   // ── Single Class & Mapel Mode Fetching ──
@@ -796,9 +821,9 @@ export default function KontrolSilabus() {
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-slate-50/40 text-slate-500 font-semibold border-b border-slate-100 uppercase tracking-wider text-[11px]">
-                          <th className="px-4 py-2.5 w-1/4">Mata Pelajaran &amp; Materi Target</th>
-                          <th className="px-4 py-2.5 w-1/4">Guru Pengajar</th>
                           <th className="px-4 py-2.5 w-1/4 text-center">Status Pelaksanaan</th>
+                          <th className="px-4 py-2.5 w-1/3">Mata Pelajaran &amp; Materi Target</th>
+                          <th className="px-4 py-2.5 w-1/4">Guru Pengajar</th>
                           <th className="px-4 py-2.5 w-1/4 text-center">Absensi Siswa</th>
                         </tr>
                       </thead>
@@ -808,49 +833,12 @@ export default function KontrolSilabus() {
                             const formKey = `${cls.kelasId}__${m.mataPelajaranId}`;
                             const currentForm = dailyFormState[formKey] || { status: m.status, guruId: m.guruId || m.defaultGuruId, silabusId: m.silabusId };
                             const isFuture = isFutureDate(selectedDate);
+                            const isCompleted = currentForm.status === 'COMPLETED';
+                            const isFieldDisabled = !isCompleted || isFuture;
 
                             return (
-                              <tr key={m.mataPelajaranId} className="hover:bg-slate-50/60 transition-colors">
-                                {/* Mapel & Selectable Silabus Target */}
-                                <td className="px-4 py-3">
-                                  <div className="font-bold text-slate-900 text-xs">{m.mataPelajaranName}</div>
-                                  {m.silabusOptions && m.silabusOptions.length > 0 ? (
-                                    <select
-                                      value={currentForm.silabusId || ''}
-                                      onChange={e => handleDailySilabusChange(cls.kelasId, m.mataPelajaranId, e.target.value)}
-                                      disabled={isFuture || currentForm.status === 'LIBUR'}
-                                      className="mt-1 w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium text-[11px] focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50"
-                                    >
-                                      <option value="">-- Pilih Materi Target --</option>
-                                      {m.silabusOptions.map(opt => (
-                                        <option key={opt.silabusId} value={opt.silabusId}>
-                                          {opt.bab} — {opt.section}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  ) : (
-                                    <div className="text-[11px] text-slate-400 mt-0.5 font-medium italic">
-                                      {m.bab ? `${m.bab} — ${m.section}` : 'Materi silabus belum diset'}
-                                    </div>
-                                  )}
-                                </td>
-
-                                {/* Guru Selection Dropdown */}
-                                <td className="px-4 py-3">
-                                  <select
-                                    value={currentForm.guruId || ''}
-                                    onChange={e => handleDailyGuruChange(cls.kelasId, m.mataPelajaranId, e.target.value)}
-                                    disabled={isFuture}
-                                    className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-semibold text-xs focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-60"
-                                  >
-                                    <option value="">-- Pilih Guru --</option>
-                                    {guruOptions.map(g => (
-                                      <option key={g.id} value={g.id}>{g.name}</option>
-                                    ))}
-                                  </select>
-                                </td>
-
-                                {/* Status Execution Buttons */}
+                              <tr key={m.mataPelajaranId} className={`transition-colors ${isCompleted ? 'hover:bg-slate-50/60' : 'bg-slate-50/30 text-slate-400'}`}>
+                                {/* 1. Status Execution Buttons (FIRST COLUMN) */}
                                 <td className="px-4 py-3 text-center">
                                   <div className="flex items-center justify-center gap-1">
                                     {STATUS_OPTIONS.map(opt => {
@@ -872,38 +860,114 @@ export default function KontrolSilabus() {
                                   </div>
                                 </td>
 
-                                {/* Absensi Siswa Action Button */}
-                                <td className="px-4 py-3 text-center">
-                                  <div className="flex items-center justify-center gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => setAbsensiTarget({
-                                        kelasId: cls.kelasId,
-                                        kelasName: cls.kelasName,
-                                        silabusId: currentForm.silabusId || m.silabusId || '',
-                                        tanggal: selectedDate
-                                      })}
-                                      disabled={(!currentForm.silabusId && !m.silabusId) || currentForm.status === 'LIBUR'}
-                                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs border transition-all disabled:opacity-40 ${
-                                        m.absensiSummary && m.absensiSummary.total > 0
-                                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100 shadow-xs'
-                                          : 'bg-blue-50 text-brand border-blue-100 hover:bg-blue-100'
+                                {/* 2. Mapel & Selectable Silabus Target (SECOND COLUMN) */}
+                                <td className="px-4 py-3">
+                                  <div className={`font-bold text-xs ${isCompleted ? 'text-slate-900' : 'text-slate-600'}`}>{m.mataPelajaranName}</div>
+                                  {m.silabusOptions && m.silabusOptions.length > 0 ? (
+                                    <select
+                                      value={currentForm.silabusId || ''}
+                                      onChange={e => handleDailySilabusChange(cls.kelasId, m.mataPelajaranId, e.target.value)}
+                                      disabled={isFieldDisabled}
+                                      className={`mt-1 w-full px-2.5 py-1.5 rounded-xl border text-[11px] transition-all focus:outline-none ${
+                                        isFieldDisabled
+                                          ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                                          : 'bg-slate-50 border-slate-200 text-slate-800 font-semibold focus:ring-1 focus:ring-brand'
                                       }`}
-                                      title={
-                                        m.absensiSummary && m.absensiSummary.total > 0
-                                          ? `Absensi Terisi: ${m.absensiSummary.hadir} Hadir, ${m.absensiSummary.sakit} Sakit, ${m.absensiSummary.izin} Izin, ${m.absensiSummary.alpa} Alpa`
-                                          : 'Input Absensi Siswa'
-                                      }
+                                      title={!isCompleted ? 'Pilih status Dikerjakan terlebih dahulu' : 'Pilih Materi Target'}
                                     >
-                                      <ClipboardList className="w-3.5 h-3.5 shrink-0" />
-                                      {m.absensiSummary && m.absensiSummary.total > 0 ? (
-                                        <span>
-                                          H: {m.absensiSummary.hadir}, S: {m.absensiSummary.sakit}, I: {m.absensiSummary.izin}, A: {m.absensiSummary.alpa}
-                                        </span>
-                                      ) : (
-                                        <span>Input Absensi</span>
-                                      )}
-                                    </button>
+                                      <option value="">-- Pilih Materi Target --</option>
+                                      {m.silabusOptions.map(opt => (
+                                        <option key={opt.silabusId} value={opt.silabusId}>
+                                          {opt.bab} — {opt.section}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <div className="text-[11px] text-slate-400 mt-0.5 font-medium italic">
+                                      {m.bab ? `${m.bab} — ${m.section}` : 'Materi silabus belum diset'}
+                                    </div>
+                                  )}
+                                </td>
+
+                                {/* 3. Guru Selection Dropdown (THIRD COLUMN) */}
+                                <td className="px-4 py-3">
+                                  <select
+                                    value={currentForm.guruId || ''}
+                                    onChange={e => handleDailyGuruChange(cls.kelasId, m.mataPelajaranId, e.target.value)}
+                                    disabled={isFieldDisabled}
+                                    className={`w-full px-2.5 py-1.5 rounded-xl border text-xs transition-all focus:outline-none ${
+                                      isFieldDisabled
+                                        ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
+                                        : 'bg-slate-50 border-slate-200 text-slate-700 font-semibold focus:ring-1 focus:ring-brand'
+                                    }`}
+                                    title={!isCompleted ? 'Pilih status Dikerjakan terlebih dahulu' : 'Pilih Guru Pengajar'}
+                                  >
+                                    <option value="">-- Pilih Guru --</option>
+                                    {guruOptions.map(g => (
+                                      <option key={g.id} value={g.id}>{g.name}</option>
+                                    ))}
+                                  </select>
+                                </td>
+
+                                {/* 4. Absensi Siswa Action Button (FOURTH COLUMN) */}
+                                <td className="px-4 py-3 text-center">
+                                  <div className="flex items-center justify-center gap-1.5">
+                                    {(() => {
+                                      const isBtnDisabled = !isCompleted || (!currentForm.silabusId && !m.silabusId) || isFuture;
+
+                                      return (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={() => setAbsensiTarget({
+                                              kelasId: cls.kelasId,
+                                              kelasName: cls.kelasName,
+                                              silabusId: currentForm.silabusId || m.silabusId || '',
+                                              tanggal: selectedDate
+                                            })}
+                                            disabled={isBtnDisabled}
+                                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs border transition-all ${
+                                              isBtnDisabled
+                                                ? 'bg-slate-100 text-slate-400 border-slate-200 opacity-50 cursor-not-allowed'
+                                                : m.absensiSummary && m.absensiSummary.total > 0
+                                                  ? 'bg-white text-slate-800 border-slate-200 hover:border-slate-300 shadow-xs'
+                                                  : 'bg-blue-50 text-brand border-blue-100 hover:bg-blue-100'
+                                            }`}
+                                            title={
+                                              !isCompleted
+                                                ? 'Absensi hanya aktif dan bisa diisi jika status pelaksanaan: Dikerjakan'
+                                                : m.absensiSummary && m.absensiSummary.total > 0
+                                                  ? `Absensi Terisi: ${m.absensiSummary.hadir} Hadir, ${m.absensiSummary.izin} Izin, ${m.absensiSummary.sakit} Sakit, ${m.absensiSummary.alpa} Alpa`
+                                                  : 'Input Absensi Siswa'
+                                            }
+                                          >
+                                            <ClipboardList className={`w-3.5 h-3.5 shrink-0 ${isBtnDisabled ? 'text-slate-400' : 'text-brand'}`} />
+                                            {m.absensiSummary && m.absensiSummary.total > 0 ? (
+                                              <span className="flex items-center gap-1 text-[11px]">
+                                                <span className="text-emerald-700 font-extrabold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">H: {m.absensiSummary.hadir}</span>
+                                                <span className="text-blue-700 font-extrabold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">I: {m.absensiSummary.izin}</span>
+                                                <span className="text-purple-700 font-extrabold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">S: {m.absensiSummary.sakit}</span>
+                                                <span className="text-rose-700 font-extrabold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">A: {m.absensiSummary.alpa}</span>
+                                              </span>
+                                            ) : (
+                                              <span>Input Absensi</span>
+                                            )}
+                                          </button>
+
+                                          {/* Quick Reset / Delete Attendance Button */}
+                                          {m.absensiSummary && m.absensiSummary.total > 0 && !isFuture && (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleResetDailyAbsensi(cls.kelasId, currentForm.silabusId || m.silabusId || '', m.mataPelajaranId, m.mataPelajaranName, cls.kelasName)}
+                                              className="p-1.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:border-rose-300 transition-all shrink-0 shadow-2xs"
+                                              title={`Reset / Hapus seluruh data absensi ${m.mataPelajaranName}`}
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                 </td>
                               </tr>
@@ -1059,12 +1123,13 @@ export default function KontrolSilabus() {
                           <button
                             type="button"
                             onClick={() => assigned?.silabusId && setAbsensiTarget({ kelasId: selectedKelas, silabusId: assigned.silabusId, tanggal: date })}
-                            disabled={!assigned || !assigned.silabusId || assigned.status === 'LIBUR'}
+                            disabled={!assigned || !assigned.silabusId || assigned.status !== 'COMPLETED' || future}
                             className="flex-1 lg:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl text-white bg-brand hover:bg-blue-700 transition-colors disabled:opacity-40"
+                            title={assigned?.status !== 'COMPLETED' ? 'Absensi hanya aktif jika status pelaksanaan Dikerjakan' : 'Input Absensi'}
                           >
                             <ClipboardList className="w-3.5 h-3.5" /> Absensi
                           </button>
-                          {assigned && assigned.silabusId && assigned.status !== 'LIBUR' && (
+                          {assigned && assigned.silabusId && assigned.status === 'COMPLETED' && (
                             <span
                               className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-semibold text-center ${
                                 assigned.hasAbsensi ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
@@ -1187,9 +1252,12 @@ export default function KontrolSilabus() {
           onSaved={() => {
             if (viewMode === 'daily') {
               refetchDaily();
+              invalidateDependents();
             } else {
               const key = `${selectedMapel}__${absensiTarget.tanggal}`;
-              setExecutions(prev => prev[key] ? { ...prev, [key]: { ...prev[key], hasAbsensi: true } } : prev);
+              setExecutions(prev => prev[key] ? { ...prev, [key]: { ...prev[key], hasAbsensi: true, status: 'COMPLETED' } } : prev);
+              refetchSingle();
+              invalidateDependents();
             }
           }}
         />

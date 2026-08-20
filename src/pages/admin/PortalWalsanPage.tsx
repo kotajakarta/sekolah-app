@@ -415,7 +415,7 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
           </button>
         )}
 
-        {(user?.scope !== 'CABANG' || moduleSettings?.cabangCctvEnabled !== false) && (
+        {(user?.scope === 'GLOBAL' || (moduleSettings?.walsanCctvEnabled !== false && moduleSettings?.cabangCctvEnabled !== false)) && (
           <button
             onClick={() => setActiveTab('cctv')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -552,49 +552,61 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
             </div>
 
             {/* MONITORING CCTV EMBED (DYNAMIC FROM DB) */}
-            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                  <Video className="w-5 h-5 text-indigo-600" /> Pemantauan CCTV Realtime ({activeCctvFeeds.length})
-                </h3>
-                <button
-                  onClick={() => setActiveTab('cctv')}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
-                >
-                  Buka Full CCTV <ExternalLink className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                {activeCctvFeeds.slice(0, 4).map((feed) => (
-                  <div
-                    key={feed.id}
-                    onClick={() => {
-                      setSelectedCctv(feed);
-                      setActiveTab('cctv');
-                    }}
-                    className="relative aspect-video rounded-2xl overflow-hidden group cursor-pointer border border-slate-200 bg-slate-950"
+            {(user?.scope === 'GLOBAL' || (moduleSettings?.walsanCctvEnabled !== false && moduleSettings?.cabangCctvEnabled !== false)) ? (
+              <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <Video className="w-5 h-5 text-indigo-600" /> Pemantauan CCTV Realtime ({activeCctvFeeds.length})
+                  </h3>
+                  <button
+                    onClick={() => setActiveTab('cctv')}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
                   >
-                    <HlsPlayer
-                      src={feed.streamUrl || 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8'}
-                      poster={feed.bg}
-                      controls={false}
-                      title={feed.name}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none"></div>
-                    <div className="absolute top-2 left-2 flex items-center gap-1 pointer-events-none">
-                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-                      <span className="text-[9px] font-bold text-white bg-slate-900/70 px-1.5 py-0.5 rounded-md backdrop-blur-xs">
-                        LIVE
-                      </span>
+                    Buka Full CCTV <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {activeCctvFeeds.slice(0, 4).map((feed) => (
+                    <div
+                      key={feed.id}
+                      onClick={() => {
+                        setSelectedCctv(feed);
+                        setActiveTab('cctv');
+                      }}
+                      className="relative aspect-video rounded-2xl overflow-hidden group cursor-pointer border border-slate-200 bg-slate-950"
+                    >
+                      <HlsPlayer
+                        src={feed.streamUrl || 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8'}
+                        poster={feed.bg}
+                        controls={false}
+                        title={feed.name}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent pointer-events-none"></div>
+                      <div className="absolute top-2 left-2 flex items-center gap-1 pointer-events-none">
+                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                        <span className="text-[9px] font-bold text-white bg-slate-900/70 px-1.5 py-0.5 rounded-md backdrop-blur-xs">
+                          LIVE
+                        </span>
+                      </div>
+                      <p className="absolute bottom-2 left-2 text-[10px] font-bold text-white truncate max-w-[90%] pointer-events-none">
+                        {feed.name}
+                      </p>
                     </div>
-                    <p className="absolute bottom-2 left-2 text-[10px] font-bold text-white truncate max-w-[90%] pointer-events-none">
-                      {feed.name}
-                    </p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 flex flex-col items-center justify-center text-center space-y-2">
+                <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">
+                  <Video className="w-5 h-5" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-800">Live CCTV Dinonaktifkan</h3>
+                <p className="text-xs text-slate-400 max-w-xs">
+                  Pemantauan CCTV live saat ini dinonaktifkan oleh Administrator Pusat.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -845,6 +857,17 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
 
       {/* ── TAB 4: LIVE CCTV STREAMING ── */}
       {activeTab === 'cctv' && (
+        (user?.scope !== 'GLOBAL' && (moduleSettings?.walsanCctvEnabled === false || moduleSettings?.cabangCctvEnabled === false)) ? (
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-10 text-center space-y-3">
+            <div className="w-14 h-14 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-xs">
+              <ShieldAlert className="w-7 h-7" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900">Fitur Live CCTV Streaming Dinonaktifkan</h3>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+              Akses live streaming kamera CCTV untuk Cabang dan Wali Santri saat ini sedang dinonaktifkan oleh Administrator Pusat di Pengaturan Menu Sistem.
+            </p>
+          </div>
+        ) : (
         <div className="space-y-6">
           {/* CCTV ACCESS CODE CONFIGURATION FOR ADMIN */}
           <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 rounded-3xl p-6 text-white shadow-lg space-y-4 border border-indigo-700/40">
@@ -1068,6 +1091,7 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
             )}
           </div>
         </div>
+        )
       )}
 
       {/* ── TAB 5: KELOLA PENGUMUMAN WALSAN (PUSAT & CABANG) ── */}
@@ -1145,25 +1169,28 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                       <Video className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-800 text-xs sm:text-sm">Menu Live CCTV Streaming</h4>
+                      <h4 className="font-bold text-slate-800 text-xs sm:text-sm">Menu Live CCTV Streaming (Walsan & Cabang)</h4>
                       <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
-                        Menampilkan tab pemantauan CCTV langsung di portal wali santri.
+                        Menampilkan pemantauan CCTV untuk Wali Santri di portal dan Staf Cabang di dashboard. Jika dinonaktifkan, akses CCTV di portal dan cabang akan otomatis dinonaktifkan.
                       </p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => {
-                      const currentVal = moduleSettings?.walsanCctvEnabled !== false;
-                      updateModuleMutation.mutate({ walsanCctvEnabled: !currentVal });
+                      const isCurrentlyEnabled = moduleSettings?.walsanCctvEnabled !== false && moduleSettings?.cabangCctvEnabled !== false;
+                      updateModuleMutation.mutate({
+                        walsanCctvEnabled: !isCurrentlyEnabled,
+                        cabangCctvEnabled: !isCurrentlyEnabled,
+                      });
                     }}
                     className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
-                      moduleSettings?.walsanCctvEnabled !== false
+                      (moduleSettings?.walsanCctvEnabled !== false && moduleSettings?.cabangCctvEnabled !== false)
                         ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                         : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
                     }`}
                   >
-                    {moduleSettings?.walsanCctvEnabled !== false ? 'Aktif' : 'Nonaktif'}
+                    {(moduleSettings?.walsanCctvEnabled !== false && moduleSettings?.cabangCctvEnabled !== false) ? 'Aktif' : 'Nonaktif'}
                   </button>
                 </div>
 
@@ -1317,17 +1344,24 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                     </div>
                     <button
                       type="button"
+                      disabled={moduleSettings?.walsanCctvEnabled === false}
                       onClick={() => {
                         const currentVal = moduleSettings?.cabangCctvEnabled !== false;
                         updateModuleMutation.mutate({ cabangCctvEnabled: !currentVal });
                       }}
                       className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
-                        moduleSettings?.cabangCctvEnabled !== false
-                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                          : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                        moduleSettings?.walsanCctvEnabled === false
+                          ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                          : moduleSettings?.cabangCctvEnabled !== false
+                            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                            : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
                       }`}
                     >
-                      {moduleSettings?.cabangCctvEnabled !== false ? 'Diizinkan' : 'Dibatasi'}
+                      {moduleSettings?.walsanCctvEnabled === false
+                        ? 'Dinonaktifkan Global'
+                        : moduleSettings?.cabangCctvEnabled !== false
+                          ? 'Diizinkan'
+                          : 'Dibatasi'}
                     </button>
                   </div>
 

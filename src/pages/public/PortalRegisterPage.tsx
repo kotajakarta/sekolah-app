@@ -130,8 +130,8 @@ export default function PortalRegisterPage() {
       return;
     }
 
-    if (!namaWalsan.trim() || !username.trim() || !password || !confirmPassword) {
-      setSubmitError('Harap lengkapi semua kolom yang wajib diisi.');
+    if (!namaWalsan.trim() || !phone.trim() || !username.trim() || !password || !confirmPassword) {
+      setSubmitError('Harap lengkapi semua kolom yang wajib diisi, termasuk Nomor WhatsApp / HP.');
       return;
     }
 
@@ -157,7 +157,7 @@ export default function PortalRegisterPage() {
         namaWalsan: namaWalsan.trim(),
         nikWalsan: nikWalsan.trim() || undefined,
         hubungan,
-        phone: phone.trim() || undefined,
+        phone: phone.trim(),
         username: username.trim().toLowerCase(),
         password,
       });
@@ -434,10 +434,11 @@ export default function PortalRegisterPage() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
-                    No. WhatsApp / HP <span className="text-slate-400 font-normal">(Opsional)</span>
+                    No. WhatsApp / HP <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="tel"
+                    required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="Contoh: 08123456789"

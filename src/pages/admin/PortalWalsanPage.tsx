@@ -128,7 +128,7 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
   });
 
   // CCTV Access Code PIN States
-  const [cctvPinInput, setCctvPinInput] = useState('123456');
+  const [cctvPinInput, setCctvPinInput] = useState('');
   const [cctvProtectionEnabled, setCctvProtectionEnabled] = useState(true);
   const [showPinText, setShowPinText] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
@@ -621,7 +621,6 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                     try {
                       await apiClient.put('/pengaturan/modules', {
                         cctvProtectionEnabled: newStatus,
-                        cctvPin: cctvPinInput.trim(),
                       });
                       refetchSettings();
                       setSaveSuccessMsg(newStatus ? 'Proteksi PIN CCTV Diaktifkan (Tersimpan di Server)!' : 'Proteksi PIN CCTV Dinonaktifkan (Tersimpan di Server)!');

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { AlertCircle, RefreshCw, Radio, ExternalLink } from 'lucide-react';
-import { decryptStreamUrlAsync, maskStreamUrl } from '../../utils/cctvCrypto';
+import { maskStreamUrl } from '../../utils/cctvCrypto';
 
 interface HlsPlayerProps {
   src: string;
@@ -29,11 +29,13 @@ export const HlsPlayer: React.FC<HlsPlayerProps> = ({
   const [isIframe, setIsIframe] = useState<boolean>(false);
   const [realStreamUrl, setRealStreamUrl] = useState<string>('');
 
-  // Dynamically load hls.js@latest from CDN as ultra-resilient fallback if needed
+  // Dynamically load hls.js@1.6.16 from CDN as ultra-resilient fallback if needed
   useEffect(() => {
     if (typeof window !== 'undefined' && !(window as any).Hls) {
       const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/hls.js@latest/dist/hls.min.js';
+      script.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.6.16/dist/hls.min.js';
+      script.integrity = 'sha384-5E8B0pTlZZJMabWpC0fyYf6OUpe15jJij34BqBAh4NXoHAlLNOjCPRrwtOXOQFAn';
+      script.crossOrigin = 'anonymous';
       script.async = true;
       document.head.appendChild(script);
     }

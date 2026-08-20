@@ -10,7 +10,7 @@ import MobileBottomNav from './components/Layout/MobileBottomNav';
 import HeaderSearch from './components/Layout/HeaderSearch';
 import { GlobalSearch } from './components/Layout/GlobalSearch';
 import { Bell, Search, UserCircle, LogOut, Loader2, Sparkles, LifeBuoy, CheckCircle, Globe, ChevronDown, Check } from 'lucide-react';
-import { useAuth, AuthProvider } from './hooks/useAuth';
+import { useAuth, AuthProvider, type AuthUser } from './hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import Select from 'react-select';
 import { ToastProvider } from './contexts/ToastContext';
@@ -119,6 +119,24 @@ const WaliRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (user.scope !== 'WALI') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const ScopeRoute = ({ allowed, children }: { allowed: Array<AuthUser['scope']>; children: React.ReactNode }) => {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user || !allowed.includes(user.scope)) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -499,13 +517,13 @@ export default function App() {
               <Route path="formal/penugasan-guru" element={<PenugasanGuru />} />
               <Route path="pembelajaran" element={<KontrolPembelajaran />} />
               <Route path="formal/rapor" element={<ERaporPage />} />
-              <Route path="settings/users" element={<UsersWilayah />} />
-              <Route path="settings/sync" element={<Sinkronisasi />} />
-              <Route path="settings/akademik" element={<PengaturanAkademik />} />
-              <Route path="settings/pengumuman" element={<KelolaPengumuman />} />
-              <Route path="settings/kalender" element={<KelolaKalender />} />
-              <Route path="settings/keaktifan-mapel" element={<KeaktifanMapel />} />
-              <Route path="settings/faq" element={<KelolaFaq />} />
+              <Route path="settings/users" element={<ScopeRoute allowed={['GLOBAL']}><UsersWilayah /></ScopeRoute>} />
+              <Route path="settings/sync" element={<ScopeRoute allowed={['GLOBAL']}><Sinkronisasi /></ScopeRoute>} />
+              <Route path="settings/akademik" element={<ScopeRoute allowed={['GLOBAL']}><PengaturanAkademik /></ScopeRoute>} />
+              <Route path="settings/pengumuman" element={<ScopeRoute allowed={['GLOBAL']}><KelolaPengumuman /></ScopeRoute>} />
+              <Route path="settings/kalender" element={<ScopeRoute allowed={['GLOBAL']}><KelolaKalender /></ScopeRoute>} />
+              <Route path="settings/keaktifan-mapel" element={<ScopeRoute allowed={['GLOBAL']}><KeaktifanMapel /></ScopeRoute>} />
+              <Route path="settings/faq" element={<ScopeRoute allowed={['GLOBAL']}><KelolaFaq /></ScopeRoute>} />
               <Route path="dashboard/ketersediaan-guru" element={<KetersediaanGuruMapel />} />
               <Route path="absensi/siswa" element={<AbsensiSiswa />} />
               <Route path="absensi/guru" element={<AbsensiGuru />} />

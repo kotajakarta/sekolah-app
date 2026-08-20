@@ -23,7 +23,8 @@ apiClient.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
       if (typeof document !== 'undefined' && !document.cookie.includes(`token=${token}`)) {
-        document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax`;
+        const secureFlag = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Lax${secureFlag}`;
       }
     } else if (!token && typeof document !== 'undefined' && document.cookie.includes('token=')) {
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';

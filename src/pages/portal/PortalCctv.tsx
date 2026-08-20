@@ -106,7 +106,24 @@ const CCTV_CHANNELS: CCTVChannel[] = [
 export default function PortalCctv() {
   const { selectedLink } = usePortalStudent();
 
-  // Fetch active CCTV channels configured by Cabang
+  // Check protection & lock status from server
+  const { data: moduleSettings } = useQuery({
+    queryKey: ['module-settings-cctv'],
+    queryFn: async () => {
+      const res = await apiClient.get('/pengaturan/modules');
+      return res.data;
+    },
+    staleTime: 60_000,
+  });
+
+  const isProtectionEnabled = moduleSettings?.cctvProtectionEnabled !== false;
+  const [isUnlocked, setIsUnlocked] = useState(
+    () => !isProtectionEnabled || sessionStorage.getItem('cctv_unlocked_session') === 'true'
+  );
+
+  // Fetch active CCTV channels configured by Cabang — deliberately withheld until the PIN
+  // gate is passed, otherwise the stream-proxy token would already be sitting in the
+  // network tab / query cache before the PIN screen is ever dismissed.
   const { data: dbChannels = [] } = useQuery({
     queryKey: ['portal-cctv-channels', selectedLink?.studentId],
     queryFn: async () => {
@@ -115,7 +132,7 @@ export default function PortalCctv() {
       });
       return res.data;
     },
-    enabled: !!selectedLink?.studentId,
+    enabled: !!selectedLink?.studentId && (!isProtectionEnabled || isUnlocked),
   });
 
   const activeChannels: CCTVChannel[] = (dbChannels || []).map((c: any) => ({
@@ -132,21 +149,6 @@ export default function PortalCctv() {
     simulatedBg: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=1200&q=80',
     streamUrl: c.streamUrl,
   }));
-
-  // Check protection & lock status from server
-  const { data: moduleSettings } = useQuery({
-    queryKey: ['module-settings-cctv'],
-    queryFn: async () => {
-      const res = await apiClient.get('/pengaturan/modules');
-      return res.data;
-    },
-    staleTime: 60_000,
-  });
-
-  const isProtectionEnabled = moduleSettings?.cctvProtectionEnabled !== false;
-  const [isUnlocked, setIsUnlocked] = useState(
-    () => !isProtectionEnabled || sessionStorage.getItem('cctv_unlocked_session') === 'true'
-  );
 
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');

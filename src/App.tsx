@@ -125,7 +125,15 @@ const WaliRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const ScopeRoute = ({ allowed, children }: { allowed: Array<AuthUser['scope']>; children: React.ReactNode }) => {
+const ScopeRoute = ({
+  allowed,
+  allowedDivisi,
+  children
+}: {
+  allowed?: Array<AuthUser['scope']>;
+  allowedDivisi?: Array<AuthUser['divisi']>;
+  children: React.ReactNode;
+}) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -136,7 +144,15 @@ const ScopeRoute = ({ allowed, children }: { allowed: Array<AuthUser['scope']>; 
     );
   }
 
-  if (!user || !allowed.includes(user.scope)) {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowed && !allowed.includes(user.scope)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (allowedDivisi && user.divisi && !allowedDivisi.includes(user.divisi) && user.divisi !== 'ALL') {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -494,29 +510,29 @@ export default function App() {
             <Route path="/dafta-ulng" element={<Navigate to="/daftar-ulang" replace />} />
             <Route path="/dashboard" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
-              <Route path="profile-cabang" element={<ProfilCabang />} />
+              <Route path="profile-cabang" element={<ScopeRoute allowed={['CABANG']}><ProfilCabang /></ScopeRoute>} />
               <Route path="umum/pengumuman" element={<PengumumanUmum />} />
               <Route path="umum/kalender" element={<KalenderAkademikUmum />} />
               <Route path="core/siswa" element={<DataSiswa />} />
               <Route path="core/siswa-residu" element={<DataResidu />} />
-              <Route path="core/daftar-ulang" element={<DaftarUlangSiswa />} />
+              <Route path="core/daftar-ulang" element={<ScopeRoute allowed={['GLOBAL', 'AUDITOR']}><DaftarUlangSiswa /></ScopeRoute>} />
               <Route path="core/permintaan-tarik" element={<PermintaanTarikData />} />
               <Route path="core/permohonan-izin" element={<PermohonanIzinSantri />} />
-              <Route path="core/pool" element={<PoolSiswa />} />
+              <Route path="core/pool" element={<ScopeRoute allowed={['GLOBAL', 'AUDITOR']}><PoolSiswa /></ScopeRoute>} />
               <Route path="core/guru" element={<DataGuru />} />
-              <Route path="core/pool-guru" element={<PoolGuru />} />
-              <Route path="core/cabang" element={<DataCabang />} />
-              <Route path="core/wilayah" element={<DataWilayah />} />
+              <Route path="core/pool-guru" element={<ScopeRoute allowed={['GLOBAL', 'AUDITOR']}><PoolGuru /></ScopeRoute>} />
+              <Route path="core/cabang" element={<ScopeRoute allowed={['GLOBAL', 'WILAYAH', 'AUDITOR']}><DataCabang /></ScopeRoute>} />
+              <Route path="core/wilayah" element={<ScopeRoute allowed={['GLOBAL', 'AUDITOR']}><DataWilayah /></ScopeRoute>} />
               <Route path="core/riwayat-perubahan" element={<RiwayatPerubahanData />} />
               <Route path="faq" element={<FaqPage />} />
               <Route path="profile" element={<ProfileUser />} />
-              <Route path="formal/siswa" element={<DataSiswaMuadalah />} />
-              <Route path="formal/kelas" element={<ManajemenKelas />} />
-              <Route path="formal/muadalah" element={<LembagaMuadalahPage />} />
-              <Route path="formal/mapel" element={<ManajemenMapel />} />
-              <Route path="formal/penugasan-guru" element={<PenugasanGuru />} />
-              <Route path="pembelajaran" element={<KontrolPembelajaran />} />
-              <Route path="formal/rapor" element={<ERaporPage />} />
+              <Route path="formal/siswa" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><DataSiswaMuadalah /></ScopeRoute>} />
+              <Route path="formal/kelas" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><ManajemenKelas /></ScopeRoute>} />
+              <Route path="formal/muadalah" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><LembagaMuadalahPage /></ScopeRoute>} />
+              <Route path="formal/mapel" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><ManajemenMapel /></ScopeRoute>} />
+              <Route path="formal/penugasan-guru" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><PenugasanGuru /></ScopeRoute>} />
+              <Route path="pembelajaran" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><KontrolPembelajaran /></ScopeRoute>} />
+              <Route path="formal/rapor" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><ERaporPage /></ScopeRoute>} />
               <Route path="settings/users" element={<ScopeRoute allowed={['GLOBAL']}><UsersWilayah /></ScopeRoute>} />
               <Route path="settings/sync" element={<ScopeRoute allowed={['GLOBAL']}><Sinkronisasi /></ScopeRoute>} />
               <Route path="settings/akademik" element={<ScopeRoute allowed={['GLOBAL']}><PengaturanAkademik /></ScopeRoute>} />
@@ -524,21 +540,21 @@ export default function App() {
               <Route path="settings/kalender" element={<ScopeRoute allowed={['GLOBAL']}><KelolaKalender /></ScopeRoute>} />
               <Route path="settings/keaktifan-mapel" element={<ScopeRoute allowed={['GLOBAL']}><KeaktifanMapel /></ScopeRoute>} />
               <Route path="settings/faq" element={<ScopeRoute allowed={['GLOBAL']}><KelolaFaq /></ScopeRoute>} />
-              <Route path="dashboard/ketersediaan-guru" element={<KetersediaanGuruMapel />} />
+              <Route path="dashboard/ketersediaan-guru" element={<ScopeRoute allowed={['GLOBAL', 'WILAYAH', 'AUDITOR']}><KetersediaanGuruMapel /></ScopeRoute>} />
               <Route path="absensi/siswa" element={<AbsensiSiswa />} />
               <Route path="absensi/guru" element={<AbsensiGuru />} />
-              <Route path="absensi/programs" element={<KelolaProgramAbsensi />} />
+              <Route path="absensi/programs" element={<ScopeRoute allowed={['GLOBAL', 'WILAYAH', 'AUDITOR']}><KelolaProgramAbsensi /></ScopeRoute>} />
               <Route path="laporan/absensi" element={<RekapitulasiAbsensi />} />
               <Route path="laporan/kelengkapan-data" element={<RekapitulasiKelengkapanData />} />
               <Route path="laporan/kelengkapan-guru" element={<RekapitulasiKelengkapanGuru />} />
               <Route path="sarpras/ruang" element={<ManajemenRuang />} />
               <Route path="sarpras/fasilitas" element={<ManajemenFasilitas />} />
-              <Route path="kegiatan/buat" element={<FormKegiatan />} />
+              <Route path="kegiatan/buat" element={<ScopeRoute allowed={['CABANG']}><FormKegiatan /></ScopeRoute>} />
               <Route path="kegiatan" element={<ListKegiatanBap />} />
               <Route path="kegiatan/dashboard" element={<DashboardBapAdmin />} />
               <Route path="kegiatan/stats" element={<DashboardBapAdmin />} />
-              <Route path="kegiatan/jenis" element={<KelolaJenisKegiatan />} />
-              <Route path="kegiatan/templates" element={<KelolaTemplateKegiatan />} />
+              <Route path="kegiatan/jenis" element={<ScopeRoute allowed={['GLOBAL', 'AUDITOR']}><KelolaJenisKegiatan /></ScopeRoute>} />
+              <Route path="kegiatan/templates" element={<ScopeRoute allowed={['GLOBAL', 'AUDITOR']}><KelolaTemplateKegiatan /></ScopeRoute>} />
               <Route path="surat" element={<SuratPage />} />
               <Route path="portal-walsan" element={<PortalWalsanPage />} />
               <Route path="portal-walsan/list" element={<PortalWalsanPage initialTab="list" />} />

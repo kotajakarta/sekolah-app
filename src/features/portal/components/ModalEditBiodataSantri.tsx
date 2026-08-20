@@ -41,6 +41,58 @@ export default function ModalEditBiodataSantri({
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Multi-dropdown address states matching /daftar-ulang
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [regencies, setRegencies] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]);
+  const [villages, setVillages] = useState<any[]>([]);
+
+  // Load provinces on mount / modal open
+  useEffect(() => {
+    if (isOpen) {
+      fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
+        .then((r) => r.json())
+        .then((data) => setProvinces(data))
+        .catch(console.error);
+    }
+  }, [isOpen]);
+
+  // Cascading fetch: Regencies when Provinsi changes
+  useEffect(() => {
+    if (formData.alamatProvId) {
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${formData.alamatProvId}.json`)
+        .then((r) => r.json())
+        .then((d) => setRegencies(d))
+        .catch(console.error);
+    } else {
+      setRegencies([]);
+    }
+  }, [formData.alamatProvId]);
+
+  // Cascading fetch: Districts when Kabupaten changes
+  useEffect(() => {
+    if (formData.alamatKabId) {
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${formData.alamatKabId}.json`)
+        .then((r) => r.json())
+        .then((d) => setDistricts(d))
+        .catch(console.error);
+    } else {
+      setDistricts([]);
+    }
+  }, [formData.alamatKabId]);
+
+  // Cascading fetch: Villages when Kecamatan changes
+  useEffect(() => {
+    if (formData.alamatKecId) {
+      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${formData.alamatKecId}.json`)
+        .then((r) => r.json())
+        .then((d) => setVillages(d))
+        .catch(console.error);
+    } else {
+      setVillages([]);
+    }
+  }, [formData.alamatKecId]);
+
   useEffect(() => {
     if (initialBiodata) {
       setFormData({
@@ -63,10 +115,14 @@ export default function ModalEditBiodataSantri({
         alamatJalan: initialBiodata.alamatJalan || '',
         alamatRt: initialBiodata.alamatRt || '',
         alamatRw: initialBiodata.alamatRw || '',
-        alamatKelName: initialBiodata.alamatKelName || '',
-        alamatKecName: initialBiodata.alamatKecName || '',
-        alamatKabName: initialBiodata.alamatKabName || '',
+        alamatProvId: initialBiodata.alamatProvId || '',
         alamatProvName: initialBiodata.alamatProvName || '',
+        alamatKabId: initialBiodata.alamatKabId || '',
+        alamatKabName: initialBiodata.alamatKabName || '',
+        alamatKecId: initialBiodata.alamatKecId || '',
+        alamatKecName: initialBiodata.alamatKecName || '',
+        alamatKelId: initialBiodata.alamatKelId || '',
+        alamatKelName: initialBiodata.alamatKelName || '',
         alamatKodePos: initialBiodata.alamatKodePos || '',
 
         // Ayah
@@ -112,8 +168,38 @@ export default function ModalEditBiodataSantri({
         kartuBansosUrl: initialBiodata.kartuBansosUrl || '',
         suratKeteranganUrl: initialBiodata.suratKeteranganUrl || '',
       });
+
+      // Pre-fetch cascaded address data if initial IDs exist
+      if (initialBiodata.alamatProvId) {
+        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${initialBiodata.alamatProvId}.json`)
+          .then((r) => r.json())
+          .then((d) => setRegencies(d))
+          .catch(console.error);
+      }
+      if (initialBiodata.alamatKabId) {
+        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${initialBiodata.alamatKabId}.json`)
+          .then((r) => r.json())
+          .then((d) => setDistricts(d))
+          .catch(console.error);
+      }
+      if (initialBiodata.alamatKecId) {
+        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${initialBiodata.alamatKecId}.json`)
+          .then((r) => r.json())
+          .then((d) => setVillages(d))
+          .catch(console.error);
+      }
     }
   }, [initialBiodata, isOpen]);
+
+  // Match province ID by name if ID was not stored
+  useEffect(() => {
+    if (provinces.length > 0 && !formData.alamatProvId && formData.alamatProvName) {
+      const match = provinces.find((p) => p.name.toLowerCase() === formData.alamatProvName.toLowerCase());
+      if (match) {
+        setFormData((prev: any) => ({ ...prev, alamatProvId: match.id }));
+      }
+    }
+  }, [provinces, formData.alamatProvName, formData.alamatProvId]);
 
   const handleChange = (field: string, val: any) => {
     setFormData((prev: any) => ({ ...prev, [field]: val }));
@@ -389,86 +475,185 @@ export default function ModalEditBiodataSantri({
 
           {/* TAB 2: ALAMAT */}
           {activeTab === 'alamat' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Alamat Jalan / Dusun</label>
-                <input
-                  type="text"
-                  value={formData.alamatJalan}
-                  onChange={(e) => handleChange('alamatJalan', e.target.value)}
-                  placeholder="Jl. / Gang / Blok / No. Rumah"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600"
-                />
+            <div className="space-y-4">
+              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-xs text-emerald-800 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-bold text-emerald-900">Alamat Domisili Santri</p>
+                  <p className="text-[11px] text-emerald-700">Pilih wilayah domisili secara bertingkat mulai dari Provinsi hingga Kelurahan/Desa.</p>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">RT</label>
-                <input
-                  type="text"
-                  value={formData.alamatRt}
-                  onChange={(e) => handleChange('alamatRt', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600"
-                />
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Provinsi */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">
+                    Provinsi <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={formData.alamatProvId}
+                    onChange={(e) => {
+                      const selectedText = e.target.options[e.target.selectedIndex]?.text || '';
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        alamatProvId: e.target.value,
+                        alamatProvName: selectedText === 'Pilih Provinsi' ? '' : selectedText,
+                        alamatKabId: '',
+                        alamatKabName: '',
+                        alamatKecId: '',
+                        alamatKecName: '',
+                        alamatKelId: '',
+                        alamatKelName: ''
+                      }));
+                    }}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 cursor-pointer"
+                  >
+                    <option value="">Pilih Provinsi</option>
+                    {provinces.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">RW</label>
-                <input
-                  type="text"
-                  value={formData.alamatRw}
-                  onChange={(e) => handleChange('alamatRw', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600"
-                />
-              </div>
+                {/* Kabupaten / Kota */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">
+                    Kabupaten / Kota <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={formData.alamatKabId}
+                    disabled={!formData.alamatProvId}
+                    onChange={(e) => {
+                      const selectedText = e.target.options[e.target.selectedIndex]?.text || '';
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        alamatKabId: e.target.value,
+                        alamatKabName: selectedText === 'Pilih Kabupaten/Kota' ? '' : selectedText,
+                        alamatKecId: '',
+                        alamatKecName: '',
+                        alamatKelId: '',
+                        alamatKelName: ''
+                      }));
+                    }}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <option value="">Pilih Kabupaten/Kota</option>
+                    {regencies.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Kelurahan / Desa</label>
-                <input
-                  type="text"
-                  value={formData.alamatKelName}
-                  onChange={(e) => handleChange('alamatKelName', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600"
-                />
-              </div>
+                {/* Kecamatan */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">
+                    Kecamatan <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={formData.alamatKecId}
+                    disabled={!formData.alamatKabId}
+                    onChange={(e) => {
+                      const selectedText = e.target.options[e.target.selectedIndex]?.text || '';
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        alamatKecId: e.target.value,
+                        alamatKecName: selectedText === 'Pilih Kecamatan' ? '' : selectedText,
+                        alamatKelId: '',
+                        alamatKelName: ''
+                      }));
+                    }}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <option value="">Pilih Kecamatan</option>
+                    {districts.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Kecamatan</label>
-                <input
-                  type="text"
-                  value={formData.alamatKecName}
-                  onChange={(e) => handleChange('alamatKecName', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600"
-                />
-              </div>
+                {/* Kelurahan / Desa */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">
+                    Kelurahan / Desa <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={formData.alamatKelId}
+                    disabled={!formData.alamatKecId}
+                    onChange={(e) => {
+                      const selectedText = e.target.options[e.target.selectedIndex]?.text || '';
+                      setFormData((prev: any) => ({
+                        ...prev,
+                        alamatKelId: e.target.value,
+                        alamatKelName: selectedText === 'Pilih Kelurahan/Desa' ? '' : selectedText
+                      }));
+                    }}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <option value="">Pilih Kelurahan/Desa</option>
+                    {villages.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Kabupaten / Kota</label>
-                <input
-                  type="text"
-                  value={formData.alamatKabName}
-                  onChange={(e) => handleChange('alamatKabName', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600"
-                />
-              </div>
+                {/* RT & RW */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">RT</label>
+                  <input
+                    type="text"
+                    value={formData.alamatRt}
+                    onChange={(e) => handleChange('alamatRt', e.target.value)}
+                    placeholder="Contoh: 01"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Provinsi</label>
-                <input
-                  type="text"
-                  value={formData.alamatProvName}
-                  onChange={(e) => handleChange('alamatProvName', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">RW</label>
+                  <input
+                    type="text"
+                    value={formData.alamatRw}
+                    onChange={(e) => handleChange('alamatRw', e.target.value)}
+                    placeholder="Contoh: 05"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Kode Pos</label>
-                <input
-                  type="text"
-                  value={formData.alamatKodePos}
-                  onChange={(e) => handleChange('alamatKodePos', e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600"
-                />
+                {/* Kode Pos */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">Kode Pos</label>
+                  <input
+                    type="text"
+                    value={formData.alamatKodePos}
+                    onChange={(e) => handleChange('alamatKodePos', e.target.value)}
+                    placeholder="Contoh: 40123"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600"
+                  />
+                </div>
+
+                {/* Alamat Lengkap (Jalan / Dusun / No. Rumah) */}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1">
+                    Alamat Lengkap (Jalan / Dusun / No. Rumah) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.alamatJalan}
+                    onChange={(e) => handleChange('alamatJalan', e.target.value)}
+                    placeholder="Contoh: Jl. Sudirman No. 12, RT 01 / RW 02"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600"
+                  />
+                </div>
               </div>
             </div>
           )}

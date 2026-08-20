@@ -60,11 +60,14 @@ export default function StudentPoolTable() {
     if (advancedFilters.lembagaMuadalahId && s.siswaFormal?.kelas?.lembagaMuadalah?.id !== advancedFilters.lembagaMuadalahId) return false;
 
     // Search query (server-side handles the filtering already, client-side is just safety net)
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase().trim();
     if (q) {
-      return s.biodata?.fullName?.toLowerCase().includes(q) ||
-             s.biodata?.nik?.toLowerCase().includes(q) ||
-             s.biodata?.nisn?.toLowerCase().includes(q);
+      const words = q.split(/\s+/).filter(Boolean);
+      const name = s.biodata?.fullName?.toLowerCase() || '';
+      const nik = s.biodata?.nik?.toLowerCase() || '';
+      const nisn = s.biodata?.nisn?.toLowerCase() || '';
+      const nisLokal = (s.biodata as any)?.nisLokal?.toLowerCase() || '';
+      return words.every(w => name.includes(w) || nik.includes(w) || nisn.includes(w) || nisLokal.includes(w));
     }
     return true;
   });

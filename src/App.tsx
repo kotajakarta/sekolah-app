@@ -560,6 +560,7 @@ export default function App() {
               <Route path="portal-walsan/list" element={<PortalWalsanPage initialTab="list" />} />
               <Route path="portal-walsan/izin" element={<PortalWalsanPage initialTab="izin" />} />
               <Route path="portal-walsan/cctv" element={<PortalWalsanPage initialTab="cctv" />} />
+              <Route path="portal-walsan/settings" element={<ScopeRoute allowed={['GLOBAL']}><PortalWalsanPage initialTab="settings" /></ScopeRoute>} />
             </Route>
             <Route
               path="/portal"

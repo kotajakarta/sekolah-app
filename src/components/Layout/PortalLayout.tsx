@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Home,
   GraduationCap,
@@ -15,21 +16,58 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortalStudent } from '../../features/portal/context/PortalStudentContext';
-
-const TABS = [
-  { to: '/portal', label: 'Beranda', icon: Home },
-  { to: '/portal/rapor', label: 'Rapor', icon: GraduationCap },
-  { to: '/portal/kehadiran', label: 'Kehadiran', icon: CalendarCheck },
-  { to: '/portal/cctv', label: 'CCTV Live', icon: Video },
-  { to: '/portal/pengumuman', label: 'Pengumuman', icon: Megaphone },
-  { to: '/portal/permohonan-izin', label: 'Permohonan Izin', icon: FileText },
-];
+import apiClient from '../../lib/apiClient';
 
 export default function PortalLayout() {
   const { user, logout } = useAuth();
   const { links, selectedLink, setSelectedStudentId } = usePortalStudent();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Fetch Module Settings to dynamically show/hide tabs
+  const { data: moduleSettings } = useQuery({
+    queryKey: ['portal-module-settings'],
+    queryFn: async () => {
+      const res = await apiClient.get('/pengaturan/modules');
+      return res.data;
+    },
+  });
+
+  const ALL_TABS = [
+    { to: '/portal', label: 'Beranda', icon: Home, show: true },
+    {
+      to: '/portal/rapor',
+      label: 'Rapor',
+      icon: GraduationCap,
+      show: moduleSettings?.walsanRaporEnabled !== false && moduleSettings?.raporMuadalahEnabled !== false,
+    },
+    {
+      to: '/portal/kehadiran',
+      label: 'Kehadiran',
+      icon: CalendarCheck,
+      show: moduleSettings?.walsanKehadiranEnabled !== false,
+    },
+    {
+      to: '/portal/cctv',
+      label: 'CCTV Live',
+      icon: Video,
+      show: moduleSettings?.walsanCctvEnabled !== false,
+    },
+    {
+      to: '/portal/pengumuman',
+      label: 'Pengumuman',
+      icon: Megaphone,
+      show: moduleSettings?.walsanPengumumanEnabled !== false,
+    },
+    {
+      to: '/portal/permohonan-izin',
+      label: 'Permohonan Izin',
+      icon: FileText,
+      show: moduleSettings?.walsanIzinEnabled !== false,
+    },
+  ];
+
+  const visibleTabs = ALL_TABS.filter((t) => t.show);
 
   const [isChildMenuOpen, setIsChildMenuOpen] = useState(false);
   const childMenuRef = useRef<HTMLDivElement>(null);
@@ -76,7 +114,7 @@ export default function PortalLayout() {
 
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-1 bg-slate-100/70 p-1.5 rounded-xl border border-slate-200/60">
-            {TABS.map((tab) => {
+            {visibleTabs.map((tab) => {
               const isActive = location.pathname === tab.to;
               return (
                 <Link
@@ -204,8 +242,11 @@ export default function PortalLayout() {
 
       {/* ── MOBILE BOTTOM NAVIGATION (hidden on md+) ── */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/80 pb-[env(safe-area-inset-bottom)] shadow-lg">
-        <div className="grid grid-cols-5 h-15">
-          {TABS.map((tab) => {
+        <div
+          className="grid h-15"
+          style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, minmax(0, 1fr))` }}
+        >
+          {visibleTabs.map((tab) => {
             const isActive = location.pathname === tab.to;
             return (
               <Link

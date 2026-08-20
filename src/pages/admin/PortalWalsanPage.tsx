@@ -6,6 +6,7 @@ import PermohonanIzinSantriTab from '../../features/permohonan/PermohonanIzinSan
 import KelolaCctvCabangTab from '../../features/portal/components/KelolaCctvCabangTab';
 import HlsPlayer from '../../components/Cctv/HlsPlayer';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../hooks/useAuth';
 import {
   HeartHandshake,
   Users,
@@ -32,6 +33,12 @@ import {
   Trash2,
   X,
   Link2,
+  SlidersHorizontal,
+  GraduationCap,
+  CalendarCheck,
+  FileText,
+  Megaphone,
+  Settings,
 } from 'lucide-react';
 
 interface WaliUserItem {
@@ -110,12 +117,13 @@ const ADMIN_CCTV_FEEDS: CCTVChannel[] = [
   },
 ];
 
-export default function PortalWalsanPage({ initialTab = 'overview' }: { initialTab?: 'overview' | 'list' | 'izin' | 'cctv' }) {
+export default function PortalWalsanPage({ initialTab = 'overview' }: { initialTab?: 'overview' | 'list' | 'izin' | 'cctv' | 'settings' }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'izin' | 'cctv'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'izin' | 'cctv' | 'settings'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch Module Settings from Backend
@@ -124,6 +132,22 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
     queryFn: async () => {
       const res = await apiClient.get('/pengaturan/modules');
       return res.data;
+    },
+  });
+
+  // Mutation to update module settings
+  const updateModuleMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await apiClient.put('/pengaturan/modules', payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-module-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['portal-module-settings'] });
+      showToast('success', 'Pengaturan menu portal berhasil diperbarui!');
+    },
+    onError: (err: any) => {
+      showToast('error', err.response?.data?.message || 'Gagal menyimpan pengaturan');
     },
   });
 
@@ -311,41 +335,65 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
           <span>Ringkasan & Overview</span>
         </button>
 
-        <button
-          onClick={() => setActiveTab('list')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === 'list'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>Daftar Wali Santri ({waliList.length})</span>
-        </button>
+        {(user?.scope !== 'CABANG' || moduleSettings?.cabangWalsanListEnabled !== false) && (
+          <button
+            onClick={() => setActiveTab('list')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'list'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Daftar Wali Santri ({waliList.length})</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveTab('izin')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === 'izin'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-          }`}
-        >
-          <CheckCircle2 className="w-4 h-4" />
-          <span>Konfirmasi Izin Santri</span>
-        </button>
+        {(user?.scope !== 'CABANG' || moduleSettings?.cabangIzinEnabled !== false) && (
+          <button
+            onClick={() => setActiveTab('izin')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'izin'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+            }`}
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Konfirmasi Izin Santri</span>
+          </button>
+        )}
 
-        <button
-          onClick={() => setActiveTab('cctv')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === 'cctv'
-              ? 'bg-indigo-600 text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-          }`}
-        >
-          <Video className="w-4 h-4" />
-          <span>Live CCTV Streaming</span>
-        </button>
+        {(user?.scope !== 'CABANG' || moduleSettings?.cabangCctvEnabled !== false) && (
+          <button
+            onClick={() => setActiveTab('cctv')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'cctv'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+            }`}
+          >
+            <Video className="w-4 h-4" />
+            <span>Live CCTV Streaming</span>
+          </button>
+        )}
+
+        {/* Tab Khusus Admin Pusat (GLOBAL) */}
+        {user?.scope === 'GLOBAL' && (
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'settings'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+            }`}
+          >
+            <SlidersHorizontal className="w-4 h-4 text-indigo-400" />
+            <span>Pengaturan Menu & Akses</span>
+            <span className="px-1.5 py-0.5 bg-indigo-100 text-indigo-700 text-[10px] rounded-md font-extrabold uppercase">
+              Admin
+            </span>
+          </button>
+        )}
       </div>
 
       {/* ── TAB 1: OVERVIEW ── */}
@@ -816,6 +864,408 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 5: PENGATURAN MENU & AKSES (KHUSUS ADMIN PUSAT) ── */}
+      {activeTab === 'settings' && user?.scope === 'GLOBAL' && (
+        <div className="space-y-6">
+          {/* Header Info */}
+          <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl -z-0 pointer-events-none"></div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+              <div className="space-y-2 max-w-xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-bold">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-300" />
+                  Pusat Kendali Otorisasi & Visibilitas Menu
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                  Pengaturan Menu Portal Walsan & Akses Cabang
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Atur ketersediaan menu yang dapat diakses oleh Wali Santri di portal maupun Staf Cabang di dashboard secara realtime.
+                </p>
+              </div>
+
+              {/* Master Toggle Portal Walsan */}
+              <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 flex flex-col gap-2 shrink-0">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-200">
+                  Master Switch Portal
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currentVal = moduleSettings?.portalWalsanEnabled !== false;
+                    updateModuleMutation.mutate({ portalWalsanEnabled: !currentVal });
+                  }}
+                  disabled={updateModuleMutation.isPending}
+                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 ${
+                    moduleSettings?.portalWalsanEnabled !== false
+                      ? 'bg-emerald-500 hover:bg-emerald-400 text-white'
+                      : 'bg-rose-500 hover:bg-rose-400 text-white'
+                  }`}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse"></span>
+                  {moduleSettings?.portalWalsanEnabled !== false ? 'PORTAL AKTIF' : 'PORTAL NONAKTIF'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* ── BAGIAN 1: KONTROL MENU PORTAL WALI SANTRI ── */}
+            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-5">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <HeartHandshake className="w-5 h-5 text-indigo-600" />
+                    Menu Portal Wali Santri (/portal)
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Tentukan menu mana saja yang dapat dilihat dan digunakan oleh orang tua / wali santri.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {/* 1. CCTV Live Streaming */}
+                <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Video className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-xs sm:text-sm">Menu Live CCTV Streaming</h4>
+                      <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                        Menampilkan tab pemantauan CCTV langsung di portal wali santri.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentVal = moduleSettings?.walsanCctvEnabled !== false;
+                      updateModuleMutation.mutate({ walsanCctvEnabled: !currentVal });
+                    }}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
+                      moduleSettings?.walsanCctvEnabled !== false
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                    }`}
+                  >
+                    {moduleSettings?.walsanCctvEnabled !== false ? 'Aktif' : 'Nonaktif'}
+                  </button>
+                </div>
+
+                {/* 2. Menu E-Rapor Santri */}
+                <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <GraduationCap className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-xs sm:text-sm">Menu E-Rapor Santri</h4>
+                      <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                        Mengizinkan wali santri melihat nilai raport dan hasil evaluasi belajar santri.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentVal = moduleSettings?.walsanRaporEnabled !== false;
+                      updateModuleMutation.mutate({ walsanRaporEnabled: !currentVal });
+                    }}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
+                      moduleSettings?.walsanRaporEnabled !== false
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                    }`}
+                  >
+                    {moduleSettings?.walsanRaporEnabled !== false ? 'Aktif' : 'Nonaktif'}
+                  </button>
+                </div>
+
+                {/* 3. Menu Presensi & Kehadiran */}
+                <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <CalendarCheck className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-xs sm:text-sm">Menu Presensi & Kehadiran</h4>
+                      <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                        Menampilkan rekapitulasi kehadiran santri harian dan program absensi.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentVal = moduleSettings?.walsanKehadiranEnabled !== false;
+                      updateModuleMutation.mutate({ walsanKehadiranEnabled: !currentVal });
+                    }}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
+                      moduleSettings?.walsanKehadiranEnabled !== false
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                    }`}
+                  >
+                    {moduleSettings?.walsanKehadiranEnabled !== false ? 'Aktif' : 'Nonaktif'}
+                  </button>
+                </div>
+
+                {/* 4. Menu Permohonan Izin Santri */}
+                <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-xs sm:text-sm">Menu Permohonan Izin Santri</h4>
+                      <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                        Wali santri dapat mengajukan permohonan izin pulang / keluar pondok.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentVal = moduleSettings?.walsanIzinEnabled !== false;
+                      updateModuleMutation.mutate({ walsanIzinEnabled: !currentVal });
+                    }}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
+                      moduleSettings?.walsanIzinEnabled !== false
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                    }`}
+                  >
+                    {moduleSettings?.walsanIzinEnabled !== false ? 'Aktif' : 'Nonaktif'}
+                  </button>
+                </div>
+
+                {/* 5. Menu Pengumuman */}
+                <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Megaphone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-xs sm:text-sm">Menu Pengumuman & Informasi</h4>
+                      <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                        Menampilkan berita dan pengumuman resmi pesantren untuk orang tua santri.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentVal = moduleSettings?.walsanPengumumanEnabled !== false;
+                      updateModuleMutation.mutate({ walsanPengumumanEnabled: !currentVal });
+                    }}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
+                      moduleSettings?.walsanPengumumanEnabled !== false
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                    }`}
+                  >
+                    {moduleSettings?.walsanPengumumanEnabled !== false ? 'Aktif' : 'Nonaktif'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* ── BAGIAN 2: KONTROL AKSES MENU STAF CABANG & PENGATURAN CCTV PIN ── */}
+            <div className="space-y-6">
+              {/* KONTROL AKSES STAF CABANG */}
+              <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-5">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-indigo-600" />
+                      Akses Fitur Staf Cabang (Admin Cabang)
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Atur izin menu yang dapat diakses oleh operator cabang di Portal Walsan admin.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {/* 1. Akses Live CCTV Cabang */}
+                  <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 flex items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-purple-100/80 text-purple-600 flex items-center justify-center shrink-0 mt-0.5">
+                        <Video className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-800 text-xs sm:text-sm">Akses Live CCTV di Cabang</h4>
+                        <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                          Izinkan operator cabang membuka tab Live CCTV dan monitoring kamera.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentVal = moduleSettings?.cabangCctvEnabled !== false;
+                        updateModuleMutation.mutate({ cabangCctvEnabled: !currentVal });
+                      }}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
+                        moduleSettings?.cabangCctvEnabled !== false
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                          : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                      }`}
+                    >
+                      {moduleSettings?.cabangCctvEnabled !== false ? 'Diizinkan' : 'Dibatasi'}
+                    </button>
+                  </div>
+
+                  {/* 2. Akses Konfirmasi Izin Santri di Cabang */}
+                  <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 flex items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-purple-100/80 text-purple-600 flex items-center justify-center shrink-0 mt-0.5">
+                        <CheckCircle2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-800 text-xs sm:text-sm">Konfirmasi Izin Santri di Cabang</h4>
+                        <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                          Izinkan staf cabang menyetujui / menolak permohonan izin dari wali santri.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentVal = moduleSettings?.cabangIzinEnabled !== false;
+                        updateModuleMutation.mutate({ cabangIzinEnabled: !currentVal });
+                      }}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
+                        moduleSettings?.cabangIzinEnabled !== false
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                          : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                      }`}
+                    >
+                      {moduleSettings?.cabangIzinEnabled !== false ? 'Diizinkan' : 'Dibatasi'}
+                    </button>
+                  </div>
+
+                  {/* 3. Akses Daftar Akun Wali Santri di Cabang */}
+                  <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 flex items-center justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-purple-100/80 text-purple-600 flex items-center justify-center shrink-0 mt-0.5">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-800 text-xs sm:text-sm">Lihat Kontak & Akun Wali Santri</h4>
+                        <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                          Izinkan staf cabang melihat direktori wali santri yang terdaftar di sistem.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentVal = moduleSettings?.cabangWalsanListEnabled !== false;
+                        updateModuleMutation.mutate({ cabangWalsanListEnabled: !currentVal });
+                      }}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
+                        moduleSettings?.cabangWalsanListEnabled !== false
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                          : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                      }`}
+                    >
+                      {moduleSettings?.cabangWalsanListEnabled !== false ? 'Diizinkan' : 'Dibatasi'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* KEAMANAN & KODE PIN AKSES CCTV */}
+              <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-3xl p-6 text-white space-y-4 border border-indigo-900/60 shadow-md">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-600/50 border border-indigo-500/40 flex items-center justify-center text-indigo-300">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-sm">Keamanan Kode PIN Live CCTV</h3>
+                      <p className="text-[11px] text-slate-300">
+                        Wajibkan wali santri memasukkan PIN sebelum dapat menonton streaming.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextState = !cctvProtectionEnabled;
+                      setCctvProtectionEnabled(nextState);
+                      updateModuleMutation.mutate({ cctvProtectionEnabled: nextState });
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                      cctvProtectionEnabled
+                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                    }`}
+                  >
+                    {cctvProtectionEnabled ? 'PROTEKSI AKTIF' : 'TANPA PIN'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 items-end">
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-xs font-bold text-indigo-200 block">Kode PIN Akses CCTV Baru:</label>
+                    <div className="relative">
+                      <input
+                        type={showPinText ? 'text' : 'password'}
+                        value={cctvPinInput}
+                        onChange={(e) => setCctvPinInput(e.target.value)}
+                        placeholder="Misal: 123456"
+                        className="w-full bg-slate-950/80 border border-indigo-700/60 rounded-xl px-3.5 py-2 text-xs text-white font-mono font-bold tracking-wider focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPinText(!showPinText)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-indigo-400 hover:text-white cursor-pointer"
+                      >
+                        {showPinText ? 'Sembunyikan' : 'Lihat'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <button
+                      type="button"
+                      disabled={isSavingPin}
+                      onClick={async () => {
+                        if (!cctvPinInput.trim()) {
+                          showToast('warning', 'Kode PIN tidak boleh kosong');
+                          return;
+                        }
+                        setIsSavingPin(true);
+                        try {
+                          await apiClient.put('/pengaturan/modules', {
+                            cctvProtectionEnabled,
+                            cctvPin: cctvPinInput.trim(),
+                          });
+                          refetchSettings();
+                          showToast('success', 'Kode PIN CCTV berhasil disimpan!');
+                        } catch {
+                          showToast('error', 'Gagal menyimpan PIN ke server');
+                        } finally {
+                          setIsSavingPin(false);
+                        }
+                      }}
+                      className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      <Save className="w-3.5 h-3.5" /> {isSavingPin ? 'Menyimpan...' : 'Simpan PIN'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

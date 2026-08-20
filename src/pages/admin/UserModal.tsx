@@ -251,7 +251,7 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
                 <option value="WILAYAH">WILAYAH</option>
                 <option value="CABANG">CABANG</option>
                 <option value="WALI">WALI</option>
-                <option value="AUDITOR">AUDITOR (Pengawas / Auditor Pusat)</option>
+                <option value="AUDITOR">AUDITOR (Pengawas / Auditor Pusat - Read Only)</option>
               </select>
             </div>
             {formData.scope !== 'WALI' && (

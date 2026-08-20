@@ -602,6 +602,10 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (user?.scope === 'AUDITOR') {
+      showToast('error', 'Akun AUDITOR bersifat Read-Only dan tidak diizinkan mengubah data.');
+      return;
+    }
     if (!validateForm()) return;
     saveMutation.mutate(formData);
   };
@@ -1172,7 +1176,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
             >
               {t('common.cancel')}
             </button>
-            {activeTab !== 'AKTIVITAS_BELAJAR' && activeTab !== 'RIWAYAT_NILAI' && (
+            {user?.scope !== 'AUDITOR' && activeTab !== 'AKTIVITAS_BELAJAR' && activeTab !== 'RIWAYAT_NILAI' && (
               <button
                 type="submit"
                 form="student-form"

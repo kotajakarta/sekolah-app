@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGetPoolStudents, useTarikMassalSiswa } from '../hooks/usePoolStudents';
 import { useAuth } from '../../../hooks/useAuth';
 import { useGetCabang } from '../hooks/useMasterData';
-import { X, Loader2, Search } from 'lucide-react';
+import { X, Loader2, Search, AlertCircle, Clock, UserCheck, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
 
 interface TarikSiswaMassalModalProps {
@@ -16,9 +16,35 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
   const isCabangUser = user?.scope === 'CABANG';
   const [selectedCabangId, setSelectedCabangId] = useState(isCabangUser ? (user.cabangId || '') : '');
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Search input state and 2-second debounced state
+  const [inputSearch, setInputSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [isDebouncing, setIsDebouncing] = useState(false);
 
-  const { data: poolStudents, isLoading: isLoadingPool } = useGetPoolStudents(searchQuery);
+  useEffect(() => {
+    if (!inputSearch.trim()) {
+      setDebouncedSearch('');
+      setIsDebouncing(false);
+      return;
+    }
+
+    setIsDebouncing(true);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(inputSearch.trim());
+      setIsDebouncing(false);
+    }, 2000); // 2 detik jeda ketik
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [inputSearch]);
+
+  const isSearchActive = debouncedSearch.length >= 1;
+  const { data: poolStudents = [], isLoading: isLoadingPool, isFetching } = useGetPoolStudents(
+    debouncedSearch,
+    { enabled: isSearchActive }
+  );
   const { data: cabangList, isLoading: loadingCabang } = useGetCabang();
   
   const tarikMassalMutation = useTarikMassalSiswa();
@@ -28,13 +54,6 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
     return true;
   }) || [];
 
-  const filteredStudents = poolStudents?.filter(student => {
-    const fullName = student.biodata?.fullName || '';
-    const nik = student.biodata?.nik || '';
-    const q = searchQuery.toLowerCase();
-    return fullName.toLowerCase().includes(q) || nik.toLowerCase().includes(q);
-  }) || [];
-
   const toggleStudentSelection = (id: string) => {
     setSelectedStudentIds(prev => 
       prev.includes(id) ? prev.filter(sId => sId !== id) : [...prev, id]
@@ -42,10 +61,10 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
   };
 
   const selectAll = () => {
-    if (filteredStudents.length === selectedStudentIds.length) {
+    if (poolStudents.length === selectedStudentIds.length) {
       setSelectedStudentIds([]); // Deselect all
     } else {
-      setSelectedStudentIds(filteredStudents.map(s => s.id));
+      setSelectedStudentIds(poolStudents.map(s => s.id));
     }
   };
 
@@ -112,7 +131,7 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
   const availableCount = selectedStudentsData.filter(s => s.statusPool === 'TERSEDIA').length;
 
   let buttonText = `Tarik ${selectedStudentIds.length} Siswa`;
-  let buttonColor = 'bg-blue-600 hover:bg-blue-500';
+  let buttonColor = 'bg-indigo-600 hover:bg-indigo-700';
   
   if (selectedStudentIds.length > 0) {
     if (activeCount > 0 && availableCount === 0) {
@@ -129,33 +148,44 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
       <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-        <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-5xl flex flex-col max-h-[85vh]">
-          <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-gray-200">
+        <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-5xl flex flex-col max-h-[88vh] border border-slate-200">
+          <div className="bg-white px-5 py-4 sm:p-6 border-b border-slate-200">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold leading-6 text-gray-900">
-                Tarik Data Siswa
-              </h3>
-              <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-indigo-600" />
+                  Tarik Data Siswa ke Cabang
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Cari siswa di database pusat/pool dan tarik ke penempatan cabang yang dipilih.
+                </p>
+              </div>
+              <button 
+                onClick={onClose} 
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
             
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {!isCabangUser && (
+              {!isCabangUser ? (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Cabang Tujuan</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                    Cabang Tujuan <span className="text-rose-500">*</span>
+                  </label>
                   {loadingCabang ? (
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <div className="flex items-center text-xs text-slate-500 py-2">
+                      <Loader2 className="w-4 h-4 animate-spin mr-2 text-indigo-600" />
                       Memuat daftar cabang...
                     </div>
                   ) : (
                     <select
                       value={selectedCabangId}
                       onChange={(e) => setSelectedCabangId(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm border"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all cursor-pointer"
                     >
-                      <option value="">-- Pilih Cabang --</option>
+                      <option value="">-- Pilih Cabang Tujuan --</option>
                       {filteredCabang.map((cabang) => (
                         <option key={cabang.id} value={cabang.id}>
                           {cabang.name}
@@ -164,123 +194,181 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
                     </select>
                   )}
                 </div>
-              )}
-              
-              {isCabangUser && (
-                <div className="p-3 bg-blue-50 text-blue-700 rounded-md text-sm flex items-center">
-                  Siswa akan ditarik ke cabang Anda saat ini.
+              ) : (
+                <div className="p-3 bg-indigo-50/70 border border-indigo-100 text-indigo-900 rounded-xl text-xs flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 font-bold">
+                    ✓
+                  </div>
+                  <div>
+                    <p className="font-bold">Cabang Penempatan</p>
+                    <p className="text-[11px] text-indigo-700">Siswa yang ditarik akan langsung dialokasikan ke cabang Anda saat ini.</p>
+                  </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Cari Siswa</label>
-                <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <Search className="h-4 w-4 text-gray-400" />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600">
+                    Cari Santri (Nama / NIK / NISN)
+                  </label>
+                  {isDebouncing && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 animate-pulse">
+                      <Clock className="w-3 h-3" /> Menunggu 2 detik...
+                    </span>
+                  )}
+                </div>
+                <div className="relative rounded-xl shadow-xs">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
+                    <Search className="h-4 w-4 text-slate-400" />
                   </div>
                   <input
                     type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="block w-full rounded-md border-gray-300 pl-10 focus:border-blue-500 focus:ring-blue-500 sm:text-sm py-2 border"
-                    placeholder="Nama siswa..."
+                    value={inputSearch}
+                    onChange={(e) => setInputSearch(e.target.value)}
+                    className="block w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/10 transition-all placeholder:text-slate-400 placeholder:font-normal"
+                    placeholder="Ketik nama, NIK, atau NISN santri..."
                   />
+                  {inputSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setInputSearch('')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+          <div className="flex-1 overflow-y-auto p-5 bg-slate-50/50 min-h-[260px]">
             {isProcessing ? (
-              <div className="my-6 p-6 bg-blue-50 rounded-xl border border-blue-200 space-y-4 text-center">
-                <div className="flex justify-between items-center text-sm font-semibold text-blue-900">
+              <div className="my-6 p-6 bg-indigo-50 rounded-2xl border border-indigo-200 space-y-4 text-center">
+                <div className="flex justify-between items-center text-sm font-semibold text-indigo-900">
                   <span>Memproses Penarikan Siswa...</span>
                   <span>{Math.round((progress.processed / (progress.total || 1)) * 100)}%</span>
                 </div>
-                <div className="w-full bg-blue-200 rounded-full h-3 overflow-hidden shadow-inner">
+                <div className="w-full bg-indigo-200 rounded-full h-3 overflow-hidden shadow-inner">
                   <div 
-                    className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                    className="bg-indigo-600 h-3 rounded-full transition-all duration-300"
                     style={{ width: `${Math.round((progress.processed / (progress.total || 1)) * 100)}%` }}
                   />
                 </div>
-                <div className="flex justify-between text-xs text-blue-700 font-medium">
+                <div className="flex justify-between text-xs text-indigo-700 font-medium">
                   <span>{progress.processed.toLocaleString()} / {progress.total.toLocaleString()} siswa selesai</span>
                   <span>Antrean {progress.currentBatch} dari {progress.totalBatches} (200 / batch)</span>
                 </div>
-                <p className="text-xs text-blue-600 animate-pulse pt-2 border-t border-blue-200/60">
+                <p className="text-xs text-indigo-600 animate-pulse pt-2 border-t border-indigo-200/60">
                   Harap tunggu, sistem sedang memproses penarikan secara bertahap...
                 </p>
               </div>
-            ) : isLoadingPool ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            ) : !isSearchActive ? (
+              <div className="text-center py-16 text-slate-500 space-y-3">
+                <div className="w-14 h-14 rounded-3xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center mx-auto shadow-xs">
+                  <Search className="w-7 h-7" />
+                </div>
+                <h4 className="text-base font-bold text-slate-800">Cari Data Santri</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                  Data santri hanya akan dimuat setelah Anda mengetik pencarian. Sistem akan memproses pencarian secara otomatis setelah Anda berhenti mengetik selama <strong>2 detik</strong>.
+                </p>
               </div>
-            ) : filteredStudents.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                Tidak ada siswa yang ditemukan.
+            ) : isLoadingPool || isFetching ? (
+              <div className="flex flex-col justify-center items-center py-16 space-y-3 text-slate-500">
+                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                <p className="text-xs font-semibold text-slate-600">Mencari santri dengan kata kunci "{debouncedSearch}"...</p>
+              </div>
+            ) : poolStudents.length === 0 ? (
+              <div className="text-center py-16 text-slate-500 space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800">Tidak Ada Santri Ditemukan</h4>
+                <p className="text-xs text-slate-500">
+                  Tidak ditemukan santri di pool dengan kata kunci <strong>"{debouncedSearch}"</strong>.
+                </p>
               </div>
             ) : (
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
-                        <input
-                          type="checkbox"
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                          checked={filteredStudents.length > 0 && selectedStudentIds.length === filteredStudents.length}
-                          onChange={selectAll}
-                        />
-                      </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wilayah Asal</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lokasi / Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredStudents.map((student) => (
-                      <tr key={student.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="px-4 py-2.5 bg-slate-50/80 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600">
+                  <span className="font-bold text-slate-800">
+                    Hasil Pencarian ({poolStudents.length} Santri)
+                  </span>
+                  <span className="text-[11px] text-slate-500">
+                    {selectedStudentIds.length} dipilih
+                  </span>
+                </div>
+                <div className="overflow-x-auto max-h-[380px]">
+                  <table className="min-w-full divide-y divide-slate-200 text-xs">
+                    <thead className="bg-slate-50 sticky top-0 z-10">
+                      <tr>
+                        <th scope="col" className="px-4 py-3 text-left font-bold text-slate-600 uppercase tracking-wider w-10">
                           <input
                             type="checkbox"
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                            checked={selectedStudentIds.includes(student.id)}
-                            onChange={() => toggleStudentSelection(student.id)}
+                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            checked={poolStudents.length > 0 && selectedStudentIds.length === poolStudents.length}
+                            onChange={selectAll}
                           />
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{student.biodata?.fullName}</div>
-                          <div className="text-xs text-gray-500">NIK: {student.biodata?.nik || '-'}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {student.wilayah?.name || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {student.statusPool === 'AKTIF_CABANG' ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-                              Di Cabang: {student.cabang?.name || '-'}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                              Pool (Tersedia)
-                            </span>
-                          )}
-                        </td>
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-left font-bold text-slate-600 uppercase tracking-wider">Nama & NIK</th>
+                        <th scope="col" className="px-4 py-3 text-left font-bold text-slate-600 uppercase tracking-wider">Wilayah Asal</th>
+                        <th scope="col" className="px-4 py-3 text-left font-bold text-slate-600 uppercase tracking-wider">Lokasi / Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-100">
+                      {poolStudents.map((student) => {
+                        const isSelected = selectedStudentIds.includes(student.id);
+                        return (
+                          <tr 
+                            key={student.id} 
+                            onClick={() => toggleStudentSelection(student.id)}
+                            className={`hover:bg-indigo-50/40 transition-colors cursor-pointer ${
+                              isSelected ? 'bg-indigo-50/60' : ''
+                            }`}
+                          >
+                            <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                checked={isSelected}
+                                onChange={() => toggleStudentSelection(student.id)}
+                              />
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="font-bold text-slate-900">{student.biodata?.fullName}</div>
+                              <div className="text-[11px] text-slate-400 font-mono">NIK: {student.biodata?.nik || '-'} {student.biodata?.nisn ? `| NISN: ${student.biodata.nisn}` : ''}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-slate-600">
+                              {student.wilayah?.name || '-'}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              {student.statusPool === 'AKTIF_CABANG' ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                  Di Cabang: {student.cabang?.name || '-'}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  Pool (Tersedia)
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="bg-white px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 border-t border-gray-200">
+          <div className="bg-white px-5 py-3.5 sm:flex sm:flex-row-reverse sm:px-6 border-t border-slate-200 gap-2">
             {!isProcessing && (
               <button
                 type="button"
                 disabled={!selectedCabangId || selectedStudentIds.length === 0}
                 onClick={handleTarik}
-                className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm sm:ml-3 sm:w-auto disabled:opacity-50 ${buttonColor}`}
+                className={`inline-flex w-full justify-center rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold text-white shadow-sm sm:w-auto disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer ${buttonColor}`}
               >
                 {buttonText}
               </button>
@@ -289,7 +377,7 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
               type="button"
               disabled={isProcessing}
               onClick={onClose}
-              className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto disabled:opacity-50"
+              className="mt-2 sm:mt-0 inline-flex w-full justify-center rounded-xl bg-white px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-700 shadow-xs border border-slate-200 hover:bg-slate-50 sm:w-auto disabled:opacity-50 transition-colors cursor-pointer"
             >
               Batal
             </button>

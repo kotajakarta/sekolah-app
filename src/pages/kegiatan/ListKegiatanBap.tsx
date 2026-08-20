@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
-import { Calendar, FileText, Download, CheckCircle2, AlertCircle, Info, Building, Clock, ChevronDown, ChevronUp, Sparkles, Loader2, Plus, Tag, Eye, X, Image as ImageIcon, File, ZoomIn, ZoomOut, RotateCw } from 'lucide-react';
+import {
+  Calendar, FileText, Download, CheckCircle2, AlertCircle, Info,
+  Building, Clock, ChevronDown, ChevronUp, Sparkles, Loader2, Plus,
+  Tag, Eye, X, Image as ImageIcon, File, ZoomIn, ZoomOut, RotateCw,
+  Search, Filter, RotateCcw, Check, Users, MapPin, ChevronRight
+} from 'lucide-react';
 
 interface Panitia {
   id?: string;
@@ -174,6 +179,16 @@ export default function ListKegiatanBap() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<Dokumen | null>(null);
 
+  // Advanced Filter States
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedJenis, setSelectedJenis] = useState('ALL');
+  const [selectedCabang, setSelectedCabang] = useState('ALL');
+  const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'CONFIRMED' | 'PENDING'>('ALL');
+  const [selectedDeadline, setSelectedDeadline] = useState<'ALL' | 'ACTIVE' | 'CLOSED'>('ALL');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   // Fetch all BAPs
   const { data: BAPs = [], isLoading, isError } = useQuery<Kegiatan[]>({
     queryKey: ['kegiatan'],
@@ -182,6 +197,103 @@ export default function ListKegiatanBap() {
       return res.data;
     }
   });
+
+  // Extract distinct options for dropdowns
+  const jenisList = useMemo(() => {
+    const set = new Set<string>();
+    BAPs.forEach(b => {
+      if (b.template?.jenis?.nama) set.add(b.template.jenis.nama);
+    });
+    return Array.from(set).sort();
+  }, [BAPs]);
+
+  const cabangList = useMemo(() => {
+    const set = new Set<string>();
+    BAPs.forEach(b => {
+      if (b.cabang?.name) set.add(b.cabang.name);
+    });
+    return Array.from(set).sort();
+  }, [BAPs]);
+
+  // Filtered BAPs
+  const filteredBAPs = useMemo(() => {
+    return BAPs.filter(bap => {
+      // 1. Keyword search (Judul, Cabang, Asrama, Panitia, Tempat)
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const judulMatch = bap.template?.judul?.toLowerCase().includes(q);
+        const cabangMatch = bap.cabang?.name?.toLowerCase().includes(q);
+        const asramaMatch = bap.asrama?.nama?.toLowerCase().includes(q);
+        const tempatMatch = bap.tempatKegiatan?.toLowerCase().includes(q);
+        const panitiaMatch = bap.panitia?.some(p => 
+          p.staff?.name?.toLowerCase().includes(q) ||
+          p.user?.operatorName?.toLowerCase().includes(q) ||
+          p.user?.username?.toLowerCase().includes(q)
+        );
+        if (!judulMatch && !cabangMatch && !asramaMatch && !tempatMatch && !panitiaMatch) {
+          return false;
+        }
+      }
+
+      // 2. Jenis Kegiatan
+      if (selectedJenis !== 'ALL' && bap.template?.jenis?.nama !== selectedJenis) {
+        return false;
+      }
+
+      // 3. Cabang
+      if (selectedCabang !== 'ALL' && bap.cabang?.name !== selectedCabang) {
+        return false;
+      }
+
+      // 4. Status Konfirmasi
+      if (selectedStatus === 'CONFIRMED' && !bap.isConfirmed) return false;
+      if (selectedStatus === 'PENDING' && bap.isConfirmed) return false;
+
+      // 5. Deadline status
+      const isExpired = new Date(bap.template.deadline) < new Date();
+      if (selectedDeadline === 'ACTIVE' && isExpired) return false;
+      if (selectedDeadline === 'CLOSED' && !isExpired) return false;
+
+      // 6. Date Range (based on tanggalKegiatan or createdAt)
+      const bapDateStr = bap.tanggalKegiatan || bap.createdAt;
+      if (startDate) {
+        const d = new Date(bapDateStr);
+        const start = new Date(startDate);
+        if (d < start) return false;
+      }
+      if (endDate) {
+        const d = new Date(bapDateStr);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (d > end) return false;
+      }
+
+      return true;
+    });
+  }, [BAPs, searchQuery, selectedJenis, selectedCabang, selectedStatus, selectedDeadline, startDate, endDate]);
+
+  // Active filter count
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery.trim()) count++;
+    if (selectedJenis !== 'ALL') count++;
+    if (selectedCabang !== 'ALL') count++;
+    if (selectedStatus !== 'ALL') count++;
+    if (selectedDeadline !== 'ALL') count++;
+    if (startDate) count++;
+    if (endDate) count++;
+    return count;
+  }, [searchQuery, selectedJenis, selectedCabang, selectedStatus, selectedDeadline, startDate, endDate]);
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedJenis('ALL');
+    setSelectedCabang('ALL');
+    setSelectedStatus('ALL');
+    setSelectedDeadline('ALL');
+    setStartDate('');
+    setEndDate('');
+  };
 
   // Mutation to confirm BAP receipt (Pusat Only)
   const confirmMutation = useMutation({
@@ -240,19 +352,25 @@ export default function ListKegiatanBap() {
     document.body.removeChild(link);
   };
 
+  // KPI calculations
+  const totalCount = BAPs.length;
+  const confirmedCount = BAPs.filter(b => b.isConfirmed).length;
+  const pendingCount = totalCount - confirmedCount;
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-5 animate-in fade-in duration-300">
       {/* File Viewer Modal */}
       {viewingDoc && <FileViewer doc={viewingDoc} onClose={() => setViewingDoc(null)} />}
 
-      <div className="flex justify-between items-center">
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Building className="w-6 h-6 text-indigo-500" />
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <Building className="w-6 h-6 text-indigo-600" />
             Laporan Berita Acara Pelaksanaan (BAP)
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            {user?.scope === 'GLOBAL'
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            {user?.scope === 'GLOBAL' || user?.scope === 'AUDITOR'
               ? 'Seluruh data BAP kegiatan sekolah yang dilaporkan oleh Cabang.'
               : 'Daftar BAP kegiatan sekolah milik cabang Anda yang dilaporkan ke Pusat.'}
           </p>
@@ -261,398 +379,602 @@ export default function ListKegiatanBap() {
         {user?.scope === 'CABANG' && (
           <button
             onClick={() => navigate('/dashboard/kegiatan/buat')}
-            className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-all cursor-pointer"
+            className="inline-flex items-center justify-center px-4 py-2.5 shadow-sm text-xs sm:text-sm font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-all cursor-pointer shrink-0"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-4 h-4 mr-1.5" />
             Buat Laporan BAP
           </button>
         )}
       </div>
 
+      {/* KPI Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-xs">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total BAP</span>
+          <span className="text-xl font-bold text-slate-900 mt-0.5 block">{totalCount}</span>
+        </div>
+        <div className="p-3.5 bg-emerald-50/50 border border-emerald-200/80 rounded-2xl shadow-xs">
+          <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">Diterima Pusat</span>
+          <span className="text-xl font-bold text-emerald-800 mt-0.5 block">{confirmedCount}</span>
+        </div>
+        <div className="p-3.5 bg-indigo-50/50 border border-indigo-200/80 rounded-2xl shadow-xs">
+          <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider block">Menunggu Verifikasi</span>
+          <span className="text-xl font-bold text-indigo-900 mt-0.5 block">{pendingCount}</span>
+        </div>
+        <div className="p-3.5 bg-slate-50/80 border border-slate-200/80 rounded-2xl shadow-xs">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Hasil Filter</span>
+          <span className="text-xl font-bold text-slate-800 mt-0.5 block">{filteredBAPs.length}</span>
+        </div>
+      </div>
+
+      {/* Advanced Filter Toolbar */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Search Box */}
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari judul kegiatan, cabang, panitia, tempat..."
+              className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 transition-all"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter Toggle & Quick Status */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                isFilterExpanded || activeFiltersCount > 0
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <Filter className="w-3.5 h-3.5" />
+              <span>Advanced Filter</span>
+              {activeFiltersCount > 0 && (
+                <span className="w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] flex items-center justify-center font-bold">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+
+            {activeFiltersCount > 0 && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors cursor-pointer"
+                title="Reset Semua Filter"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Collapsible Advanced Filter Panel */}
+        {isFilterExpanded && (
+          <div className="pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 animate-in slide-in-from-top-2 duration-200">
+            {/* Jenis Kegiatan */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                Jenis Kegiatan
+              </label>
+              <select
+                value={selectedJenis}
+                onChange={(e) => setSelectedJenis(e.target.value)}
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-600 transition-all cursor-pointer"
+              >
+                <option value="ALL">Semua Jenis Kegiatan</option>
+                {jenisList.map(j => (
+                  <option key={j} value={j}>{j}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Cabang (for Pusat/Wilayah/Auditor) */}
+            {user?.scope !== 'CABANG' && (
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Cabang Pelapor
+                </label>
+                <select
+                  value={selectedCabang}
+                  onChange={(e) => setSelectedCabang(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-600 transition-all cursor-pointer"
+                >
+                  <option value="ALL">Semua Cabang</option>
+                  {cabangList.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Status Konfirmasi */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                Status Verifikasi
+              </label>
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value as any)}
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-600 transition-all cursor-pointer"
+              >
+                <option value="ALL">Semua Status</option>
+                <option value="CONFIRMED">Diterima Pusat</option>
+                <option value="PENDING">Menunggu Verifikasi</option>
+              </select>
+            </div>
+
+            {/* Status Tenggat */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                Status Tenggat
+              </label>
+              <select
+                value={selectedDeadline}
+                onChange={(e) => setSelectedDeadline(e.target.value as any)}
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-600 transition-all cursor-pointer"
+              >
+                <option value="ALL">Semua Tenggat</option>
+                <option value="ACTIVE">Masih Berlaku</option>
+                <option value="CLOSED">Tenggat Berakhir (Closed)</option>
+              </select>
+            </div>
+
+            {/* Rentang Tanggal Mulai */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                Dari Tanggal
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-600 transition-all"
+              />
+            </div>
+
+            {/* Rentang Tanggal Selesai */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                Sampai Tanggal
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-600 transition-all"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main BAP Content (Compact 1-Line Table View) */}
       {isLoading ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-12 flex justify-center items-center">
+        <div className="bg-white border border-slate-200 rounded-2xl p-16 flex flex-col justify-center items-center gap-3">
           <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+          <p className="text-xs font-semibold text-slate-500">Memuat laporan BAP kegiatan...</p>
         </div>
       ) : isError ? (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-6 text-center flex items-center justify-center gap-2">
-          <AlertCircle className="w-5 h-5" /> Gagal memuat data BAP.
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl p-6 text-center flex items-center justify-center gap-2">
+          <AlertCircle className="w-5 h-5" /> Gagal memuat data BAP kegiatan.
         </div>
-      ) : BAPs.length === 0 ? (
-        <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-12 text-center text-slate-400 flex flex-col items-center justify-center">
-          <Info className="w-8 h-8 mb-2 text-slate-300" />
-          <p className="font-medium text-slate-600">Belum ada laporan BAP kegiatan yang tercatat.</p>
-          {user?.scope === 'CABANG' && (
+      ) : filteredBAPs.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-2xl p-16 text-center text-slate-400 flex flex-col items-center justify-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">
+            <Info className="w-6 h-6" />
+          </div>
+          <p className="font-bold text-slate-700 text-sm">
+            {BAPs.length === 0 ? 'Belum ada laporan BAP kegiatan yang tercatat.' : 'Tidak ada laporan BAP yang sesuai dengan filter.'}
+          </p>
+          {activeFiltersCount > 0 ? (
+            <button
+              onClick={handleResetFilters}
+              className="px-4 py-2 text-xs font-bold text-indigo-600 border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100 rounded-xl transition-colors cursor-pointer"
+            >
+              Reset Filter
+            </button>
+          ) : user?.scope === 'CABANG' ? (
             <button
               onClick={() => navigate('/dashboard/kegiatan/buat')}
-              className="mt-4 px-4 py-2 text-xs font-bold text-indigo-600 border border-indigo-200 bg-white hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
+              className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors cursor-pointer"
             >
               Mulai Buat Laporan Pertama
             </button>
-          )}
+          ) : null}
         </div>
       ) : (
-        <div className="space-y-4">
-          {BAPs.map(bap => {
-            const isExpired = new Date(bap.template.deadline) < new Date();
-            const isOpen = expandedId === bap.id;
-            const ketuaPanitia = bap.panitia.find(p => p.jabatan === 'KETUA');
-            const sekretarisPanitia = bap.panitia.find(p => p.jabatan === 'SEKRETARIS');
-            const bendaharaPanitia = bap.panitia.find(p => p.jabatan === 'BENDAHARA');
+        <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 text-xs">
+              <thead className="bg-slate-50/90 text-slate-600">
+                <tr>
+                  <th scope="col" className="w-10 px-3 py-3 text-center"></th>
+                  <th scope="col" className="px-4 py-3 text-left font-bold uppercase tracking-wider">
+                    Kegiatan & Judul
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left font-bold uppercase tracking-wider">
+                    Cabang & Lokasi
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-left font-bold uppercase tracking-wider">
+                    Waktu / Tanggal
+                  </th>
+                  <th scope="col" className="px-3 py-3 text-center font-bold uppercase tracking-wider">
+                    Peserta
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-center font-bold uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-right font-bold uppercase tracking-wider">
+                    Aksi
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredBAPs.map((bap, index) => {
+                  const isExpired = new Date(bap.template.deadline) < new Date();
+                  const isOpen = expandedId === bap.id;
+                  const ketuaPanitia = bap.panitia.find(p => p.jabatan === 'KETUA');
+                  const sekretarisPanitia = bap.panitia.find(p => p.jabatan === 'SEKRETARIS');
+                  const bendaharaPanitia = bap.panitia.find(p => p.jabatan === 'BENDAHARA');
 
-            const ketuaName = ketuaPanitia?.staff?.name || ketuaPanitia?.user?.operatorName || ketuaPanitia?.user?.username || 'Belum ditunjuk';
-            const sekretarisName = sekretarisPanitia?.staff?.name || sekretarisPanitia?.user?.operatorName || sekretarisPanitia?.user?.username || '-';
-            const bendaharaName = bendaharaPanitia?.staff?.name || bendaharaPanitia?.user?.operatorName || bendaharaPanitia?.user?.username || '-';
+                  const ketuaName = ketuaPanitia?.staff?.name || ketuaPanitia?.user?.operatorName || ketuaPanitia?.user?.username || '-';
+                  const sekretarisName = sekretarisPanitia?.staff?.name || sekretarisPanitia?.user?.operatorName || sekretarisPanitia?.user?.username || '-';
+                  const bendaharaName = bendaharaPanitia?.staff?.name || bendaharaPanitia?.user?.operatorName || bendaharaPanitia?.user?.username || '-';
 
-            // Categorize dokumen based on fileType (DOCUMENT/SURAT_PENGANTAR vs PHOTO)
-            const docFiles = bap.dokumen.filter(d => d.fileType === 'DOCUMENT' || d.fileType === 'SURAT_PENGANTAR' || (!d.fileType && !/\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName)));
-            const photoFiles = bap.dokumen.filter(d => d.fileType === 'PHOTO' || (!d.fileType && /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName)));
+                  const docFiles = bap.dokumen.filter(d => d.fileType === 'DOCUMENT' || d.fileType === 'SURAT_PENGANTAR' || (!d.fileType && !/\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName)));
+                  const photoFiles = bap.dokumen.filter(d => d.fileType === 'PHOTO' || (!d.fileType && /\.(jpe?g|png|gif|webp|bmp)$/i.test(d.fileName)));
+                  const totalPeserta = bap.jumlahPeserta ?? ((bap.totalSantri || 0) + (bap.totalGuru || 0));
 
-            return (
-              <div
-                key={bap.id}
-                className={`bg-white border rounded-xl shadow-sm transition-all overflow-hidden ${
-                  bap.isConfirmed 
-                    ? 'border-slate-200' 
-                    : 'border-indigo-500 ring-1 ring-indigo-500/20'
-                }`}
-              >
-                {/* Header Summary */}
-                <div
-                  onClick={() => toggleExpand(bap.id)}
-                  className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer hover:bg-slate-50/50 transition-colors"
-                >
-                  <div className="space-y-1.5 flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border bg-indigo-50 text-indigo-700 border-indigo-150">
-                        {bap.template.jenis.nama}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Tenggat: {new Date(bap.template.deadline).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
-                      </span>
-                      {isExpired && (
-                        <span className="bg-rose-100 text-rose-800 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">CLOSED</span>
-                      )}
-                    </div>
-                    <h3 className="text-base font-bold text-slate-800 truncate">{bap.template.judul}</h3>
-                    <p className="text-xs text-slate-500 line-clamp-1">Dilaporkan oleh: {bap.cabang.name}</p>
-                    <div className="flex items-center gap-4 text-[11px] text-slate-400 mt-1">
-                      <span className="font-semibold text-slate-655 bg-slate-100 px-2 py-0.5 rounded">
-                        Cabang: {bap.cabang.name}
-                      </span>
-                      {bap.asrama && (
-                        <span className="font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                          Asrama: {bap.asrama.nama}
-                        </span>
-                      )}
-                      <span>Ketua Panitia: {ketuaName}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 shrink-0">
-                    {/* Status Badge */}
-                    {bap.isConfirmed ? (
-                      <div className="flex items-center gap-1.5 text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full font-semibold">
-                        <CheckCircle2 className="w-4 h-4" />
-                        Diterima Pusat
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 text-xs text-indigo-600 bg-indigo-50 border border-indigo-200 px-3 py-1 rounded-full font-semibold">
-                        <Clock className="w-4 h-4" />
-                        Menunggu Verifikasi
-                      </div>
-                    )}
-                    
-                    {isOpen ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
-                  </div>
-                </div>
-
-                {/* Expanded Details */}
-                {isOpen && (
-                  <div className="border-t border-slate-100 bg-[#fbfbfb] p-6 space-y-6">
-                    {/* Template Instruction Helper */}
-                    <div className="bg-indigo-50/30 border border-indigo-100/50 rounded-xl p-4 space-y-3">
-                      <div>
-                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">Petunjuk / Juknis Pusat:</span>
-                        <p className="text-xs text-slate-600 whitespace-pre-wrap">{bap.template.deskripsi}</p>
-                      </div>
-
-                      {bap.template.dokumen && bap.template.dokumen.length > 0 && (
-                        <div className="space-y-1.5 pt-2 border-t border-indigo-100/30">
-                          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lampiran Pusat ({bap.template.dokumen.length}):</span>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {bap.template.dokumen.map(doc => (
-                              <div key={doc.id} className="flex items-center justify-between p-2 rounded-lg border border-slate-200 bg-white">
-                                <span className="text-[11px] text-slate-700 truncate font-medium flex-1 mr-2">{doc.fileName}</span>
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => setViewingDoc(doc)}
-                                    title="Lihat"
-                                    className="p-1.5 hover:bg-indigo-50 rounded text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDownload(doc.filePath, doc.fileName)}
-                                    title="Unduh"
-                                    className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
-                                  >
-                                    <Download className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Data Lengkap Pelaksanaan BAP */}
-                    <div className="space-y-4">
-                      {/* Grid 1: Tempat, Waktu, Breakdown Peserta */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Waktu & Tempat */}
-                        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
-                          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                            <Building className="w-4 h-4 text-indigo-500" />
-                            Pelaksanaan & Waktu
-                          </h4>
-                          <div className="text-xs space-y-1 text-slate-600">
-                            <div><span className="font-medium text-slate-400">Tempat:</span> <span className="font-semibold text-slate-800">{bap.tempatKegiatan || bap.cabang?.name}</span></div>
-                            <div><span className="font-medium text-slate-400">Tanggal:</span> <span className="font-semibold text-slate-800">{bap.tanggalKegiatan ? new Date(bap.tanggalKegiatan).toLocaleDateString('id-ID', { dateStyle: 'full' }) : '-'}</span></div>
-                            <div><span className="font-medium text-slate-400">Waktu:</span> <span className="font-semibold text-slate-800">{bap.waktuKegiatan || '-'}</span></div>
-                          </div>
-                        </div>
-
-                        {/* Breakdown Peserta */}
-                        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
-                          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                            <Tag className="w-4 h-4 text-indigo-500" />
-                            Rincian Jumlah Peserta
-                          </h4>
-                          <div className="grid grid-cols-3 gap-2 text-center pt-1">
-                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-2">
-                              <span className="block text-[10px] text-slate-400 uppercase font-semibold">Santri</span>
-                              <span className="text-sm font-bold text-slate-800">{bap.totalSantri ?? 0}</span>
-                            </div>
-                            <div className="bg-slate-50 border border-slate-100 rounded-lg p-2">
-                              <span className="block text-[10px] text-slate-400 uppercase font-semibold">Guru</span>
-                              <span className="text-sm font-bold text-slate-800">{bap.totalGuru ?? 0}</span>
-                            </div>
-                            <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-2">
-                              <span className="block text-[10px] text-indigo-500 uppercase font-bold">Total</span>
-                              <span className="text-sm font-bold text-indigo-900">{bap.jumlahPeserta ?? ((bap.totalSantri || 0) + (bap.totalGuru || 0))}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Grid 2: Penanggung Jawab / Panitia */}
-                      <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
-                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Penanggung Jawab Pelaksana</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                          <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg">
-                            <span className="block text-[10px] text-slate-400 font-semibold uppercase">Ketua</span>
-                            <span className="font-bold text-slate-800">{ketuaName}</span>
-                          </div>
-                          <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg">
-                            <span className="block text-[10px] text-slate-400 font-semibold uppercase">Sekretaris</span>
-                            <span className="font-semibold text-slate-800">{sekretarisName}</span>
-                          </div>
-                          <div className="bg-slate-50 border border-slate-100 p-2.5 rounded-lg">
-                            <span className="block text-[10px] text-slate-400 font-semibold uppercase">Bendahara</span>
-                            <span className="font-semibold text-slate-800">{bendaharaName}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Grid 3: Bentuk & Rangkaian Kegiatan */}
-                      {(bap.bentukKegiatan || bap.rangkaianKegiatan) && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {bap.bentukKegiatan && (
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1.5">
-                              <span className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Bentuk Kegiatan:</span>
-                              <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{bap.bentukKegiatan}</p>
-                            </div>
-                          )}
-                          {bap.rangkaianKegiatan && (
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1.5">
-                              <span className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Rangkaian Kegiatan:</span>
-                              <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">{bap.rangkaianKegiatan}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Hasil Pelaksanaan */}
-                      {(bap.hasilPelaksanaan || bap.kesimpulan || bap.deskripsi) && (
-                        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-1.5">
-                          <span className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Hasil Pelaksanaan:</span>
-                          <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
-                            {bap.hasilPelaksanaan || bap.kesimpulan || bap.deskripsi}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Evaluasi Kegiatan */}
-                      {(bap.evaluasiBaik || bap.evaluasiPerbaikan) && (
-                        <div className="bg-amber-50/40 border border-amber-200/80 rounded-xl p-4 space-y-3">
-                          <span className="block text-xs font-bold text-amber-900 uppercase tracking-wider">Evaluasi Pelaksanaan</span>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                            {bap.evaluasiBaik && (
-                              <div className="bg-white border border-amber-100 rounded-lg p-3">
-                                <span className="font-bold text-emerald-700 block mb-1">Hal Yang Sudah Baik:</span>
-                                <p className="text-slate-700 whitespace-pre-wrap">{bap.evaluasiBaik}</p>
-                              </div>
-                            )}
-                            {bap.evaluasiPerbaikan && (
-                              <div className="bg-white border border-amber-100 rounded-lg p-3">
-                                <span className="font-bold text-amber-800 block mb-1">Hal Yang Perlu Ditingkatkan:</span>
-                                <p className="text-slate-700 whitespace-pre-wrap">{bap.evaluasiPerbaikan}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Dokumen Files */}
-                    {docFiles.length > 0 && (
-                      <div className="space-y-2">
-                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Dokumen Lampiran ({docFiles.length}):</span>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {docFiles.map(doc => (
-                            <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white">
-                              <div className="flex items-center gap-2 truncate">
-                                <FileText className="w-4 h-4 text-indigo-500 shrink-0" />
-                                <div className="truncate">
-                                  <p className="text-xs font-semibold text-slate-700 truncate">{doc.fileName}</p>
-                                  <p className="text-[9px] text-slate-400 uppercase font-bold">{doc.fileType}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 ml-2 shrink-0">
-                                <button
-                                  onClick={() => setViewingDoc(doc)}
-                                  title="Lihat"
-                                  className="p-1.5 hover:bg-indigo-50 rounded text-indigo-400 hover:text-indigo-600 transition-colors cursor-pointer"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDownload(doc.filePath, doc.fileName)}
-                                  title="Unduh"
-                                  className="p-1.5 hover:bg-slate-100 rounded text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
-                                >
-                                  <Download className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Photo Gallery */}
-                    {photoFiles.length > 0 && (
-                      <div className="space-y-2">
-                        <span className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Foto Kegiatan ({photoFiles.length}):</span>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                          {photoFiles.map(doc => {
-                            const photoUrl = `${apiClient.defaults.baseURL || ''}${doc.filePath}`;
-                            return (
-                              <div
-                                key={doc.id}
-                                className="relative group rounded-lg overflow-hidden border border-slate-200 bg-slate-100 aspect-square cursor-pointer"
-                                onClick={() => setViewingDoc(doc)}
-                              >
-                                <img
-                                  src={photoUrl}
-                                  alt={doc.fileName}
-                                  className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-200"
-                                />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
-                                  <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
-                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1 translate-y-full group-hover:translate-y-0 transition-transform">
-                                  <p className="text-[10px] text-white truncate">{doc.fileName}</p>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Confirm receipt section */}
-                    <div className="border-t border-slate-200 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div>
-                        {bap.isConfirmed ? (
-                          <p className="text-xs text-slate-500">
-                            Diterima oleh Pusat (<span className="font-semibold text-slate-700">{bap.confirmedByUser?.operatorName || bap.confirmedByUser?.username}</span>) pada{' '}
-                            <span className="font-semibold">{new Date(bap.confirmedAt!).toLocaleString('id-ID')}</span>
-                          </p>
-                        ) : (
-                          <p className="text-xs text-slate-500 flex items-center gap-1">
-                            <Info className="w-4 h-4 text-indigo-500 shrink-0" />
-                            {user?.scope === 'GLOBAL' 
-                              ? 'Periksa kesesuaian laporan dengan petunjuk pusat sebelum menandai tanda terima BAP.'
-                              : 'Menunggu konfirmasi penerimaan BAP oleh Administrator Pusat.'}
-                          </p>
-                        )}
-                      </div>
-
-                      {user?.scope === 'GLOBAL' && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          {bap.isConfirmed ? (
-                            <button
-                              onClick={() => {
-                                if (window.confirm('Batalkan konfirmasi terima BAP ini? Akses edit akan dibuka kembali.')) {
-                                  unconfirmMutation.mutate(bap.id);
-                                }
-                              }}
-                              disabled={unconfirmMutation.isPending}
-                              className="px-3.5 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-300 rounded-lg hover:bg-amber-100 transition-all cursor-pointer disabled:opacity-50"
-                            >
-                              {unconfirmMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> : null}
-                              Batalkan Konfirmasi (Buka Akses Edit)
-                            </button>
+                  return (
+                    <React.Fragment key={bap.id}>
+                      {/* Compact Single-Line Row */}
+                      <tr
+                        onClick={() => toggleExpand(bap.id)}
+                        className={`hover:bg-indigo-50/40 transition-colors cursor-pointer group ${
+                          isOpen ? 'bg-indigo-50/60' : index % 2 === 1 ? 'bg-slate-50/30' : 'bg-white'
+                        }`}
+                      >
+                        {/* 1. Expand Chevron */}
+                        <td className="px-3 py-3 text-center text-slate-400 group-hover:text-indigo-600">
+                          {isOpen ? (
+                            <ChevronDown className="w-4 h-4 mx-auto text-indigo-600 transition-transform" />
                           ) : (
-                            <button
-                              onClick={() => confirmMutation.mutate(bap.id)}
-                              disabled={confirmMutation.isPending}
-                              className="px-5 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 transition-all cursor-pointer"
-                            >
-                              {confirmMutation.isPending ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <Sparkles className="w-3.5 h-3.5" />
-                              )}
-                              Konfirmasi Terima Laporan BAP
-                            </button>
+                            <ChevronRight className="w-4 h-4 mx-auto transition-transform" />
                           )}
+                        </td>
 
-                          <button
-                            onClick={() => {
-                              if (window.confirm('Hapus laporan BAP ini? Cabang dapat membuat ulang laporan setelah dihapus.')) {
-                                deleteMutation.mutate(bap.id);
-                              }
-                            }}
-                            disabled={deleteMutation.isPending}
-                            className="px-3.5 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all cursor-pointer disabled:opacity-50"
-                          >
-                            {deleteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> : null}
-                            Hapus Laporan (Izinkan Buat Ulang)
-                          </button>
-                        </div>
+                        {/* 2. Jenis & Judul Kegiatan (Single-Line) */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-100/70 text-indigo-700 border border-indigo-200 shrink-0">
+                              {bap.template.jenis.nama}
+                            </span>
+                            <span className="font-bold text-slate-800 truncate max-w-[280px]" title={bap.template.judul}>
+                              {bap.template.judul}
+                            </span>
+                            {isExpired && (
+                              <span className="bg-rose-100 text-rose-800 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0">
+                                CLOSED
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 3. Cabang & Asrama */}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
+                            <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>{bap.cabang.name}</span>
+                            {bap.asrama && (
+                              <span className="text-[10px] text-slate-400 font-normal">
+                                ({bap.asrama.nama})
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 4. Waktu / Tanggal Kegiatan */}
+                        <td className="px-4 py-3 whitespace-nowrap text-slate-600">
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span>
+                              {bap.tanggalKegiatan
+                                ? new Date(bap.tanggalKegiatan).toLocaleDateString('id-ID', { dateStyle: 'medium' })
+                                : new Date(bap.createdAt).toLocaleDateString('id-ID', { dateStyle: 'medium' })}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* 5. Peserta */}
+                        <td className="px-3 py-3 whitespace-nowrap text-center">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700" title={`Santri: ${bap.totalSantri || 0}, Guru: ${bap.totalGuru || 0}`}>
+                            <Users className="w-3 h-3 text-slate-500" />
+                            {totalPeserta}
+                          </span>
+                        </td>
+
+                        {/* 6. Status Badge */}
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          {bap.isConfirmed ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              Diterima
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full font-bold">
+                              <Clock className="w-3.5 h-3.5 text-amber-500" />
+                              Verifikasi
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 7. Action Button */}
+                        <td className="px-4 py-3 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(bap.id)}
+                              className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                            >
+                              {isOpen ? 'Tutup' : 'Detail'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Expanded Details Row */}
+                      {isOpen && (
+                        <tr>
+                          <td colSpan={7} className="p-0 bg-slate-50/60 border-y border-slate-200/80">
+                            <div className="p-5 sm:p-6 space-y-5 animate-in slide-in-from-top-1 duration-200">
+                              {/* Juknis Petunjuk Pusat */}
+                              {bap.template.deskripsi && (
+                                <div className="bg-indigo-50/40 border border-indigo-100 rounded-xl p-3.5 text-xs">
+                                  <span className="font-bold text-indigo-700 block mb-1">
+                                    Petunjuk / Juknis Pusat:
+                                  </span>
+                                  <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">
+                                    {bap.template.deskripsi}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Grid Detail Pelaksanaan & Panitia */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                                {/* Pelaksanaan */}
+                                <div className="bg-white border border-slate-200/80 rounded-xl p-4 space-y-2">
+                                  <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                                    <MapPin className="w-4 h-4 text-indigo-600" /> Pelaksanaan Kegiatan
+                                  </h4>
+                                  <div className="space-y-1 text-slate-600">
+                                    <div><span className="text-slate-400">Tempat:</span> <strong className="text-slate-800">{bap.tempatKegiatan || bap.cabang?.name}</strong></div>
+                                    <div><span className="text-slate-400">Tanggal:</span> <strong className="text-slate-800">{bap.tanggalKegiatan ? new Date(bap.tanggalKegiatan).toLocaleDateString('id-ID', { dateStyle: 'full' }) : '-'}</strong></div>
+                                    <div><span className="text-slate-400">Waktu:</span> <strong className="text-slate-800">{bap.waktuKegiatan || '-'}</strong></div>
+                                    <div><span className="text-slate-400">Santri:</span> <strong className="text-slate-800">{bap.totalSantri ?? 0} orang</strong> | <span className="text-slate-400">Guru:</span> <strong className="text-slate-800">{bap.totalGuru ?? 0} orang</strong></div>
+                                  </div>
+                                </div>
+
+                                {/* Panitia */}
+                                <div className="bg-white border border-slate-200/80 rounded-xl p-4 space-y-2">
+                                  <h4 className="font-bold text-slate-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                                    <Users className="w-4 h-4 text-indigo-600" /> Panitia Pelaksana
+                                  </h4>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    <div className="bg-slate-50 p-2 rounded-lg">
+                                      <span className="block text-[10px] text-slate-400 uppercase font-bold">Ketua</span>
+                                      <span className="font-bold text-slate-800 truncate block">{ketuaName}</span>
+                                    </div>
+                                    <div className="bg-slate-50 p-2 rounded-lg">
+                                      <span className="block text-[10px] text-slate-400 uppercase font-bold">Sekretaris</span>
+                                      <span className="font-semibold text-slate-800 truncate block">{sekretarisName}</span>
+                                    </div>
+                                    <div className="bg-slate-50 p-2 rounded-lg">
+                                      <span className="block text-[10px] text-slate-400 uppercase font-bold">Bendahara</span>
+                                      <span className="font-semibold text-slate-800 truncate block">{bendaharaName}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Bentuk & Rangkaian Kegiatan */}
+                              {(bap.bentukKegiatan || bap.rangkaianKegiatan || bap.hasilPelaksanaan) && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                                  {bap.bentukKegiatan && (
+                                    <div className="bg-white border border-slate-200/80 rounded-xl p-4 space-y-1">
+                                      <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block">Bentuk Kegiatan:</span>
+                                      <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">{bap.bentukKegiatan}</p>
+                                    </div>
+                                  )}
+                                  {bap.rangkaianKegiatan && (
+                                    <div className="bg-white border border-slate-200/80 rounded-xl p-4 space-y-1">
+                                      <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block">Rangkaian Kegiatan:</span>
+                                      <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">{bap.rangkaianKegiatan}</p>
+                                    </div>
+                                  )}
+                                  {bap.hasilPelaksanaan && (
+                                    <div className="bg-white border border-slate-200/80 rounded-xl p-4 space-y-1 md:col-span-2">
+                                      <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block">Hasil Pelaksanaan:</span>
+                                      <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">{bap.hasilPelaksanaan}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Evaluasi */}
+                              {(bap.evaluasiBaik || bap.evaluasiPerbaikan) && (
+                                <div className="bg-amber-50/30 border border-amber-200/60 rounded-xl p-4 space-y-2 text-xs">
+                                  <span className="font-bold text-amber-900 uppercase tracking-wider text-[10px] block">Evaluasi Kegiatan</span>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {bap.evaluasiBaik && (
+                                      <div className="bg-white border border-amber-100 rounded-lg p-3">
+                                        <strong className="text-emerald-700 block mb-1">Hal Yang Sudah Baik:</strong>
+                                        <p className="text-slate-600 whitespace-pre-wrap">{bap.evaluasiBaik}</p>
+                                      </div>
+                                    )}
+                                    {bap.evaluasiPerbaikan && (
+                                      <div className="bg-white border border-amber-100 rounded-lg p-3">
+                                        <strong className="text-amber-800 block mb-1">Hal Yang Perlu Ditingkatkan:</strong>
+                                        <p className="text-slate-600 whitespace-pre-wrap">{bap.evaluasiPerbaikan}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Lampiran Dokumen & Foto */}
+                              {(docFiles.length > 0 || photoFiles.length > 0) && (
+                                <div className="space-y-3">
+                                  {docFiles.length > 0 && (
+                                    <div>
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                                        Dokumen Lampiran ({docFiles.length}):
+                                      </span>
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                        {docFiles.map(doc => (
+                                          <div key={doc.id} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white text-xs">
+                                            <div className="flex items-center gap-2 truncate">
+                                              <FileText className="w-4 h-4 text-indigo-600 shrink-0" />
+                                              <span className="truncate font-medium text-slate-800">{doc.fileName}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 shrink-0 ml-2">
+                                              <button
+                                                type="button"
+                                                onClick={() => setViewingDoc(doc)}
+                                                className="p-1 hover:bg-indigo-50 text-indigo-600 rounded cursor-pointer"
+                                                title="Lihat"
+                                              >
+                                                <Eye className="w-3.5 h-3.5" />
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleDownload(doc.filePath, doc.fileName)}
+                                                className="p-1 hover:bg-slate-100 text-slate-500 rounded cursor-pointer"
+                                                title="Unduh"
+                                              >
+                                                <Download className="w-3.5 h-3.5" />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {photoFiles.length > 0 && (
+                                    <div>
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                                        Foto Kegiatan ({photoFiles.length}):
+                                      </span>
+                                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                                        {photoFiles.map(doc => {
+                                          const photoUrl = `${apiClient.defaults.baseURL || ''}${doc.filePath}`;
+                                          return (
+                                            <div
+                                              key={doc.id}
+                                              onClick={() => setViewingDoc(doc)}
+                                              className="relative group rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-square cursor-pointer"
+                                            >
+                                              <img src={photoUrl} alt={doc.fileName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                                                <Eye className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Footer Actions (Konfirmasi Terima BAP Pusat) */}
+                              <div className="border-t border-slate-200 pt-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                                <div>
+                                  {bap.isConfirmed ? (
+                                    <p className="text-slate-500">
+                                      Diterima oleh Pusat (<strong className="text-slate-800">{bap.confirmedByUser?.operatorName || bap.confirmedByUser?.username}</strong>) pada{' '}
+                                      <strong>{new Date(bap.confirmedAt!).toLocaleString('id-ID')}</strong>
+                                    </p>
+                                  ) : (
+                                    <p className="text-slate-500 flex items-center gap-1.5">
+                                      <Info className="w-4 h-4 text-indigo-600 shrink-0" />
+                                      {user?.scope === 'GLOBAL'
+                                        ? 'Periksa kelengkapan laporan sebelum menandai konfirmasi penerimaan BAP.'
+                                        : 'Laporan BAP sedang menunggu verifikasi dan tanda terima dari Pusat.'}
+                                    </p>
+                                  )}
+                                </div>
+
+                                {user?.scope === 'GLOBAL' && (
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {bap.isConfirmed ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (window.confirm('Batalkan konfirmasi terima BAP ini? Akses edit akan dibuka kembali.')) {
+                                            unconfirmMutation.mutate(bap.id);
+                                          }
+                                        }}
+                                        disabled={unconfirmMutation.isPending}
+                                        className="px-3.5 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-300 rounded-xl hover:bg-amber-100 transition-all cursor-pointer disabled:opacity-50"
+                                      >
+                                        {unconfirmMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> : null}
+                                        Batalkan Konfirmasi
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => confirmMutation.mutate(bap.id)}
+                                        disabled={confirmMutation.isPending}
+                                        className="px-4 py-2 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-xs flex items-center gap-1.5 disabled:opacity-50 transition-all cursor-pointer"
+                                      >
+                                        {confirmMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                        Konfirmasi Terima BAP
+                                      </button>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (window.confirm('Hapus laporan BAP ini? Cabang dapat membuat ulang laporan setelah dihapus.')) {
+                                          deleteMutation.mutate(bap.id);
+                                        }
+                                      }}
+                                      disabled={deleteMutation.isPending}
+                                      className="px-3.5 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl hover:bg-rose-100 transition-all cursor-pointer disabled:opacity-50"
+                                    >
+                                      {deleteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" /> : null}
+                                      Hapus
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

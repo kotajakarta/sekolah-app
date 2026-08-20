@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X, Edit2, User, Phone, MapPin, Calendar, Activity, GraduationCap, Users, Printer, History } from 'lucide-react';
 import { Student } from '../hooks/useGetStudents';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../../hooks/useAuth';
 import PrintStudentProfile from './PrintStudentProfile';
 import StudentClassHistoryModal from './StudentClassHistoryModal';
 import { useState } from 'react';
@@ -24,11 +25,13 @@ const sortRiwayatTerbaru = <T extends { tahunAjaran: string; semester: string }>
 interface StudentProfileModalProps {
   student: Student;
   onClose: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
 }
 
 export default function StudentProfileModal({ student, onClose, onEdit }: StudentProfileModalProps) {
+  const { user } = useAuth();
   const { t } = useTranslation();
+  const isAuditor = user?.scope === 'AUDITOR';
   const [isClassHistoryOpen, setIsClassHistoryOpen] = useState(false);
   const { data: riwayatKelas } = useGetRiwayatKelas(student.id);
   const riwayatKelasTerbaru = sortRiwayatTerbaru(riwayatKelas ?? []);
@@ -49,25 +52,27 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
             <div className="flex items-center gap-2">
               <button
                 onClick={() => window.print()}
-                className="inline-flex items-center px-3 py-1.5 border border-slate-200 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+                className="inline-flex items-center px-3 py-1.5 border border-slate-200 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 <Printer className="h-4 w-4 mr-1.5 text-slate-500" />
                 {t('siswa.print_cv') || 'Cetak CV'}
               </button>
               <button
                 onClick={() => setIsClassHistoryOpen(true)}
-                className="inline-flex items-center px-3 py-1.5 border border-slate-200 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors"
+                className="inline-flex items-center px-3 py-1.5 border border-slate-200 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 <History className="h-4 w-4 mr-1.5 text-slate-500" />
                 {t('siswa.class_history') || 'Riwayat Kelas'}
               </button>
-              <button
-                onClick={onEdit}
-                className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
-              >
-                <Edit2 className="h-4 w-4 mr-1.5" />
-                {t('common.edit')}
-              </button>
+              {!isAuditor && onEdit && (
+                <button
+                  onClick={onEdit}
+                  className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors cursor-pointer"
+                >
+                  <Edit2 className="h-4 w-4 mr-1.5" />
+                  {t('common.edit')}
+                </button>
+              )}
               <button 
                 type="button" 
                 onClick={onClose} 

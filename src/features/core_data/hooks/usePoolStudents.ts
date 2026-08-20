@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
 import { Student } from './useGetStudents';
 
-export const useGetPoolStudents = (search?: string) => {
+export const useGetPoolStudents = (search?: string, options?: { enabled?: boolean }) => {
   return useQuery<Student[]>({
     queryKey: ['students', 'pool', search || ''],
     queryFn: async () => {
@@ -11,6 +11,7 @@ export const useGetPoolStudents = (search?: string) => {
       });
       return response.data;
     },
+    enabled: options?.enabled !== undefined ? options.enabled : true,
   });
 };
 

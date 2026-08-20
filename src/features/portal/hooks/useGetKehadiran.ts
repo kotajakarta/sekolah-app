@@ -23,9 +23,27 @@ export interface KehadiranTally {
   alpa: number;
 }
 
+export interface SilabusRecord {
+  id: string;
+  tanggal: string;
+  status: KehadiranStatus;
+  catatan?: string | null;
+  mataPelajaran?: { id: string; name: string; kodeMapel?: string } | null;
+  silabus?: { id: string; bab: string; section: string; tingkat: string; semester: string; tahunAjaran: string } | null;
+  kelas?: { id: string; name: string } | null;
+}
+
 export interface KehadiranData {
   records: KehadiranRecord[];
   tally: KehadiranTally;
+  harian?: {
+    records: KehadiranRecord[];
+    tally: KehadiranTally;
+  };
+  silabus?: {
+    records: SilabusRecord[];
+    tally: KehadiranTally;
+  };
 }
 
 // GET /portal/students/:studentId/kehadiran?startDate=&endDate= per

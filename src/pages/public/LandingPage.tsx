@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building, ShieldCheck, Zap, Users, GraduationCap, BarChart, CheckCircle, ChevronRight, LayoutDashboard, Calendar, FileText } from 'lucide-react';
+import { Building, ShieldCheck, Zap, Users, GraduationCap, BarChart, CheckCircle, ChevronRight, LayoutDashboard, Calendar, FileText, HeartHandshake } from 'lucide-react';
 
 // ============================================================
 // COLOR PALETTE — The Royal Trust
@@ -50,6 +50,13 @@ export default function LandingPage() {
           {/* Actions */}
           <div className="flex items-center gap-3">
             <button
+              onClick={() => navigate('/portal-register')}
+              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-full transition-colors border border-emerald-200/80"
+            >
+              <HeartHandshake className="w-4 h-4 text-emerald-600" />
+              Portal Walsan
+            </button>
+            <button
               onClick={() => navigate('/daftar-ulang')}
               className="hidden sm:block text-sm font-semibold text-[#4A5568] hover:text-[#0369A1] transition-colors"
             >
@@ -95,7 +102,14 @@ export default function LandingPage() {
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4 flex-wrap justify-center">
+            <button
+              onClick={() => navigate('/portal-register')}
+              className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5"
+            >
+              <HeartHandshake className="w-5 h-5" />
+              Portal Wali Santri
+            </button>
             <button
               onClick={() => navigate('/login')}
               className="px-8 py-4 bg-[#0A192F] hover:bg-[#132F52] text-white rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105"

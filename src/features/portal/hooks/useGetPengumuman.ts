@@ -12,15 +12,21 @@ export interface PengumumanItem {
   title: string;
   content: string;
   links?: LinkItem[];
+  scope: 'GLOBAL' | 'CABANG' | string;
+  cabangId?: string | null;
+  cabang?: { id: string; name: string } | null;
+  createdBy?: { id: string; operatorName?: string; username: string } | null;
   isActive: boolean;
   createdAt: string;
 }
 
-export const useGetPengumuman = () => {
+export const useGetPengumuman = (studentId?: string | null) => {
   return useQuery<PengumumanItem[]>({
-    queryKey: ['portal', 'pengumuman'],
+    queryKey: ['portal', 'pengumuman', studentId],
     queryFn: async () => {
-      const response = await apiClient.get<PengumumanItem[]>('/portal/pengumuman');
+      const response = await apiClient.get<PengumumanItem[]>('/portal/pengumuman', {
+        params: { studentId: studentId || undefined }
+      });
       return response.data;
     },
   });

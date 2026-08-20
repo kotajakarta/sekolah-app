@@ -39,19 +39,29 @@ import {
   FileText,
   Megaphone,
   Settings,
+  UserX,
+  Check,
+  Ban,
 } from 'lucide-react';
+import KelolaPengumumanWalsanTab from '../../features/portal/components/KelolaPengumumanWalsanTab';
 
 interface WaliUserItem {
   id: string;
   username: string;
   operatorName?: string | null;
+  phone?: string | null;
+  nik?: string | null;
+  isApproved?: boolean;
+  status?: string;
   scope: string;
   createdAt: string;
   waliSantri?: Array<{
     id: string;
     studentId: string;
+    status?: string;
+    hubungan?: string | null;
     student?: {
-      biodata?: { fullName?: string } | null;
+      biodata?: { fullName?: string; nik?: string; nisLokal?: string } | null;
       cabang?: { name?: string } | null;
     } | null;
   }>;
@@ -117,14 +127,15 @@ const ADMIN_CCTV_FEEDS: CCTVChannel[] = [
   },
 ];
 
-export default function PortalWalsanPage({ initialTab = 'overview' }: { initialTab?: 'overview' | 'list' | 'izin' | 'cctv' | 'settings' }) {
+export default function PortalWalsanPage({ initialTab = 'overview' }: { initialTab?: 'overview' | 'list' | 'izin' | 'cctv' | 'pengumuman' | 'settings' }) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'izin' | 'cctv' | 'settings'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'izin' | 'cctv' | 'pengumuman' | 'settings'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
 
   // Fetch Module Settings from Backend
   const { data: moduleSettings, refetch: refetchSettings } = useQuery({
@@ -260,17 +271,58 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
     retry: false,
   });
 
+  // Approval & Rejection Mutations
+  const approveWalsanMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiClient.put(`/admin/walsan/${userId}/approve`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users-walsan'] });
+      showToast('success', 'Akun wali santri berhasil disetujui (Approved)!');
+    },
+    onError: (err: any) => {
+      showToast('error', err.response?.data?.message || 'Gagal menyetujui akun');
+    }
+  });
+
+  const rejectWalsanMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await apiClient.put(`/admin/walsan/${userId}/reject`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users-walsan'] });
+      showToast('success', 'Pendaftaran akun wali santri telah ditolak');
+    },
+    onError: (err: any) => {
+      showToast('error', err.response?.data?.message || 'Gagal menolak akun');
+    }
+  });
+
   // Filter only WALI users
   const waliList = allUsers.filter((u) => u.scope === 'WALI');
 
+  const countPending = waliList.filter((w) => w.status === 'PENDING' || w.isApproved === false).length;
+  const countApproved = waliList.filter((w) => w.status === 'APPROVED' || (w.isApproved === true && w.status !== 'REJECTED')).length;
+  const countRejected = waliList.filter((w) => w.status === 'REJECTED').length;
+
   const filteredWali = waliList.filter((w) => {
+    // Status Filter
+    if (statusFilter === 'PENDING' && !(w.status === 'PENDING' || w.isApproved === false)) return false;
+    if (statusFilter === 'APPROVED' && !(w.status === 'APPROVED' || (w.isApproved === true && w.status !== 'REJECTED'))) return false;
+    if (statusFilter === 'REJECTED' && w.status !== 'REJECTED') return false;
+
     const term = searchQuery.toLowerCase();
     const nameMatch = (w.operatorName || '').toLowerCase().includes(term);
     const userMatch = w.username.toLowerCase().includes(term);
+    const nikMatch = (w.nik || '').toLowerCase().includes(term);
+    const phoneMatch = (w.phone || '').toLowerCase().includes(term);
     const studentMatch = (w.waliSantri || []).some((ws) =>
-      (ws.student?.biodata?.fullName || '').toLowerCase().includes(term)
+      (ws.student?.biodata?.fullName || '').toLowerCase().includes(term) ||
+      (ws.student?.biodata?.nik || '').toLowerCase().includes(term)
     );
-    return nameMatch || userMatch || studentMatch;
+    return nameMatch || userMatch || nikMatch || phoneMatch || studentMatch;
   });
 
   if (moduleSettings && moduleSettings.portalWalsanEnabled === false) {
@@ -376,6 +428,18 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
             <span>Live CCTV Streaming</span>
           </button>
         )}
+
+        <button
+          onClick={() => setActiveTab('pengumuman')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'pengumuman'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+          }`}
+        >
+          <Megaphone className="w-4 h-4" />
+          <span>Pengumuman Walsan</span>
+        </button>
 
         {/* Tab Khusus Admin Pusat (GLOBAL) */}
         {user?.scope === 'GLOBAL' && (
@@ -535,28 +599,81 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
         </div>
       )}
 
-      {/* ── TAB 2: DAFTAR WALI SANTRI (LIST WALSAN) ── */}
+      {/* ── TAB 2: DAFTAR WALI SANTRI (LIST WALSAN & APPROVAL) ── */}
       {activeTab === 'list' && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
             <div>
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-indigo-600" /> List Wali Santri Terdaftar
+                <Users className="w-5 h-5 text-indigo-600" /> Daftar & Persetujuan Akun Wali Santri
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">Daftar seluruh wali santri yang terhubung ke akun eSantri Portal.</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Kelola pendaftaran mandiri wali santri, berikan persetujuan akun, atau tolak akun yang tidak sesuai.
+              </p>
             </div>
 
             {/* SEARCH BAR */}
-            <div className="relative w-full sm:w-72">
+            <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Cari wali / nama santri..."
+                placeholder="Cari wali, username, NIK, atau santri..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 rounded-xl text-xs border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
               />
             </div>
+          </div>
+
+          {/* STATUS FILTER PILLS */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setStatusFilter('ALL')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                statusFilter === 'ALL'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Semua Akun ({waliList.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('PENDING')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                statusFilter === 'PENDING'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              Menunggu Persetujuan ({countPending})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('APPROVED')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                statusFilter === 'APPROVED'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
+              }`}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Disetujui / Aktif ({countApproved})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('REJECTED')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                statusFilter === 'REJECTED'
+                  ? 'bg-rose-600 text-white shadow-xs'
+                  : 'bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200'
+              }`}
+            >
+              <Ban className="w-3.5 h-3.5" />
+              Ditolak ({countRejected})
+            </button>
           </div>
 
           {isLoadingUsers ? (
@@ -565,18 +682,19 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
             </div>
           ) : filteredWali.length === 0 ? (
             <div className="p-8 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl">
-              Tidak ada data wali santri ditemukan.
+              Tidak ada data wali santri ditemukan pada filter ini.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="bg-slate-50/80 text-slate-400 font-bold uppercase tracking-wider border-b border-slate-100">
-                    <th className="py-3 px-4">Nama Wali / Pengguna</th>
-                    <th className="py-3 px-4">Username</th>
+                    <th className="py-3 px-4">Nama Wali & Info</th>
+                    <th className="py-3 px-4">Akun Login</th>
                     <th className="py-3 px-4">Santri Terhubung</th>
                     <th className="py-3 px-4">Cabang</th>
-                    <th className="py-3 px-4 text-right">Kontak / Aksi</th>
+                    <th className="py-3 px-4">Status Akun</th>
+                    <th className="py-3 px-4 text-right">Aksi & Persetujuan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -585,13 +703,24 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                       .map((ws) => ws.student?.biodata?.fullName)
                       .filter(Boolean);
                     const cabangName = (w.waliSantri || [])[0]?.student?.cabang?.name || '-';
+                    const isPending = w.status === 'PENDING' || w.isApproved === false;
+                    const isRejected = w.status === 'REJECTED';
+                    const isApproved = w.status === 'APPROVED' || (w.isApproved === true && !isRejected);
 
                     return (
                       <tr key={w.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-slate-900">
-                          {w.operatorName || 'Wali Santri'}
+                        <td className="py-3.5 px-4">
+                          <p className="font-bold text-slate-900">{w.operatorName || 'Wali Santri'}</p>
+                          {w.nik && (
+                            <p className="text-[11px] text-slate-400 font-mono">NIK: {w.nik}</p>
+                          )}
+                          {w.phone && (
+                            <p className="text-[11px] text-slate-500 font-mono">HP: {w.phone}</p>
+                          )}
                         </td>
-                        <td className="py-3.5 px-4 font-mono text-indigo-600 font-medium">@{w.username}</td>
+                        <td className="py-3.5 px-4 font-mono text-indigo-600 font-semibold">
+                          @{w.username}
+                        </td>
                         <td className="py-3.5 px-4">
                           {studentNames.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
@@ -606,16 +735,89 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                           )}
                         </td>
                         <td className="py-3.5 px-4 text-slate-600 font-medium">{cabangName}</td>
-                        <td className="py-3.5 px-4 text-right">
-                          <a
-                            href={`https://wa.me/?text=Halo%20Wali%20Santri%20${encodeURIComponent(w.operatorName || w.username)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                            Kirim Pesan WA
-                          </a>
+                        <td className="py-3.5 px-4 whitespace-nowrap">
+                          {isPending ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                              <Clock className="w-3 h-3" /> Menunggu Persetujuan
+                            </span>
+                          ) : isRejected ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                              <Ban className="w-3 h-3" /> Ditolak
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3" /> Disetujui (Aktif)
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {isPending && (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={approveWalsanMutation.isPending}
+                                  onClick={() => approveWalsanMutation.mutate(w.id)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-xs disabled:opacity-50"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  Setujui
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={rejectWalsanMutation.isPending}
+                                  onClick={() => {
+                                    if (confirm(`Yakin ingin menolak pendaftaran akun ${w.operatorName || w.username}?`)) {
+                                      rejectWalsanMutation.mutate(w.id);
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-all disabled:opacity-50"
+                                >
+                                  <Ban className="w-3.5 h-3.5" />
+                                  Tolak
+                                </button>
+                              </>
+                            )}
+
+                            {isApproved && (
+                              <>
+                                <a
+                                  href={`https://wa.me/${(w.phone || '').replace(/[^0-9]/g, '')}?text=Halo%20Wali%20Santri%20${encodeURIComponent(w.operatorName || w.username)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                  WA
+                                </a>
+                                <button
+                                  type="button"
+                                  disabled={rejectWalsanMutation.isPending}
+                                  onClick={() => {
+                                    if (confirm(`Nonaktifkan akun ${w.operatorName || w.username}?`)) {
+                                      rejectWalsanMutation.mutate(w.id);
+                                    }
+                                  }}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                                  title="Nonaktifkan / Tolak Akun"
+                                >
+                                  <Ban className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+
+                            {isRejected && (
+                              <button
+                                type="button"
+                                disabled={approveWalsanMutation.isPending}
+                                onClick={() => approveWalsanMutation.mutate(w.id)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-all disabled:opacity-50"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                Setujui Ulang
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -868,7 +1070,14 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
         </div>
       )}
 
-      {/* ── TAB 5: PENGATURAN MENU & AKSES (KHUSUS ADMIN PUSAT) ── */}
+      {/* ── TAB 5: KELOLA PENGUMUMAN WALSAN (PUSAT & CABANG) ── */}
+      {activeTab === 'pengumuman' && (
+        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8">
+          <KelolaPengumumanWalsanTab />
+        </div>
+      )}
+
+      {/* ── TAB 6: PENGATURAN MENU & AKSES (KHUSUS ADMIN PUSAT) ── */}
       {activeTab === 'settings' && user?.scope === 'GLOBAL' && (
         <div className="space-y-6">
           {/* Header Info */}

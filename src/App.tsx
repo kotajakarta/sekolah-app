@@ -49,6 +49,7 @@ import TwoFactorReminderPopup from './components/TwoFactorReminderPopup';
 import KalenderAkademikUmum from './pages/umum/KalenderAkademikUmum';
 import LandingPage from './pages/public/LandingPage';
 import DaftarUlang from './pages/public/DaftarUlang';
+import PortalRegisterPage from './pages/public/PortalRegisterPage';
 import RiwayatPerubahanData from './pages/core/RiwayatPerubahanData';
 import PermohonanIzinSantri from './pages/core/PermohonanIzinSantri';
 import FaqPage from './pages/umum/FaqPage';
@@ -508,6 +509,8 @@ export default function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/daftar-ulang" element={<DaftarUlang />} />
             <Route path="/dafta-ulng" element={<Navigate to="/daftar-ulang" replace />} />
+            <Route path="/portal-register" element={<PortalRegisterPage />} />
+            <Route path="/portal-auth" element={<PortalRegisterPage />} />
             <Route path="/dashboard" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="profile-cabang" element={<ScopeRoute allowed={['CABANG']}><ProfilCabang /></ScopeRoute>} />

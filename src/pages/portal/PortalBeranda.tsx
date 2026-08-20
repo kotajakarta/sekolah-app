@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { usePortalStudent } from '../../features/portal/context/PortalStudentContext';
 import { useGetRiwayatKelas } from '../../features/portal/hooks/useGetRiwayatKelas';
 import { getStudentFotoUrl } from '../../utils/photo';
-import { UserCircle, CheckCircle2, XCircle, GraduationCap, MapPin, History, Loader2, Award, Calendar, BookOpen } from 'lucide-react';
+import { UserCircle, CheckCircle2, XCircle, GraduationCap, MapPin, History, Loader2, Award, Calendar, BookOpen, Edit3 } from 'lucide-react';
+import ModalEditBiodataSantri from '../../features/portal/components/ModalEditBiodataSantri';
 
 const STATUS_HAFIDZ_LABEL: Record<string, string> = {
   BELUM_MULAI: 'Belum Mulai Hafalan',
@@ -14,6 +15,7 @@ const STATUS_HAFIDZ_LABEL: Record<string, string> = {
 export default function PortalBeranda() {
   const { selectedStudentId, selectedLink, isLoading, isError } = usePortalStudent();
   const { data: riwayat = [], isLoading: isRiwayatLoading } = useGetRiwayatKelas(selectedStudentId);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -50,58 +52,79 @@ export default function PortalBeranda() {
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-indigo-50/80 to-transparent rounded-bl-full -z-0 pointer-events-none"></div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 relative z-10">
-          <div className="shrink-0">
-            {fotoUrl ? (
-              <img
-                src={fotoUrl}
-                alt={student.biodata?.fullName ?? 'Santri'}
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-indigo-100 shadow-sm"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                  (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden');
-                }}
-              />
-            ) : null}
-            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-indigo-400 ${fotoUrl ? 'hidden' : ''}`}>
-              <UserCircle className="w-12 h-12" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 relative z-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 flex-1 min-w-0">
+            <div className="shrink-0">
+              {fotoUrl ? (
+                <img
+                  src={fotoUrl}
+                  alt={student.biodata?.fullName ?? 'Santri'}
+                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-indigo-100 shadow-sm"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                    (e.target as HTMLElement).nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
+              <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-indigo-50 border-2 border-indigo-100 flex items-center justify-center text-indigo-400 ${fotoUrl ? 'hidden' : ''}`}>
+                <UserCircle className="w-12 h-12" />
+              </div>
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{student.biodata?.fullName ?? '-'}</h1>
+                {student.isActive === false ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                    <XCircle className="w-3.5 h-3.5" /> Nonaktif
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Aktif Status Santri
+                  </span>
+                )}
+              </div>
+
+              {student.statusHafidz && (
+                <div className="mt-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  <Award className="w-3.5 h-3.5 text-indigo-600" />
+                  {STATUS_HAFIDZ_LABEL[student.statusHafidz] ?? student.statusHafidz}
+                </div>
+              )}
+
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-600">
+                <p className="flex items-center gap-2 font-medium">
+                  <GraduationCap className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <span>Kelas: <strong className="text-slate-800">{kelas?.name ? `${kelas.name}${kelas.tingkat ? ` (Tingkat ${kelas.tingkat})` : ''}` : 'Belum Terdaftar'}</strong></span>
+                </p>
+                <p className="flex items-center gap-2 font-medium">
+                  <MapPin className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <span>Cabang: <strong className="text-slate-800">{student.cabang?.name ?? '-'}</strong></span>
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{student.biodata?.fullName ?? '-'}</h1>
-              {student.isActive === false ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                  <XCircle className="w-3.5 h-3.5" /> Nonaktif
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Aktif Status Santri
-                </span>
-              )}
-            </div>
-
-            {student.statusHafidz && (
-              <div className="mt-1.5 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                <Award className="w-3.5 h-3.5 text-indigo-600" />
-                {STATUS_HAFIDZ_LABEL[student.statusHafidz] ?? student.statusHafidz}
-              </div>
-            )}
-
-            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-slate-600">
-              <p className="flex items-center gap-2 font-medium">
-                <GraduationCap className="w-4 h-4 text-indigo-500 shrink-0" />
-                <span>Kelas: <strong className="text-slate-800">{kelas?.name ? `${kelas.name}${kelas.tingkat ? ` (Tingkat ${kelas.tingkat})` : ''}` : 'Belum Terdaftar'}</strong></span>
-              </p>
-              <p className="flex items-center gap-2 font-medium">
-                <MapPin className="w-4 h-4 text-indigo-500 shrink-0" />
-                <span>Cabang: <strong className="text-slate-800">{student.cabang?.name ?? '-'}</strong></span>
-              </p>
-            </div>
+          <div className="shrink-0 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(true)}
+              className="w-full sm:w-auto px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-700 border border-emerald-200 hover:border-emerald-300 rounded-2xl text-xs sm:text-sm font-bold shadow-xs transition-all flex items-center justify-center gap-2"
+            >
+              <Edit3 className="w-4 h-4 text-emerald-600" />
+              Edit Data Siswa
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Modal Edit Data Siswa */}
+      <ModalEditBiodataSantri
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        studentId={student.id}
+        initialBiodata={student.biodata}
+      />
 
       {/* ── GRID DESKTOP: SUMMARY & RIWAYAT KELAS ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

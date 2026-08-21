@@ -12,6 +12,7 @@ import apiClient from '../../../lib/apiClient';
 import { useToast } from '../../../contexts/ToastContext';
 import AdvancedFilterBar, { FilterState } from '../../../components/AdvancedFilterBar';
 import { useTranslation } from 'react-i18next';
+import { normalizeTurkish } from '../../../utils/text';
 
 export default function StudentPoolTable() {
   const { t } = useTranslation();
@@ -60,13 +61,13 @@ export default function StudentPoolTable() {
     if (advancedFilters.lembagaMuadalahId && s.siswaFormal?.kelas?.lembagaMuadalah?.id !== advancedFilters.lembagaMuadalahId) return false;
 
     // Search query (server-side handles the filtering already, client-side is just safety net)
-    const q = searchQuery.toLowerCase().trim();
+    const q = normalizeTurkish(searchQuery).toLowerCase().trim();
     if (q) {
       const words = q.split(/\s+/).filter(Boolean);
-      const name = s.biodata?.fullName?.toLowerCase() || '';
-      const nik = s.biodata?.nik?.toLowerCase() || '';
-      const nisn = s.biodata?.nisn?.toLowerCase() || '';
-      const nisLokal = (s.biodata as any)?.nisLokal?.toLowerCase() || '';
+      const name = normalizeTurkish(s.biodata?.fullName || '').toLowerCase();
+      const nik = (s.biodata?.nik || '').toLowerCase();
+      const nisn = (s.biodata?.nisn || '').toLowerCase();
+      const nisLokal = ((s.biodata as any)?.nisLokal || '').toLowerCase();
       return words.every(w => name.includes(w) || nik.includes(w) || nisn.includes(w) || nisLokal.includes(w));
     }
     return true;

@@ -4,6 +4,7 @@ import apiClient from '../../lib/apiClient';
 import StudentProfileModal from '../../features/core_data/components/StudentProfileModal';
 import StudentModal from '../../features/core_data/components/StudentModal';
 import { createPortal } from 'react-dom';
+import { normalizeTurkish } from '../../utils/text';
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -40,11 +41,11 @@ export const GlobalSearch = () => {
         // If the API doesn't support ?search, we'll just filter client side for now if it returns all, 
         // wait, getStudents returns all for their scope. Let's fetch and filter client-side just to be safe if no search param is implemented yet.
         const allData = response.data;
-        const q = debouncedQuery.toLowerCase();
+        const q = normalizeTurkish(debouncedQuery).toLowerCase();
         const filtered = allData.filter((s: any) => 
-          s.biodata?.fullName?.toLowerCase().includes(q) ||
-          s.biodata?.nik?.toLowerCase().includes(q) ||
-          s.biodata?.nisn?.toLowerCase().includes(q)
+          normalizeTurkish(s.biodata?.fullName || '').toLowerCase().includes(q) ||
+          normalizeTurkish(s.biodata?.nik || '').toLowerCase().includes(q) ||
+          normalizeTurkish(s.biodata?.nisn || '').toLowerCase().includes(q)
         ).slice(0, 10); // max 10 results
         setResults(filtered);
       } catch (error) {

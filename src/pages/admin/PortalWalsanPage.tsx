@@ -43,8 +43,10 @@ import {
   Check,
   Ban,
   Edit3,
+  Banknote,
 } from 'lucide-react';
 import KelolaPengumumanWalsanTab from '../../features/portal/components/KelolaPengumumanWalsanTab';
+import SyahriyahTab from '../../features/portal/components/SyahriyahTab';
 import { useGetCabang } from '../../features/core_data/hooks/useMasterData';
 
 interface WaliUserItem {
@@ -135,7 +137,7 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
   const { showToast } = useToast();
   const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'izin' | 'cctv' | 'pengumuman' | 'settings'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'overview' | 'list' | 'izin' | 'cctv' | 'pengumuman' | 'syahriyah' | 'settings'>(initialTab as any);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
 
@@ -461,6 +463,18 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
         >
           <Megaphone className="w-4 h-4" />
           <span>Pengumuman Walsan</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('syahriyah')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeTab === 'syahriyah'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+          }`}
+        >
+          <Banknote className="w-4 h-4" />
+          <span>Syahriyah (Iuran Bulanan)</span>
         </button>
 
         {/* Tab Khusus Admin Pusat (GLOBAL) */}
@@ -1174,6 +1188,11 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
         </div>
       )}
 
+      {/* ── TAB 6: SYAHRIYAH & IURAN BULANAN (PUSAT & CABANG) ── */}
+      {activeTab === 'syahriyah' && (
+        <SyahriyahTab />
+      )}
+
       {/* ── TAB 6: PENGATURAN MENU & AKSES (KHUSUS ADMIN PUSAT) ── */}
       {activeTab === 'settings' && user?.scope === 'GLOBAL' && (
         <div className="space-y-6">
@@ -1409,6 +1428,35 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                     }`}
                   >
                     {moduleSettings?.walsanEditBiodataEnabled === true ? 'Aktif Global' : 'Nonaktif'}
+                  </button>
+                </div>
+
+                {/* 7. Menu Syahriyah & Pembayaran */}
+                <div className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Banknote className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-xs sm:text-sm">Menu Syahriyah & Iuran di Portal</h4>
+                      <p className="text-[11px] text-slate-500 leading-snug mt-0.5">
+                        Menampilkan menu Syahriyah & pembayaran iuran bulanan santri di Portal Wali Santri.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentVal = moduleSettings?.walsanSyahriyahEnabled !== false;
+                      updateModuleMutation.mutate({ walsanSyahriyahEnabled: !currentVal });
+                    }}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
+                      moduleSettings?.walsanSyahriyahEnabled !== false
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                    }`}
+                  >
+                    {moduleSettings?.walsanSyahriyahEnabled !== false ? 'Aktif' : 'Nonaktif'}
                   </button>
                 </div>
               </div>

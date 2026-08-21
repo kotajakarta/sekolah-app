@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { sanitizeTurkishDeep } from '../utils/text';
 
 const apiClient = axios.create({
   // Jika di production, VITE_API_BASE_URL bisa diset misal "https://api.domainku.com/api/v1"
@@ -17,6 +18,12 @@ apiClient.interceptors.request.use(
     if (config.data instanceof FormData && config.headers) {
       delete config.headers['Content-Type'];
       delete config.headers['content-type'];
+    } else if (config.data && typeof config.data === 'object') {
+      config.data = sanitizeTurkishDeep(config.data);
+    }
+
+    if (config.params && typeof config.params === 'object') {
+      config.params = sanitizeTurkishDeep(config.params);
     }
 
     const token = localStorage.getItem('token');
@@ -66,7 +73,12 @@ const isPublicPage = () => {
 };
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.data && typeof response.data === 'object') {
+      response.data = sanitizeTurkishDeep(response.data);
+    }
+    return response;
+  },
   (error) => {
     if (error.response && error.response.status === 401) {
       const requestUrl = error.config?.url || '';

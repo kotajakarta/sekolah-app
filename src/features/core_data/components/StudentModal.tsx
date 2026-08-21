@@ -15,6 +15,7 @@ import { useToast } from '../../../contexts/ToastContext';
 import AktivitasBelajarTab from './AktivitasBelajarTab';
 import RiwayatNilaiTab from './RiwayatNilaiTab';
 import imageCompression from 'browser-image-compression';
+import { normalizeTurkish, sanitizeTurkishDeep } from '../../../utils/text';
 
 export type TabType = 'SANTRI' | 'ORANG_TUA' | 'ALAMAT' | 'AKTIVITAS_BELAJAR' | 'RIWAYAT_NILAI';
 
@@ -607,7 +608,7 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
       return;
     }
     if (!validateForm()) return;
-    saveMutation.mutate(formData);
+    saveMutation.mutate(sanitizeTurkishDeep(formData));
   };
 
   const tabs: { id: TabType; label: string; shortLabel: string; icon: React.ReactNode; show: boolean }[] = [
@@ -764,7 +765,11 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           <input
                             type="text"
                             value={formData.fullName}
-                            onChange={(e) => { setFormData({ ...formData, fullName: e.target.value }); setFieldErrors({ ...fieldErrors, fullName: '' }); }}
+                            onChange={(e) => {
+                              const val = normalizeTurkish(e.target.value);
+                              setFormData({ ...formData, fullName: val });
+                              setFieldErrors({ ...fieldErrors, fullName: '' });
+                            }}
                             className={`${inputCls} ${fieldErrors['fullName'] ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-500/20' : ''}`}
                             placeholder={t('siswa.form.nama_lengkap_ph')}
                           />

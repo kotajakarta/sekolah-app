@@ -5,6 +5,7 @@ import apiClient from '../../lib/apiClient';
 import { Loader2, ArrowRight, CheckCircle, ChevronLeft, Building, Upload, Image as ImageIcon, MapPin, User, FileText, Check } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import imageCompression from 'browser-image-compression';
+import { normalizeTurkish, sanitizeTurkishDeep } from '../../utils/text';
 
 const PENDIDIKAN_OPTIONS = ['SD/Sederajat', 'SMP/Sederajat', 'SMA/Sederajat', 'D1', 'D2', 'D3', 'D4/S1', 'S2', 'S3', 'Tidak Bersekolah', 'Lainnya'];
 const PEKERJAAN_OPTIONS = ['Tidak Bekerja', 'Pensiunan', 'PNS', 'TNI/Polisi', 'Guru/Dosen', 'Pegawai Swasta', 'Wiraswasta', 'Pengacara/Jaksa/Hakim/Notaris', 'Seniman/Pelukis/Artis/Sejenis', 'Dokter/Bidan/Perawat', 'Pilot/Pramugara', 'Pedagang', 'Petani/Peternak', 'Nelayan', 'Buruh (Tani/Pabrik/Bangunan)', 'Sopir/Masinis/Kondektur', 'Politikus', 'Lainnya'];
@@ -374,11 +375,11 @@ export default function DaftarUlang() {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      await apiClient.post('/students/daftar-ulang/submit', {
+      await apiClient.post('/students/daftar-ulang/submit', sanitizeTurkishDeep({
         ...formData,
         kodeDaftarUlang,
         studentId
-      });
+      }));
     },
     onSuccess: () => {
       setStep(4); // Success step
@@ -406,7 +407,8 @@ export default function DaftarUlang() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const val = typeof e.target.value === 'string' ? normalizeTurkish(e.target.value) : e.target.value;
+    setFormData({ ...formData, [e.target.name]: val });
   };
 
   const handleProceedToStep3 = (e: React.FormEvent) => {

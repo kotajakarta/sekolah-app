@@ -20,6 +20,7 @@ import AdvancedFilterBar, { FilterState } from '../../components/AdvancedFilterB
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { getStudentThumbnailUrl } from '../../utils/photo';
+import { normalizeTurkish } from '../../utils/text';
 
 const calculateProgress = (student: any) => {
   if (!student || !student.biodata) return 0;
@@ -160,11 +161,11 @@ export default function DataSiswa() {
     if (advancedFilters.tingkat && s.siswaFormal?.kelas?.tingkat !== advancedFilters.tingkat) return false;
 
     // Search query
-    const q = searchQuery.toLowerCase();
+    const q = normalizeTurkish(searchQuery).toLowerCase();
     if (q) {
-      return s.biodata?.fullName?.toLowerCase().includes(q) ||
-        s.biodata?.nik?.toLowerCase().includes(q) ||
-        s.biodata?.nisn?.toLowerCase().includes(q);
+      return normalizeTurkish(s.biodata?.fullName || '').toLowerCase().includes(q) ||
+        (s.biodata?.nik || '').toLowerCase().includes(q) ||
+        (s.biodata?.nisn || '').toLowerCase().includes(q);
     }
     return true;
   });

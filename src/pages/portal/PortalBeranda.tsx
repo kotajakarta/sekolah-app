@@ -1,4 +1,7 @@
 import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '../../lib/apiClient';
 import { usePortalStudent } from '../../features/portal/context/PortalStudentContext';
 import { useGetPembelajaranSilabus, PembelajaranItem } from '../../features/portal/hooks/useGetPembelajaranSilabus';
 import { getStudentFotoUrl } from '../../utils/photo';
@@ -24,7 +27,11 @@ import {
   ExternalLink,
   ChevronRight,
   Info,
-  Lock
+  Lock,
+  Clock,
+  Banknote,
+  Receipt,
+  CreditCard
 } from 'lucide-react';
 import ModalEditBiodataSantri from '../../features/portal/components/ModalEditBiodataSantri';
 
@@ -43,11 +50,31 @@ interface CompletenessItem {
 }
 
 export default function PortalBeranda() {
+  const navigate = useNavigate();
   const { selectedStudentId, selectedLink, isLoading, isError } = usePortalStudent();
   const { data: pembelajaranList = [], isLoading: isPembelajaranLoading } = useGetPembelajaranSilabus(selectedStudentId);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [searchPembelajaran, setSearchPembelajaran] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('ALL');
+
+  // Syahriyah query for current year
+  const currentBulan = new Date().getMonth() + 1;
+  const currentTahun = new Date().getFullYear();
+  const { data: syahriyahData } = useQuery({
+    queryKey: ['portal-syahriyah-summary-beranda', selectedStudentId, currentTahun],
+    queryFn: async () => {
+      if (!selectedStudentId) return null;
+      const res = await apiClient.get(`/portal/students/${selectedStudentId}/syahriyah?tahun=${currentTahun}`);
+      return res.data;
+    },
+    enabled: !!selectedStudentId
+  });
+
+  const syahriyahTagihanList: any[] = syahriyahData?.tagihan || [];
+  const currentMonthSyahriyah = syahriyahTagihanList.find(
+    (t) => t.kategori === 'BULANAN' && t.bulan === currentBulan
+  );
+  const syahriyahSummary = syahriyahData?.summary || { totalTagihan: 0, totalLunas: 0, totalPending: 0, totalBelumLunas: 0 };
 
   const student = selectedLink?.student;
   const biodata = student?.biodata;
@@ -345,7 +372,84 @@ export default function PortalBeranda() {
             )}
           </div>
 
-          {/* 2. NAMA KETUA GRUP DAIMI & KONTAK */}
+          {/* ── 2. WIDGET STATUS IURAN SYAHRIYAH ── */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-7 space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
+                  <Banknote className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Status Iuran Syahriyah & Biaya</h2>
+                  <p className="text-xs text-slate-500">Iuran bulanan dan biaya pendidikan santri periode {currentTahun}.</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigate('/portal/syahriyah')}
+                className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 cursor-pointer"
+              >
+                Lihat Detail <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Status Bulan Ini */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Syahriyah Bulan Ini
+                </span>
+                <div className="pt-0.5">
+                  {currentMonthSyahriyah?.status === 'LUNAS' ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-100 text-emerald-800">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> LUNAS
+                    </span>
+                  ) : currentMonthSyahriyah?.status === 'PENDING' ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-amber-100 text-amber-800 animate-pulse">
+                      <Clock className="w-3.5 h-3.5" /> MENUNGGU VERIFIKASI
+                    </span>
+                  ) : currentMonthSyahriyah ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-rose-100 text-rose-800">
+                      <AlertTriangle className="w-3.5 h-3.5" /> BELUM DIBAYAR
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400 font-medium">Belum Diterbitkan</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Total Belum Lunas */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Tunggakan Belum Lunas
+                </span>
+                <p className="text-sm sm:text-base font-extrabold font-mono text-rose-700">
+                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(syahriyahSummary.totalBelumLunas || 0)}
+                </p>
+              </div>
+
+              {/* Terbayar Lunas */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Total Sudah Terbayar
+                </span>
+                <p className="text-sm sm:text-base font-extrabold font-mono text-emerald-700">
+                  {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(syahriyahSummary.totalLunas || 0)}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/portal/syahriyah')}
+              className="w-full py-2.5 bg-slate-900 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-2"
+            >
+              <CreditCard className="w-4 h-4" /> Buka Rincian Tagihan & Konfirmasi Pembayaran
+            </button>
+          </div>
+
+          {/* 3. NAMA KETUA GRUP DAIMI & KONTAK */}
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-7 space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

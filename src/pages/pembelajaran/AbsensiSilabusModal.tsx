@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { Loader2, Save, AlertCircle, CheckCircle, X, Search, Trash2 } from 'lucide-react';
+import { normalizeTurkish } from '../../utils/text';
 
 interface AbsensiSilabusRow {
   studentId: string;
@@ -111,9 +112,9 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
 
   const filteredRows = rows.filter(r => {
     if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase().trim();
+    const q = normalizeTurkish(searchQuery).toLowerCase().trim();
     return (
-      r.fullName.toLowerCase().includes(q) ||
+      normalizeTurkish(r.fullName).toLowerCase().includes(q) ||
       (r.nisLokal && r.nisLokal.toLowerCase().includes(q))
     );
   });

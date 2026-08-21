@@ -14,6 +14,7 @@ import {
   Upload
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
+import { normalizeTurkish, sanitizeTurkishDeep } from '../../../utils/text';
 
 const PENDIDIKAN_OPTIONS = [
   'SD/Sederajat',
@@ -228,7 +229,8 @@ export default function ModalEditBiodataSantri({
   }, [provinces, formData.alamatProvName, formData.alamatProvId]);
 
   const handleChange = (field: string, val: any) => {
-    setFormData((prev: any) => ({ ...prev, [field]: val }));
+    const cleanVal = typeof val === 'string' ? normalizeTurkish(val) : val;
+    setFormData((prev: any) => ({ ...prev, [field]: cleanVal }));
   };
 
   const handleFileUpload = async (field: 'fotoUrl' | 'ijazahUrl' | 'kkUrl', file: File) => {
@@ -266,7 +268,7 @@ export default function ModalEditBiodataSantri({
 
   const updateMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiClient.put(`/portal/students/${studentId}/biodata`, formData);
+      const res = await apiClient.put(`/portal/students/${studentId}/biodata`, sanitizeTurkishDeep(formData));
       return res.data;
     },
     onSuccess: () => {

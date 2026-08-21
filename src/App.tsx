@@ -74,6 +74,7 @@ import SuratPage from './pages/surat/SuratPage';
 import PortalLayout from './components/Layout/PortalLayout';
 import { PortalStudentProvider } from './features/portal/context/PortalStudentContext';
 import PortalBeranda from './pages/portal/PortalBeranda';
+import PortalSyahriyah from './pages/portal/PortalSyahriyah';
 import PortalRapor from './pages/portal/PortalRapor';
 import PortalKehadiran from './pages/portal/PortalKehadiran';
 import PortalPengumuman from './pages/portal/PortalPengumuman';
@@ -576,6 +577,7 @@ export default function App() {
               }
             >
               <Route index element={<PortalBeranda />} />
+              <Route path="syahriyah" element={<PortalSyahriyah />} />
               <Route path="rapor" element={<PortalRapor />} />
               <Route path="kehadiran" element={<PortalKehadiran />} />
               <Route path="cctv" element={<PortalCctv />} />

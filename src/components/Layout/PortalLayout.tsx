@@ -13,6 +13,7 @@ import {
   User,
   Sparkles,
   Video,
+  Banknote,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortalStudent } from '../../features/portal/context/PortalStudentContext';
@@ -35,6 +36,12 @@ export default function PortalLayout() {
 
   const ALL_TABS = [
     { to: '/portal', label: 'Beranda', icon: Home, show: true },
+    {
+      to: '/portal/syahriyah',
+      label: 'Syahriyah & Iuran',
+      icon: Banknote,
+      show: moduleSettings?.walsanSyahriyahEnabled !== false,
+    },
     {
       to: '/portal/rapor',
       label: 'Rapor',

@@ -4,6 +4,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { useGetCabang } from '../hooks/useMasterData';
 import { X, Loader2, Search, AlertCircle, Clock, UserCheck, CheckCircle2, UserPlus } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
+import { normalizeTurkish } from '../../../utils/text';
 
 interface TarikSiswaMassalModalProps {
   onClose: () => void;
@@ -31,7 +32,7 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
 
     setIsDebouncing(true);
     const timer = setTimeout(() => {
-      setDebouncedSearch(inputSearch.trim());
+      setDebouncedSearch(normalizeTurkish(inputSearch.trim()));
       setIsDebouncing(false);
     }, 1000); // 1 detik jeda ketik
 
@@ -42,7 +43,7 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
 
   const handleImmediateSearch = () => {
     if (inputSearch.trim()) {
-      setDebouncedSearch(inputSearch.trim());
+      setDebouncedSearch(normalizeTurkish(inputSearch.trim()));
       setIsDebouncing(false);
     }
   };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, createContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Users, FileText, Database, ChevronRight, ChevronLeft, ChevronDown, Settings } from 'lucide-react';
+import { Users, FileText, Database, ChevronRight, ChevronLeft, ChevronDown, Settings, Sliders, GraduationCap } from 'lucide-react';
 import { useNavEntries } from './navConfig';
 
 const SidebarContext = createContext({ isCollapsed: false });
@@ -263,7 +263,8 @@ export const Sidebar: React.FC = () => {
                     <ul className="space-y-1">
                       <NavLink to="/dashboard/settings/users" icon={Users}>Manage account</NavLink>
                       <NavLink to="/dashboard/settings/sync" icon={Database}>Sinkronisasi</NavLink>
-                      <NavLink to="/dashboard/settings/akademik" icon={Database}>Pengaturan Akademik</NavLink>
+                      <NavLink to="/dashboard/settings/modul" icon={Sliders}>Pengaturan Modul</NavLink>
+                      <NavLink to="/dashboard/settings/akademik" icon={GraduationCap}>Pengaturan Akademik</NavLink>
                       <NavLink to="/dashboard/settings/pengumuman" icon={FileText}>Kelola Pengumuman</NavLink>
                       <NavLink to="/dashboard/settings/kalender" icon={FileText}>Kelola Kalender</NavLink>
                       <NavLink to="/dashboard/settings/keaktifan-mapel" icon={Database}>Keaktifan Mapel</NavLink>

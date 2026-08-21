@@ -22,6 +22,7 @@ export default function MobileBottomNav() {
     items: [
       { to: '/dashboard/settings/users', label: 'Manage account' },
       { to: '/dashboard/settings/sync', label: 'Sinkronisasi' },
+      { to: '/dashboard/settings/modul', label: 'Pengaturan Modul' },
       { to: '/dashboard/settings/akademik', label: 'Pengaturan Akademik' },
       { to: '/dashboard/settings/pengumuman', label: 'Kelola Pengumuman' },
       { to: '/dashboard/settings/kalender', label: 'Kelola Kalender' },

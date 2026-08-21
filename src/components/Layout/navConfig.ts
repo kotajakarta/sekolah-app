@@ -42,7 +42,7 @@ export function useNavEntries(): NavEntry[] {
         const res = await apiClient.get('/pengaturan/modules');
         return res.data;
       } catch (e) {
-        return { portalWalsanEnabled: true, raporMuadalahEnabled: true };
+        return { portalWalsanEnabled: true, raporMuadalahEnabled: true, bankSoalEnabled: true };
       }
     },
     staleTime: 60000,
@@ -96,6 +96,7 @@ export function useNavEntries(): NavEntry[] {
     const showRombonganBelajar = user?.divisi === 'FORMAL' || user?.divisi === 'ALL';
     const isRaporEnabled = moduleSettings?.raporMuadalahEnabled !== false;
     const isPortalEnabled = moduleSettings?.portalWalsanEnabled !== false;
+    const isBankSoalEnabled = moduleSettings?.bankSoalEnabled !== false;
 
     const kelembagaanItems = [
       { to: '/dashboard/profile', label: t('sidebar.profil_saya') || 'Profil Saya', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
@@ -169,7 +170,9 @@ export function useNavEntries(): NavEntry[] {
     if (showRombonganBelajar) {
       entries.push({ type: 'link', key: 'rombel', label: t('sidebar.rombel') || 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas' });
       entries.push({ type: 'link', key: 'pembelajaran', label: t('sidebar.pembelajaran') || 'Kontrol Pembelajaran', icon: BookOpen, to: '/dashboard/pembelajaran', highlight: true });
-      entries.push({ type: 'link', key: 'bank-soal', label: 'Bank Soal (DOCX)', icon: FileQuestion, to: '/dashboard/bank-soal', highlight: true });
+      if (isBankSoalEnabled) {
+        entries.push({ type: 'link', key: 'bank-soal', label: 'Bank Soal (DOCX)', icon: FileQuestion, to: '/dashboard/bank-soal', highlight: true });
+      }
     }
 
     entries.push({ type: 'group', key: 'layanan', label: t('sidebar.layanan') || 'Layanan dan Bantuan', icon: HeartHandshake, items: layananItems });

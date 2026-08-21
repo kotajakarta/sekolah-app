@@ -39,6 +39,7 @@ import DataCabang from './pages/core/DataCabang';
 import DataWilayah from './pages/core/DataWilayah';
 import ProfilCabang from './pages/core/ProfilCabang';
 import Sinkronisasi from './pages/admin/Sinkronisasi';
+import PengaturanModul from './pages/admin/PengaturanModul';
 import PengaturanAkademik from './pages/admin/PengaturanAkademik';
 import KelolaPengumuman from './pages/admin/KelolaPengumuman';
 import KelolaKalender from './pages/admin/KelolaKalender';
@@ -543,6 +544,7 @@ export default function App() {
               <Route path="formal/rapor" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><ERaporPage /></ScopeRoute>} />
               <Route path="settings/users" element={<ScopeRoute allowed={['GLOBAL']}><UsersWilayah /></ScopeRoute>} />
               <Route path="settings/sync" element={<ScopeRoute allowed={['GLOBAL']}><Sinkronisasi /></ScopeRoute>} />
+              <Route path="settings/modul" element={<ScopeRoute allowed={['GLOBAL']}><PengaturanModul /></ScopeRoute>} />
               <Route path="settings/akademik" element={<ScopeRoute allowed={['GLOBAL']}><PengaturanAkademik /></ScopeRoute>} />
               <Route path="settings/pengumuman" element={<ScopeRoute allowed={['GLOBAL']}><KelolaPengumuman /></ScopeRoute>} />
               <Route path="settings/kalender" element={<ScopeRoute allowed={['GLOBAL']}><KelolaKalender /></ScopeRoute>} />

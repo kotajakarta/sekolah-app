@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, BookOpen, Clock, Building, Calendar, CheckCircle2, Sparkles, Layers } from 'lucide-react';
-import { useCreateBankSoal, useUpdateBankSoal, useFormalMetadata } from '../hooks/useBankSoal';
+import { X, BookOpen, Clock, Building, Calendar, CheckCircle2, Sparkles, Layers, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '../../../lib/apiClient';
+import { useCreateBankSoal, useUpdateBankSoal } from '../hooks/useBankSoal';
 import type { QuestionBank, BankSoalAssignment } from '../types';
 
 interface QuestionBankModalProps {
@@ -11,6 +13,23 @@ interface QuestionBankModalProps {
   onSuccess?: (bank: QuestionBank) => void;
 }
 
+interface MapelOption {
+  id: string;
+  kodeMapel: string;
+  name: string;
+  grupMapel: string;
+  isActive?: boolean;
+}
+
+const TINGKAT_OPTIONS = [
+  'Kelas 7',
+  'Kelas 8',
+  'Kelas 9',
+  'Kelas 10',
+  'Kelas 11',
+  'Kelas 12',
+];
+
 export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
   isOpen,
   onClose,
@@ -18,11 +37,19 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
   assignmentContext,
   onSuccess,
 }) => {
-  const { data: formalMeta, isLoading: isLoadingMeta } = useFormalMetadata();
+  // Query Mata Pelajaran from /formal/mapel (same as /dashboard/formal/mapel)
+  const { data: mapelList = [], isLoading: isLoadingMapel } = useQuery<MapelOption[]>({
+    queryKey: ['formal-mapel-list'],
+    queryFn: async () => {
+      const response = await apiClient.get<MapelOption[]>('/formal/mapel');
+      return response.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState('');
-  const [gradeLevel, setGradeLevel] = useState('');
+  const [gradeLevel, setGradeLevel] = useState('Kelas 7');
   const [timeLimit, setTimeLimit] = useState<number | ''>(90);
   const [institution, setInstitution] = useState('');
   const [academicYear, setAcademicYear] = useState('2025/2026');
@@ -39,7 +66,7 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
     if (bankToEdit) {
       setTitle(bankToEdit.title || '');
       setSubject(bankToEdit.subject || '');
-      setGradeLevel(bankToEdit.gradeLevel || '');
+      setGradeLevel(bankToEdit.gradeLevel || 'Kelas 7');
       setTimeLimit(bankToEdit.timeLimit ?? '');
       setInstitution(bankToEdit.institution || '');
       setAcademicYear(bankToEdit.academicYear || '2025/2026');
@@ -50,7 +77,7 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
       // Pre-fill from assigned task
       setTitle(`Naskah Ujian ${assignmentContext.subjectName} - ${assignmentContext.gradeLevel}`);
       setSubject(assignmentContext.subjectName || '');
-      setGradeLevel(assignmentContext.gradeLevel || '');
+      setGradeLevel(assignmentContext.gradeLevel || 'Kelas 7');
       setTimeLimit(assignmentContext.timeLimit || 90);
       setInstitution('');
       setAcademicYear(assignmentContext.project?.academicYear || '2025/2026');
@@ -62,8 +89,8 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
       setIsShared(false);
     } else {
       setTitle('');
-      setSubject(formalMeta?.subjects?.[0]?.name || '');
-      setGradeLevel(formalMeta?.gradeLevels?.[0] || 'Kelas 7');
+      setSubject(mapelList[0]?.name || '');
+      setGradeLevel('Kelas 7');
       setTimeLimit(90);
       setInstitution('');
       setAcademicYear('2025/2026');
@@ -73,7 +100,7 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
       );
       setIsShared(false);
     }
-  }, [bankToEdit, assignmentContext, isOpen, formalMeta]);
+  }, [bankToEdit, assignmentContext, isOpen, mapelList]);
 
   if (!isOpen) return null;
 
@@ -115,9 +142,6 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
       console.error('Gagal menyimpan paket bank soal:', err);
     }
   };
-
-  const subjects = formalMeta?.subjects || [];
-  const gradeLevels = formalMeta?.gradeLevels || [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -171,10 +195,11 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
           {/* 2. Mata Pelajaran & 3. Tingkat / Kelas (Dropdowns) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
-                2. Mata Pelajaran (Mapel Formal) <span className="text-rose-500">*</span>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider flex items-center justify-between">
+                <span>2. Mata Pelajaran (Mapel Formal) <span className="text-rose-500">*</span></span>
+                {isLoadingMapel && <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />}
               </label>
-              {subjects.length > 0 ? (
+              {mapelList.length > 0 ? (
                 <select
                   required
                   value={subject}
@@ -182,9 +207,9 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
                 >
                   <option value="">-- Pilih Mata Pelajaran --</option>
-                  {subjects.map((s) => (
+                  {mapelList.map((s) => (
                     <option key={s.id} value={s.name}>
-                      {s.name} {s.kodeMapel ? `(${s.kodeMapel})` : ''} - {s.grupMapel}
+                      {s.name} {s.kodeMapel ? `(${s.kodeMapel})` : ''} {s.grupMapel ? `- ${s.grupMapel}` : ''}
                     </option>
                   ))}
                 </select>
@@ -204,30 +229,19 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
                 3. Tingkat / Jenjang Kelas <span className="text-rose-500">*</span>
               </label>
-              {gradeLevels.length > 0 ? (
-                <select
-                  required
-                  value={gradeLevel}
-                  onChange={(e) => setGradeLevel(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                >
-                  <option value="">-- Pilih Tingkat Kelas --</option>
-                  {gradeLevels.map((g) => (
-                    <option key={g} value={g}>
-                      {g}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  required
-                  value={gradeLevel}
-                  onChange={(e) => setGradeLevel(e.target.value)}
-                  placeholder="Contoh: Kelas 7, Kelas 10, Tingkat 1"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                />
-              )}
+              <select
+                required
+                value={gradeLevel}
+                onChange={(e) => setGradeLevel(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition font-medium"
+              >
+                <option value="">-- Pilih Tingkat (7 - 12) --</option>
+                {TINGKAT_OPTIONS.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -273,22 +287,21 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
               >
                 <option value="GANJIL">Ganjil</option>
                 <option value="GENAP">Genap</option>
-                <option value="TAHUNAN">Tahunan / Ujian Masuk</option>
               </select>
             </div>
           </div>
 
-          {/* Institution Header */}
+          {/* Institution / Nama Sekolah */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider flex items-center gap-1">
               <Building className="w-3.5 h-3.5 text-slate-400" />
-              <span>Nama Lembaga / Kop Surat (Opsional)</span>
+              <span>Nama Lembaga / Kop Ujian (Opsional)</span>
             </label>
             <input
               type="text"
               value={institution}
               onChange={(e) => setInstitution(e.target.value)}
-              placeholder="Contoh: PONDOK PESANTREN TAHFIDZ AL-QUR'AN EDAIMI"
+              placeholder="Contoh: Pondok Pesantren & Madrasah Aliyah Edaimi"
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
             />
           </div>
@@ -296,47 +309,61 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
           {/* Instructions */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
-              Petunjuk Pengerjaan Soal (Opsional)
+              Petunjuk Umum Pengerjaan Ujian
             </label>
             <textarea
               rows={3}
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
-              placeholder="Petunjuk pengerjaan soal..."
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition resize-none leading-relaxed"
             />
           </div>
 
+          {/* Share Toggle */}
           <div className="pt-2">
-            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/70 transition">
               <input
                 type="checkbox"
                 checked={isShared}
                 onChange={(e) => setIsShared(e.target.checked)}
-                className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-700"
               />
-              <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">
-                Bagikan paket soal ini kepada guru lain di cabang/wilayah
-              </span>
+              <div className="text-xs">
+                <p className="font-semibold text-slate-800 dark:text-slate-200">
+                  Bagikan ke Cabang & Wilayah Lain (Publik / Shared)
+                </p>
+                <p className="text-slate-500 dark:text-slate-400">
+                  Guru di cabang lain dapat melihat dan menggandakan (duplikasi) naskah soal ini.
+                </p>
+              </div>
             </label>
           </div>
 
-          {/* Footer */}
+          {/* Footer Buttons */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-500/20 transition disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-2 transition"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isSubmitting ? 'Menyimpan...' : bankToEdit ? 'Simpan Perubahan' : 'Buat Paket'}</span>
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Menyimpan...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{bankToEdit ? 'Simpan Perubahan' : 'Buat Naskah Soal'}</span>
+                </>
+              )}
             </button>
           </div>
         </form>

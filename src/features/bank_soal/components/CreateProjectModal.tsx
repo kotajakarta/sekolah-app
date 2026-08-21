@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
-import { X, Plus, Trash2, Calendar, Target, CheckCircle2, Layers } from 'lucide-react';
-import { useCreateBankSoalProject, useFormalMetadata, useHierarchyMetadata } from '../hooks/useBankSoal';
+import { X, Plus, Trash2, Calendar, Target, CheckCircle2, Layers, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '../../../lib/apiClient';
+import { useCreateBankSoalProject, useHierarchyMetadata } from '../hooks/useBankSoal';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface MapelOption {
+  id: string;
+  kodeMapel: string;
+  name: string;
+  grupMapel: string;
+  isActive?: boolean;
 }
 
 interface AssignmentRow {
@@ -16,8 +26,26 @@ interface AssignmentRow {
   wilayahId?: string;
 }
 
+const TINGKAT_OPTIONS = [
+  'Kelas 7',
+  'Kelas 8',
+  'Kelas 9',
+  'Kelas 10',
+  'Kelas 11',
+  'Kelas 12',
+];
+
 export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose }) => {
-  const { data: formalMeta } = useFormalMetadata();
+  // Query Mata Pelajaran from /formal/mapel
+  const { data: mapelList = [], isLoading: isLoadingMapel } = useQuery<MapelOption[]>({
+    queryKey: ['formal-mapel-list'],
+    queryFn: async () => {
+      const response = await apiClient.get<MapelOption[]>('/formal/mapel');
+      return response.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: hierarchyMeta } = useHierarchyMetadata();
   const createMutation = useCreateBankSoalProject();
 
@@ -42,16 +70,14 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
 
   if (!isOpen) return null;
 
-  const subjects = formalMeta?.subjects || [];
-  const gradeLevels = formalMeta?.gradeLevels || [];
   const wilayahList = hierarchyMeta?.wilayahList || [];
 
   const handleAddRow = () => {
     setRows([
       ...rows,
       {
-        subjectName: subjects[0]?.name || '',
-        gradeLevel: gradeLevels[0] || 'Kelas 7',
+        subjectName: mapelList[0]?.name || '',
+        gradeLevel: 'Kelas 7',
         targetMcqCount: 40,
         targetEssayCount: 5,
         timeLimit: 90,
@@ -229,8 +255,8 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
                 <table className="w-full text-left text-xs border-collapse">
                   <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
                     <tr>
-                      <th className="p-3">Mata Pelajaran</th>
-                      <th className="p-3">Tingkat / Kelas</th>
+                      <th className="p-3">Mata Pelajaran (Mapel Formal)</th>
+                      <th className="p-3">Tingkat / Kelas (7 - 12)</th>
                       <th className="p-3 w-20 text-center">Target PG</th>
                       <th className="p-3 w-20 text-center">Target Esai</th>
                       <th className="p-3">Ditugaskan ke Wilayah</th>
@@ -241,16 +267,16 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
                     {rows.map((row, idx) => (
                       <tr key={idx} className="bg-white dark:bg-slate-900 hover:bg-slate-50/50 transition">
                         <td className="p-2.5">
-                          {subjects.length > 0 ? (
+                          {mapelList.length > 0 ? (
                             <select
                               value={row.subjectName}
                               onChange={(e) => handleRowChange(idx, 'subjectName', e.target.value)}
                               className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
                             >
                               <option value="">-- Pilih Mapel --</option>
-                              {subjects.map((s) => (
+                              {mapelList.map((s) => (
                                 <option key={s.id} value={s.name}>
-                                  {s.name}
+                                  {s.name} {s.kodeMapel ? `(${s.kodeMapel})` : ''}
                                 </option>
                               ))}
                             </select>
@@ -265,51 +291,45 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
                           )}
                         </td>
                         <td className="p-2.5">
-                          {gradeLevels.length > 0 ? (
-                            <select
-                              value={row.gradeLevel}
-                              onChange={(e) => handleRowChange(idx, 'gradeLevel', e.target.value)}
-                              className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
-                            >
-                              {gradeLevels.map((g) => (
-                                <option key={g} value={g}>
-                                  {g}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <input
-                              type="text"
-                              value={row.gradeLevel}
-                              onChange={(e) => handleRowChange(idx, 'gradeLevel', e.target.value)}
-                              placeholder="Tingkat..."
-                              className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
-                            />
-                          )}
+                          <select
+                            value={row.gradeLevel}
+                            onChange={(e) => handleRowChange(idx, 'gradeLevel', e.target.value)}
+                            className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
+                          >
+                            {TINGKAT_OPTIONS.map((g) => (
+                              <option key={g} value={g}>
+                                {g}
+                              </option>
+                            ))}
+                          </select>
                         </td>
-                        <td className="p-2.5 text-center">
+                        <td className="p-2.5">
                           <input
                             type="number"
                             min="0"
                             value={row.targetMcqCount}
-                            onChange={(e) => handleRowChange(idx, 'targetMcqCount', e.target.value)}
-                            className="w-16 p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs text-center font-bold"
+                            onChange={(e) =>
+                              handleRowChange(idx, 'targetMcqCount', Number(e.target.value))
+                            }
+                            className="w-full p-2 text-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
                           />
                         </td>
-                        <td className="p-2.5 text-center">
+                        <td className="p-2.5">
                           <input
                             type="number"
                             min="0"
                             value={row.targetEssayCount}
-                            onChange={(e) => handleRowChange(idx, 'targetEssayCount', e.target.value)}
-                            className="w-16 p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs text-center font-bold"
+                            onChange={(e) =>
+                              handleRowChange(idx, 'targetEssayCount', Number(e.target.value))
+                            }
+                            className="w-full p-2 text-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
                           />
                         </td>
                         <td className="p-2.5">
                           <select
                             value={row.wilayahId || ''}
                             onChange={(e) => handleRowChange(idx, 'wilayahId', e.target.value)}
-                            className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs"
+                            className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
                           >
                             <option value="">-- Belum Ditugaskan --</option>
                             {wilayahList.map((w) => (
@@ -320,14 +340,16 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
                           </select>
                         </td>
                         <td className="p-2.5 text-center">
-                          <button
-                            type="button"
-                            disabled={rows.length === 1}
-                            onClick={() => handleRemoveRow(idx)}
-                            className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition disabled:opacity-20"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {rows.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveRow(idx)}
+                              className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
+                              title="Hapus baris"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -337,22 +359,31 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
             </div>
           </div>
 
-          {/* Footer */}
+          {/* Footer Buttons */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+              className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-500/20 transition disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-2 transition"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{createMutation.isPending ? 'Membuat Proyek...' : 'Terbitkan Proyek Penugasan'}</span>
+              {createMutation.isPending ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Membuat Proyek...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Buat & Luncurkan Proyek</span>
+                </>
+              )}
             </button>
           </div>
         </form>

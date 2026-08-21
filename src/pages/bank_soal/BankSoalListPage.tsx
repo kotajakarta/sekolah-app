@@ -261,7 +261,17 @@ export const BankSoalListPage: React.FC = () => {
                 className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-800 dark:text-slate-100"
               >
                 <option value="">Semua Tingkat</option>
-                {filterOptions?.gradeLevels?.map((g) => (
+                {Array.from(
+                  new Set([
+                    'Kelas 7',
+                    'Kelas 8',
+                    'Kelas 9',
+                    'Kelas 10',
+                    'Kelas 11',
+                    'Kelas 12',
+                    ...(filterOptions?.gradeLevels || []),
+                  ]),
+                ).map((g) => (
                   <option key={g} value={g}>
                     {g}
                   </option>

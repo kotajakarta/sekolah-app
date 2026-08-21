@@ -552,7 +552,7 @@ export default function Ringkasan() {
                               {/* Mapel Week Badge + (!) Detail Button */}
                               <div className="flex items-center justify-center gap-1">
                                 <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border ${getMapelBadgeClass(wData.persenMapel, isFuture)}`}>
-                                  <span>Mapel: {wData.mapelCompleted}/{wData.mapelTarget || 5}</span>
+                                  <span>Mapel: {wData.mapelCompleted}/{wData.mapelTarget ?? (item.jumlahKelas ? item.jumlahKelas * 5 : 0)}</span>
                                   <span>({wData.persenMapel}%)</span>
                                 </div>
 

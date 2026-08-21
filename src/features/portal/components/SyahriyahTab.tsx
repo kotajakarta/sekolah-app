@@ -179,9 +179,14 @@ export default function SyahriyahTab() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
-  // Bulk Payment State
-  const [selectedTagihanIds, setSelectedTagihanIds] = useState<string[]>([]);
+  // Bulk Payment Modal State
   const [isBulkPayModalOpen, setIsBulkPayModalOpen] = useState<boolean>(false);
+  const [bulkFilterCabangId, setBulkFilterCabangId] = useState<string>(user?.scope === 'CABANG' ? user.cabangId || '' : '');
+  const [bulkFilterKategori, setBulkFilterKategori] = useState<string>('BULANAN');
+  const [bulkFilterBulan, setBulkFilterBulan] = useState<string>((new Date().getMonth() + 1).toString());
+  const [bulkFilterTahun, setBulkFilterTahun] = useState<string>(new Date().getFullYear().toString());
+  const [bulkSearch, setBulkSearch] = useState<string>('');
+  const [bulkSelectedTagihanIds, setBulkSelectedTagihanIds] = useState<string[]>([]);
   const [bulkPayMetode, setBulkPayMetode] = useState<'TUNAI' | 'TRANSFER'>('TUNAI');
   const [bulkPayCatatan, setBulkPayCatatan] = useState<string>('Pembayaran langsung di Kasir / Kantor Cabang');
 
@@ -358,6 +363,24 @@ export default function SyahriyahTab() {
     }
   });
 
+  // Bulk Candidates Query (Fetch All Unpaid Students & Bills in Branch)
+  const { data: bulkCandidates = [], isLoading: isLoadingBulkCandidates } = useQuery<any[]>({
+    queryKey: ['syahriyah-admin-unpaid-bulk', bulkFilterCabangId, bulkFilterKategori, bulkFilterBulan, bulkFilterTahun, bulkSearch],
+    queryFn: async () => {
+      const res = await apiClient.get('/syahriyah-admin/tagihan/unpaid-bulk-candidates', {
+        params: {
+          cabangId: bulkFilterCabangId || undefined,
+          kategori: bulkFilterKategori && bulkFilterKategori !== 'ALL' ? bulkFilterKategori : undefined,
+          bulan: (bulkFilterKategori === 'BULANAN' || bulkFilterKategori === 'ALL') && bulkFilterBulan ? bulkFilterBulan : undefined,
+          tahun: bulkFilterTahun || undefined,
+          search: bulkSearch ? normalizeTurkish(bulkSearch) : undefined
+        }
+      });
+      return res.data;
+    },
+    enabled: isBulkPayModalOpen
+  });
+
   // ═══════════════════════════════════════════════════════════
   // MUTATIONS
   // ═══════════════════════════════════════════════════════════
@@ -373,6 +396,7 @@ export default function SyahriyahTab() {
       queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-tagihan'] });
       queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-santri'] });
+      queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-unpaid-bulk'] });
       if (selectedStudentForDetail) {
         queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-santri-detail', selectedStudentForDetail] });
       }
@@ -389,11 +413,12 @@ export default function SyahriyahTab() {
     },
     onSuccess: (data) => {
       showToast('success', data.message || 'Pembayaran massal kasir berhasil dicatat!');
-      setSelectedTagihanIds([]);
+      setBulkSelectedTagihanIds([]);
       setIsBulkPayModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-tagihan'] });
       queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-stats'] });
       queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-santri'] });
+      queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-unpaid-bulk'] });
       if (selectedStudentForDetail) {
         queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-santri-detail', selectedStudentForDetail] });
       }
@@ -688,18 +713,18 @@ export default function SyahriyahTab() {
             <button
               type="button"
               onClick={() => {
-                if (selectedTagihanIds.length === 0) {
-                  const unpaidIds = tagihanList.filter(t => t.status !== 'LUNAS').map(t => t.id);
-                  if (unpaidIds.length > 0) {
-                    setSelectedTagihanIds(unpaidIds);
-                  }
-                }
+                setBulkFilterCabangId(user?.scope === 'CABANG' ? user.cabangId || '' : filterCabangId || '');
+                setBulkFilterKategori(filterKategori || 'BULANAN');
+                setBulkFilterBulan(filterBulan || (new Date().getMonth() + 1).toString());
+                setBulkFilterTahun(filterTahun || new Date().getFullYear().toString());
+                setBulkSearch('');
+                setBulkSelectedTagihanIds([]);
                 setIsBulkPayModalOpen(true);
               }}
               className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <Banknote className="w-4 h-4" />
-              Bayar Kasir Bulk {selectedTagihanIds.length > 0 ? `(${selectedTagihanIds.length})` : ''}
+              Bayar Kasir Massal (Bulk)
             </button>
             <button
               type="button"
@@ -870,25 +895,6 @@ export default function SyahriyahTab() {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-100/90 backdrop-blur-xs text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
                     <tr>
-                      <th className="py-3 px-3 w-10 text-center">
-                        <input
-                          type="checkbox"
-                          checked={tagihanList.filter((t) => t.status !== 'LUNAS').length > 0 && tagihanList.filter((t) => t.status !== 'LUNAS').every((t) => selectedTagihanIds.includes(t.id))}
-                          onChange={(e) => {
-                            const unpaidOnPage = tagihanList.filter((t) => t.status !== 'LUNAS');
-                            if (e.target.checked) {
-                              const combined = Array.from(new Set([...selectedTagihanIds, ...unpaidOnPage.map((t) => t.id)]));
-                              setSelectedTagihanIds(combined);
-                            } else {
-                              const unpaidSet = new Set(unpaidOnPage.map((t) => t.id));
-                              setSelectedTagihanIds(selectedTagihanIds.filter((id) => !unpaidSet.has(id)));
-                            }
-                          }}
-                          disabled={tagihanList.filter((t) => t.status !== 'LUNAS').length === 0}
-                          className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer disabled:opacity-30"
-                          title="Pilih Semua Tagihan Belum Lunas di Halaman Ini"
-                        />
-                      </th>
                       <th className="py-3 px-4">Santri</th>
                       <th className="py-3 px-4">Cabang / Kelas</th>
                       <th className="py-3 px-4">Judul Tagihan</th>
@@ -902,30 +908,9 @@ export default function SyahriyahTab() {
                   <tbody className="divide-y divide-slate-100 bg-white">
                     {tagihanList.map((t) => {
                       const latestPembayaran = t.pembayaran && t.pembayaran.length > 0 ? t.pembayaran[0] : null;
-                      const isSelected = selectedTagihanIds.includes(t.id);
 
                       return (
-                        <tr key={t.id} className={`transition-colors ${isSelected ? 'bg-emerald-50/60' : 'hover:bg-slate-50/80'}`}>
-                          {/* Checkbox Multi-select */}
-                          <td className="py-3.5 px-3 text-center">
-                            {t.status !== 'LUNAS' ? (
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSelectedTagihanIds([...selectedTagihanIds, t.id]);
-                                  } else {
-                                    setSelectedTagihanIds(selectedTagihanIds.filter((id) => id !== t.id));
-                                  }
-                                }}
-                                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                              />
-                            ) : (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto opacity-30" />
-                            )}
-                          </td>
-
+                        <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
                           {/* Santri */}
                           <td className="py-3.5 px-4 font-bold text-slate-900">
                             <div>{normalizeTurkish(t.student.biodata?.fullName || 'Tanpa Nama')}</div>
@@ -1079,31 +1064,6 @@ export default function SyahriyahTab() {
               </div>
             )}
           </div>
-
-          {/* Floating Bulk Pay Bar */}
-          {selectedTagihanIds.length > 0 && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-4 border border-slate-700 animate-slide-up">
-              <div className="flex items-center gap-2 text-xs">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="font-bold">{selectedTagihanIds.length} tagihan dipilih</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsBulkPayModalOpen(true)}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
-              >
-                <Banknote className="w-4 h-4" />
-                Bayar Kasir Massal ({selectedTagihanIds.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedTagihanIds([])}
-                className="text-xs text-slate-400 hover:text-white cursor-pointer"
-              >
-                Batal
-              </button>
-            </div>
-          )}
         </div>
       )}
 
@@ -2625,101 +2585,272 @@ export default function SyahriyahTab() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {isBulkPayModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 space-y-5 animate-scale-up max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-4xl w-full p-6 space-y-5 animate-scale-up max-h-[92vh] flex flex-col">
+            {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
-              <div>
-                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                  <Banknote className="w-5 h-5 text-emerald-600" />
-                  Bayar Kasir Massal (Bulk Payment)
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Tandai lunas pembayaran santri secara langsung dan massal sekaligus.
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                  <Banknote className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    Bayar Kasir Massal (Bulk Payment)
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Pilih cabang, jenis tagihan, dan bulan untuk melunasi tagihan santri secara massal sekaligus.
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setIsBulkPayModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-              {/* Selected Items summary */}
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+              {/* Filter Controls Row */}
+              <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Target Cabang */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">Cabang Santri</label>
+                    {user?.scope === 'CABANG' ? (
+                      <input
+                        type="text"
+                        disabled
+                        value={cabangList.find((c: any) => c.id === user.cabangId)?.name || 'Cabang Saya'}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-100 font-bold text-slate-700 text-xs"
+                      />
+                    ) : (
+                      <select
+                        value={bulkFilterCabangId}
+                        onChange={(e) => {
+                          setBulkFilterCabangId(e.target.value);
+                          setBulkSelectedTagihanIds([]);
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-slate-900"
+                      >
+                        <option value="">Semua Cabang</option>
+                        {cabangList.map((c: any) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Jenis Tagihan */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">Jenis Tagihan</label>
+                    <select
+                      value={bulkFilterKategori}
+                      onChange={(e) => {
+                        setBulkFilterKategori(e.target.value);
+                        setBulkSelectedTagihanIds([]);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      <option value="BULANAN">🗓️ Iuran Syahriyah Bulanan</option>
+                      <option value="TAHUNAN">🎓 Biaya Tahunan</option>
+                      <option value="SANTRI_BARU">🎒 Biaya Santri Baru</option>
+                      <option value="LAINNYA">📦 Biaya Lainnya</option>
+                      <option value="ALL">📑 Semua Jenis Tagihan</option>
+                    </select>
+                  </div>
+
+                  {/* Pilihan Bulan */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">
+                      Pilihan Bulan {bulkFilterKategori === 'BULANAN' ? '*' : ''}
+                    </label>
+                    <select
+                      value={bulkFilterBulan}
+                      onChange={(e) => {
+                        setBulkFilterBulan(e.target.value);
+                        setBulkSelectedTagihanIds([]);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      <option value="">Semua Bulan</option>
+                      {BULAN_LABELS.map((b, idx) => (
+                        <option key={idx + 1} value={idx + 1}>{b}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Pilihan Tahun */}
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-700 block">Tahun</label>
+                    <select
+                      value={bulkFilterTahun}
+                      onChange={(e) => {
+                        setBulkFilterTahun(e.target.value);
+                        setBulkSelectedTagihanIds([]);
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      <option value="2026">2026</option>
+                      <option value="2027">2027</option>
+                      <option value="2025">2025</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Quick Search */}
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={bulkSearch}
+                    onChange={(e) => setBulkSearch(e.target.value)}
+                    placeholder="Saring nama santri, NIK, NISN, atau grup daimi..."
+                    className="w-full pl-9 pr-4 py-2 bg-white rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                </div>
+              </div>
+
+              {/* Selection Summary & Action Bar */}
               {(() => {
-                const selectedItems = tagihanList.filter((t) => selectedTagihanIds.includes(t.id));
-                const totalNominalSelected = selectedItems.reduce((sum, t) => sum + (t.sisaBayar > 0 ? t.sisaBayar : t.nominal), 0);
+                const selectedItems = bulkCandidates.filter((t: any) => bulkSelectedTagihanIds.includes(t.id));
+                const totalNominalSelected = selectedItems.reduce((sum: number, t: any) => sum + (t.sisaBayar > 0 ? t.sisaBayar : t.nominal || 0), 0);
+                const isAllSelected = bulkCandidates.length > 0 && bulkCandidates.every((t: any) => bulkSelectedTagihanIds.includes(t.id));
 
                 return (
-                  <div className="space-y-4">
-                    {/* Ringkasan Box */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3.5 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                        <span className="text-[11px] text-emerald-700 font-medium">Tagihan Dipilih</span>
-                        <div className="text-xl font-extrabold text-emerald-800 mt-0.5">
-                          {selectedTagihanIds.length} <span className="text-xs font-normal">Santri/Tagihan</span>
-                        </div>
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 bg-slate-900 text-white rounded-2xl">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isAllSelected) {
+                              setBulkSelectedTagihanIds([]);
+                            } else {
+                              setBulkSelectedTagihanIds(bulkCandidates.map((t: any) => t.id));
+                            }
+                          }}
+                          disabled={bulkCandidates.length === 0}
+                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <CheckSquare className="w-3.5 h-3.5" />
+                          {isAllSelected ? 'Hapus Semua Centang' : `Centang Semua Santri (${bulkCandidates.length})`}
+                        </button>
+                        {bulkSelectedTagihanIds.length > 0 && !isAllSelected && (
+                          <button
+                            type="button"
+                            onClick={() => setBulkSelectedTagihanIds([])}
+                            className="px-2.5 py-1.5 text-slate-300 hover:text-white text-xs cursor-pointer"
+                          >
+                            Batal Pilih
+                          </button>
+                        )}
                       </div>
-                      <div className="p-3.5 bg-slate-900 text-white rounded-2xl">
-                        <span className="text-[11px] text-slate-300 font-medium">Total Nominal Dilunasi</span>
-                        <div className="text-xl font-extrabold text-emerald-400 mt-0.5 font-mono">
-                          {formatRupiah(totalNominalSelected)}
+
+                      <div className="flex items-center gap-4 text-xs">
+                        <div>
+                          <span className="text-slate-400">Santri Dipilih:</span>{' '}
+                          <strong className="text-emerald-400 text-sm font-bold">{bulkSelectedTagihanIds.length}</strong> / {bulkCandidates.length}
+                        </div>
+                        <div className="border-l border-slate-700 pl-4">
+                          <span className="text-slate-400">Total Nominal:</span>{' '}
+                          <strong className="text-emerald-400 text-sm font-mono font-extrabold">{formatRupiah(totalNominalSelected)}</strong>
                         </div>
                       </div>
                     </div>
 
-                    {/* Checklist of selected bills */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-                        <span>Daftar Tagihan yang akan Diproses:</span>
-                        <span className="text-slate-400 font-normal">Centang/hapus centang untuk memilih</span>
-                      </div>
+                    {/* Candidate Table / List */}
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
+                      {isLoadingBulkCandidates ? (
+                        <div className="p-16 text-center text-slate-400 flex items-center justify-center gap-2">
+                          <Loader2 className="w-5 h-5 animate-spin text-emerald-600" /> Memuat data santri belum lunas di cabang...
+                        </div>
+                      ) : bulkCandidates.length === 0 ? (
+                        <div className="p-12 text-center text-slate-500 space-y-1">
+                          <Receipt className="w-8 h-8 text-slate-300 mx-auto mb-1.5" />
+                          <p className="font-bold text-slate-700">Tidak ada data tagihan yang belum lunas sesuai filter terpilih.</p>
+                          <p className="text-slate-400 text-[11px]">Pastikan cabang dan periode bulan tagihan sudah sesuai.</p>
+                        </div>
+                      ) : (
+                        <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                          {bulkCandidates.map((t: any) => {
+                            const isChecked = bulkSelectedTagihanIds.includes(t.id);
+                            const rawName = t.student.biodata?.fullName ? normalizeTurkish(t.student.biodata.fullName) : 'Tanpa Nama';
+                            const initial = rawName.charAt(0).toUpperCase() || 'S';
 
-                      <div className="max-h-52 overflow-y-auto border border-slate-200 rounded-2xl divide-y divide-slate-100 bg-slate-50/50">
-                        {tagihanList
-                          .filter((t) => t.status !== 'LUNAS')
-                          .map((t) => {
-                            const isChecked = selectedTagihanIds.includes(t.id);
                             return (
-                              <label
+                              <div
                                 key={t.id}
-                                className={`flex items-center justify-between p-3 cursor-pointer transition-colors text-xs ${
-                                  isChecked ? 'bg-emerald-50/50 font-medium' : 'hover:bg-white text-slate-500'
+                                onClick={() => {
+                                  if (isChecked) {
+                                    setBulkSelectedTagihanIds(bulkSelectedTagihanIds.filter((id) => id !== t.id));
+                                  } else {
+                                    setBulkSelectedTagihanIds([...bulkSelectedTagihanIds, t.id]);
+                                  }
+                                }}
+                                className={`p-3 flex items-center justify-between gap-4 cursor-pointer transition-colors ${
+                                  isChecked ? 'bg-emerald-50/70' : 'hover:bg-slate-50/80'
                                 }`}
                               >
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
                                   <input
                                     type="checkbox"
                                     checked={isChecked}
                                     onChange={(e) => {
+                                      e.stopPropagation();
                                       if (e.target.checked) {
-                                        setSelectedTagihanIds([...selectedTagihanIds, t.id]);
+                                        setBulkSelectedTagihanIds([...bulkSelectedTagihanIds, t.id]);
                                       } else {
-                                        setSelectedTagihanIds(selectedTagihanIds.filter((id) => id !== t.id));
+                                        setBulkSelectedTagihanIds(bulkSelectedTagihanIds.filter((id) => id !== t.id));
                                       }
                                     }}
-                                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer shrink-0"
                                   />
-                                  <div>
-                                    <div className="font-bold text-slate-900">{normalizeTurkish(t.student.biodata?.fullName || 'Tanpa Nama')}</div>
-                                    <div className="text-[10px] text-slate-500">
-                                      {t.judul} • <span className="font-semibold text-slate-700">{t.student.cabang?.name || '-'}</span>
+                                  {t.student.biodata?.fotoSantri ? (
+                                    <img
+                                      src={t.student.biodata.fotoSantri}
+                                      alt={rawName}
+                                      className="w-8 h-8 rounded-xl object-cover border border-slate-200 shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-slate-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                                      {initial}
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-slate-900 truncate">{rawName}</div>
+                                    <div className="text-[10px] text-slate-400 font-mono">
+                                      NIK: {t.student.biodata?.nik || '-'} {t.student.biodata?.nisn ? `• NISN: ${t.student.biodata.nisn}` : ''}
                                     </div>
                                   </div>
                                 </div>
-                                <div className="font-bold font-mono text-slate-800 text-right">
-                                  {formatRupiah(t.sisaBayar > 0 ? t.sisaBayar : t.nominal)}
+
+                                <div className="hidden sm:block text-slate-600 text-[11px] shrink-0">
+                                  <div className="font-semibold text-slate-800">{t.student.cabang?.name || '-'}</div>
+                                  <div className="text-[10px] text-indigo-600">
+                                    {t.student.siswaFormal?.kelas?.name ? `Kelas: ${t.student.siswaFormal.kelas.name}` : 'Belum Ada Kelas'}
+                                  </div>
                                 </div>
-                              </label>
+
+                                <div className="text-right shrink-0">
+                                  <div className="font-bold font-mono text-emerald-700 text-xs">
+                                    {formatRupiah(t.sisaBayar > 0 ? t.sisaBayar : t.nominal)}
+                                  </div>
+                                  <div className="text-[10px] text-slate-400">
+                                    {t.judul}
+                                  </div>
+                                </div>
+                              </div>
                             );
                           })}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Form Details */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    {/* Payment Form Details */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl">
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-700 block">Metode Pembayaran</label>
+                        <label className="font-bold text-slate-700 block">Metode Pembayaran *</label>
                         <select
                           value={bulkPayMetode}
                           onChange={(e) => setBulkPayMetode(e.target.value as any)}
@@ -2731,12 +2862,12 @@ export default function SyahriyahTab() {
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-700 block">Catatan Bendahara / Kasir</label>
+                        <label className="font-bold text-slate-700 block">Catatan Kasir / Bendahara</label>
                         <input
                           type="text"
                           value={bulkPayCatatan}
                           onChange={(e) => setBulkPayCatatan(e.target.value)}
-                          placeholder="Misal: Pembayaran tunai bendahara..."
+                          placeholder="Misal: Pembayaran langsung di kasir kantor cabang..."
                           className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-medium text-xs focus:outline-none focus:ring-2 focus:ring-slate-900"
                         />
                       </div>
@@ -2746,6 +2877,7 @@ export default function SyahriyahTab() {
               })()}
             </div>
 
+            {/* Modal Footer */}
             <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
               <button
                 type="button"
@@ -2756,12 +2888,12 @@ export default function SyahriyahTab() {
               </button>
               <button
                 type="button"
-                disabled={selectedTagihanIds.length === 0 || bayarMassalKasirMutation.isPending}
+                disabled={bulkSelectedTagihanIds.length === 0 || bayarMassalKasirMutation.isPending}
                 onClick={() => {
-                  if (selectedTagihanIds.length === 0) return;
-                  if (confirm(`Konfirmasi pembayaran kasir massal untuk ${selectedTagihanIds.length} tagihan terpilih?`)) {
+                  if (bulkSelectedTagihanIds.length === 0) return;
+                  if (confirm(`Konfirmasi pembayaran kasir massal untuk ${bulkSelectedTagihanIds.length} santri terpilih?`)) {
                     bayarMassalKasirMutation.mutate({
-                      tagihanIds: selectedTagihanIds,
+                      tagihanIds: bulkSelectedTagihanIds,
                       metode: bulkPayMetode,
                       catatan: bulkPayCatatan
                     });
@@ -2775,7 +2907,7 @@ export default function SyahriyahTab() {
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4" /> Bayar & Tandai Lunas ({selectedTagihanIds.length})
+                    <CheckCircle2 className="w-4 h-4" /> Bayar & Tandai Lunas ({bulkSelectedTagihanIds.length} Santri)
                   </>
                 )}
               </button>
@@ -2849,7 +2981,7 @@ export default function SyahriyahTab() {
                         <div className="text-[11px] text-indigo-600 font-medium flex items-center gap-2 flex-wrap">
                           <span>🏛️ {studentDetailData.cabang?.name || '-'}</span>
                           <span>•</span>
-                          <span>📚 {studentDetailData.siswaFormal?.kelasFormal?.name ? `Kelas: ${studentDetailData.siswaFormal.kelasFormal.name}` : 'Belum Ada Kelas'}</span>
+                          <span>📚 {studentDetailData.siswaFormal?.kelas?.name ? `Kelas: ${studentDetailData.siswaFormal.kelas.name}` : 'Belum Ada Kelas'}</span>
                           <span>•</span>
                           <span>👥 {studentDetailData.dataDaimi?.grup?.name || studentDetailData.grupDaimi || '-'}</span>
                         </div>

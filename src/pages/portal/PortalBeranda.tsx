@@ -23,7 +23,8 @@ import {
   Search,
   ExternalLink,
   ChevronRight,
-  Info
+  Info,
+  Lock
 } from 'lucide-react';
 import ModalEditBiodataSantri from '../../features/portal/components/ModalEditBiodataSantri';
 
@@ -54,6 +55,7 @@ export default function PortalBeranda() {
   const dataDaimi = student?.dataDaimi;
   const grupDaimi = dataDaimi?.grup;
   const ketuaDaimi = grupDaimi?.ketua;
+  const canEdit = Boolean(student?.canEditBiodata);
 
   // 1. Evaluasi Kelengkapan Data Santri (Missing Fields)
   const completeness = useMemo(() => {
@@ -223,14 +225,21 @@ export default function PortalBeranda() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsEditModalOpen(true)}
-            className="px-5 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-2xl text-xs sm:text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-400/30 transition-all flex items-center gap-2 shrink-0 cursor-pointer"
-          >
-            <Edit3 className="w-4 h-4" />
-            Perbarui Data Santri
-          </button>
+          {canEdit ? (
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(true)}
+              className="px-5 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-2xl text-xs sm:text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-400/30 transition-all flex items-center gap-2 shrink-0 cursor-pointer"
+            >
+              <Edit3 className="w-4 h-4" />
+              Perbarui Data Santri
+            </button>
+          ) : (
+            <div className="px-4 py-2.5 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl text-xs font-semibold flex items-center gap-2 shrink-0 shadow-sm">
+              <Lock className="w-4 h-4 text-amber-300 shrink-0" />
+              <span>Edit Data Dikunci Cabang</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -310,13 +319,23 @@ export default function PortalBeranda() {
                     </span>
                   ))}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="mt-2 w-full py-2.5 bg-slate-900 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Edit3 className="w-3.5 h-3.5" /> Lengkapi Data Sekarang
-                </button>
+                {canEdit ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(true)}
+                    className="mt-2 w-full py-2.5 bg-slate-900 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" /> Lengkapi Data Sekarang
+                  </button>
+                ) : (
+                  <div className="mt-2 p-3 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs font-medium flex items-start gap-2.5">
+                    <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold block text-amber-950">Akses Edit Belum Diaktifkan oleh Cabang</span>
+                      Fitur perbaruan data mandiri santri sedang dinonaktifkan oleh <strong>{student.cabang?.name || 'Cabang Terkait'}</strong>. Silakan menghubungi admin Cabang jika ada perbaruan data.
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="p-3 bg-emerald-50/60 rounded-2xl border border-emerald-200/60 flex items-center gap-2.5 text-xs text-emerald-800 font-semibold">
@@ -686,14 +705,21 @@ export default function PortalBeranda() {
             </div>
 
             {/* Quick Action Button */}
-            <button
-              type="button"
-              onClick={() => setIsEditModalOpen(true)}
-              className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
-            >
-              <Edit3 className="w-4 h-4 text-emerald-600" />
-              Perbarui Profil Biodata
-            </button>
+            {canEdit ? (
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+              >
+                <Edit3 className="w-4 h-4 text-emerald-600" />
+                Perbarui Profil Biodata
+              </button>
+            ) : (
+              <div className="w-full py-3 px-4 bg-slate-100 border border-slate-200 rounded-2xl text-xs text-slate-500 font-semibold flex items-center justify-center gap-2">
+                <Lock className="w-4 h-4 text-slate-400 shrink-0" />
+                <span>Edit Biodata Dikunci Cabang</span>
+              </div>
+            )}
           </div>
         </div>
 

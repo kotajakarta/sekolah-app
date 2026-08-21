@@ -72,6 +72,7 @@ export interface PortalStudentDataDaimi {
 export interface PortalStudent {
   id: string;
   isActive?: boolean;
+  canEditBiodata?: boolean;
   statusHafidz?: string | null;
   biodata?: PortalStudentBiodata | null;
   cabang?: { id: string; name: string } | null;

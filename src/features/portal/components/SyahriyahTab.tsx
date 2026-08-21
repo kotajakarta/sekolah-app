@@ -156,6 +156,9 @@ export default function SyahriyahTab() {
   const [verifyCatatan, setVerifyCatatan] = useState('');
 
   // Generate form state
+  const [genKategori, setGenKategori] = useState<'BULANAN' | 'TAHUNAN' | 'SANTRI_BARU' | 'LAINNYA'>('BULANAN');
+  const [genTarifId, setGenTarifId] = useState<string>('');
+  const [genJudul, setGenJudul] = useState<string>('');
   const [genBulan, setGenBulan] = useState<number>(new Date().getMonth() + 1);
   const [genTahun, setGenTahun] = useState<number>(new Date().getFullYear());
   const [genCabangId, setGenCabangId] = useState<string>(user?.cabangId || '');
@@ -325,19 +328,19 @@ export default function SyahriyahTab() {
     }
   });
 
-  const generateBulananMutation = useMutation({
+  const generateMassalMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const res = await apiClient.post('/syahriyah-admin/tagihan/generate-bulanan', payload);
+      const res = await apiClient.post('/syahriyah-admin/tagihan/generate-massal', payload);
       return res.data;
     },
     onSuccess: (data) => {
-      showToast('success', data.message || 'Tagihan bulanan berhasil di-generate!');
+      showToast('success', data.message || 'Tagihan massal berhasil di-generate!');
       queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-tagihan'] });
       queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-stats'] });
       setActiveSubTab('tagihan');
     },
     onError: (err: any) => {
-      showToast('error', err.response?.data?.message || 'Gagal men-generate tagihan bulanan');
+      showToast('error', err.response?.data?.message || 'Gagal men-generate tagihan');
     }
   });
 
@@ -1117,64 +1120,126 @@ export default function SyahriyahTab() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {activeSubTab === 'generate' && (() => {
         const targetCabangForGen = user?.scope === 'CABANG' ? user?.cabangId : (genCabangId || '');
-        const activeBulananTarif = tarifList.find(t =>
-          t.kategori === 'BULANAN' &&
+        const matchingTarifs = tarifList.filter(t =>
+          t.kategori === genKategori &&
           t.isActive &&
           (t.cabangId === targetCabangForGen || !t.cabangId)
         );
-        const isTarifAvailable = Boolean(activeBulananTarif && activeBulananTarif.nominal > 0) || Boolean(genNominal && Number(genNominal) > 0);
+        const selectedTarifObj = genTarifId ? tarifList.find(t => t.id === genTarifId) : matchingTarifs[0];
+        const isTarifAvailable = Boolean((matchingTarifs.length > 0 && selectedTarifObj && selectedTarifObj.nominal > 0) || (genNominal && Number(genNominal) > 0));
+
+        const namaBulan = genKategori === 'BULANAN' ? BULAN_LABELS[genBulan - 1] : '';
+        const previewJudul = genJudul.trim() || (
+          genKategori === 'BULANAN'
+            ? `Syahriyah ${namaBulan} ${genTahun}`
+            : selectedTarifObj
+              ? `${selectedTarifObj.name} ${genTahun}`
+              : `${KATEGORI_LABEL[genKategori]?.label || genKategori} ${genTahun}`
+        );
+        const previewNominal = genNominal && Number(genNominal) > 0 ? Number(genNominal) : (selectedTarifObj?.nominal || 0);
 
         return (
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 max-w-2xl mx-auto space-y-6">
             <div className="border-b border-slate-100 pb-4">
               <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-600" />
-                Generate Tagihan Syahriyah Bulanan Massal
+                Generate Tagihan Massal Santri
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Sistem akan secara otomatis membuat tagihan Syahriyah bulanan kepada seluruh santri aktif yang belum memiliki tagihan pada bulan & tahun yang dipilih.
+                Sistem akan secara otomatis membuat tagihan kepada seluruh santri aktif yang belum memiliki tagihan pada kategori dan periode yang dipilih.
               </p>
             </div>
 
+            {/* Selector Kategori Tagihan */}
+            <div className="space-y-2">
+              <label className="font-bold text-slate-800 text-xs block">
+                Pilih Kategori Tagihan *
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { key: 'BULANAN', label: 'Iuran Bulanan', icon: '🗓️' },
+                  { key: 'TAHUNAN', label: 'Biaya Tahunan', icon: '🎓' },
+                  { key: 'SANTRI_BARU', label: 'Santri Baru', icon: '🎒' },
+                  { key: 'LAINNYA', label: 'Biaya Lainnya', icon: '📦' }
+                ].map((k) => (
+                  <button
+                    key={k.key}
+                    type="button"
+                    onClick={() => {
+                      setGenKategori(k.key as any);
+                      setGenTarifId('');
+                      setGenNominal('');
+                      setGenJudul('');
+                    }}
+                    className={`px-3 py-2.5 rounded-2xl text-xs font-bold transition-all flex flex-col items-center gap-1 border cursor-pointer ${
+                      genKategori === k.key
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm ring-2 ring-indigo-200'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span className="text-base">{k.icon}</span>
+                    <span className="text-center">{k.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Warning Alert Jika Master Tarif Belum Diisi */}
             {!isTarifAvailable && (
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 text-amber-800 animate-in fade-in">
                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                 <div className="flex-1 text-xs">
-                  <h4 className="font-bold text-sm text-amber-900">Setting Biaya & Tarif Belum Diatur</h4>
+                  <h4 className="font-bold text-sm text-amber-900">
+                    Master Tarif {KATEGORI_LABEL[genKategori]?.label || genKategori} Belum Diatur
+                  </h4>
                   <p className="text-amber-700 mt-1">
-                    Master tarif untuk kategori <strong>Iuran Syahriyah Bulanan</strong> belum diatur (atau nominalnya Rp 0).
-                    Tombol Generate dinonaktifkan sampai Anda membuat tarif di tab <strong>Setting Biaya & Tarif</strong> atau memasukkan nominal manual.
+                    Belum ada tarif aktif untuk kategori <strong>{KATEGORI_LABEL[genKategori]?.label || genKategori}</strong> di master data (atau nominalnya masih Rp 0).
+                    Tombol generate dinonaktifkan sampai master tarif dibuat di tab <strong>Setting Biaya & Tarif</strong> atau Anda memasukkan nominal manual.
                   </p>
                   <button
                     type="button"
                     onClick={() => {
                       setActiveSubTab('tarif');
                       setEditingTarif(null);
-                      setTarifName('Iuran Syahriyah Bulanan');
-                      setTarifKategori('BULANAN');
+                      setTarifName(
+                        genKategori === 'BULANAN'
+                          ? 'Iuran Syahriyah Bulanan'
+                          : genKategori === 'TAHUNAN'
+                            ? 'Daftar Ulang / Biaya Tahunan'
+                            : genKategori === 'SANTRI_BARU'
+                              ? 'Uang Pangkal / Masuk Santri Baru'
+                              : 'Biaya Lainnya'
+                      );
+                      setTarifKategori(genKategori);
                       setTarifNominal(0);
                       setTarifCabangId(user?.cabangId || genCabangId || '');
                       setTarifTahunAjaran('2026/2027');
                       setIsTarifModalOpen(true);
                     }}
-                    className="mt-2.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold transition-all inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    className="mt-2.5 px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold transition-all inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    Atur Master Tarif Sekarang
+                    Atur Master Tarif {KATEGORI_LABEL[genKategori]?.label || genKategori} Sekarang
                   </button>
                 </div>
               </div>
             )}
 
-            {isTarifAvailable && activeBulananTarif && !genNominal && (
-              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs text-emerald-800">
+            {/* Success Preview Card Jika Tarif Tersedia */}
+            {isTarifAvailable && (
+              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-emerald-800">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>
-                    Menggunakan Master Tarif: <strong>{activeBulananTarif.name}</strong> ({formatRupiah(activeBulananTarif.nominal)})
-                  </span>
+                  <div>
+                    <span className="font-medium text-emerald-900 block">
+                      Target Tagihan: <strong>{previewJudul}</strong>
+                    </span>
+                    <span className="text-[11px] text-emerald-700">
+                      Nominal: <strong>{formatRupiah(previewNominal)}</strong> {selectedTarifObj && !genNominal ? `(Master Tarif: ${selectedTarifObj.name})` : ''}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg self-start sm:self-auto">
                   Siap Digenerate
                 </span>
               </div>
@@ -1184,11 +1249,14 @@ export default function SyahriyahTab() {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!isTarifAvailable) {
-                  showToast('error', 'Tarif biaya bulanan belum diatur. Harap buat master tarif terlebih dahulu.');
+                  showToast('error', `Tarif untuk kategori ${KATEGORI_LABEL[genKategori]?.label || genKategori} belum diatur. Harap buat master tarif terlebih dahulu.`);
                   return;
                 }
-                generateBulananMutation.mutate({
-                  bulan: genBulan,
+                generateMassalMutation.mutate({
+                  kategori: genKategori,
+                  tarifId: selectedTarifObj?.id || undefined,
+                  judul: genJudul.trim() || undefined,
+                  bulan: genKategori === 'BULANAN' ? genBulan : undefined,
                   tahun: genTahun,
                   cabangId: genCabangId || undefined,
                   nominal: genNominal ? Number(genNominal) : undefined,
@@ -1197,21 +1265,42 @@ export default function SyahriyahTab() {
               }}
               className="space-y-4 text-xs"
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Dropdown Master Tarif Jika Lebih Dari Satu */}
+              {matchingTarifs.length > 0 && (
                 <div className="space-y-1.5">
-                  <label className="font-bold text-slate-700">Pilih Bulan *</label>
+                  <label className="font-bold text-slate-700">Pilih Master Tarif</label>
                   <select
-                    value={genBulan}
-                    onChange={(e) => setGenBulan(Number(e.target.value))}
+                    value={genTarifId || (matchingTarifs[0]?.id || '')}
+                    onChange={(e) => setGenTarifId(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
                   >
-                    {BULAN_LABELS.map((b, idx) => (
-                      <option key={idx + 1} value={idx + 1}>{b}</option>
+                    {matchingTarifs.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} - {formatRupiah(t.nominal)} {t.cabang?.name ? `(${t.cabang.name})` : '(Semua Cabang)'}
+                      </option>
                     ))}
                   </select>
                 </div>
+              )}
 
-                <div className="space-y-1.5">
+              {/* Periode: Bulan & Tahun */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {genKategori === 'BULANAN' && (
+                  <div className="space-y-1.5">
+                    <label className="font-bold text-slate-700">Pilih Bulan *</label>
+                    <select
+                      value={genBulan}
+                      onChange={(e) => setGenBulan(Number(e.target.value))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      {BULAN_LABELS.map((b, idx) => (
+                        <option key={idx + 1} value={idx + 1}>{b}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className={`space-y-1.5 ${genKategori !== 'BULANAN' ? 'sm:col-span-2' : ''}`}>
                   <label className="font-bold text-slate-700">Pilih Tahun *</label>
                   <select
                     value={genTahun}
@@ -1225,6 +1314,24 @@ export default function SyahriyahTab() {
                 </div>
               </div>
 
+              {/* Custom Judul (Opsional jika non-bulanan) */}
+              {genKategori !== 'BULANAN' && (
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700">Judul Tagihan (Opsional)</label>
+                  <input
+                    type="text"
+                    placeholder={`Contoh: ${selectedTarifObj?.name || 'Biaya'} ${genTahun}`}
+                    value={genJudul}
+                    onChange={(e) => setGenJudul(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                  <span className="text-[10px] text-slate-400">
+                    Kosongkan untuk otomatis menggunakan nama master tarif.
+                  </span>
+                </div>
+              )}
+
+              {/* Target Cabang (Untuk Global Scope) */}
               {user?.scope !== 'CABANG' && (
                 <div className="space-y-1.5">
                   <label className="font-bold text-slate-700">Target Cabang</label>
@@ -1241,17 +1348,20 @@ export default function SyahriyahTab() {
                 </div>
               )}
 
+              {/* Nominal & Jatuh Tempo */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="font-bold text-slate-700">Nominal Tagihan (Opsional)</label>
+                  <label className="font-bold text-slate-700">Nominal Tagihan (Opsional Override)</label>
                   <input
                     type="number"
-                    placeholder="Kosongkan untuk pakai tarif master"
+                    placeholder={selectedTarifObj ? `Default: ${formatRupiah(selectedTarifObj.nominal)}` : 'Kosongkan untuk pakai tarif master'}
                     value={genNominal}
                     onChange={(e) => setGenNominal(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
                   />
-                  <span className="text-[10px] text-slate-400">Jika dikosongkan, nominal akan otomatis mengambil dari Setting Tarif Biaya Syahriyah.</span>
+                  <span className="text-[10px] text-slate-400">
+                    Jika dikosongkan, nominal akan otomatis mengambil dari Master Tarif yang dipilih.
+                  </span>
                 </div>
 
                 <div className="space-y-1.5">
@@ -1262,31 +1372,34 @@ export default function SyahriyahTab() {
                     onChange={(e) => setGenJatuhTempo(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
                   />
-                  <span className="text-[10px] text-slate-400">Default: Tanggal 10 pada bulan tersebut.</span>
+                  <span className="text-[10px] text-slate-400">
+                    Default: {genKategori === 'BULANAN' ? 'Tanggal 10 pada bulan tersebut' : 'Akhir tahun'}.
+                  </span>
                 </div>
               </div>
 
+              {/* Submit Button */}
               <div className="pt-4 border-t border-slate-100">
                 <button
                   type="submit"
-                  disabled={generateBulananMutation.isPending || !isTarifAvailable}
-                  className={`w-full py-3 rounded-2xl font-bold transition-all shadow-md flex items-center justify-center gap-2 ${
+                  disabled={generateMassalMutation.isPending || !isTarifAvailable}
+                  className={`w-full py-3.5 rounded-2xl font-bold transition-all shadow-md flex items-center justify-center gap-2 ${
                     isTarifAvailable
                       ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer'
                       : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
                   } disabled:opacity-50`}
                 >
-                  {generateBulananMutation.isPending ? (
+                  {generateMassalMutation.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" /> Men-generate Tagihan...
                     </>
                   ) : !isTarifAvailable ? (
                     <>
-                      <AlertTriangle className="w-4 h-4 text-amber-500" /> Generate Dinonaktifkan (Tarif Belum Diatur)
+                      <AlertTriangle className="w-4 h-4 text-amber-500" /> Generate Dinonaktifkan (Tarif {KATEGORI_LABEL[genKategori]?.label || genKategori} Belum Diatur)
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4" /> Proses Generate Tagihan {BULAN_LABELS[genBulan - 1]} {genTahun}
+                      <Sparkles className="w-4 h-4" /> Proses Generate Tagihan {previewJudul}
                     </>
                   )}
                 </button>

@@ -91,6 +91,10 @@ export default function DataSiswa() {
     );
   }, [targetCabangId, currentCabangProfile]);
 
+  // Lock hanya berlaku untuk user dengan scope CABANG.
+  // Role Admin (GLOBAL) dan Koordinator (WILAYAH) dapat melihat seluruh santri di cabang manapun meski profil belum lengkap.
+  const isBranchLocked = user?.scope === 'CABANG' && !isProfileComplete;
+
   const { data: students, isLoading, isError } = useGetStudents();
 
   const availableTingkats = useMemo(() => {
@@ -499,7 +503,7 @@ export default function DataSiswa() {
         >
           <Users className="w-4 h-4" />
           Data Semua Santri
-          {!isProfileComplete && (
+          {isBranchLocked && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 ml-1">
               <Lock className="w-2.5 h-2.5" /> Terkunci
             </span>
@@ -515,7 +519,7 @@ export default function DataSiswa() {
           userWilayahId={user?.wilayahId}
           userCabangId={user?.cabangId}
         />
-      ) : !isProfileComplete ? (
+      ) : isBranchLocked ? (
         <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100/60 rounded-2xl border border-amber-200 p-8 text-center max-w-2xl mx-auto my-8 shadow-sm space-y-5 animate-in fade-in duration-300">
           <div className="w-16 h-16 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center mx-auto ring-8 ring-amber-100/50 shadow-inner">
             <Lock className="w-8 h-8" />
@@ -544,6 +548,25 @@ export default function DataSiswa() {
         </div>
       ) : (
         <>
+          {/* Info notice for Admin/Wilayah if selected branch profile is incomplete */}
+          {user?.scope !== 'CABANG' && targetCabangId && !isProfileComplete && !isCabangProfileLoading && (
+            <div className="mb-4 p-3.5 bg-amber-50/90 border border-amber-200/80 rounded-xl flex items-center justify-between gap-3 text-xs text-amber-900 shadow-sm animate-in fade-in">
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  <strong>Perhatian:</strong> Profil cabang ini belum lengkap di Master Data (Kapasitas/Alamat/URL Maps). Anda dapat melihat data santri karena memiliki hak akses <strong>{user?.scope === 'GLOBAL' ? 'Admin Pusat' : 'Koordinator Wilayah'}</strong>.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate(`/dashboard/profile-cabang?cabangId=${targetCabangId}`)}
+                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-all inline-flex items-center gap-1 shrink-0 text-[11px] cursor-pointer"
+              >
+                <span>Edit Profil Cabang</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+          )}
           <AdvancedFilterBar
             onFilterChange={setAdvancedFilters}
             userScope={user?.scope || ''}

@@ -34,7 +34,15 @@ import {
   Sparkles,
   ExternalLink,
   ChevronRight,
-  Info
+  Info,
+  Users,
+  UserCheck,
+  GraduationCap,
+  CheckSquare,
+  Square,
+  User,
+  Phone,
+  MapPin
 } from 'lucide-react';
 
 export interface SyahriyahTarifItem {
@@ -112,13 +120,54 @@ const KATEGORI_LABEL: Record<string, { label: string; color: string }> = {
   LAINNYA: { label: 'Biaya Lainnya', color: 'bg-amber-50 text-amber-700 border-amber-200' },
 };
 
+export interface SantriSyahriyahItem {
+  id: string;
+  biodata?: {
+    fullName?: string;
+    nisn?: string;
+    nik?: string;
+    tempatLahir?: string;
+    tanggalLahir?: string;
+    jenisKelamin?: string;
+    fotoSantri?: string;
+    namaAyah?: string;
+    namaIbu?: string;
+    nomorHp?: string;
+    nomorHpWali?: string;
+  } | null;
+  cabang?: { id: string; name: string } | null;
+  kelasName?: string;
+  daimiName?: string;
+  daimiKetua?: string;
+  tagihanSummary: {
+    totalCount: number;
+    lunasCount: number;
+    pendingCount: number;
+    belumLunasCount: number;
+    totalNominal: number;
+    totalTerbayar: number;
+    totalSisaBayar: number;
+    statusBadge: 'NO_TAGIHAN' | 'SEMUA_LUNAS' | 'ADA_PENDING' | 'ADA_TUNGGAKAN';
+  };
+  tagihan: Array<{
+    id: string;
+    judul: string;
+    kategori: string;
+    bulan?: number | null;
+    tahun: number;
+    nominal: number;
+    sisaBayar: number;
+    status: string;
+  }>;
+}
+
 export default function SyahriyahTab() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const { data: cabangList = [] } = useGetCabang();
 
-  const [activeSubTab, setActiveSubTab] = useState<'tagihan' | 'tarif' | 'rekening' | 'generate'>('tagihan');
+  const [activeSubTab, setActiveSubTab] = useState<'tagihan' | 'santri' | 'tarif' | 'rekening' | 'generate'>('tagihan');
 
   // Filters & Pagination for tagihan
   const [filterKategori, setFilterKategori] = useState<string>('');
@@ -129,6 +178,20 @@ export default function SyahriyahTab() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+
+  // Bulk Payment State
+  const [selectedTagihanIds, setSelectedTagihanIds] = useState<string[]>([]);
+  const [isBulkPayModalOpen, setIsBulkPayModalOpen] = useState<boolean>(false);
+  const [bulkPayMetode, setBulkPayMetode] = useState<'TUNAI' | 'TRANSFER'>('TUNAI');
+  const [bulkPayCatatan, setBulkPayCatatan] = useState<string>('Pembayaran langsung di Kasir / Kantor Cabang');
+
+  // Santri Subtab State
+  const [santriPage, setSantriPage] = useState<number>(1);
+  const [santriLimit, setSantriLimit] = useState<number>(10);
+  const [santriSearch, setSantriSearch] = useState<string>('');
+  const [santriCabangId, setSantriCabangId] = useState<string>(user?.scope === 'CABANG' ? user.cabangId || '' : '');
+  const [santriStatusTagihan, setSantriStatusTagihan] = useState<string>('');
+  const [selectedStudentForDetail, setSelectedStudentForDetail] = useState<string | null>(null);
 
   // Modals state
   const [selectedTagihanForDirectPay, setSelectedTagihanForDirectPay] = useState<TagihanSantriItem | null>(null);
@@ -241,6 +304,44 @@ export default function SyahriyahTab() {
   const totalItems = tagihanResponse?.total || 0;
   const totalPages = tagihanResponse?.totalPages || 1;
 
+  // Santri Tab Query
+  const { data: santriSyahriyahResponse, isLoading: isLoadingSantri, refetch: refetchSantri } = useQuery<{
+    data: SantriSyahriyahItem[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>({
+    queryKey: ['syahriyah-admin-santri', santriPage, santriLimit, santriSearch, santriCabangId, santriStatusTagihan],
+    queryFn: async () => {
+      const res = await apiClient.get('/syahriyah-admin/santri', {
+        params: {
+          page: santriPage,
+          limit: santriLimit,
+          search: santriSearch || undefined,
+          cabangId: santriCabangId || undefined,
+          statusTagihan: santriStatusTagihan || undefined
+        }
+      });
+      return res.data;
+    }
+  });
+
+  const santriList = santriSyahriyahResponse?.data || [];
+  const totalSantriItems = santriSyahriyahResponse?.total || 0;
+  const totalSantriPages = santriSyahriyahResponse?.totalPages || 1;
+
+  // Student Detail Query
+  const { data: studentDetailData, isLoading: isLoadingStudentDetail, refetch: refetchStudentDetail } = useQuery<any>({
+    queryKey: ['syahriyah-admin-santri-detail', selectedStudentForDetail],
+    queryFn: async () => {
+      if (!selectedStudentForDetail) return null;
+      const res = await apiClient.get(`/syahriyah-admin/santri/${selectedStudentForDetail}/detail`);
+      return res.data;
+    },
+    enabled: Boolean(selectedStudentForDetail)
+  });
+
   const { data: tarifList = [], isLoading: isLoadingTarif, refetch: refetchTarif } = useQuery<SyahriyahTarifItem[]>({
     queryKey: ['syahriyah-admin-tarif'],
     queryFn: async () => {
@@ -271,9 +372,34 @@ export default function SyahriyahTab() {
       setSelectedTagihanForDirectPay(null);
       queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-tagihan'] });
       queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-santri'] });
+      if (selectedStudentForDetail) {
+        queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-santri-detail', selectedStudentForDetail] });
+      }
     },
     onError: (err: any) => {
       showToast('error', err.response?.data?.message || 'Gagal mencatat pembayaran');
+    }
+  });
+
+  const bayarMassalKasirMutation = useMutation({
+    mutationFn: async (payload: { tagihanIds: string[]; metode?: 'TUNAI' | 'TRANSFER'; catatan?: string }) => {
+      const res = await apiClient.post('/syahriyah-admin/tagihan/bayar-massal', payload);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      showToast('success', data.message || 'Pembayaran massal kasir berhasil dicatat!');
+      setSelectedTagihanIds([]);
+      setIsBulkPayModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-tagihan'] });
+      queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-santri'] });
+      if (selectedStudentForDetail) {
+        queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-santri-detail', selectedStudentForDetail] });
+      }
+    },
+    onError: (err: any) => {
+      showToast('error', err.response?.data?.message || 'Gagal memproses pembayaran massal');
     }
   });
 
@@ -503,6 +629,22 @@ export default function SyahriyahTab() {
 
           <button
             type="button"
+            onClick={() => {
+              setActiveSubTab('santri');
+              setSantriPage(1);
+            }}
+            className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeSubTab === 'santri'
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Daftar Santri
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveSubTab('tarif')}
             className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'tarif'
@@ -542,7 +684,23 @@ export default function SyahriyahTab() {
         </div>
 
         {activeSubTab === 'tagihan' && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                if (selectedTagihanIds.length === 0) {
+                  const unpaidIds = tagihanList.filter(t => t.status !== 'LUNAS').map(t => t.id);
+                  if (unpaidIds.length > 0) {
+                    setSelectedTagihanIds(unpaidIds);
+                  }
+                }
+                setIsBulkPayModalOpen(true);
+              }}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <Banknote className="w-4 h-4" />
+              Bayar Kasir Bulk {selectedTagihanIds.length > 0 ? `(${selectedTagihanIds.length})` : ''}
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -569,7 +727,7 @@ export default function SyahriyahTab() {
                 setManualTahun(new Date().getFullYear().toString());
                 setIsManualTagihanModalOpen(true);
               }}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Buat Tagihan Manual
@@ -712,6 +870,25 @@ export default function SyahriyahTab() {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-100/90 backdrop-blur-xs text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
                     <tr>
+                      <th className="py-3 px-3 w-10 text-center">
+                        <input
+                          type="checkbox"
+                          checked={tagihanList.filter((t) => t.status !== 'LUNAS').length > 0 && tagihanList.filter((t) => t.status !== 'LUNAS').every((t) => selectedTagihanIds.includes(t.id))}
+                          onChange={(e) => {
+                            const unpaidOnPage = tagihanList.filter((t) => t.status !== 'LUNAS');
+                            if (e.target.checked) {
+                              const combined = Array.from(new Set([...selectedTagihanIds, ...unpaidOnPage.map((t) => t.id)]));
+                              setSelectedTagihanIds(combined);
+                            } else {
+                              const unpaidSet = new Set(unpaidOnPage.map((t) => t.id));
+                              setSelectedTagihanIds(selectedTagihanIds.filter((id) => !unpaidSet.has(id)));
+                            }
+                          }}
+                          disabled={tagihanList.filter((t) => t.status !== 'LUNAS').length === 0}
+                          className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer disabled:opacity-30"
+                          title="Pilih Semua Tagihan Belum Lunas di Halaman Ini"
+                        />
+                      </th>
                       <th className="py-3 px-4">Santri</th>
                       <th className="py-3 px-4">Cabang / Kelas</th>
                       <th className="py-3 px-4">Judul Tagihan</th>
@@ -725,11 +902,33 @@ export default function SyahriyahTab() {
                   <tbody className="divide-y divide-slate-100 bg-white">
                     {tagihanList.map((t) => {
                       const latestPembayaran = t.pembayaran && t.pembayaran.length > 0 ? t.pembayaran[0] : null;
+                      const isSelected = selectedTagihanIds.includes(t.id);
+
                       return (
-                        <tr key={t.id} className="hover:bg-slate-50/80 transition-colors">
+                        <tr key={t.id} className={`transition-colors ${isSelected ? 'bg-emerald-50/60' : 'hover:bg-slate-50/80'}`}>
+                          {/* Checkbox Multi-select */}
+                          <td className="py-3.5 px-3 text-center">
+                            {t.status !== 'LUNAS' ? (
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedTagihanIds([...selectedTagihanIds, t.id]);
+                                  } else {
+                                    setSelectedTagihanIds(selectedTagihanIds.filter((id) => id !== t.id));
+                                  }
+                                }}
+                                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                              />
+                            ) : (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500 mx-auto opacity-30" />
+                            )}
+                          </td>
+
                           {/* Santri */}
                           <td className="py-3.5 px-4 font-bold text-slate-900">
-                            <div>{t.student.biodata?.fullName || 'Tanpa Nama'}</div>
+                            <div>{normalizeTurkish(t.student.biodata?.fullName || 'Tanpa Nama')}</div>
                             <div className="text-[10px] text-slate-400 font-normal font-mono">
                               NIK: {t.student.biodata?.nik || '-'} {t.student.biodata?.nisn ? `• NISN: ${t.student.biodata.nisn}` : ''}
                             </div>
@@ -880,11 +1079,270 @@ export default function SyahriyahTab() {
               </div>
             )}
           </div>
+
+          {/* Floating Bulk Pay Bar */}
+          {selectedTagihanIds.length > 0 && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-4 border border-slate-700 animate-slide-up">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="font-bold">{selectedTagihanIds.length} tagihan dipilih</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBulkPayModalOpen(true)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
+              >
+                <Banknote className="w-4 h-4" />
+                Bayar Kasir Massal ({selectedTagihanIds.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedTagihanIds([])}
+                className="text-xs text-slate-400 hover:text-white cursor-pointer"
+              >
+                Batal
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* ═══════════════════════════════════════════════════════════ */}
-      {/* ── TAB 2: SETTING BIAYA (MASTER TARIF) ── */}
+      {/* ── TAB 2: DAFTAR SANTRI (SYAHRIYAH & STATUS KELAS/DAIMI) ── */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {activeSubTab === 'santri' && (
+        <div className="space-y-4">
+          {/* Filter Bar */}
+          <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center gap-3">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[240px]">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Cari nama santri, NISN, NIK, atau grup daimi..."
+                value={santriSearch}
+                onChange={(e) => {
+                  setSantriSearch(e.target.value);
+                  setSantriPage(1);
+                }}
+                className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900"
+              />
+            </div>
+
+            {/* Filter Status Tagihan */}
+            <select
+              value={santriStatusTagihan}
+              onChange={(e) => {
+                setSantriStatusTagihan(e.target.value);
+                setSantriPage(1);
+              }}
+              className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+            >
+              <option value="">Semua Status Tagihan</option>
+              <option value="BELUM_LUNAS">Ada Tunggakan Belum Lunas</option>
+              <option value="LUNAS">Semua Tagihan Lunas</option>
+            </select>
+
+            {/* Cabang Filter for Global Admin */}
+            {user?.scope !== 'CABANG' && (
+              <select
+                value={santriCabangId}
+                onChange={(e) => {
+                  setSantriCabangId(e.target.value);
+                  setSantriPage(1);
+                }}
+                className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
+              >
+                <option value="">Semua Cabang</option>
+                {cabangList.map((c: any) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            )}
+
+            {(santriSearch || santriStatusTagihan || (user?.scope !== 'CABANG' && santriCabangId)) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSantriSearch('');
+                  setSantriStatusTagihan('');
+                  setSantriCabangId(user?.scope === 'CABANG' ? user.cabangId || '' : '');
+                  setSantriPage(1);
+                }}
+                className="px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 cursor-pointer"
+              >
+                Reset Filter
+              </button>
+            )}
+          </div>
+
+          {/* Table Daftar Santri */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+            {isLoadingSantri ? (
+              <div className="p-12 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin text-slate-900" /> Memuat data santri...
+              </div>
+            ) : santriList.length === 0 ? (
+              <div className="p-12 text-center text-xs text-slate-500 space-y-2">
+                <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="font-bold text-slate-700">Tidak ada santri yang sesuai kriteria filter.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100/90 backdrop-blur-xs text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                    <tr>
+                      <th className="py-3 px-4">Santri</th>
+                      <th className="py-3 px-4">Cabang / Kelas</th>
+                      <th className="py-3 px-4">Grup Daimi</th>
+                      <th className="py-3 px-4 text-center">Status Syahriyah</th>
+                      <th className="py-3 px-4 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {santriList.map((s) => {
+                      const summary = s.tagihanSummary;
+                      const rawName = s.biodata?.fullName ? normalizeTurkish(s.biodata.fullName) : 'Tanpa Nama';
+                      const initial = rawName.charAt(0).toUpperCase() || 'S';
+
+                      return (
+                        <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+                          {/* Santri Info */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              {s.biodata?.fotoSantri ? (
+                                <img
+                                  src={s.biodata.fotoSantri}
+                                  alt={rawName}
+                                  className="w-9 h-9 rounded-2xl object-cover border border-slate-200 shrink-0"
+                                />
+                              ) : (
+                                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-slate-700 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
+                                  {initial}
+                                </div>
+                              )}
+                              <div>
+                                <div className="font-bold text-slate-900 text-xs">{rawName}</div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                  NIK: {s.biodata?.nik || '-'} {s.biodata?.nisn ? `• NISN: ${s.biodata.nisn}` : ''}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Cabang & Kelas */}
+                          <td className="py-3.5 px-4 text-slate-700">
+                            <div className="font-semibold text-slate-900">{s.cabang?.name || '-'}</div>
+                            <div className="text-[10px] text-indigo-600 font-medium">
+                              {s.kelasName && s.kelasName !== '-' ? `Kelas: ${s.kelasName}` : 'Belum Terdaftar Kelas'}
+                            </div>
+                          </td>
+
+                          {/* Grup Daimi */}
+                          <td className="py-3.5 px-4">
+                            <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0"></span>
+                              {s.daimiName}
+                            </div>
+                            {s.daimiKetua && s.daimiKetua !== '-' && (
+                              <div className="text-[10px] text-slate-500 mt-0.5">
+                                Ketua: <span className="font-medium text-slate-700">{s.daimiKetua}</span>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Status Ringkas Syahriyah */}
+                          <td className="py-3.5 px-4 text-center">
+                            {summary.statusBadge === 'SEMUA_LUNAS' ? (
+                              <div className="inline-flex flex-col items-center">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  <CheckCircle2 className="w-3 h-3" /> Lunas Semua ({summary.lunasCount})
+                                </span>
+                                <span className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                                  {formatRupiah(summary.totalTerbayar)}
+                                </span>
+                              </div>
+                            ) : summary.statusBadge === 'ADA_TUNGGAKAN' ? (
+                              <div className="inline-flex flex-col items-center">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
+                                  <AlertTriangle className="w-3 h-3" /> {summary.belumLunasCount} Tunggakan
+                                </span>
+                                <span className="text-[10px] text-rose-600 font-bold mt-0.5 font-mono">
+                                  Sisa: {formatRupiah(summary.totalSisaBayar)}
+                                </span>
+                              </div>
+                            ) : summary.statusBadge === 'ADA_PENDING' ? (
+                              <div className="inline-flex flex-col items-center">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-800 border border-amber-200 animate-pulse">
+                                  <Clock className="w-3 h-3 text-amber-600" /> {summary.pendingCount} Pending
+                                </span>
+                                <span className="text-[10px] text-slate-500 mt-0.5">
+                                  Menunggu Verifikasi
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                                Belum Ada Tagihan
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Aksi */}
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedStudentForDetail(s.id)}
+                              className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer inline-flex items-center gap-1.5"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              Detail Riwayat
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* Pagination Footer */}
+                <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
+                  <div className="text-xs text-slate-500 font-medium">
+                    Menampilkan <span className="font-bold text-slate-800">{totalSantriItems > 0 ? (santriPage - 1) * santriLimit + 1 : 0}</span> - <span className="font-bold text-slate-800">{Math.min(santriPage * santriLimit, totalSantriItems)}</span> dari <span className="font-bold text-slate-800">{totalSantriItems}</span> santri
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <span>Baris:</span>
+                      <select
+                        value={santriLimit}
+                        onChange={(e) => {
+                          setSantriLimit(Number(e.target.value));
+                          setSantriPage(1);
+                        }}
+                        className="px-2.5 py-1 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900"
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </div>
+                    <Pagination
+                      currentPage={santriPage}
+                      totalPages={totalSantriPages}
+                      totalItems={totalSantriItems}
+                      itemsPerPage={santriLimit}
+                      onPageChange={(p) => setSantriPage(p)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ── TAB 3: SETTING BIAYA (MASTER TARIF) ── */}
       {/* ═══════════════════════════════════════════════════════════ */}
       {activeSubTab === 'tarif' && (
         <div className="space-y-4">
@@ -1531,7 +1989,7 @@ export default function SyahriyahTab() {
               <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100">
                 <div>
                   <span className="text-slate-400 block text-[10px]">Santri</span>
-                  <span className="font-bold text-slate-900">{selectedPembayaranForVerify.tagihan.student.biodata?.fullName}</span>
+                  <span className="font-bold text-slate-900">{normalizeTurkish(selectedPembayaranForVerify.tagihan.student.biodata?.fullName || 'Santri')}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Tagihan</span>
@@ -2158,6 +2616,434 @@ export default function SyahriyahTab() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ── MODAL: BAYAR KASIR MASSAL (BULK PAYMENT) ── */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {isBulkPayModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 space-y-5 animate-scale-up max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                  <Banknote className="w-5 h-5 text-emerald-600" />
+                  Bayar Kasir Massal (Bulk Payment)
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Tandai lunas pembayaran santri secara langsung dan massal sekaligus.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsBulkPayModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+              {/* Selected Items summary */}
+              {(() => {
+                const selectedItems = tagihanList.filter((t) => selectedTagihanIds.includes(t.id));
+                const totalNominalSelected = selectedItems.reduce((sum, t) => sum + (t.sisaBayar > 0 ? t.sisaBayar : t.nominal), 0);
+
+                return (
+                  <div className="space-y-4">
+                    {/* Ringkasan Box */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3.5 bg-emerald-50 border border-emerald-100 rounded-2xl">
+                        <span className="text-[11px] text-emerald-700 font-medium">Tagihan Dipilih</span>
+                        <div className="text-xl font-extrabold text-emerald-800 mt-0.5">
+                          {selectedTagihanIds.length} <span className="text-xs font-normal">Santri/Tagihan</span>
+                        </div>
+                      </div>
+                      <div className="p-3.5 bg-slate-900 text-white rounded-2xl">
+                        <span className="text-[11px] text-slate-300 font-medium">Total Nominal Dilunasi</span>
+                        <div className="text-xl font-extrabold text-emerald-400 mt-0.5 font-mono">
+                          {formatRupiah(totalNominalSelected)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Checklist of selected bills */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                        <span>Daftar Tagihan yang akan Diproses:</span>
+                        <span className="text-slate-400 font-normal">Centang/hapus centang untuk memilih</span>
+                      </div>
+
+                      <div className="max-h-52 overflow-y-auto border border-slate-200 rounded-2xl divide-y divide-slate-100 bg-slate-50/50">
+                        {tagihanList
+                          .filter((t) => t.status !== 'LUNAS')
+                          .map((t) => {
+                            const isChecked = selectedTagihanIds.includes(t.id);
+                            return (
+                              <label
+                                key={t.id}
+                                className={`flex items-center justify-between p-3 cursor-pointer transition-colors text-xs ${
+                                  isChecked ? 'bg-emerald-50/50 font-medium' : 'hover:bg-white text-slate-500'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedTagihanIds([...selectedTagihanIds, t.id]);
+                                      } else {
+                                        setSelectedTagihanIds(selectedTagihanIds.filter((id) => id !== t.id));
+                                      }
+                                    }}
+                                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
+                                  />
+                                  <div>
+                                    <div className="font-bold text-slate-900">{normalizeTurkish(t.student.biodata?.fullName || 'Tanpa Nama')}</div>
+                                    <div className="text-[10px] text-slate-500">
+                                      {t.judul} • <span className="font-semibold text-slate-700">{t.student.cabang?.name || '-'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="font-bold font-mono text-slate-800 text-right">
+                                  {formatRupiah(t.sisaBayar > 0 ? t.sisaBayar : t.nominal)}
+                                </div>
+                              </label>
+                            );
+                          })}
+                      </div>
+                    </div>
+
+                    {/* Form Details */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-700 block">Metode Pembayaran</label>
+                        <select
+                          value={bulkPayMetode}
+                          onChange={(e) => setBulkPayMetode(e.target.value as any)}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-medium text-xs focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        >
+                          <option value="TUNAI">💵 Tunai (Kasir / Kantor Cabang)</option>
+                          <option value="TRANSFER">💳 Transfer Bank / QRIS</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-700 block">Catatan Bendahara / Kasir</label>
+                        <input
+                          type="text"
+                          value={bulkPayCatatan}
+                          onChange={(e) => setBulkPayCatatan(e.target.value)}
+                          placeholder="Misal: Pembayaran tunai bendahara..."
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-medium text-xs focus:outline-none focus:ring-2 focus:ring-slate-900"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsBulkPayModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer text-xs"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={selectedTagihanIds.length === 0 || bayarMassalKasirMutation.isPending}
+                onClick={() => {
+                  if (selectedTagihanIds.length === 0) return;
+                  if (confirm(`Konfirmasi pembayaran kasir massal untuk ${selectedTagihanIds.length} tagihan terpilih?`)) {
+                    bayarMassalKasirMutation.mutate({
+                      tagihanIds: selectedTagihanIds,
+                      metode: bulkPayMetode,
+                      catatan: bulkPayCatatan
+                    });
+                  }
+                }}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-all shadow-md cursor-pointer flex items-center gap-1.5 disabled:opacity-50 text-xs"
+              >
+                {bayarMassalKasirMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Memproses...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" /> Bayar & Tandai Lunas ({selectedTagihanIds.length})
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ── MODAL: DETAIL RIWAYAT PEMBAYARAN SANTRI SELAMA MONDOK ── */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {selectedStudentForDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-4xl w-full p-6 space-y-5 animate-scale-up max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    Riwayat Pembayaran Santri Selama Mondok
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Laporan lengkap status seluruh tagihan dan histori pembayaran per siswa
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedStudentForDetail(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto space-y-5 pr-1 text-xs">
+              {isLoadingStudentDetail ? (
+                <div className="p-16 text-center text-slate-400 flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin text-indigo-600" /> Memuat data riwayat santri...
+                </div>
+              ) : !studentDetailData ? (
+                <div className="p-12 text-center text-slate-500">Data santri tidak ditemukan</div>
+              ) : (
+                <>
+                  {/* Student Profile Card */}
+                  <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      {studentDetailData.biodata?.fotoSantri ? (
+                        <img
+                          src={studentDetailData.biodata.fotoSantri}
+                          alt={normalizeTurkish(studentDetailData.biodata.fullName || 'Santri')}
+                          className="w-14 h-14 rounded-2xl object-cover border border-slate-200 shadow-2xs"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-slate-800 text-white font-bold text-xl flex items-center justify-center shadow-xs">
+                          {studentDetailData.biodata?.fullName ? normalizeTurkish(studentDetailData.biodata.fullName).charAt(0).toUpperCase() : 'S'}
+                        </div>
+                      )}
+                      <div className="space-y-0.5">
+                        <h4 className="text-sm font-extrabold text-slate-900">
+                          {normalizeTurkish(studentDetailData.biodata?.fullName || 'Tanpa Nama')}
+                        </h4>
+                        <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2 flex-wrap">
+                          <span>NISN: <strong>{studentDetailData.biodata?.nisn || '-'}</strong></span>
+                          <span>•</span>
+                          <span>NIK: <strong>{studentDetailData.biodata?.nik || '-'}</strong></span>
+                        </div>
+                        <div className="text-[11px] text-indigo-600 font-medium flex items-center gap-2 flex-wrap">
+                          <span>🏛️ {studentDetailData.cabang?.name || '-'}</span>
+                          <span>•</span>
+                          <span>📚 {studentDetailData.siswaFormal?.kelasFormal?.name ? `Kelas: ${studentDetailData.siswaFormal.kelasFormal.name}` : 'Belum Ada Kelas'}</span>
+                          <span>•</span>
+                          <span>👥 {studentDetailData.dataDaimi?.grup?.name || studentDetailData.grupDaimi || '-'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Wali Info */}
+                    {studentDetailData.waliSantri && studentDetailData.waliSantri.length > 0 && (
+                      <div className="text-right sm:border-l sm:border-slate-200 sm:pl-4 space-y-0.5">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Wali Terdaftar</span>
+                        <div className="font-bold text-slate-800">
+                          {studentDetailData.waliSantri[0].user?.operatorName || 'Wali Santri'}
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-mono flex items-center gap-1 justify-end">
+                          <Phone className="w-3 h-3 text-slate-400" />
+                          {studentDetailData.waliSantri[0].user?.phone || '-'}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Summary KPI Mini Cards */}
+                  {(() => {
+                    const tagihanArray = studentDetailData.tagihan || [];
+                    const totalNominal = tagihanArray.reduce((sum: number, t: any) => sum + (t.nominal || 0), 0);
+                    const lunasItems = tagihanArray.filter((t: any) => t.status === 'LUNAS');
+                    const totalLunas = lunasItems.reduce((sum: number, t: any) => sum + (t.nominal || 0), 0);
+                    const tunggakanItems = tagihanArray.filter((t: any) => t.status === 'BELUM_LUNAS');
+                    const totalTunggakan = tunggakanItems.reduce((sum: number, t: any) => sum + (t.sisaBayar > 0 ? t.sisaBayar : t.nominal), 0);
+
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-2xl">
+                          <span className="text-[11px] text-indigo-700 font-bold">Total Seluruh Tagihan ({tagihanArray.length})</span>
+                          <div className="text-base font-extrabold text-indigo-950 mt-0.5 font-mono">
+                            {formatRupiah(totalNominal)}
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 bg-emerald-50/70 border border-emerald-100 rounded-2xl">
+                          <span className="text-[11px] text-emerald-700 font-bold">Terbayar Lunas ({lunasItems.length})</span>
+                          <div className="text-base font-extrabold text-emerald-950 mt-0.5 font-mono">
+                            {formatRupiah(totalLunas)}
+                          </div>
+                        </div>
+
+                        <div className="p-3.5 bg-rose-50/70 border border-rose-100 rounded-2xl">
+                          <span className="text-[11px] text-rose-700 font-bold">Sisa Tunggakan ({tunggakanItems.length})</span>
+                          <div className="text-base font-extrabold text-rose-950 mt-0.5 font-mono">
+                            {formatRupiah(totalTunggakan)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* History Table */}
+                  <div className="space-y-2">
+                    <h5 className="font-bold text-slate-800 text-xs flex items-center justify-between">
+                      <span>Daftar Seluruh Tagihan Selama Mondok:</span>
+                      <span className="text-slate-400 font-normal">
+                        Total {studentDetailData.tagihan?.length || 0} tagihan
+                      </span>
+                    </h5>
+
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
+                      {(!studentDetailData.tagihan || studentDetailData.tagihan.length === 0) ? (
+                        <div className="p-8 text-center text-slate-400">
+                          Belum ada data tagihan untuk santri ini.
+                        </div>
+                      ) : (
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-100/90 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
+                            <tr>
+                              <th className="py-2.5 px-3.5">Periode / Judul</th>
+                              <th className="py-2.5 px-3.5">Kategori</th>
+                              <th className="py-2.5 px-3.5 text-right">Nominal</th>
+                              <th className="py-2.5 px-3.5 text-center">Status</th>
+                              <th className="py-2.5 px-3.5">Histori Bayar</th>
+                              <th className="py-2.5 px-3.5 text-right">Aksi Kasir</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 bg-white">
+                            {studentDetailData.tagihan.map((t: any) => {
+                              const latestPembayaran = t.pembayaran && t.pembayaran.length > 0 ? t.pembayaran[0] : null;
+
+                              return (
+                                <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
+                                  {/* Judul & Periode */}
+                                  <td className="py-3 px-3.5 font-medium text-slate-900">
+                                    <div className="font-bold">{t.judul}</div>
+                                    <div className="text-[10px] text-slate-400 font-mono">
+                                      {t.bulan ? `${BULAN_LABELS[t.bulan - 1]} ` : ''}{t.tahun}
+                                    </div>
+                                  </td>
+
+                                  {/* Kategori */}
+                                  <td className="py-3 px-3.5">
+                                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold border ${KATEGORI_LABEL[t.kategori]?.color || 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                                      {KATEGORI_LABEL[t.kategori]?.label || t.kategori}
+                                    </span>
+                                  </td>
+
+                                  {/* Nominal */}
+                                  <td className="py-3 px-3.5 text-right font-bold text-slate-900 font-mono">
+                                    {formatRupiah(t.nominal)}
+                                  </td>
+
+                                  {/* Status */}
+                                  <td className="py-3 px-3.5 text-center">
+                                    {t.status === 'LUNAS' ? (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        <CheckCircle2 className="w-3 h-3" /> LUNAS
+                                      </span>
+                                    ) : t.status === 'PENDING' ? (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-800 border border-amber-200 animate-pulse">
+                                        <Clock className="w-3 h-3 text-amber-600" /> PENDING
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
+                                        <AlertTriangle className="w-3 h-3" /> BELUM LUNAS
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  {/* Histori Bayar */}
+                                  <td className="py-3 px-3.5 text-slate-600">
+                                    {latestPembayaran ? (
+                                      <div>
+                                        <div className="font-semibold text-slate-800">
+                                          {latestPembayaran.metode} • {new Date(latestPembayaran.tanggalBayar).toLocaleDateString('id-ID')}
+                                        </div>
+                                        {latestPembayaran.verifiedBy && (
+                                          <div className="text-[10px] text-emerald-600">
+                                            Verif: {latestPembayaran.verifiedBy.operatorName || latestPembayaran.verifiedBy.username}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-[10px] text-slate-400">Belum ada bayar</span>
+                                    )}
+                                  </td>
+
+                                  {/* Aksi Kasir */}
+                                  <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                                    {t.status !== 'LUNAS' ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedTagihanForDirectPay({
+                                            ...t,
+                                            student: {
+                                              id: studentDetailData.id,
+                                              biodata: studentDetailData.biodata,
+                                              cabang: studentDetailData.cabang
+                                            }
+                                          });
+                                          setDirectPayNominal(t.sisaBayar > 0 ? t.sisaBayar : t.nominal);
+                                          setDirectPayMetode('TUNAI');
+                                          setDirectPayCatatan('Pembayaran langsung kasir santri');
+                                        }}
+                                        className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[11px] font-bold transition-all shadow-2xs cursor-pointer inline-flex items-center gap-1"
+                                      >
+                                        <Banknote className="w-3 h-3" />
+                                        Bayar Kasir
+                                      </button>
+                                    ) : (
+                                      <span className="text-[10px] font-bold text-emerald-600 inline-flex items-center gap-1">
+                                        <CheckCircle2 className="w-3 h-3" /> Selesai
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectedStudentForDetail(null)}
+                className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

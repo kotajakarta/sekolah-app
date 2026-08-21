@@ -401,11 +401,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
       <div className="bg-white rounded-2xl border border-slate-200/80 p-1.5 shadow-2xs flex flex-wrap gap-1">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === 'overview'
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'overview'
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-          }`}
+            }`}
         >
           <ShieldCheck className="w-4 h-4" />
           <span>Ringkasan & Overview</span>
@@ -414,11 +413,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
         {(user?.scope !== 'CABANG' || moduleSettings?.cabangWalsanListEnabled !== false) && (
           <button
             onClick={() => setActiveTab('list')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'list'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'list'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-            }`}
+              }`}
           >
             <Users className="w-4 h-4" />
             <span>Daftar Wali Santri ({waliList.length})</span>
@@ -428,11 +426,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
         {(user?.scope !== 'CABANG' || moduleSettings?.cabangIzinEnabled !== false) && (
           <button
             onClick={() => setActiveTab('izin')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'izin'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'izin'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-            }`}
+              }`}
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>Konfirmasi Izin Santri</span>
@@ -442,11 +439,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
         {(user?.scope === 'GLOBAL' || (moduleSettings?.walsanCctvEnabled !== false && moduleSettings?.cabangCctvEnabled !== false)) && (
           <button
             onClick={() => setActiveTab('cctv')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'cctv'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'cctv'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-            }`}
+              }`}
           >
             <Video className="w-4 h-4" />
             <span>Live CCTV Streaming</span>
@@ -455,11 +451,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
 
         <button
           onClick={() => setActiveTab('pengumuman')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === 'pengumuman'
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'pengumuman'
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-          }`}
+            }`}
         >
           <Megaphone className="w-4 h-4" />
           <span>Pengumuman Walsan</span>
@@ -467,25 +462,23 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
 
         <button
           onClick={() => setActiveTab('syahriyah')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === 'syahriyah'
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'syahriyah'
               ? 'bg-indigo-600 text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-          }`}
+            }`}
         >
           <Banknote className="w-4 h-4" />
-          <span>Syahriyah (Iuran Bulanan)</span>
+          <span>Syahriyah</span>
         </button>
 
         {/* Tab Khusus Admin Pusat (GLOBAL) */}
         {user?.scope === 'GLOBAL' && (
           <button
             onClick={() => setActiveTab('settings')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'settings'
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'settings'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-            }`}
+              }`}
           >
             <SlidersHorizontal className="w-4 h-4 text-indigo-400" />
             <span>Pengaturan Menu & Akses</span>
@@ -548,21 +541,19 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
           {user?.scope === 'CABANG' && (
             <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
               <div className="flex items-start gap-4">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-                  (moduleSettings?.cabangEditBiodataMap?.[user?.cabangId || ''] ?? moduleSettings?.walsanEditBiodataEnabled ?? false)
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${(moduleSettings?.cabangEditBiodataMap?.[user?.cabangId || ''] ?? moduleSettings?.walsanEditBiodataEnabled ?? false)
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : 'bg-amber-50 text-amber-700 border border-amber-200'
-                }`}>
+                  }`}>
                   <Edit3 className="w-6 h-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2.5 flex-wrap">
                     <h3 className="font-bold text-slate-900 text-base">Izin Edit & Perbaruan Data Santri oleh Walsan</h3>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide ${
-                      (moduleSettings?.cabangEditBiodataMap?.[user?.cabangId || ''] ?? moduleSettings?.walsanEditBiodataEnabled ?? false)
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide ${(moduleSettings?.cabangEditBiodataMap?.[user?.cabangId || ''] ?? moduleSettings?.walsanEditBiodataEnabled ?? false)
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                         : 'bg-amber-100 text-amber-800 border border-amber-200'
-                    }`}>
+                      }`}>
                       {(moduleSettings?.cabangEditBiodataMap?.[user?.cabangId || ''] ?? moduleSettings?.walsanEditBiodataEnabled ?? false) ? 'AKSES AKTIF' : 'AKSES DITUTUP'}
                     </span>
                   </div>
@@ -581,11 +572,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                   const currentStatus = Boolean(moduleSettings?.cabangEditBiodataMap?.[user?.cabangId || ''] ?? moduleSettings?.walsanEditBiodataEnabled ?? false);
                   updateCabangEditMutation.mutate({ cabangId: user?.cabangId || '', isEnabled: !currentStatus });
                 }}
-                className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer flex items-center gap-2 ${
-                  (moduleSettings?.cabangEditBiodataMap?.[user?.cabangId || ''] ?? moduleSettings?.walsanEditBiodataEnabled ?? false)
+                className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer flex items-center gap-2 ${(moduleSettings?.cabangEditBiodataMap?.[user?.cabangId || ''] ?? moduleSettings?.walsanEditBiodataEnabled ?? false)
                     ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
                     : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
-                }`}
+                  }`}
               >
                 {updateCabangEditMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 {(moduleSettings?.cabangEditBiodataMap?.[user?.cabangId || ''] ?? moduleSettings?.walsanEditBiodataEnabled ?? false)
@@ -729,22 +719,20 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
             <button
               type="button"
               onClick={() => setStatusFilter('ALL')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                statusFilter === 'ALL'
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${statusFilter === 'ALL'
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+                }`}
             >
               Semua Akun ({waliList.length})
             </button>
             <button
               type="button"
               onClick={() => setStatusFilter('PENDING')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                statusFilter === 'PENDING'
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${statusFilter === 'PENDING'
                   ? 'bg-amber-500 text-white shadow-xs'
                   : 'bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200'
-              }`}
+                }`}
             >
               <Clock className="w-3.5 h-3.5" />
               Menunggu Persetujuan ({countPending})
@@ -752,11 +740,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
             <button
               type="button"
               onClick={() => setStatusFilter('APPROVED')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                statusFilter === 'APPROVED'
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${statusFilter === 'APPROVED'
                   ? 'bg-emerald-600 text-white shadow-xs'
                   : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200'
-              }`}
+                }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               Disetujui / Aktif ({countApproved})
@@ -764,11 +751,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
             <button
               type="button"
               onClick={() => setStatusFilter('REJECTED')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                statusFilter === 'REJECTED'
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${statusFilter === 'REJECTED'
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'bg-rose-50 text-rose-800 hover:bg-rose-100 border border-rose-200'
-              }`}
+                }`}
             >
               <Ban className="w-3.5 h-3.5" />
               Ditolak ({countRejected})
@@ -955,229 +941,226 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
             </p>
           </div>
         ) : (
-        <div className="space-y-6">
-          {/* CCTV ACCESS CODE CONFIGURATION FOR ADMIN */}
-          <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 rounded-3xl p-6 text-white shadow-lg space-y-4 border border-indigo-700/40">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-3 border-b border-indigo-800/80">
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 mb-2">
-                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> Pengaturan Keamanan CCTV Wali Santri
+          <div className="space-y-6">
+            {/* CCTV ACCESS CODE CONFIGURATION FOR ADMIN */}
+            <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 rounded-3xl p-6 text-white shadow-lg space-y-4 border border-indigo-700/40">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-3 border-b border-indigo-800/80">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 mb-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" /> Pengaturan Keamanan CCTV Wali Santri
+                  </div>
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <Lock className="w-5 h-5 text-indigo-400" /> Kode Akses / PIN CCTV
+                  </h3>
+                  <p className="text-xs text-indigo-200/80 mt-0.5">
+                    Tentukan Kode PIN Akses yang wajib dimasukkan oleh wali santri saat membuka halaman /portal/cctv.
+                  </p>
                 </div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Lock className="w-5 h-5 text-indigo-400" /> Kode Akses / PIN CCTV
-                </h3>
-                <p className="text-xs text-indigo-200/80 mt-0.5">
-                  Tentukan Kode PIN Akses yang wajib dimasukkan oleh wali santri saat membuka halaman /portal/cctv.
-                </p>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={isSavingPin}
-                  onClick={async () => {
-                    const newStatus = !cctvProtectionEnabled;
-                    setCctvProtectionEnabled(newStatus);
-                    setIsSavingPin(true);
-                    try {
-                      await apiClient.put('/pengaturan/modules', {
-                        cctvProtectionEnabled: newStatus,
-                      });
-                      refetchSettings();
-                      setSaveSuccessMsg(newStatus ? 'Proteksi PIN CCTV Diaktifkan (Tersimpan di Server)!' : 'Proteksi PIN CCTV Dinonaktifkan (Tersimpan di Server)!');
-                    } catch {
-                      showToast('error', 'Gagal menyimpan pengaturan CCTV ke server');
-                    } finally {
-                      setIsSavingPin(false);
-                      setTimeout(() => setSaveSuccessMsg(''), 3000);
-                    }
-                  }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs flex items-center gap-2 ${
-                    cctvProtectionEnabled
-                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                      : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-                  }`}
-                >
-                  <span className={`w-2.5 h-2.5 rounded-full ${cctvProtectionEnabled ? 'bg-white animate-pulse' : 'bg-slate-400'}`}></span>
-                  Status: {cctvProtectionEnabled ? 'PROTEKSI AKTIF' : 'BEBAS AKSES (TANPA PIN)'}
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end pt-1">
-              <div className="sm:col-span-2 space-y-1.5">
-                <label className="text-xs font-bold text-indigo-200 block">Kode Akses PIN CCTV Baru:</label>
-                <div className="relative">
-                  <input
-                    type={showPinText ? 'text' : 'password'}
-                    value={cctvPinInput}
-                    onChange={(e) => setCctvPinInput(e.target.value)}
-                    placeholder="Masukkan Kode PIN (misal: 123456 atau CCTV2026)"
-                    className="w-full bg-slate-950/80 border border-indigo-700/60 rounded-xl px-4 py-2.5 text-sm text-white font-mono font-bold tracking-wider focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  />
+                <div className="flex items-center gap-2">
                   <button
-                    type="button"
-                    onClick={() => setShowPinText(!showPinText)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-indigo-400 hover:text-white"
+                    disabled={isSavingPin}
+                    onClick={async () => {
+                      const newStatus = !cctvProtectionEnabled;
+                      setCctvProtectionEnabled(newStatus);
+                      setIsSavingPin(true);
+                      try {
+                        await apiClient.put('/pengaturan/modules', {
+                          cctvProtectionEnabled: newStatus,
+                        });
+                        refetchSettings();
+                        setSaveSuccessMsg(newStatus ? 'Proteksi PIN CCTV Diaktifkan (Tersimpan di Server)!' : 'Proteksi PIN CCTV Dinonaktifkan (Tersimpan di Server)!');
+                      } catch {
+                        showToast('error', 'Gagal menyimpan pengaturan CCTV ke server');
+                      } finally {
+                        setIsSavingPin(false);
+                        setTimeout(() => setSaveSuccessMsg(''), 3000);
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs flex items-center gap-2 ${cctvProtectionEnabled
+                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                        : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
+                      }`}
                   >
-                    {showPinText ? 'Sembunyikan' : 'Tampilkan'}
+                    <span className={`w-2.5 h-2.5 rounded-full ${cctvProtectionEnabled ? 'bg-white animate-pulse' : 'bg-slate-400'}`}></span>
+                    Status: {cctvProtectionEnabled ? 'PROTEKSI AKTIF' : 'BEBAS AKSES (TANPA PIN)'}
                   </button>
                 </div>
               </div>
 
-              <div>
-                <button
-                  disabled={isSavingPin}
-                  onClick={async () => {
-                    if (!cctvPinInput.trim()) {
-                      showToast('warning', 'Kode PIN tidak boleh kosong');
-                      return;
-                    }
-                    setIsSavingPin(true);
-                    try {
-                      await apiClient.put('/pengaturan/modules', {
-                        cctvProtectionEnabled,
-                        cctvPin: cctvPinInput.trim(),
-                      });
-                      refetchSettings();
-                      setSaveSuccessMsg('Kode PIN Akses CCTV berhasil disimpan ke Server!');
-                    } catch {
-                      showToast('error', 'Gagal menyimpan PIN ke server');
-                    } finally {
-                      setIsSavingPin(false);
-                      setTimeout(() => setSaveSuccessMsg(''), 3000);
-                    }
-                  }}
-                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" /> {isSavingPin ? 'Menyimpan...' : 'Simpan Kode Akses PIN'}
-                </button>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end pt-1">
+                <div className="sm:col-span-2 space-y-1.5">
+                  <label className="text-xs font-bold text-indigo-200 block">Kode Akses PIN CCTV Baru:</label>
+                  <div className="relative">
+                    <input
+                      type={showPinText ? 'text' : 'password'}
+                      value={cctvPinInput}
+                      onChange={(e) => setCctvPinInput(e.target.value)}
+                      placeholder="Masukkan Kode PIN (misal: 123456 atau CCTV2026)"
+                      className="w-full bg-slate-950/80 border border-indigo-700/60 rounded-xl px-4 py-2.5 text-sm text-white font-mono font-bold tracking-wider focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPinText(!showPinText)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-indigo-400 hover:text-white"
+                    >
+                      {showPinText ? 'Sembunyikan' : 'Tampilkan'}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <button
+                    disabled={isSavingPin}
+                    onClick={async () => {
+                      if (!cctvPinInput.trim()) {
+                        showToast('warning', 'Kode PIN tidak boleh kosong');
+                        return;
+                      }
+                      setIsSavingPin(true);
+                      try {
+                        await apiClient.put('/pengaturan/modules', {
+                          cctvProtectionEnabled,
+                          cctvPin: cctvPinInput.trim(),
+                        });
+                        refetchSettings();
+                        setSaveSuccessMsg('Kode PIN Akses CCTV berhasil disimpan ke Server!');
+                      } catch {
+                        showToast('error', 'Gagal menyimpan PIN ke server');
+                      } finally {
+                        setIsSavingPin(false);
+                        setTimeout(() => setSaveSuccessMsg(''), 3000);
+                      }
+                    }}
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" /> {isSavingPin ? 'Menyimpan...' : 'Simpan Kode Akses PIN'}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {saveSuccessMsg && (
-              <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-bold flex items-center gap-2 animate-fade-in">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400" /> {saveSuccessMsg}
-              </div>
-            )}
-          </div>
-
-          {/* MANAGING CABANG CCTV STREAM URLS */}
-          <KelolaCctvCabangTab />
-
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
-              <div>
-                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Video className="w-5 h-5 text-indigo-600" /> Live CCTV Monitoring Hub
-                </h2>
-                <p className="text-xs text-slate-500 mt-0.5">Kanal siaran langsung pengawasan area santri 24 jam.</p>
-              </div>
-
-              {activeCctvFeeds.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                    <Radio className="w-3.5 h-3.5 text-rose-600 animate-pulse" /> Live Stream Active ({activeCctvFeeds.length})
-                  </span>
+              {saveSuccessMsg && (
+                <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-bold flex items-center gap-2 animate-fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> {saveSuccessMsg}
                 </div>
               )}
             </div>
 
-            {activeCctvFeeds.length === 0 || !selectedCctv ? (
-              <div className="p-10 text-center bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
-                <Video className="w-10 h-10 text-slate-300 mx-auto" />
-                <h4 className="font-bold text-slate-700 text-sm">Belum Ada Kamera CCTV Live Terdaftar untuk Cabang Ini</h4>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  Belum ada siaran kamera CCTV yang dikonfigurasi. Klik tombol <strong className="text-indigo-600">"+ Tambah Kamera CCTV"</strong> di atas untuk mendaftarkan URL siaran kamera.
-                </p>
+            {/* MANAGING CABANG CCTV STREAM URLS */}
+            <KelolaCctvCabangTab />
+
+            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100">
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <Video className="w-5 h-5 text-indigo-600" /> Live CCTV Monitoring Hub
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">Kanal siaran langsung pengawasan area santri 24 jam.</p>
+                </div>
+
+                {activeCctvFeeds.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                      <Radio className="w-3.5 h-3.5 text-rose-600 animate-pulse" /> Live Stream Active ({activeCctvFeeds.length})
+                    </span>
+                  </div>
+                )}
               </div>
-            ) : (
-              <>
-                {/* MAIN CAMERA DISPLAY WITH LIVE HLS PLAYER */}
-                <div className="relative aspect-video rounded-3xl bg-slate-950 overflow-hidden border border-slate-800 shadow-xl">
-                  <HlsPlayer
-                    src={selectedCctv.streamUrl || 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8'}
-                    poster={selectedCctv.bg}
-                    title={selectedCctv.name}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none"></div>
 
-                  {/* OVERLAY BADGES */}
-                  <div className="absolute top-4 left-4 flex items-center gap-2 pointer-events-none z-10">
-                    <span className="px-3 py-1 rounded-lg text-xs font-bold bg-rose-600 text-white shadow-md">
-                      LIVE REC 🔴
-                    </span>
-                    <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-900/80 text-slate-200 border border-slate-700">
-                      1080p HD @ {selectedCctv.fps}fps
-                    </span>
-                  </div>
-
-                  <div className="absolute bottom-4 left-4 pointer-events-none z-10">
-                    <p className="text-white font-bold text-base flex items-center gap-2">
-                      <selectedCctv.icon className="w-5 h-5 text-indigo-400" />
-                      {selectedCctv.name}
-                    </p>
-                    <p className="text-slate-300 text-xs">{selectedCctv.location}</p>
-                  </div>
+              {activeCctvFeeds.length === 0 || !selectedCctv ? (
+                <div className="p-10 text-center bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+                  <Video className="w-10 h-10 text-slate-300 mx-auto" />
+                  <h4 className="font-bold text-slate-700 text-sm">Belum Ada Kamera CCTV Live Terdaftar untuk Cabang Ini</h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    Belum ada siaran kamera CCTV yang dikonfigurasi. Klik tombol <strong className="text-indigo-600">"+ Tambah Kamera CCTV"</strong> di atas untuk mendaftarkan URL siaran kamera.
+                  </p>
                 </div>
+              ) : (
+                <>
+                  {/* MAIN CAMERA DISPLAY WITH LIVE HLS PLAYER */}
+                  <div className="relative aspect-video rounded-3xl bg-slate-950 overflow-hidden border border-slate-800 shadow-xl">
+                    <HlsPlayer
+                      src={selectedCctv.streamUrl || 'https://its.binamarga.pu.go.id:8989/play/hls/CT-02/index.m3u8'}
+                      poster={selectedCctv.bg}
+                      title={selectedCctv.name}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none"></div>
 
-                {/* CAMERA GRID SELECTOR & DIRECT EDIT BUTTONS */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-                  {activeCctvFeeds.map((feed) => {
-                    const isSelected = selectedCctv.id === feed.id;
-                    const IconComp = feed.icon;
+                    {/* OVERLAY BADGES */}
+                    <div className="absolute top-4 left-4 flex items-center gap-2 pointer-events-none z-10">
+                      <span className="px-3 py-1 rounded-lg text-xs font-bold bg-rose-600 text-white shadow-md">
+                        LIVE REC 🔴
+                      </span>
+                      <span className="px-3 py-1 rounded-lg text-xs font-semibold bg-slate-900/80 text-slate-200 border border-slate-700">
+                        1080p HD @ {selectedCctv.fps}fps
+                      </span>
+                    </div>
 
-                    return (
-                      <div
-                        key={feed.id}
-                        className={`p-3.5 rounded-2xl border text-left transition-all relative group flex flex-col justify-between gap-2 ${
-                          isSelected
-                            ? 'bg-indigo-50/90 border-indigo-300 ring-2 ring-indigo-500/30 shadow-xs'
-                            : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/80'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <button
-                            onClick={() => setSelectedCctv(feed)}
-                            className="flex-1 text-left cursor-pointer"
-                          >
-                            <p className="font-bold text-slate-900 text-xs flex items-center gap-1.5 truncate">
-                              <IconComp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                              {feed.name}
-                            </p>
-                            <p className="text-[10px] text-slate-500 truncate mt-0.5">{feed.location}</p>
-                          </button>
+                    <div className="absolute bottom-4 left-4 pointer-events-none z-10">
+                      <p className="text-white font-bold text-base flex items-center gap-2">
+                        <selectedCctv.icon className="w-5 h-5 text-indigo-400" />
+                        {selectedCctv.name}
+                      </p>
+                      <p className="text-slate-300 text-xs">{selectedCctv.location}</p>
+                    </div>
+                  </div>
 
-                          {/* EDIT BUTTON (As requested by user screenshot) */}
-                          <button
-                            onClick={() => openEditModal(feed)}
-                            className="p-1.5 rounded-xl bg-white border border-slate-200 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs shrink-0 cursor-pointer"
-                            title="Edit Alamat Stream & Detail Kamera Ini"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                  {/* CAMERA GRID SELECTOR & DIRECT EDIT BUTTONS */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+                    {activeCctvFeeds.map((feed) => {
+                      const isSelected = selectedCctv.id === feed.id;
+                      const IconComp = feed.icon;
 
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
-                          <span className="font-mono text-slate-400 truncate max-w-[130px]">
-                            {feed.streamUrl || 'URL Default'}
-                          </span>
-                          <button
-                            onClick={() => setSelectedCctv(feed)}
-                            className={`px-2 py-0.5 rounded-md font-bold cursor-pointer ${
-                              isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                      return (
+                        <div
+                          key={feed.id}
+                          className={`p-3.5 rounded-2xl border text-left transition-all relative group flex flex-col justify-between gap-2 ${isSelected
+                              ? 'bg-indigo-50/90 border-indigo-300 ring-2 ring-indigo-500/30 shadow-xs'
+                              : 'bg-slate-50 hover:bg-slate-100/80 border-slate-200/80'
                             }`}
-                          >
-                            {isSelected ? 'TAYANG' : 'PILIH'}
-                          </button>
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <button
+                              onClick={() => setSelectedCctv(feed)}
+                              className="flex-1 text-left cursor-pointer"
+                            >
+                              <p className="font-bold text-slate-900 text-xs flex items-center gap-1.5 truncate">
+                                <IconComp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                {feed.name}
+                              </p>
+                              <p className="text-[10px] text-slate-500 truncate mt-0.5">{feed.location}</p>
+                            </button>
+
+                            {/* EDIT BUTTON (As requested by user screenshot) */}
+                            <button
+                              onClick={() => openEditModal(feed)}
+                              className="p-1.5 rounded-xl bg-white border border-slate-200 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs shrink-0 cursor-pointer"
+                              title="Edit Alamat Stream & Detail Kamera Ini"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px]">
+                            <span className="font-mono text-slate-400 truncate max-w-[130px]">
+                              {feed.streamUrl || 'URL Default'}
+                            </span>
+                            <button
+                              onClick={() => setSelectedCctv(feed)}
+                              className={`px-2 py-0.5 rounded-md font-bold cursor-pointer ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                                }`}
+                            >
+                              {isSelected ? 'TAYANG' : 'PILIH'}
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
         )
       )}
 
@@ -1225,11 +1208,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                     updateModuleMutation.mutate({ portalWalsanEnabled: !currentVal });
                   }}
                   disabled={updateModuleMutation.isPending}
-                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 ${
-                    moduleSettings?.portalWalsanEnabled !== false
+                  className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer shadow-md flex items-center justify-center gap-2 ${moduleSettings?.portalWalsanEnabled !== false
                       ? 'bg-emerald-500 hover:bg-emerald-400 text-white'
                       : 'bg-rose-500 hover:bg-rose-400 text-white'
-                  }`}
+                    }`}
                 >
                   <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse"></span>
                   {moduleSettings?.portalWalsanEnabled !== false ? 'PORTAL AKTIF' : 'PORTAL NONAKTIF'}
@@ -1276,11 +1258,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                         cabangCctvEnabled: !isCurrentlyEnabled,
                       });
                     }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
-                      (moduleSettings?.walsanCctvEnabled !== false && moduleSettings?.cabangCctvEnabled !== false)
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${(moduleSettings?.walsanCctvEnabled !== false && moduleSettings?.cabangCctvEnabled !== false)
                         ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                         : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                    }`}
+                      }`}
                   >
                     {(moduleSettings?.walsanCctvEnabled !== false && moduleSettings?.cabangCctvEnabled !== false) ? 'Aktif' : 'Nonaktif'}
                   </button>
@@ -1305,11 +1286,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                       const currentVal = moduleSettings?.walsanRaporEnabled !== false;
                       updateModuleMutation.mutate({ walsanRaporEnabled: !currentVal });
                     }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
-                      moduleSettings?.walsanRaporEnabled !== false
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${moduleSettings?.walsanRaporEnabled !== false
                         ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                         : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                    }`}
+                      }`}
                   >
                     {moduleSettings?.walsanRaporEnabled !== false ? 'Aktif' : 'Nonaktif'}
                   </button>
@@ -1334,11 +1314,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                       const currentVal = moduleSettings?.walsanKehadiranEnabled !== false;
                       updateModuleMutation.mutate({ walsanKehadiranEnabled: !currentVal });
                     }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
-                      moduleSettings?.walsanKehadiranEnabled !== false
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${moduleSettings?.walsanKehadiranEnabled !== false
                         ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                         : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                    }`}
+                      }`}
                   >
                     {moduleSettings?.walsanKehadiranEnabled !== false ? 'Aktif' : 'Nonaktif'}
                   </button>
@@ -1363,11 +1342,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                       const currentVal = moduleSettings?.walsanIzinEnabled !== false;
                       updateModuleMutation.mutate({ walsanIzinEnabled: !currentVal });
                     }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
-                      moduleSettings?.walsanIzinEnabled !== false
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${moduleSettings?.walsanIzinEnabled !== false
                         ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                         : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                    }`}
+                      }`}
                   >
                     {moduleSettings?.walsanIzinEnabled !== false ? 'Aktif' : 'Nonaktif'}
                   </button>
@@ -1392,11 +1370,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                       const currentVal = moduleSettings?.walsanPengumumanEnabled !== false;
                       updateModuleMutation.mutate({ walsanPengumumanEnabled: !currentVal });
                     }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
-                      moduleSettings?.walsanPengumumanEnabled !== false
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${moduleSettings?.walsanPengumumanEnabled !== false
                         ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                         : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                    }`}
+                      }`}
                   >
                     {moduleSettings?.walsanPengumumanEnabled !== false ? 'Aktif' : 'Nonaktif'}
                   </button>
@@ -1421,11 +1398,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                       const currentVal = moduleSettings?.walsanEditBiodataEnabled === true;
                       updateModuleMutation.mutate({ walsanEditBiodataEnabled: !currentVal });
                     }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
-                      moduleSettings?.walsanEditBiodataEnabled === true
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${moduleSettings?.walsanEditBiodataEnabled === true
                         ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                         : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                    }`}
+                      }`}
                   >
                     {moduleSettings?.walsanEditBiodataEnabled === true ? 'Aktif Global' : 'Nonaktif'}
                   </button>
@@ -1450,11 +1426,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                       const currentVal = moduleSettings?.walsanSyahriyahEnabled !== false;
                       updateModuleMutation.mutate({ walsanSyahriyahEnabled: !currentVal });
                     }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
-                      moduleSettings?.walsanSyahriyahEnabled !== false
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${moduleSettings?.walsanSyahriyahEnabled !== false
                         ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                         : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                    }`}
+                      }`}
                   >
                     {moduleSettings?.walsanSyahriyahEnabled !== false ? 'Aktif' : 'Nonaktif'}
                   </button>
@@ -1513,11 +1488,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                               onClick={() => {
                                 updateCabangEditMutation.mutate({ cabangId: c.id, isEnabled: !isEnabled });
                               }}
-                              className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer shadow-2xs ${
-                                isEnabled
+                              className={`px-3 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer shadow-2xs ${isEnabled
                                   ? 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
                                   : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                              }`}
+                                }`}
                             >
                               {isEnabled ? 'Tutup Akses' : 'Buka Akses Edit'}
                             </button>
@@ -1567,13 +1541,12 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                         const currentVal = moduleSettings?.cabangCctvEnabled !== false;
                         updateModuleMutation.mutate({ cabangCctvEnabled: !currentVal });
                       }}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
-                        moduleSettings?.walsanCctvEnabled === false
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${moduleSettings?.walsanCctvEnabled === false
                           ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
                           : moduleSettings?.cabangCctvEnabled !== false
                             ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                             : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                      }`}
+                        }`}
                     >
                       {moduleSettings?.walsanCctvEnabled === false
                         ? 'Dinonaktifkan Global'
@@ -1602,11 +1575,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                         const currentVal = moduleSettings?.cabangIzinEnabled !== false;
                         updateModuleMutation.mutate({ cabangIzinEnabled: !currentVal });
                       }}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
-                        moduleSettings?.cabangIzinEnabled !== false
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${moduleSettings?.cabangIzinEnabled !== false
                           ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                           : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                      }`}
+                        }`}
                     >
                       {moduleSettings?.cabangIzinEnabled !== false ? 'Diizinkan' : 'Dibatasi'}
                     </button>
@@ -1631,11 +1603,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                         const currentVal = moduleSettings?.cabangWalsanListEnabled !== false;
                         updateModuleMutation.mutate({ cabangWalsanListEnabled: !currentVal });
                       }}
-                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${
-                        moduleSettings?.cabangWalsanListEnabled !== false
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 shadow-2xs ${moduleSettings?.cabangWalsanListEnabled !== false
                           ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                           : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
-                      }`}
+                        }`}
                     >
                       {moduleSettings?.cabangWalsanListEnabled !== false ? 'Diizinkan' : 'Dibatasi'}
                     </button>
@@ -1665,11 +1636,10 @@ export default function PortalWalsanPage({ initialTab = 'overview' }: { initialT
                       setCctvProtectionEnabled(nextState);
                       updateModuleMutation.mutate({ cctvProtectionEnabled: nextState });
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
-                      cctvProtectionEnabled
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${cctvProtectionEnabled
                         ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                         : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                    }`}
+                      }`}
                   >
                     {cctvProtectionEnabled ? 'PROTEKSI AKTIF' : 'TANPA PIN'}
                   </button>

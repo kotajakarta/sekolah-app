@@ -4,6 +4,8 @@ import apiClient from '../../../lib/apiClient';
 import { useToast } from '../../../contexts/ToastContext';
 import { useAuth } from '../../../hooks/useAuth';
 import { useGetCabang } from '../../core_data/hooks/useMasterData';
+import Pagination from '../../../components/Pagination';
+import { normalizeTurkish } from '../../../utils/text';
 import {
   CreditCard,
   CheckCircle2,
@@ -118,13 +120,15 @@ export default function SyahriyahTab() {
 
   const [activeSubTab, setActiveSubTab] = useState<'tagihan' | 'tarif' | 'rekening' | 'generate'>('tagihan');
 
-  // Filters for tagihan
+  // Filters & Pagination for tagihan
   const [filterKategori, setFilterKategori] = useState<string>('');
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [filterBulan, setFilterBulan] = useState<string>('');
   const [filterTahun, setFilterTahun] = useState<string>(new Date().getFullYear().toString());
   const [filterCabangId, setFilterCabangId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
   // Modals state
   const [selectedTagihanForDirectPay, setSelectedTagihanForDirectPay] = useState<TagihanSantriItem | null>(null);
@@ -198,8 +202,16 @@ export default function SyahriyahTab() {
     }
   });
 
-  const { data: tagihanList = [], isLoading: isLoadingTagihan, refetch: refetchTagihan } = useQuery<TagihanSantriItem[]>({
-    queryKey: ['syahriyah-admin-tagihan', filterKategori, filterStatus, filterBulan, filterTahun, filterCabangId, searchQuery],
+  interface TagihanPaginationResponse {
+    data: TagihanSantriItem[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }
+
+  const { data: tagihanResponse, isLoading: isLoadingTagihan, refetch: refetchTagihan } = useQuery<TagihanPaginationResponse>({
+    queryKey: ['syahriyah-admin-tagihan', filterKategori, filterStatus, filterBulan, filterTahun, filterCabangId, searchQuery, currentPage, itemsPerPage],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filterKategori) params.append('kategori', filterKategori);
@@ -207,12 +219,18 @@ export default function SyahriyahTab() {
       if (filterBulan) params.append('bulan', filterBulan);
       if (filterTahun) params.append('tahun', filterTahun);
       if (filterCabangId) params.append('cabangId', filterCabangId);
-      if (searchQuery) params.append('search', searchQuery);
+      if (searchQuery) params.append('search', normalizeTurkish(searchQuery));
+      params.append('page', currentPage.toString());
+      params.append('limit', itemsPerPage.toString());
 
       const res = await apiClient.get(`/syahriyah-admin/tagihan?${params.toString()}`);
       return res.data;
     }
   });
+
+  const tagihanList = tagihanResponse?.data || [];
+  const totalItems = tagihanResponse?.total || 0;
+  const totalPages = tagihanResponse?.totalPages || 1;
 
   const { data: tarifList = [], isLoading: isLoadingTarif, refetch: refetchTarif } = useQuery<SyahriyahTarifItem[]>({
     queryKey: ['syahriyah-admin-tarif'],
@@ -519,7 +537,10 @@ export default function SyahriyahTab() {
                 type="text"
                 placeholder="Cari santri, NIK, NISN, atau judul..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-slate-900"
               />
             </div>
@@ -527,7 +548,10 @@ export default function SyahriyahTab() {
             {/* Kategori Filter */}
             <select
               value={filterKategori}
-              onChange={(e) => setFilterKategori(e.target.value)}
+              onChange={(e) => {
+                setFilterKategori(e.target.value);
+                setCurrentPage(1);
+              }}
               className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
             >
               <option value="">Semua Kategori</option>
@@ -540,7 +564,10 @@ export default function SyahriyahTab() {
             {/* Status Filter */}
             <select
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              onChange={(e) => {
+                setFilterStatus(e.target.value);
+                setCurrentPage(1);
+              }}
               className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
             >
               <option value="">Semua Status</option>
@@ -552,7 +579,10 @@ export default function SyahriyahTab() {
             {/* Bulan Filter */}
             <select
               value={filterBulan}
-              onChange={(e) => setFilterBulan(e.target.value)}
+              onChange={(e) => {
+                setFilterBulan(e.target.value);
+                setCurrentPage(1);
+              }}
               className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
             >
               <option value="">Semua Bulan</option>
@@ -564,7 +594,10 @@ export default function SyahriyahTab() {
             {/* Tahun Filter */}
             <select
               value={filterTahun}
-              onChange={(e) => setFilterTahun(e.target.value)}
+              onChange={(e) => {
+                setFilterTahun(e.target.value);
+                setCurrentPage(1);
+              }}
               className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
             >
               <option value="2027">2027</option>
@@ -576,7 +609,10 @@ export default function SyahriyahTab() {
             {user?.scope !== 'CABANG' && (
               <select
                 value={filterCabangId}
-                onChange={(e) => setFilterCabangId(e.target.value)}
+                onChange={(e) => {
+                  setFilterCabangId(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-slate-900 bg-white"
               >
                 <option value="">Semua Cabang</option>
@@ -595,6 +631,7 @@ export default function SyahriyahTab() {
                   setFilterBulan('');
                   setFilterCabangId('');
                   setSearchQuery('');
+                  setCurrentPage(1);
                 }}
                 className="px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 cursor-pointer"
               >
@@ -738,6 +775,38 @@ export default function SyahriyahTab() {
                     })}
                   </tbody>
                 </table>
+
+                {/* Pagination Footer */}
+                <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
+                  <div className="text-xs text-slate-500 font-medium">
+                    Menampilkan <span className="font-bold text-slate-800">{totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</span> - <span className="font-bold text-slate-800">{Math.min(currentPage * itemsPerPage, totalItems)}</span> dari <span className="font-bold text-slate-800">{totalItems}</span> data tagihan
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <span>Baris:</span>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => {
+                          setItemsPerPage(Number(e.target.value));
+                          setCurrentPage(1);
+                        }}
+                        className="px-2.5 py-1 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-slate-900"
+                      >
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                    </div>
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      totalItems={totalItems}
+                      itemsPerPage={itemsPerPage}
+                      onPageChange={(p) => setCurrentPage(p)}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>

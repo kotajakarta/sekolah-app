@@ -82,6 +82,8 @@ import PortalPermohonanIzin from './pages/portal/PortalPermohonanIzin';
 import PortalProfile from './pages/portal/PortalProfile';
 import PortalCctv from './pages/portal/PortalCctv';
 import PortalWalsanPage from './pages/admin/PortalWalsanPage';
+import { BankSoalListPage } from './pages/bank_soal/BankSoalListPage';
+import { BankSoalDetailPage } from './pages/bank_soal/BankSoalDetailPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
@@ -536,6 +538,8 @@ export default function App() {
               <Route path="formal/mapel" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><ManajemenMapel /></ScopeRoute>} />
               <Route path="formal/penugasan-guru" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><PenugasanGuru /></ScopeRoute>} />
               <Route path="pembelajaran" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><KontrolPembelajaran /></ScopeRoute>} />
+              <Route path="bank-soal" element={<BankSoalListPage />} />
+              <Route path="bank-soal/:id" element={<BankSoalDetailPage />} />
               <Route path="formal/rapor" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><ERaporPage /></ScopeRoute>} />
               <Route path="settings/users" element={<ScopeRoute allowed={['GLOBAL']}><UsersWilayah /></ScopeRoute>} />
               <Route path="settings/sync" element={<ScopeRoute allowed={['GLOBAL']}><Sinkronisasi /></ScopeRoute>} />

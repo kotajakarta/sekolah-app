@@ -141,6 +141,12 @@ export default function SyahriyahTab() {
   const [isRekeningModalOpen, setIsRekeningModalOpen] = useState(false);
   const [editingRekening, setEditingRekening] = useState<RekeningPembayaranItem | null>(null);
   const [isManualTagihanModalOpen, setIsManualTagihanModalOpen] = useState(false);
+  const [isDeleteMassalModalOpen, setIsDeleteMassalModalOpen] = useState(false);
+  const [deleteMassalBulan, setDeleteMassalBulan] = useState<string>((new Date().getMonth() + 1).toString());
+  const [deleteMassalTahun, setDeleteMassalTahun] = useState<string>(new Date().getFullYear().toString());
+  const [deleteMassalCabangId, setDeleteMassalCabangId] = useState<string>(user?.scope === 'CABANG' ? user.cabangId || '' : '');
+  const [deleteMassalKategori, setDeleteMassalKategori] = useState<string>('BULANAN');
+  const [deleteMassalOnlyBelumLunas, setDeleteMassalOnlyBelumLunas] = useState<boolean>(true);
 
   // Form states
   const [directPayNominal, setDirectPayNominal] = useState<number>(0);
@@ -285,6 +291,37 @@ export default function SyahriyahTab() {
     },
     onError: (err: any) => {
       showToast('error', err.response?.data?.message || 'Gagal memproses verifikasi');
+    }
+  });
+
+  const deleteTagihanMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiClient.delete(`/syahriyah-admin/tagihan/${id}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      showToast('success', 'Tagihan santri berhasil dihapus');
+      queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-tagihan'] });
+      queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-stats'] });
+    },
+    onError: (err: any) => {
+      showToast('error', err.response?.data?.message || 'Gagal menghapus tagihan');
+    }
+  });
+
+  const deleteMassalMutation = useMutation({
+    mutationFn: async (params: any) => {
+      const res = await apiClient.delete('/syahriyah-admin/tagihan/massal', { params });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      showToast('success', data?.message || 'Tagihan massal berhasil dihapus');
+      setIsDeleteMassalModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-tagihan'] });
+      queryClient.invalidateQueries({ queryKey: ['syahriyah-admin-stats'] });
+    },
+    onError: (err: any) => {
+      showToast('error', err.response?.data?.message || 'Gagal menghapus tagihan massal');
     }
   });
 
@@ -503,6 +540,21 @@ export default function SyahriyahTab() {
 
         {activeSubTab === 'tagihan' && (
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteMassalBulan(filterBulan || (new Date().getMonth() + 1).toString());
+                setDeleteMassalTahun(filterTahun || new Date().getFullYear().toString());
+                setDeleteMassalCabangId(user?.scope === 'CABANG' ? user.cabangId || '' : filterCabangId || '');
+                setDeleteMassalKategori(filterKategori || 'BULANAN');
+                setDeleteMassalOnlyBelumLunas(true);
+                setIsDeleteMassalModalOpen(true);
+              }}
+              className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4 text-rose-600" />
+              Hapus Tagihan Massal
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -767,6 +819,21 @@ export default function SyahriyahTab() {
                               >
                                 <Check className="w-3 h-3" />
                                 Verifikasi
+                              </button>
+                            )}
+
+                            {t.status !== 'LUNAS' && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Hapus tagihan "${t.judul}" untuk ${t.student.biodata?.fullName || 'santri'}?`)) {
+                                    deleteTagihanMutation.mutate(t.id);
+                                  }
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer inline-flex items-center"
+                                title="Hapus Tagihan"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             )}
                           </td>
@@ -1048,120 +1115,186 @@ export default function SyahriyahTab() {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* ── TAB 4: GENERATE TAGIHAN MASSAL ── */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      {activeSubTab === 'generate' && (
-        <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 max-w-2xl mx-auto space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-600" />
-              Generate Tagihan Syahriyah Bulanan Massal
-            </h3>
-            <p className="text-xs text-slate-500 mt-1">
-              Sistem akan secara otomatis membuat tagihan Syahriyah bulanan kepada seluruh santri aktif yang belum memiliki tagihan pada bulan & tahun yang dipilih.
-            </p>
-          </div>
+      {activeSubTab === 'generate' && (() => {
+        const targetCabangForGen = user?.scope === 'CABANG' ? user?.cabangId : (genCabangId || '');
+        const activeBulananTarif = tarifList.find(t =>
+          t.kategori === 'BULANAN' &&
+          t.isActive &&
+          (t.cabangId === targetCabangForGen || !t.cabangId)
+        );
+        const isTarifAvailable = Boolean(activeBulananTarif && activeBulananTarif.nominal > 0) || Boolean(genNominal && Number(genNominal) > 0);
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              generateBulananMutation.mutate({
-                bulan: genBulan,
-                tahun: genTahun,
-                cabangId: genCabangId || undefined,
-                nominal: genNominal ? Number(genNominal) : undefined,
-                jatuhTempo: genJatuhTempo || undefined
-              });
-            }}
-            className="space-y-4 text-xs"
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-700">Pilih Bulan *</label>
-                <select
-                  value={genBulan}
-                  onChange={(e) => setGenBulan(Number(e.target.value))}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
-                >
-                  {BULAN_LABELS.map((b, idx) => (
-                    <option key={idx + 1} value={idx + 1}>{b}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-700">Pilih Tahun *</label>
-                <select
-                  value={genTahun}
-                  onChange={(e) => setGenTahun(Number(e.target.value))}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
-                >
-                  <option value={2026}>2026</option>
-                  <option value={2027}>2027</option>
-                  <option value={2025}>2025</option>
-                </select>
-              </div>
+        return (
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-8 max-w-2xl mx-auto space-y-6">
+            <div className="border-b border-slate-100 pb-4">
+              <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-600" />
+                Generate Tagihan Syahriyah Bulanan Massal
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Sistem akan secara otomatis membuat tagihan Syahriyah bulanan kepada seluruh santri aktif yang belum memiliki tagihan pada bulan & tahun yang dipilih.
+              </p>
             </div>
 
-            {user?.scope !== 'CABANG' && (
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-700">Target Cabang</label>
-                <select
-                  value={genCabangId}
-                  onChange={(e) => setGenCabangId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
-                >
-                  <option value="">Semua Cabang Aktif</option>
-                  {cabangList.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+            {!isTarifAvailable && (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 text-amber-800 animate-in fade-in">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1 text-xs">
+                  <h4 className="font-bold text-sm text-amber-900">Setting Biaya & Tarif Belum Diatur</h4>
+                  <p className="text-amber-700 mt-1">
+                    Master tarif untuk kategori <strong>Iuran Syahriyah Bulanan</strong> belum diatur (atau nominalnya Rp 0).
+                    Tombol Generate dinonaktifkan sampai Anda membuat tarif di tab <strong>Setting Biaya & Tarif</strong> atau memasukkan nominal manual.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveSubTab('tarif');
+                      setEditingTarif(null);
+                      setTarifName('Iuran Syahriyah Bulanan');
+                      setTarifKategori('BULANAN');
+                      setTarifNominal(0);
+                      setTarifCabangId(user?.cabangId || genCabangId || '');
+                      setTarifTahunAjaran('2026/2027');
+                      setIsTarifModalOpen(true);
+                    }}
+                    className="mt-2.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold transition-all inline-flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Atur Master Tarif Sekarang
+                  </button>
+                </div>
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-700">Nominal Tagihan (Opsional)</label>
-                <input
-                  type="number"
-                  placeholder="Kosongkan untuk pakai tarif master"
-                  value={genNominal}
-                  onChange={(e) => setGenNominal(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
-                />
-                <span className="text-[10px] text-slate-400">Jika dikosongkan, nominal akan otomatis mengambil dari Setting Tarif Biaya Syahriyah.</span>
+            {isTarifAvailable && activeBulananTarif && !genNominal && (
+              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs text-emerald-800">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>
+                    Menggunakan Master Tarif: <strong>{activeBulananTarif.name}</strong> ({formatRupiah(activeBulananTarif.nominal)})
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">
+                  Siap Digenerate
+                </span>
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!isTarifAvailable) {
+                  showToast('error', 'Tarif biaya bulanan belum diatur. Harap buat master tarif terlebih dahulu.');
+                  return;
+                }
+                generateBulananMutation.mutate({
+                  bulan: genBulan,
+                  tahun: genTahun,
+                  cabangId: genCabangId || undefined,
+                  nominal: genNominal ? Number(genNominal) : undefined,
+                  jatuhTempo: genJatuhTempo || undefined
+                });
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700">Pilih Bulan *</label>
+                  <select
+                    value={genBulan}
+                    onChange={(e) => setGenBulan(Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  >
+                    {BULAN_LABELS.map((b, idx) => (
+                      <option key={idx + 1} value={idx + 1}>{b}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700">Pilih Tahun *</label>
+                  <select
+                    value={genTahun}
+                    onChange={(e) => setGenTahun(Number(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  >
+                    <option value={2026}>2026</option>
+                    <option value={2027}>2027</option>
+                    <option value={2025}>2025</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="font-bold text-slate-700">Tanggal Jatuh Tempo</label>
-                <input
-                  type="date"
-                  value={genJatuhTempo}
-                  onChange={(e) => setGenJatuhTempo(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
-                />
-                <span className="text-[10px] text-slate-400">Default: Tanggal 10 pada bulan tersebut.</span>
-              </div>
-            </div>
+              {user?.scope !== 'CABANG' && (
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700">Target Cabang</label>
+                  <select
+                    value={genCabangId}
+                    onChange={(e) => setGenCabangId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  >
+                    <option value="">Semua Cabang Aktif</option>
+                    {cabangList.map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-            <div className="pt-4 border-t border-slate-100">
-              <button
-                type="submit"
-                disabled={generateBulananMutation.isPending}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {generateBulananMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Men-generate Tagihan...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" /> Proses Generate Tagihan {BULAN_LABELS[genBulan - 1]} {genTahun}
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700">Nominal Tagihan (Opsional)</label>
+                  <input
+                    type="number"
+                    placeholder="Kosongkan untuk pakai tarif master"
+                    value={genNominal}
+                    onChange={(e) => setGenNominal(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                  <span className="text-[10px] text-slate-400">Jika dikosongkan, nominal akan otomatis mengambil dari Setting Tarif Biaya Syahriyah.</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700">Tanggal Jatuh Tempo</label>
+                  <input
+                    type="date"
+                    value={genJatuhTempo}
+                    onChange={(e) => setGenJatuhTempo(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-medium focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                  <span className="text-[10px] text-slate-400">Default: Tanggal 10 pada bulan tersebut.</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100">
+                <button
+                  type="submit"
+                  disabled={generateBulananMutation.isPending || !isTarifAvailable}
+                  className={`w-full py-3 rounded-2xl font-bold transition-all shadow-md flex items-center justify-center gap-2 ${
+                    isTarifAvailable
+                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer'
+                      : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                  } disabled:opacity-50`}
+                >
+                  {generateBulananMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Men-generate Tagihan...
+                    </>
+                  ) : !isTarifAvailable ? (
+                    <>
+                      <AlertTriangle className="w-4 h-4 text-amber-500" /> Generate Dinonaktifkan (Tarif Belum Diatur)
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" /> Proses Generate Tagihan {BULAN_LABELS[genBulan - 1]} {genTahun}
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        );
+      })()}
 
       {/* ═══════════════════════════════════════════════════════════ */}
       {/* ── MODAL: BAYAR LANGSUNG KASIR ── */}
@@ -1759,6 +1892,156 @@ export default function SyahriyahTab() {
                 >
                   {createManualTagihanMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   Simpan Tagihan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* ── MODAL: HAPUS TAGIHAN MASSAL ── */}
+      {/* ═══════════════════════════════════════════════════════════ */}
+      {isDeleteMassalModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-5 animate-scale-up">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-rose-700 text-base flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+                Hapus Tagihan Massal
+              </h3>
+              <button
+                onClick={() => setIsDeleteMassalModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800 space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-rose-600" /> Perhatian:
+              </p>
+              <p>
+                Tindakan ini akan menghapus data tagihan santri secara massal pada periode bulan dan tahun yang Anda pilih.
+              </p>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const namaBulan = deleteMassalBulan ? BULAN_LABELS[Number(deleteMassalBulan) - 1] : 'Semua Bulan';
+                if (confirm(`Apakah Anda yakin ingin menghapus massal tagihan santri periode ${namaBulan} ${deleteMassalTahun}?`)) {
+                  deleteMassalMutation.mutate({
+                    bulan: deleteMassalBulan || undefined,
+                    tahun: deleteMassalTahun || undefined,
+                    cabangId: deleteMassalCabangId || undefined,
+                    kategori: deleteMassalKategori || undefined,
+                    onlyBelumLunas: deleteMassalOnlyBelumLunas
+                  });
+                }
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Pilih Bulan *</label>
+                  <select
+                    value={deleteMassalBulan}
+                    onChange={(e) => setDeleteMassalBulan(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  >
+                    <option value="">Semua Bulan</option>
+                    {BULAN_LABELS.map((b, idx) => (
+                      <option key={idx + 1} value={idx + 1}>{b}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Pilih Tahun *</label>
+                  <select
+                    value={deleteMassalTahun}
+                    onChange={(e) => setDeleteMassalTahun(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  >
+                    <option value="2026">2026</option>
+                    <option value="2027">2027</option>
+                    <option value="2025">2025</option>
+                  </select>
+                </div>
+              </div>
+
+              {user?.scope !== 'CABANG' && (
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700 block">Target Cabang</label>
+                  <select
+                    value={deleteMassalCabangId}
+                    onChange={(e) => setDeleteMassalCabangId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                  >
+                    <option value="">Semua Cabang</option>
+                    {cabangList.map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700 block">Kategori Biaya</label>
+                <select
+                  value={deleteMassalKategori}
+                  onChange={(e) => setDeleteMassalKategori(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-rose-500"
+                >
+                  <option value="">Semua Kategori</option>
+                  <option value="BULANAN">Iuran Syahriyah Bulanan</option>
+                  <option value="TAHUNAN">Biaya Tahunan</option>
+                  <option value="SANTRI_BARU">Biaya Santri Baru</option>
+                  <option value="LAINNYA">Biaya Lainnya</option>
+                </select>
+              </div>
+
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={deleteMassalOnlyBelumLunas}
+                    onChange={(e) => setDeleteMassalOnlyBelumLunas(e.target.checked)}
+                    className="mt-0.5 rounded text-rose-600 focus:ring-rose-500"
+                  />
+                  <div>
+                    <span className="font-bold text-slate-800 block">Hanya Hapus Tagihan BELUM LUNAS</span>
+                    <span className="text-[11px] text-slate-500 block">
+                      (Direkomendasikan agar tagihan yang sudah lunas atau menunggu verifikasi tidak terhapus)
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDeleteMassalModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={deleteMassalMutation.isPending}
+                  className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition-all shadow-md cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {deleteMassalMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Menghapus...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" /> Hapus Tagihan Massal
+                    </>
+                  )}
                 </button>
               </div>
             </form>

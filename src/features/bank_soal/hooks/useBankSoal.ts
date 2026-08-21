@@ -1,6 +1,45 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
-import type { QuestionBank, QuestionItem, QuestionBankFilterParams, QuestionType } from '../types';
+import type {
+  QuestionBank,
+  QuestionItem,
+  QuestionBankFilterParams,
+  BankSoalProject,
+  BankSoalAssignment,
+  FormalMetadata,
+  AssignmentStatus,
+} from '../types';
+
+// ================= FORMAL METADATA =================
+
+export const useFormalMetadata = () => {
+  return useQuery({
+    queryKey: ['bank-soal-formal-metadata'],
+    queryFn: async () => {
+      const response = await apiClient.get<FormalMetadata>('/bank-soal/metadata/formal');
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+export const useHierarchyMetadata = (wilayahId?: string, cabangId?: string) => {
+  return useQuery({
+    queryKey: ['bank-soal-hierarchy-metadata', wilayahId, cabangId],
+    queryFn: async () => {
+      const response = await apiClient.get<{
+        wilayahList: { id: string; name: string }[];
+        branches: { id: string; name: string; wilayahId?: string }[];
+        teachers: { id: string; username: string; operatorName?: string; cabangId?: string }[];
+      }>('/bank-soal/metadata/hierarchy', {
+        params: { wilayahId, cabangId },
+      });
+      return response.data;
+    },
+  });
+};
+
+// ================= BANK SOAL CRUD =================
 
 export const useBankSoalList = (params: QuestionBankFilterParams) => {
   return useQuery({
@@ -37,13 +76,15 @@ export const useBankSoalFilterOptions = () => {
 export const useCreateBankSoal = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: Partial<QuestionBank>) => {
+    mutationFn: async (payload: Partial<QuestionBank> & { assignmentId?: string }) => {
       const response = await apiClient.post('/bank-soal', payload);
       return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-soal-list'] });
       queryClient.invalidateQueries({ queryKey: ['bank-soal-filters'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-projects'] });
     },
   });
 };
@@ -73,6 +114,7 @@ export const useDeleteBankSoal = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bank-soal-list'] });
       queryClient.invalidateQueries({ queryKey: ['bank-soal-filters'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-assignments'] });
     },
   });
 };
@@ -89,6 +131,8 @@ export const useDuplicateBankSoal = () => {
     },
   });
 };
+
+// ================= BUTIR SOAL CRUD =================
 
 export const useCreateQuestionItem = () => {
   const queryClient = useQueryClient();
@@ -148,6 +192,89 @@ export const useReorderQuestions = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['bank-soal-detail', variables.bankId] });
+    },
+  });
+};
+
+// ================= PROYEK & PENUGASAN HOOKS =================
+
+export const useBankSoalProjects = () => {
+  return useQuery({
+    queryKey: ['bank-soal-projects'],
+    queryFn: async () => {
+      const response = await apiClient.get<BankSoalProject[]>('/bank-soal/projects/list');
+      return response.data;
+    },
+  });
+};
+
+export const useBankSoalProjectDetail = (id?: string) => {
+  return useQuery({
+    queryKey: ['bank-soal-project-detail', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const response = await apiClient.get<BankSoalProject>(`/bank-soal/projects/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+};
+
+export const useCreateBankSoalProject = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: any) => {
+      const response = await apiClient.post('/bank-soal/projects', payload);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-assignments'] });
+    },
+  });
+};
+
+export const useDeleteBankSoalProject = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.delete(`/bank-soal/projects/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-assignments'] });
+    },
+  });
+};
+
+export const useBankSoalAssignments = (params?: {
+  projectId?: string;
+  status?: AssignmentStatus;
+  onlyMine?: boolean;
+}) => {
+  return useQuery({
+    queryKey: ['bank-soal-assignments', params],
+    queryFn: async () => {
+      const response = await apiClient.get<BankSoalAssignment[]>('/bank-soal/assignments/list', {
+        params,
+      });
+      return response.data;
+    },
+  });
+};
+
+export const useDelegateAssignment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiClient.put(`/bank-soal/assignments/${id}/delegate`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-project-detail'] });
     },
   });
 };

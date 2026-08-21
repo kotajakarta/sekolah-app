@@ -9,8 +9,6 @@ cd "$APP_DIR" || exit 1
 
 
 
-echo "=== 1. Pull Git Terbaru ==="
-git pull origin main
 
 echo "=== 2. Hapus versi compose (jika sebelumnya dipakai) ==="
 podman-compose down 2>/dev/null || true

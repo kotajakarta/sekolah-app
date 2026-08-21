@@ -45,16 +45,26 @@ async function startServer() {
     contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", 'https://cdn.jsdelivr.net'],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-        imgSrc: ["'self'", 'data:', 'blob:', 'https://cdn.aithendi.my.id', 'https://images.unsplash.com'],
-        connectSrc: ["'self'", 'https://www.emsifa.com'],
-        // These directives assume /api is proxied same-origin (VITE_API_BASE_URL is a relative
-        // path, not an absolute cross-origin URL) — confirmed true for this deployment's .env,
-        // but a future absolute VITE_API_BASE_URL would need connect-src updated to match.
-        mediaSrc: ["'self'", 'blob:'],
-        workerSrc: ["'self'", 'blob:'],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'",
+          "https://cdn.jsdelivr.net",
+          "https://static.cloudflareinsights.com",
+          "https://cloudflareinsights.com"
+        ],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        connectSrc: [
+          "'self'",
+          "https:",
+          "wss:",
+          "http://localhost:*",
+          "http://127.0.0.1:*"
+        ],
+        mediaSrc: ["'self'", "blob:", "https:"],
+        workerSrc: ["'self'", "blob:"],
         objectSrc: ["'none'"],
         baseUri: ["'self'"],
         frameAncestors: ["'self'"],

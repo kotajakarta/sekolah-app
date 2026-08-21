@@ -8,7 +8,6 @@ import {
   Trash2,
   ChevronUp,
   ChevronDown,
-  CheckCircle2,
   Building,
   Clock,
   Calendar,
@@ -18,6 +17,8 @@ import {
   Award,
   Sparkles,
   Info,
+  CheckCircle2,
+  BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -52,22 +53,31 @@ export const BankSoalDetailPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <div className="h-44 rounded-3xl bg-slate-100 dark:bg-slate-800/40 animate-pulse" />
-        <div className="h-64 rounded-3xl bg-slate-100 dark:bg-slate-800/40 animate-pulse" />
+      <div className="space-y-6">
+        <div className="h-44 rounded-3xl bg-slate-100 animate-pulse" />
+        <div className="h-64 rounded-3xl bg-slate-100 animate-pulse" />
       </div>
     );
   }
 
   if (!bank) {
     return (
-      <div className="p-12 text-center space-y-4">
-        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Bank Soal Tidak Ditemukan</h2>
+      <div className="max-w-xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200/80 shadow-xs text-center space-y-4">
+        <div className="w-16 h-16 bg-rose-50 border border-rose-200 text-rose-600 rounded-3xl flex items-center justify-center mx-auto shadow-xs">
+          <HelpCircle className="w-8 h-8" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-lg font-bold text-slate-900">Bank Soal Tidak Ditemukan</h2>
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            Paket naskah soal ini mungkin telah dihapus atau Anda tidak memiliki hak akses untuk membukanya.
+          </p>
+        </div>
         <button
           onClick={() => navigate('/dashboard/bank-soal')}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-semibold"
+          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-xs shadow-md transition-all cursor-pointer inline-flex items-center gap-2"
         >
-          Kembali ke Daftar
+          <ArrowLeft className="w-4 h-4" />
+          <span>Kembali ke Koleksi Bank Soal</span>
         </button>
       </div>
     );
@@ -118,14 +128,14 @@ export const BankSoalDetailPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
-      {/* Top Bar Navigation */}
-      <div className="flex items-center justify-between gap-4">
+    <div className="space-y-6">
+      {/* ── TOP ACTION BAR (PORTAL WALSAN STYLE) ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <button
           onClick={() => navigate('/dashboard/bank-soal')}
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+          className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-2xl shadow-2xs transition-all cursor-pointer w-fit"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4 text-slate-500" />
           <span>Kembali ke Bank Soal</span>
         </button>
 
@@ -133,14 +143,15 @@ export const BankSoalDetailPage: React.FC = () => {
           {isOwner && (
             <button
               onClick={() => setIsBankModalOpen(true)}
-              className="px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 rounded-xl transition"
+              className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-2xl shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
             >
-              Edit Info Naskah
+              <Edit className="w-3.5 h-3.5 text-slate-500" />
+              <span>Edit Info Naskah</span>
             </button>
           )}
           <button
             onClick={() => setIsExportModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-500/20 transition"
+            className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-2xl shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
           >
             <FileDown className="w-4 h-4" />
             <span>Ekspor Word (.docx)</span>
@@ -148,26 +159,26 @@ export const BankSoalDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Package Header Card */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm space-y-4 relative overflow-hidden">
+      {/* ── PACKAGE DETAIL BANNER CARD (PORTAL WALSAN STYLE) ── */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-6 md:p-8 shadow-xs space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold text-xs rounded-lg border border-indigo-100 dark:border-indigo-900">
+              <span className="px-3 py-1 bg-indigo-50 text-indigo-700 font-extrabold text-xs rounded-xl border border-indigo-200 shadow-2xs">
                 {bank.subject}
               </span>
-              <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs rounded-md">
+              <span className="px-2.5 py-1 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl">
                 {bank.gradeLevel}
               </span>
               {bank.institution && (
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
-                  <Building className="w-3.5 h-3.5" />
+                <span className="text-xs text-slate-500 font-semibold flex items-center gap-1">
+                  <Building className="w-3.5 h-3.5 text-slate-400" />
                   <span>{bank.institution}</span>
                 </span>
               )}
             </div>
 
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
               {bank.title}
             </h1>
           </div>
@@ -177,37 +188,37 @@ export const BankSoalDetailPage: React.FC = () => {
               setQuestionToEdit(null);
               setIsQuestionModalOpen(true);
             }}
-            className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/20 transition shrink-0"
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-2xl shadow-md shadow-indigo-600/20 transition-all cursor-pointer shrink-0"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
             <span>Tambah Butir Soal</span>
           </button>
         </div>
 
         {/* Info Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs">
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-            <span className="text-slate-400">Total Soal:</span>
-            <div className="font-bold text-sm text-slate-800 dark:text-slate-200 mt-0.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100 text-xs">
+          <div className="p-3.5 bg-slate-50/80 border border-slate-100 rounded-2xl">
+            <span className="text-slate-400 font-medium">Total Soal:</span>
+            <div className="font-extrabold text-sm text-slate-900 mt-0.5">
               {allQuestions.length} Butir ({mcqCount} PG, {essayCount} Esai)
             </div>
           </div>
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-            <span className="text-slate-400">Alokasi Waktu:</span>
-            <div className="font-bold text-sm text-slate-800 dark:text-slate-200 mt-0.5 flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-indigo-500" />
+          <div className="p-3.5 bg-slate-50/80 border border-slate-100 rounded-2xl">
+            <span className="text-slate-400 font-medium">Alokasi Waktu:</span>
+            <div className="font-extrabold text-sm text-slate-900 mt-0.5 flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-indigo-600" />
               <span>{bank.timeLimit ? `${bank.timeLimit} Menit` : 'Sesuai Jadwal'}</span>
             </div>
           </div>
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-            <span className="text-slate-400">Tahun Ajaran / Sem:</span>
-            <div className="font-bold text-sm text-slate-800 dark:text-slate-200 mt-0.5">
+          <div className="p-3.5 bg-slate-50/80 border border-slate-100 rounded-2xl">
+            <span className="text-slate-400 font-medium">Tahun Ajaran / Sem:</span>
+            <div className="font-extrabold text-sm text-slate-900 mt-0.5">
               {bank.academicYear || '-'} {bank.semester ? `(${bank.semester})` : ''}
             </div>
           </div>
-          <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
-            <span className="text-slate-400">Penyusun Soal:</span>
-            <div className="font-bold text-sm text-slate-800 dark:text-slate-200 mt-0.5 truncate">
+          <div className="p-3.5 bg-slate-50/80 border border-slate-100 rounded-2xl">
+            <span className="text-slate-400 font-medium">Penyusun Soal:</span>
+            <div className="font-extrabold text-sm text-slate-900 mt-0.5 truncate">
               {bank.teacher?.operatorName || bank.teacher?.username || 'Guru'}
             </div>
           </div>
@@ -215,11 +226,11 @@ export const BankSoalDetailPage: React.FC = () => {
 
         {/* Instructions banner */}
         {bank.instructions && (
-          <div className="p-4 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 rounded-2xl text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
+          <div className="p-4 bg-amber-50/80 border border-amber-200/80 rounded-2xl text-xs text-amber-900 flex items-start gap-2.5">
             <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <span className="font-bold uppercase tracking-wider text-[10px]">Petunjuk Pengerjaan</span>
-              <p className="whitespace-pre-line text-slate-700 dark:text-slate-300 leading-relaxed">
+              <span className="font-extrabold uppercase tracking-wider text-[10px]">Petunjuk Pengerjaan</span>
+              <p className="whitespace-pre-line text-slate-700 leading-relaxed">
                 {bank.instructions}
               </p>
             </div>
@@ -227,35 +238,35 @@ export const BankSoalDetailPage: React.FC = () => {
         )}
       </div>
 
-      {/* Filter Tabs & Stats */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold">
+      {/* ── QUESTION FILTER TABS ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-1 shadow-2xs flex flex-wrap gap-1">
           <button
             onClick={() => setActiveFilter('ALL')}
-            className={`px-3 py-1.5 rounded-lg transition ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeFilter === 'ALL'
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
             }`}
           >
             Semua ({allQuestions.length})
           </button>
           <button
             onClick={() => setActiveFilter('MCQ')}
-            className={`px-3 py-1.5 rounded-lg transition ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeFilter === 'MCQ'
-                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
             }`}
           >
             Pilihan Ganda ({mcqCount})
           </button>
           <button
             onClick={() => setActiveFilter('ESSAY')}
-            className={`px-3 py-1.5 rounded-lg transition ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeFilter === 'ESSAY'
-                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
             }`}
           >
             Esai / Uraian ({essayCount})
@@ -267,47 +278,49 @@ export const BankSoalDetailPage: React.FC = () => {
             setQuestionToEdit(null);
             setIsQuestionModalOpen(true);
           }}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 rounded-xl hover:bg-indigo-100 transition"
+          className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-2xl shadow-2xs transition-all cursor-pointer w-fit"
         >
           <Plus className="w-4 h-4" />
           <span>Tambah Soal</span>
         </button>
       </div>
 
-      {/* Questions List */}
+      {/* ── QUESTIONS LIST ── */}
       {filteredQuestions.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 border border-dashed border-slate-300 dark:border-slate-800 rounded-3xl p-12 text-center space-y-3">
-          <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-xl flex items-center justify-center mx-auto">
-            <FileText className="w-6 h-6" />
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-12 text-center space-y-4 shadow-xs">
+          <div className="w-16 h-16 bg-slate-50 border border-slate-200 text-slate-400 rounded-3xl flex items-center justify-center mx-auto shadow-xs">
+            <FileText className="w-8 h-8" />
           </div>
-          <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Belum Ada Butir Soal</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            Klik tombol "Tambah Butir Soal" di atas untuk mulai menyusun naskah ujian ini.
-          </p>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-slate-900">Belum Ada Butir Soal</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+              Klik tombol "Tambah Butir Soal" di atas untuk mulai menyusun naskah ujian ini.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredQuestions.map((q, idx) => {
+          {filteredQuestions.map((q) => {
             const isEssay = q.type === 'ESSAY';
             const realIndex = allQuestions.findIndex((item) => item.id === q.id);
 
             return (
               <div
                 key={q.id}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 hover:border-slate-300 transition"
+                className="bg-white border border-slate-200/80 rounded-3xl p-6 shadow-xs space-y-4 hover:border-indigo-300 transition-all"
               >
                 {/* Question Item Header */}
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/80 font-extrabold text-sm text-indigo-600 dark:text-indigo-400">
+                    <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 font-extrabold text-xs text-indigo-700 shadow-2xs">
                       {q.orderIndex + 1}
                     </span>
                     <div className="flex items-center gap-2">
                       <span
-                        className={`px-2.5 py-0.5 rounded-md font-bold text-[11px] uppercase tracking-wider ${
+                        className={`px-2.5 py-0.5 rounded-lg font-extrabold text-[10px] uppercase tracking-wider border ${
                           isEssay
-                            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                            : 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-indigo-50 text-indigo-700 border-indigo-200'
                         }`}
                       >
                         {q.type === 'MCQ_4'
@@ -331,7 +344,7 @@ export const BankSoalDetailPage: React.FC = () => {
                       disabled={realIndex === 0}
                       onClick={() => handleMoveQuestion(realIndex, 'UP')}
                       title="Geser ke Atas"
-                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition disabled:opacity-20"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer disabled:opacity-20"
                     >
                       <ChevronUp className="w-4 h-4" />
                     </button>
@@ -340,7 +353,7 @@ export const BankSoalDetailPage: React.FC = () => {
                       disabled={realIndex === allQuestions.length - 1}
                       onClick={() => handleMoveQuestion(realIndex, 'DOWN')}
                       title="Geser ke Bawah"
-                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition disabled:opacity-20"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer disabled:opacity-20"
                     >
                       <ChevronDown className="w-4 h-4" />
                     </button>
@@ -354,7 +367,7 @@ export const BankSoalDetailPage: React.FC = () => {
                             setIsQuestionModalOpen(true);
                           }}
                           title="Edit Butir Soal"
-                          className="p-1.5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg transition"
+                          className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition cursor-pointer"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
@@ -362,7 +375,7 @@ export const BankSoalDetailPage: React.FC = () => {
                           type="button"
                           onClick={() => handleDeleteQuestion(q)}
                           title="Hapus Butir Soal"
-                          className="p-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
+                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -372,7 +385,7 @@ export const BankSoalDetailPage: React.FC = () => {
                 </div>
 
                 {/* Question Body (Render HTML + KaTeX math) */}
-                <div className="pl-11 pr-2 text-slate-800 dark:text-slate-100 text-sm leading-relaxed">
+                <div className="pl-11 pr-2 text-slate-900 text-sm leading-relaxed font-normal">
                   <FormattedMathPreview html={q.contentHtml} />
                 </div>
 
@@ -382,17 +395,17 @@ export const BankSoalDetailPage: React.FC = () => {
                     {q.options.map((opt) => (
                       <div
                         key={opt.label}
-                        className={`flex items-start gap-3 p-2.5 rounded-xl border text-sm transition ${
+                        className={`flex items-start gap-3 p-3 rounded-2xl border text-sm transition ${
                           opt.isCorrect
-                            ? 'border-emerald-500/60 bg-emerald-50/40 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 font-medium'
-                            : 'border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 text-slate-700 dark:text-slate-300'
+                            ? 'border-emerald-300 bg-emerald-50/60 text-emerald-950 font-semibold shadow-2xs'
+                            : 'border-slate-100 bg-slate-50/60 text-slate-800'
                         }`}
                       >
                         <span
-                          className={`flex items-center justify-center w-6 h-6 rounded-md font-bold text-xs shrink-0 ${
+                          className={`flex items-center justify-center w-6 h-6 rounded-lg font-extrabold text-xs shrink-0 ${
                             opt.isCorrect
-                              ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/30'
-                              : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-slate-200 text-slate-700'
                           }`}
                         >
                           {opt.label}
@@ -401,7 +414,7 @@ export const BankSoalDetailPage: React.FC = () => {
                           <FormattedMathPreview html={opt.contentHtml} />
                         </div>
                         {opt.isCorrect && (
-                          <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded shrink-0">
+                          <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
                             KUNCI JAWABAN
                           </span>
                         )}
@@ -413,12 +426,12 @@ export const BankSoalDetailPage: React.FC = () => {
                 {/* Rubrik Penilaian (if Essay) */}
                 {isEssay && q.answerKey && (
                   <div className="pl-11 pt-2">
-                    <div className="p-3 bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40 rounded-xl space-y-1">
-                      <div className="text-[11px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1 uppercase tracking-wider">
+                    <div className="p-3.5 bg-blue-50/80 border border-blue-200/80 rounded-2xl space-y-1.5">
+                      <div className="text-[11px] font-extrabold text-blue-700 flex items-center gap-1 uppercase tracking-wider">
                         <Award className="w-3.5 h-3.5" />
                         <span>Pedoman Penskoran / Rubrik</span>
                       </div>
-                      <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                      <div className="text-xs text-slate-800 leading-relaxed font-medium">
                         <FormattedMathPreview html={q.answerKey} />
                       </div>
                     </div>
@@ -430,7 +443,7 @@ export const BankSoalDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modals */}
+      {/* ── MODALS ── */}
       <QuestionEditorModal
         isOpen={isQuestionModalOpen}
         onClose={() => {

@@ -176,15 +176,15 @@ export const RichMathEditor: React.FC<RichMathEditorProps> = ({
   };
 
   return (
-    <div className="border border-slate-300 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+    <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-2xs">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-1 p-2 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-1 p-2 bg-slate-50/80 border-b border-slate-100 text-slate-700 text-xs font-semibold">
         <div className="flex flex-wrap items-center gap-1">
           <button
             type="button"
             onClick={() => insertTextAtCursor('<b>', '</b>')}
             title="Tebal (Bold)"
-            className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            className="p-1.5 rounded-lg hover:bg-slate-200/70 transition cursor-pointer"
           >
             <Bold className="w-4 h-4" />
           </button>
@@ -192,7 +192,7 @@ export const RichMathEditor: React.FC<RichMathEditorProps> = ({
             type="button"
             onClick={() => insertTextAtCursor('<i>', '</i>')}
             title="Miring (Italic)"
-            className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            className="p-1.5 rounded-lg hover:bg-slate-200/70 transition cursor-pointer"
           >
             <Italic className="w-4 h-4" />
           </button>
@@ -200,18 +200,18 @@ export const RichMathEditor: React.FC<RichMathEditorProps> = ({
             type="button"
             onClick={() => insertTextAtCursor('<u>', '</u>')}
             title="Garis Bawah (Underline)"
-            className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            className="p-1.5 rounded-lg hover:bg-slate-200/70 transition cursor-pointer"
           >
             <Underline className="w-4 h-4" />
           </button>
 
-          <div className="w-px h-5 bg-slate-300 dark:bg-slate-600 mx-1" />
+          <div className="w-px h-5 bg-slate-200 mx-1" />
 
           <button
             type="button"
             onClick={() => insertTextAtCursor('<ul>\n  <li>', '</li>\n</ul>')}
             title="Daftar Poin (List)"
-            className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            className="p-1.5 rounded-lg hover:bg-slate-200/70 transition cursor-pointer"
           >
             <List className="w-4 h-4" />
           </button>
@@ -219,7 +219,7 @@ export const RichMathEditor: React.FC<RichMathEditorProps> = ({
             type="button"
             onClick={() => insertTextAtCursor('<ol>\n  <li>', '</li>\n</ol>')}
             title="Daftar Nomor"
-            className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            className="p-1.5 rounded-lg hover:bg-slate-200/70 transition cursor-pointer"
           >
             <ListOrdered className="w-4 h-4" />
           </button>
@@ -227,7 +227,7 @@ export const RichMathEditor: React.FC<RichMathEditorProps> = ({
             type="button"
             onClick={handleInsertTable}
             title="Sisip Tabel"
-            className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            className="p-1.5 rounded-lg hover:bg-slate-200/70 transition cursor-pointer"
           >
             <TableIcon className="w-4 h-4" />
           </button>
@@ -235,12 +235,12 @@ export const RichMathEditor: React.FC<RichMathEditorProps> = ({
             type="button"
             onClick={handleInsertImage}
             title="Sisip Gambar via URL"
-            className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+            className="p-1.5 rounded-lg hover:bg-slate-200/70 transition cursor-pointer"
           >
             <ImageIcon className="w-4 h-4" />
           </button>
 
-          <div className="w-px h-5 bg-slate-300 dark:bg-slate-600 mx-1" />
+          <div className="w-px h-5 bg-slate-200 mx-1" />
 
           {/* Math Formula Dropdown Button */}
           <div className="relative">
@@ -248,17 +248,17 @@ export const RichMathEditor: React.FC<RichMathEditorProps> = ({
               type="button"
               onClick={() => setShowMathMenu(!showMathMenu)}
               title="Sisip Rumus Matematika / Sains (LaTeX)"
-              className="flex items-center gap-1 px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 transition font-medium text-xs"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition font-bold text-xs cursor-pointer shadow-2xs"
             >
               <Sigma className="w-3.5 h-3.5" />
               <span>Rumus / Math</span>
             </button>
 
             {showMathMenu && (
-              <div className="absolute left-0 top-full mt-1.5 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl z-50 p-2.5">
-                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2 px-1 flex items-center justify-between">
+              <div className="absolute left-0 top-full mt-1.5 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-3">
+                <div className="text-xs font-bold text-slate-700 mb-2 px-1 flex items-center justify-between">
                   <span>PILIH RUMUS CEPAT</span>
-                  <span className="text-[10px] text-indigo-500 font-mono">Format: $latex$</span>
+                  <span className="text-[10px] text-indigo-600 font-mono">Format: $latex$</span>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1">
                   {MATH_PRESETS.map((m) => (
@@ -266,14 +266,14 @@ export const RichMathEditor: React.FC<RichMathEditorProps> = ({
                       key={m.latex}
                       type="button"
                       onClick={() => handleInsertMath(m.latex)}
-                      className="text-left px-2 py-1.5 rounded-lg text-xs hover:bg-indigo-50 dark:hover:bg-indigo-950/70 border border-slate-100 dark:border-slate-800 hover:border-indigo-200 transition text-slate-700 dark:text-slate-300"
+                      className="text-left px-2.5 py-2 rounded-xl text-xs hover:bg-indigo-50 border border-slate-100 hover:border-indigo-200 transition text-slate-800 cursor-pointer"
                     >
-                      <div className="font-medium truncate">{m.label}</div>
+                      <div className="font-bold truncate">{m.label}</div>
                       <div className="text-[10px] font-mono text-slate-400 truncate">{m.latex}</div>
                     </button>
                   ))}
                 </div>
-                <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 flex items-center gap-1">
+                <div className="mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-400 flex items-center gap-1">
                   <HelpCircle className="w-3 h-3 text-slate-400" />
                   <span>Gunakan tanda $ di awal & akhir rumus</span>
                 </div>
@@ -283,14 +283,14 @@ export const RichMathEditor: React.FC<RichMathEditorProps> = ({
         </div>
 
         {/* Tab Toggle: Tulis / Preview */}
-        <div className="flex items-center bg-slate-200 dark:bg-slate-700 p-0.5 rounded-lg text-xs">
+        <div className="flex items-center bg-slate-200/80 p-0.5 rounded-xl text-xs">
           <button
             type="button"
             onClick={() => setActiveTab('write')}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition font-medium ${
+            className={`flex items-center gap-1 px-3 py-1 rounded-lg transition font-bold cursor-pointer ${
               activeTab === 'write'
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                ? 'bg-white text-slate-900 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Edit3 className="w-3.5 h-3.5" />
@@ -299,10 +299,10 @@ export const RichMathEditor: React.FC<RichMathEditorProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('preview')}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition font-medium ${
+            className={`flex items-center gap-1 px-3 py-1 rounded-lg transition font-bold cursor-pointer ${
               activeTab === 'preview'
-                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                ? 'bg-white text-indigo-600 shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Eye className="w-3.5 h-3.5" />
@@ -319,17 +319,17 @@ export const RichMathEditor: React.FC<RichMathEditorProps> = ({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           style={{ minHeight }}
-          className="w-full p-3.5 bg-transparent border-0 focus:outline-none focus:ring-0 text-slate-800 dark:text-slate-100 font-sans text-sm resize-y leading-relaxed"
+          className="w-full p-4 bg-transparent border-0 focus:outline-none focus:ring-0 text-slate-900 font-sans text-xs font-medium resize-y leading-relaxed"
         />
       ) : (
         <div
           style={{ minHeight }}
-          className="w-full p-3.5 bg-slate-50/50 dark:bg-slate-900/50 overflow-y-auto text-sm"
+          className="w-full p-4 bg-slate-50/50 overflow-y-auto text-xs"
         >
           {value ? (
             <FormattedMathPreview html={value} />
           ) : (
-            <span className="text-slate-400 italic">Belum ada konten untuk ditampilkan di pratinjau.</span>
+            <span className="text-slate-400 italic text-xs">Belum ada konten untuk ditampilkan di pratinjau.</span>
           )}
         </div>
       )}

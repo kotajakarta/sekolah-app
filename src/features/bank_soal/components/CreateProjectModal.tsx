@@ -134,26 +134,26 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-white border border-slate-200/80 w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 rounded-xl">
+            <div className="w-10 h-10 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-md">
               <Target className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              <h2 className="text-base font-bold text-slate-900">
                 Buat Proyek Penugasan Bank Soal (Admin Pusat)
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500">
                 Instruksikan pembuatan naskah ujian berjenjang ke Wilayah, Cabang, dan Guru
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -163,7 +163,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5 flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                 Judul Proyek Penugasan <span className="text-rose-500">*</span>
               </label>
               <input
@@ -172,12 +172,12 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Contoh: Penyusunan Naskah Penilaian Akhir Semester Ganjil"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 transition"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider flex items-center gap-1">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 <span>Batas Waktu Pengumpulan (Deadline)</span>
               </label>
@@ -185,14 +185,14 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
                 type="date"
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 transition"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                 Tahun Ajaran
               </label>
               <input
@@ -200,18 +200,18 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
                 value={academicYear}
                 onChange={(e) => setAcademicYear(e.target.value)}
                 placeholder="2025/2026"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 transition"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                 Semester
               </label>
               <select
                 value={semester}
                 onChange={(e) => setSemester(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 transition"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition"
               >
                 <option value="GANJIL">Ganjil</option>
                 <option value="GENAP">Genap</option>
@@ -221,7 +221,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
               Deskripsi / Petunjuk Umum Proyek
             </label>
             <textarea
@@ -229,49 +229,49 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Instruksi umum naskah soal..."
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-sm focus:ring-2 focus:ring-indigo-500 transition resize-none"
+              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition resize-none"
             />
           </div>
 
           {/* Assignment Table Builder */}
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+              <label className="block text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-indigo-600" />
                 <span>Daftar Target Mapel & Penugasan ke Wilayah</span>
               </label>
               <button
                 type="button"
                 onClick={handleAddRow}
-                className="flex items-center gap-1 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 rounded-lg text-xs font-semibold transition"
+                className="flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl text-xs font-bold border border-indigo-200 transition cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Tambah Baris Mapel</span>
               </button>
             </div>
 
-            <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm">
+            <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-2xs">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-700">
+                  <thead className="bg-slate-50/80 text-slate-600 font-bold border-b border-slate-100">
                     <tr>
-                      <th className="p-3">Mata Pelajaran (Mapel Formal)</th>
-                      <th className="p-3">Tingkat / Kelas (7 - 12)</th>
-                      <th className="p-3 w-20 text-center">Target PG</th>
-                      <th className="p-3 w-20 text-center">Target Esai</th>
-                      <th className="p-3">Ditugaskan ke Wilayah</th>
-                      <th className="p-3 w-10"></th>
+                      <th className="p-3.5">Mata Pelajaran (Mapel Formal)</th>
+                      <th className="p-3.5">Tingkat / Kelas (7 - 12)</th>
+                      <th className="p-3.5 w-24 text-center">Target PG</th>
+                      <th className="p-3.5 w-24 text-center">Target Esai</th>
+                      <th className="p-3.5">Ditugaskan ke Wilayah</th>
+                      <th className="p-3.5 w-10"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-slate-100">
                     {rows.map((row, idx) => (
-                      <tr key={idx} className="bg-white dark:bg-slate-900 hover:bg-slate-50/50 transition">
-                        <td className="p-2.5">
+                      <tr key={idx} className="bg-white hover:bg-slate-50/50 transition">
+                        <td className="p-3">
                           {mapelList.length > 0 ? (
                             <select
                               value={row.subjectName}
                               onChange={(e) => handleRowChange(idx, 'subjectName', e.target.value)}
-                              className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
+                              className="w-full p-2 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                             >
                               <option value="">-- Pilih Mapel --</option>
                               {mapelList.map((s) => (
@@ -286,15 +286,15 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
                               value={row.subjectName}
                               onChange={(e) => handleRowChange(idx, 'subjectName', e.target.value)}
                               placeholder="Ketik Mapel..."
-                              className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
+                              className="w-full p-2 rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                             />
                           )}
                         </td>
-                        <td className="p-2.5">
+                        <td className="p-3">
                           <select
                             value={row.gradeLevel}
                             onChange={(e) => handleRowChange(idx, 'gradeLevel', e.target.value)}
-                            className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
+                            className="w-full p-2 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           >
                             {TINGKAT_OPTIONS.map((g) => (
                               <option key={g} value={g}>
@@ -303,7 +303,7 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
                             ))}
                           </select>
                         </td>
-                        <td className="p-2.5">
+                        <td className="p-3">
                           <input
                             type="number"
                             min="0"
@@ -311,10 +311,10 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
                             onChange={(e) =>
                               handleRowChange(idx, 'targetMcqCount', Number(e.target.value))
                             }
-                            className="w-full p-2 text-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
+                            className="w-full p-2 text-center rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           />
                         </td>
-                        <td className="p-2.5">
+                        <td className="p-3">
                           <input
                             type="number"
                             min="0"
@@ -322,14 +322,14 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
                             onChange={(e) =>
                               handleRowChange(idx, 'targetEssayCount', Number(e.target.value))
                             }
-                            className="w-full p-2 text-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
+                            className="w-full p-2 text-center rounded-xl border border-slate-200 bg-slate-50/60 text-slate-900 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           />
                         </td>
-                        <td className="p-2.5">
+                        <td className="p-3">
                           <select
                             value={row.wilayahId || ''}
                             onChange={(e) => handleRowChange(idx, 'wilayahId', e.target.value)}
-                            className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 text-xs font-medium"
+                            className="w-full p-2 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                           >
                             <option value="">-- Belum Ditugaskan --</option>
                             {wilayahList.map((w) => (
@@ -339,12 +339,12 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
                             ))}
                           </select>
                         </td>
-                        <td className="p-2.5 text-center">
+                        <td className="p-3 text-center">
                           {rows.length > 1 && (
                             <button
                               type="button"
                               onClick={() => handleRemoveRow(idx)}
-                              className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
                               title="Hapus baris"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -360,22 +360,22 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, 
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-lg shadow-indigo-500/20 disabled:opacity-50 flex items-center gap-2 transition"
+              className="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 disabled:opacity-50 flex items-center gap-2 transition cursor-pointer"
             >
               {createMutation.isPending ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>Membuat Proyek...</span>
                 </>
               ) : (

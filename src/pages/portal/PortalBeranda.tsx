@@ -31,7 +31,8 @@ import {
   Clock,
   Banknote,
   Receipt,
-  CreditCard
+  CreditCard,
+  Building2
 } from 'lucide-react';
 import ModalEditBiodataSantri from '../../features/portal/components/ModalEditBiodataSantri';
 
@@ -83,6 +84,33 @@ export default function PortalBeranda() {
   const grupDaimi = dataDaimi?.grup;
   const ketuaDaimi = grupDaimi?.ketua;
   const canEdit = Boolean(student?.canEditBiodata);
+  const cabang = student?.cabang;
+  const ketuaCabang = cabang?.ketuaCabang;
+  const ketuaMuadalah = cabang?.ketuaMuadalah;
+  const ketuaIsler = cabang?.ketuaIsler;
+  const wilayah = student?.wilayah;
+
+  const ketuaCabangWaLink = ketuaCabang?.phone
+    ? `https://wa.me/${ketuaCabang.phone.replace(/\D/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(
+        `Assalamu'alaikum Warahmatullahi Wabarakatuh, Pimpinan ${cabang?.name || 'Cabang'}. Saya wali santri dari ${biodata?.fullName || ''}.`
+      )}`
+    : null;
+
+  const ketuaMuadalahWaLink = ketuaMuadalah?.phone
+    ? `https://wa.me/${ketuaMuadalah.phone.replace(/\D/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(
+        `Assalamu'alaikum Warahmatullahi Wabarakatuh, Ustadz. Saya wali santri dari ${biodata?.fullName || ''}.`
+      )}`
+    : null;
+
+  const fullAlamatCabang = [
+    cabang?.alamatJalan,
+    cabang?.alamatKelName ? `Kel. ${cabang.alamatKelName}` : null,
+    cabang?.alamatKecName ? `Kec. ${cabang.alamatKecName}` : null,
+    cabang?.alamatKabName,
+    cabang?.alamatProvName,
+  ]
+    .filter(Boolean)
+    .join(', ');
 
   // 1. Evaluasi Kelengkapan Data Santri (Missing Fields)
   const completeness = useMemo(() => {
@@ -540,7 +568,156 @@ export default function PortalBeranda() {
             )}
           </div>
 
-          {/* 3. KEGIATAN PEMBELAJARAN (KONTROL SILABUS & ABSENSI MAPEL) */}
+          {/* 4. INFORMASI CABANG & KONTAK PIMPINAN CABANG */}
+          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-7 space-y-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Informasi Cabang & Kontak Pimpinan</h2>
+                  <p className="text-xs text-slate-500">Kontak pimpinan cabang, pengurus, dan lokasi asrama santri.</p>
+                </div>
+              </div>
+
+              {cabang?.name ? (
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {cabang.name}
+                  </span>
+                  {wilayah?.name && (
+                    <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
+                      {wilayah.name}
+                    </span>
+                  )}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="space-y-4 pt-1">
+              {/* Box Pimpinan Cabang Utama */}
+              <div className="p-4 sm:p-5 bg-gradient-to-br from-slate-50 to-emerald-50/40 rounded-2xl border border-emerald-100 space-y-3.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5" /> Pimpinan / Ketua Cabang
+                    </span>
+                    <p className="text-base font-extrabold text-slate-900 mt-1">
+                      {ketuaCabang?.name || 'Belum Ditentukan'}
+                    </p>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {ketuaCabang?.position || 'Kepala / Pimpinan Cabang'}
+                    </p>
+                  </div>
+
+                  {ketuaCabang?.phone ? (
+                    <div className="flex items-center gap-2 pt-1 sm:pt-0">
+                      <a
+                        href={`tel:${ketuaCabang.phone}`}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-emerald-500 hover:text-emerald-700 transition-all shadow-2xs"
+                      >
+                        <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                        {ketuaCabang.phone}
+                      </a>
+                      {ketuaCabangWaLink && (
+                        <a
+                          href={ketuaCabangWaLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-xl text-xs font-bold text-white transition-all shadow-2xs hover:shadow-emerald-600/20"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          Chat WA
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">Kontak pimpinan belum tersedia</span>
+                  )}
+                </div>
+
+                {/* Additional Leaders (Ketua Muadalah & Ketua Isler) if available */}
+                {(ketuaMuadalah || ketuaIsler) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-200/60">
+                    {ketuaMuadalah && (
+                      <div className="p-3 bg-white rounded-xl border border-slate-100 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          Ketua Muadalah
+                        </span>
+                        <p className="text-xs font-bold text-slate-800">{ketuaMuadalah.name}</p>
+                        {ketuaMuadalah.phone && (
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <a
+                              href={`tel:${ketuaMuadalah.phone}`}
+                              className="text-[11px] font-semibold text-emerald-700 hover:underline flex items-center gap-1"
+                            >
+                              <Phone className="w-3 h-3" /> {ketuaMuadalah.phone}
+                            </a>
+                            {ketuaMuadalahWaLink && (
+                              <a
+                                href={ketuaMuadalahWaLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[11px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5"
+                              >
+                                <MessageCircle className="w-3 h-3" /> WA
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {ketuaIsler && (
+                      <div className="p-3 bg-white rounded-xl border border-slate-100 space-y-1">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          Ketua Isler
+                        </span>
+                        <p className="text-xs font-bold text-slate-800">{ketuaIsler.name}</p>
+                        {ketuaIsler.phone && (
+                          <a
+                            href={`tel:${ketuaIsler.phone}`}
+                            className="text-[11px] font-semibold text-emerald-700 hover:underline inline-flex items-center gap-1 pt-0.5"
+                          >
+                            <Phone className="w-3 h-3" /> {ketuaIsler.phone}
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Info Alamat & Lokasi Asrama Cabang */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-slate-500" /> Alamat Asrama / Kantor Cabang
+                    </span>
+                    <p className="text-xs font-semibold text-slate-700 leading-relaxed">
+                      {fullAlamatCabang || 'Alamat cabang belum dilengkapi oleh pengurus cabang.'}
+                    </p>
+                  </div>
+
+                  {cabang?.urlGoogleMaps && (
+                    <a
+                      href={cabang.urlGoogleMaps}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors shrink-0 shadow-2xs"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+                      Google Maps
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. KEGIATAN PEMBELAJARAN (KONTROL SILABUS & ABSENSI MAPEL) */}
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-6 sm:p-7 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -806,6 +983,18 @@ export default function PortalBeranda() {
                   {[biodata?.alamatKabName, biodata?.alamatProvName].filter(Boolean).join(', ') || '-'}
                 </span>
               </div>
+
+              <div className="py-2.5 flex items-start justify-between gap-4">
+                <span className="text-slate-400 font-medium">Cabang Santri</span>
+                <span className="text-slate-800 font-semibold text-right">{cabang?.name || '-'}</span>
+              </div>
+
+              {ketuaCabang?.name && (
+                <div className="py-2.5 flex items-start justify-between gap-4">
+                  <span className="text-slate-400 font-medium">Pimpinan Cabang</span>
+                  <span className="text-slate-800 font-semibold text-right">{ketuaCabang.name}</span>
+                </div>
+              )}
             </div>
 
             {/* Quick Action Button */}

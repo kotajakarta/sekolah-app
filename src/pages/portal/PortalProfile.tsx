@@ -160,7 +160,11 @@ export default function PortalProfile() {
                 <div>
                   <p className="text-sm font-bold text-slate-800">{link.student.biodata?.fullName ?? '-'}</p>
                   {link.student.cabang?.name && (
-                    <p className="text-xs text-slate-400 mt-0.5">{link.student.cabang.name}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {link.student.cabang.name}
+                      {link.student.cabang.ketuaCabang?.name && ` • Pimpinan: ${link.student.cabang.ketuaCabang.name}`}
+                      {link.student.cabang.ketuaCabang?.phone && ` (${link.student.cabang.ketuaCabang.phone})`}
+                    </p>
                   )}
                 </div>
                 {link.hubungan && (

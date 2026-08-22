@@ -69,13 +69,36 @@ export interface PortalStudentDataDaimi {
   kelas?: { id: string; name: string } | null;
 }
 
+export interface PortalStudentCabangLeader {
+  id: string;
+  name: string;
+  phone?: string | null;
+  position?: string | null;
+}
+
+export interface PortalStudentCabang {
+  id: string;
+  name: string;
+  nameResmi?: string | null;
+  alamatJalan?: string | null;
+  alamatKelName?: string | null;
+  alamatKecName?: string | null;
+  alamatKabName?: string | null;
+  alamatProvName?: string | null;
+  urlGoogleMaps?: string | null;
+  ketuaCabangId?: string | null;
+  ketuaCabang?: PortalStudentCabangLeader | null;
+  ketuaMuadalah?: PortalStudentCabangLeader | null;
+  ketuaIsler?: PortalStudentCabangLeader | null;
+}
+
 export interface PortalStudent {
   id: string;
   isActive?: boolean;
   canEditBiodata?: boolean;
   statusHafidz?: string | null;
   biodata?: PortalStudentBiodata | null;
-  cabang?: { id: string; name: string } | null;
+  cabang?: PortalStudentCabang | null;
   wilayah?: { id: string; name: string } | null;
   siswaFormal?: { kelasId?: string | null; kelas?: PortalStudentKelas | null } | null;
   dataDaimi?: PortalStudentDataDaimi | null;

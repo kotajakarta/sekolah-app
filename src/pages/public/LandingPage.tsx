@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building, ShieldCheck, Zap, Users, GraduationCap, BarChart, CheckCircle, ChevronRight, LayoutDashboard, Calendar, FileText, HeartHandshake } from 'lucide-react';
+import {
+  ShieldCheck, Zap, Users, GraduationCap, BarChart, CheckCircle,
+  ChevronRight, LayoutDashboard, Calendar, FileText, HeartHandshake,
+  Lock, Server, Cpu, Layers, Globe, Award, FileCheck2, HardDrive, KeyRound, Fingerprint, Shield, ExternalLink
+} from 'lucide-react';
 
 // ============================================================
 // COLOR PALETTE — The Royal Trust
@@ -33,10 +37,12 @@ export default function LandingPage() {
         }`}>
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
-            <div className="w-8 h-8 bg-[#0A192F] rounded-lg flex items-center justify-center">
-              <Building className="w-5 h-5 text-white" />
-            </div>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
+            <img
+              src="https://cdn.aithendi.my.id/assets/logoyts-modern.png"
+              alt="Logo eSantri"
+              className="h-9 w-auto object-contain"
+            />
             <span className="font-bold text-xl tracking-tight text-[#0A192F]">eSantri</span>
           </div>
 
@@ -44,11 +50,21 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-[#4A5568]">
             <a href="#beranda" className="hover:text-[#0369A1] transition-colors">Beranda</a>
             <a href="#fitur" className="hover:text-[#0369A1] transition-colors">Fitur Utama</a>
+            <a href="#keamanan" className="hover:text-[#0369A1] transition-colors">Keamanan & Standar</a>
             <a href="#manfaat" className="hover:text-[#0369A1] transition-colors">Manfaat</a>
           </div>
 
           {/* Actions */}
           <div className="flex items-center gap-3">
+            <a
+              href="https://pendaftaran.tahfidzsulaimaniyah.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-bold text-sky-700 hover:text-sky-800 bg-sky-50 hover:bg-sky-100 px-4 py-2 rounded-full transition-colors border border-sky-200"
+            >
+              <GraduationCap className="w-4 h-4 text-sky-600" />
+              PPDB
+            </a>
             <button
               onClick={() => navigate('/portal-register')}
               className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-full transition-colors border border-emerald-200/80"
@@ -103,6 +119,15 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center gap-4 flex-wrap justify-center">
+            <a
+              href="https://pendaftaran.tahfidzsulaimaniyah.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5"
+            >
+              <GraduationCap className="w-5 h-5" />
+              PPDB Santri Baru
+            </a>
             <button
               onClick={() => navigate('/portal-register')}
               className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5"
@@ -190,6 +215,212 @@ export default function LandingPage() {
                 <p className="text-slate-400 leading-relaxed">{f.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── SECURITY & BEST PRACTICES SECTION ─────────────────── */}
+      {/* Standar & Praktik Keamanan Terkini */}
+      <section id="keamanan" className="py-24 bg-slate-50 border-y border-slate-200/80 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-100/80 text-[#0369A1] text-xs font-bold uppercase tracking-wider mb-4 border border-sky-200">
+              <Shield className="w-3.5 h-3.5" />
+              Security Architecture & Best Practices
+            </div>
+            <h2 className="text-3xl md:text-5xl font-extrabold text-[#0A192F] mb-6 tracking-tight">
+              Selaras dengan Standar Keamanan Global
+            </h2>
+            <p className="text-[#4A5568] text-lg leading-relaxed">
+              Infrastruktur eSantri dirancang dengan arsitektur *Defense-in-Depth* berbasis RHEL + Podman Rootless + Quadlet + Cloudflare Zero-Trust, dengan kontrol keamanan yang dipetakan terhadap prinsip-prinsip framework keamanan informasi yang relevan.
+            </p>
+          </div>
+
+          {/* Grid 5 Standar Keamanan */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            {/* 1. CIS-Inspired Hardening */}
+            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200/80 hover:shadow-xl hover:border-sky-300 transition-all group flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-sky-50 text-[#0369A1] flex items-center justify-center font-black group-hover:scale-110 transition-transform border border-sky-100">
+                    <Server className="w-6 h-6" />
+                  </div>
+                  <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                    Prinsip CIS
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-[#0A192F] mb-2">1. CIS-Inspired Hardening</h3>
+                <p className="text-xs font-semibold text-sky-700 uppercase tracking-wider mb-4">Container Hardening Principles</p>
+                <ul className="space-y-2.5 text-sm text-[#4A5568]">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>Non-Root Daemonless:</strong> Kontainer berjalan tanpa root daemon pada host OS.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>Read-Only Volume (`:ro,Z`):</strong> Membatasi container agar tidak dapat menulis ke mount aplikasi dan mengurangi risiko modifikasi file.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>Zero Clear-Text Secrets:</strong> Kredensial dipisahkan secara native di luar repositori source code.</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 2. NIST SP 800-190 */}
+            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200/80 hover:shadow-xl hover:border-sky-300 transition-all group flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-black group-hover:scale-110 transition-transform border border-emerald-100">
+                    <Cpu className="w-6 h-6" />
+                  </div>
+                  <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Panduan NIST
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-[#0A192F] mb-2">2. NIST SP 800-190</h3>
+                <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-4">Application Container Security Guide</p>
+                <ul className="space-y-2.5 text-sm text-[#4A5568]">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>Breakout Mitigation:</strong> Isolasi User Namespace membatasi akses kernel host.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>Least Privilege:</strong> Izin berkas konfigurasi dikunci ketat (`chmod 600 / 700`).</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>SELinux Enforced:</strong> Pelabelan konteks keamanan kontainer secara ketat dan terisolasi.</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 3. ISO/IEC 27001:2022 */}
+            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200/80 hover:shadow-xl hover:border-sky-300 transition-all group flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-black group-hover:scale-110 transition-transform border border-indigo-100">
+                    <Globe className="w-6 h-6" />
+                  </div>
+                  <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    Selaras ISO 27001
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-[#0A192F] mb-2">3. ISO/IEC 27001:2022</h3>
+                <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wider mb-4">Information Security Controls</p>
+                <ul className="space-y-2.5 text-sm text-[#4A5568]">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>A.8.20 & A.8.21 Network Security:</strong> Zero Open Ports melalui Cloudflare Zero-Trust Tunnel.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>A.8.24 Cryptography:</strong> Perlindungan data in-transit dan at-rest melalui TLS dan enkripsi storage.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>A.5.15 Access Control:</strong> Hak akses otentikasi berjenjang berbasis peran (RBAC).</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 4. OWASP Top 10 & Container Security */}
+            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200/80 hover:shadow-xl hover:border-sky-300 transition-all group flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center font-black group-hover:scale-110 transition-transform border border-amber-100">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                    Praktik OWASP
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-[#0A192F] mb-2">4. OWASP Security Guidelines</h3>
+                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-4">Web & Container Security Cheat Sheet</p>
+                <ul className="space-y-2.5 text-sm text-[#4A5568]">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>Anti-LFI & Path Traversal:</strong> Segregasi `.secret` menghapus risiko eksposur berkas konfigurasi.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>Container Hardening:</strong> Docker daemon socket `/var/run/docker.sock` tidak diekspos ke kontainer.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>A01 Broken Access Control:</strong> Proteksi JWT token pada berkas media & dokumen privasi santri.</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 5. SOC 2 Trust Principles */}
+            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200/80 hover:shadow-xl hover:border-sky-300 transition-all group flex flex-col justify-between md:col-span-2 lg:col-span-2">
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center font-black group-hover:scale-110 transition-transform border border-purple-100">
+                    <Layers className="w-6 h-6" />
+                  </div>
+                  <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                    Prinsip SOC 2
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-[#0A192F] mb-2">5. SOC 2 Trust Principles (Security & Confidentiality)</h3>
+                <p className="text-xs font-semibold text-purple-700 uppercase tracking-wider mb-4">Pemetaan Terhadap Kriteria CC6.1 & CC6.3</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-[#4A5568]">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>Defense-in-Depth:</strong> Perlindungan bertingkat dari WAF Perimeter, Network Bridge, Compute, hingga Storage.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>Perimeter Isolation:</strong> Akses database PostgreSQL dan MinIO terisolasi hanya pada network privat `global_net`.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>IAM & Tokenized Storage:</strong> Validasi ketat otentikasi token pada streaming passfoto dan dokumen santri.</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                    <span><strong>Systemd Quadlet Monitoring:</strong> Health check periodik 30 detik untuk *self-healing* kontainer otomatis.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Defense-in-Depth Visual Architecture Banner */}
+          <div className="bg-gradient-to-r from-[#0A192F] via-[#132F52] to-[#0A192F] rounded-3xl p-8 md:p-12 text-white shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-[#00B4D8]/15 blur-3xl rounded-full pointer-events-none"></div>
+            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="max-w-2xl">
+                <span className="text-[#00B4D8] font-bold text-xs uppercase tracking-widest block mb-2">Architectural Summary</span>
+                <h3 className="text-2xl md:text-3xl font-extrabold text-white mb-4">
+                  Infrastruktur Aman, Cepat, dan Selaras Standar Global
+                </h3>
+                <p className="text-slate-300 text-sm md:text-base leading-relaxed">
+                  Data santri, wali santri, dan administrasi pesantren dilindungi oleh arsitektur sistem keamanan bertaraf korporasi tanpa kompromi performa.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3 justify-center md:justify-end">
+                <div className="px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs font-semibold flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-[#00B4D8]" /> Prinsip CIS
+                </div>
+                <div className="px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs font-semibold flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-emerald-400" /> Cloudflare Zero-Trust
+                </div>
+                <div className="px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs font-semibold flex items-center gap-2">
+                  <Cpu className="w-4 h-4 text-amber-400" /> Podman Rootless
+                </div>
+                <div className="px-4 py-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-xs font-semibold flex items-center gap-2">
+                  <HardDrive className="w-4 h-4 text-purple-400" /> MinIO S3 Encrypted
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -284,6 +515,15 @@ export default function LandingPage() {
             Segera manfaatkan teknologi untuk mereduksi birokrasi dan meningkatkan produktivitas. Akses eSantri sekarang juga!
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a
+              href="https://pendaftaran.tahfidzsulaimaniyah.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold rounded-full transition-all shadow-xl flex items-center gap-2"
+            >
+              <GraduationCap className="w-5 h-5" />
+              Pendaftaran PPDB
+            </a>
             <button
               onClick={() => navigate('/login')}
               className="px-8 py-4 bg-white text-[#0A192F] font-bold rounded-full hover:bg-sky-50 transition-colors shadow-xl"
@@ -305,10 +545,12 @@ export default function LandingPage() {
       <footer className="bg-[#060D1A] text-slate-400 py-16">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 bg-[#0369A1] rounded-lg flex items-center justify-center">
-                <Building className="w-4 h-4 text-white" />
-              </div>
+            <div className="flex items-center gap-3 mb-4">
+              <img
+                src="https://cdn.aithendi.my.id/assets/logoyts-modern.png"
+                alt="Logo eSantri"
+                className="h-8 w-auto object-contain brightness-110"
+              />
               <span className="font-bold text-white tracking-tight text-lg">eSantri</span>
             </div>
             <p className="text-sm text-slate-400 leading-relaxed">
@@ -319,8 +561,20 @@ export default function LandingPage() {
           <div>
             <h4 className="text-white font-semibold mb-4">Akses Cepat</h4>
             <ul className="space-y-2 text-sm">
+              <li>
+                <a
+                  href="https://pendaftaran.tahfidzsulaimaniyah.org/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#00B4D8] transition-colors inline-flex items-center gap-1 text-sky-400 font-semibold"
+                >
+                  PPDB Santri Baru <ExternalLink className="w-3 h-3 ml-0.5" />
+                </a>
+              </li>
               <li><a href="#beranda" className="hover:text-[#00B4D8] transition-colors">Beranda</a></li>
               <li><a href="#fitur" className="hover:text-[#00B4D8] transition-colors">Fitur Utama</a></li>
+              <li><a href="#keamanan" className="hover:text-[#00B4D8] transition-colors">Keamanan & Standar</a></li>
+              <li><a href="#manfaat" className="hover:text-[#00B4D8] transition-colors">Manfaat</a></li>
               <li><button onClick={() => navigate('/daftar-ulang')} className="hover:text-[#00B4D8] transition-colors text-left">Daftar Ulang Santri</button></li>
             </ul>
           </div>

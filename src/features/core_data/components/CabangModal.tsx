@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
 import { useGetWilayah, Cabang } from '../hooks/useMasterData';
+import { wilayahService, findMatchingWilayah, normalizeWilayahCode, WilayahItem } from '../../../services/wilayah.service';
 
 interface CabangModalProps {
   isOpen: boolean;
@@ -41,28 +42,26 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
     statusBangunan: '',
   });
 
-  const [provinces, setProvinces] = useState<any[]>([]);
-  const [regencies, setRegencies] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [villages, setVillages] = useState<any[]>([]);
+  const [provinces, setProvinces] = useState<WilayahItem[]>([]);
+  const [regencies, setRegencies] = useState<WilayahItem[]>([]);
+  const [districts, setDistricts] = useState<WilayahItem[]>([]);
+  const [villages, setVillages] = useState<WilayahItem[]>([]);
   
   const [profile, setProfile] = useState<any>(null); // To store staffList for edit mode
 
   // Load API Wilayah
   useEffect(() => {
     if (isOpen) {
-      fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
-        .then((r) => r.json())
-        .then((data) => setProvinces(data))
+      wilayahService.getProvinces()
+        .then(setProvinces)
         .catch((e) => console.error('Error fetching provinces', e));
     }
   }, [isOpen]);
 
   useEffect(() => {
     if (formData.alamatProvId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${formData.alamatProvId}.json`)
-        .then((r) => r.json())
-        .then((data) => setRegencies(data))
+      wilayahService.getRegencies(formData.alamatProvId)
+        .then(setRegencies)
         .catch(console.error);
     } else {
       setRegencies([]);
@@ -71,9 +70,8 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
 
   useEffect(() => {
     if (formData.alamatKabId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${formData.alamatKabId}.json`)
-        .then((r) => r.json())
-        .then((data) => setDistricts(data))
+      wilayahService.getDistricts(formData.alamatKabId)
+        .then(setDistricts)
         .catch(console.error);
     } else {
       setDistricts([]);
@@ -82,9 +80,8 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
 
   useEffect(() => {
     if (formData.alamatKecId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${formData.alamatKecId}.json`)
-        .then((r) => r.json())
-        .then((data) => setVillages(data))
+      wilayahService.getVillages(formData.alamatKecId)
+        .then(setVillages)
         .catch(console.error);
     } else {
       setVillages([]);
@@ -108,13 +105,13 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
             ketuaCabangId: data.ketuaCabangId || '',
             ketuaMuadalahId: data.ketuaMuadalahId || '',
             ketuaIslerId: data.ketuaIslerId || '',
-            alamatProvId: data.alamatProvId || '',
+            alamatProvId: '',
             alamatProvName: data.alamatProvName || '',
-            alamatKabId: data.alamatKabId || '',
+            alamatKabId: '',
             alamatKabName: data.alamatKabName || '',
-            alamatKecId: data.alamatKecId || '',
+            alamatKecId: '',
             alamatKecName: data.alamatKecName || '',
-            alamatKelId: data.alamatKelId || '',
+            alamatKelId: '',
             alamatKelName: data.alamatKelName || '',
             alamatJalan: data.alamatJalan || '',
             alamatNegara: data.alamatNegara || '',
@@ -123,16 +120,35 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
             statusBangunan: data.statusBangunan || '',
           });
 
-          // Preload sub-regions
-          if (data.alamatProvId) {
-            fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${data.alamatProvId}.json`).then((r) => r.json()).then(setRegencies).catch(console.error);
-          }
-          if (data.alamatKabId) {
-            fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${data.alamatKabId}.json`).then((r) => r.json()).then(setDistricts).catch(console.error);
-          }
-          if (data.alamatKecId) {
-            fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${data.alamatKecId}.json`).then((r) => r.json()).then(setVillages).catch(console.error);
-          }
+          // Resolusi otomatis seluruh hierarki wilayah secara simultan
+          wilayahService.resolveHierarchy({
+            provId: data.alamatProvId,
+            provName: data.alamatProvName,
+            kabId: data.alamatKabId,
+            kabName: data.alamatKabName,
+            kecId: data.alamatKecId,
+            kecName: data.alamatKecName,
+            kelId: data.alamatKelId,
+            kelName: data.alamatKelName,
+            jalan: data.alamatJalan,
+          }).then((res) => {
+            if (res.provinces.length) setProvinces(res.provinces);
+            if (res.regencies.length) setRegencies(res.regencies);
+            if (res.districts.length) setDistricts(res.districts);
+            if (res.villages.length) setVillages(res.villages);
+
+            setFormData(prev => ({
+              ...prev,
+              alamatProvId: res.selectedProv?.kode || '',
+              alamatProvName: res.selectedProv?.nama || data.alamatProvName || '',
+              alamatKabId: res.selectedKab?.kode || '',
+              alamatKabName: res.selectedKab?.nama || data.alamatKabName || '',
+              alamatKecId: res.selectedKec?.kode || '',
+              alamatKecName: res.selectedKec?.nama || data.alamatKecName || '',
+              alamatKelId: res.selectedKel?.kode || '',
+              alamatKelName: res.selectedKel?.nama || data.alamatKelName || '',
+            }));
+          }).catch(console.error);
         });
       } else {
         setFormData({
@@ -261,30 +277,69 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase">Provinsi</label>
-                    <select value={formData.alamatProvId} onChange={(e) => setFormData({ ...formData, alamatProvId: e.target.value, alamatProvName: e.target.options[e.target.selectedIndex].text, alamatKabId: '', alamatKecId: '', alamatKelId: '' })} className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white">
+                    <select
+                      value={formData.alamatProvId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        const selected = provinces.find(p => p.kode === id || p.id === id);
+                        const name = selected?.nama || selected?.name || '';
+                        setFormData({ ...formData, alamatProvId: id, alamatProvName: name, alamatKabId: '', alamatKabName: '', alamatKecId: '', alamatKecName: '', alamatKelId: '', alamatKelName: '' });
+                      }}
+                      className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white"
+                    >
                       <option value="">-- Pilih Provinsi --</option>
-                      {provinces.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      {provinces.map((p) => <option key={p.kode || p.id} value={p.kode || p.id}>{p.nama || p.name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase">Kabupaten / Kota</label>
-                    <select value={formData.alamatKabId} disabled={!formData.alamatProvId} onChange={(e) => setFormData({ ...formData, alamatKabId: e.target.value, alamatKabName: e.target.options[e.target.selectedIndex].text, alamatKecId: '', alamatKelId: '' })} className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white">
+                    <select
+                      value={formData.alamatKabId}
+                      disabled={!formData.alamatProvId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        const selected = regencies.find(r => r.kode === id || r.id === id);
+                        const name = selected?.nama || selected?.name || '';
+                        setFormData({ ...formData, alamatKabId: id, alamatKabName: name, alamatKecId: '', alamatKecName: '', alamatKelId: '', alamatKelName: '' });
+                      }}
+                      className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white"
+                    >
                       <option value="">-- Pilih Kabupaten --</option>
-                      {regencies.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                      {regencies.map((r) => <option key={r.kode || r.id} value={r.kode || r.id}>{r.nama || r.name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase">Kecamatan</label>
-                    <select value={formData.alamatKecId} disabled={!formData.alamatKabId} onChange={(e) => setFormData({ ...formData, alamatKecId: e.target.value, alamatKecName: e.target.options[e.target.selectedIndex].text, alamatKelId: '' })} className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white">
+                    <select
+                      value={formData.alamatKecId}
+                      disabled={!formData.alamatKabId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        const selected = districts.find(d => d.kode === id || d.id === id);
+                        const name = selected?.nama || selected?.name || '';
+                        setFormData({ ...formData, alamatKecId: id, alamatKecName: name, alamatKelId: '', alamatKelName: '' });
+                      }}
+                      className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white"
+                    >
                       <option value="">-- Pilih Kecamatan --</option>
-                      {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      {districts.map((d) => <option key={d.kode || d.id} value={d.kode || d.id}>{d.nama || d.name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase">Kelurahan / Desa</label>
-                    <select value={formData.alamatKelId} disabled={!formData.alamatKecId} onChange={(e) => setFormData({ ...formData, alamatKelId: e.target.value, alamatKelName: e.target.options[e.target.selectedIndex].text })} className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white">
+                    <select
+                      value={formData.alamatKelId}
+                      disabled={!formData.alamatKecId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        const selected = villages.find(v => v.kode === id || v.id === id);
+                        const name = selected?.nama || selected?.name || '';
+                        setFormData({ ...formData, alamatKelId: id, alamatKelName: name });
+                      }}
+                      className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm bg-white"
+                    >
                       <option value="">-- Pilih Kelurahan --</option>
-                      {villages.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                      {villages.map((v) => <option key={v.kode || v.id} value={v.kode || v.id}>{v.nama || v.name}</option>)}
                     </select>
                   </div>
                   <div className="sm:col-span-2">

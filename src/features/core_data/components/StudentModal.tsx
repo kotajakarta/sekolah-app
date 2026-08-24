@@ -16,6 +16,7 @@ import AktivitasBelajarTab from './AktivitasBelajarTab';
 import RiwayatNilaiTab from './RiwayatNilaiTab';
 import imageCompression from 'browser-image-compression';
 import { normalizeTurkish, sanitizeTurkishDeep } from '../../../utils/text';
+import { wilayahService, findMatchingWilayah, normalizeWilayahCode, WilayahItem } from '../../../services/wilayah.service';
 
 export type TabType = 'SANTRI' | 'ORANG_TUA' | 'ALAMAT' | 'AKTIVITAS_BELAJAR' | 'RIWAYAT_NILAI';
 
@@ -189,15 +190,14 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
   });
 
   const [countries, setCountries] = useState<{value: string, label: string}[]>([]);
-  const [provinces, setProvinces] = useState<any[]>([]);
-  const [regencies, setRegencies] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [villages, setVillages] = useState<any[]>([]);
+  const [provinces, setProvinces] = useState<WilayahItem[]>([]);
+  const [regencies, setRegencies] = useState<WilayahItem[]>([]);
+  const [districts, setDistricts] = useState<WilayahItem[]>([]);
+  const [villages, setVillages] = useState<WilayahItem[]>([]);
 
   useEffect(() => {
-    fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
-      .then((r) => r.json())
-      .then((data) => setProvinces(data))
+    wilayahService.getProvinces()
+      .then(setProvinces)
       .catch((e) => console.error('Gagal mengambil data provinsi', e));
   }, []);
 
@@ -339,22 +339,25 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
 
   useEffect(() => {
     if (formData.alamatProvId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${formData.alamatProvId}.json`)
-        .then((r) => r.json()).then((d) => setRegencies(d)).catch(console.error);
+      wilayahService.getRegencies(formData.alamatProvId)
+        .then(setRegencies)
+        .catch(console.error);
     } else { setRegencies([]); }
   }, [formData.alamatProvId]);
 
   useEffect(() => {
     if (formData.alamatKabId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${formData.alamatKabId}.json`)
-        .then((r) => r.json()).then((d) => setDistricts(d)).catch(console.error);
+      wilayahService.getDistricts(formData.alamatKabId)
+        .then(setDistricts)
+        .catch(console.error);
     } else { setDistricts([]); }
   }, [formData.alamatKabId]);
 
   useEffect(() => {
     if (formData.alamatKecId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${formData.alamatKecId}.json`)
-        .then((r) => r.json()).then((d) => setVillages(d)).catch(console.error);
+      wilayahService.getVillages(formData.alamatKecId)
+        .then(setVillages)
+        .catch(console.error);
     } else { setVillages([]); }
   }, [formData.alamatKecId]);
 
@@ -372,43 +375,49 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
 
   useEffect(() => {
     if (student) {
+      const b = student.biodata;
+      const initialProvCode = normalizeWilayahCode(b?.alamatProvId, 1) || '';
+      const initialKabCode = normalizeWilayahCode(b?.alamatKabId, 2) || '';
+      const initialKecCode = normalizeWilayahCode(b?.alamatKecId, 3) || '';
+      const initialKelCode = normalizeWilayahCode(b?.alamatKelId, 4) || '';
+
       setFormData({
-        nik: student.biodata?.nik || '',
-        noKk: student.biodata?.noKk || '',
-        anakKe: student.biodata?.anakKe !== undefined && student.biodata?.anakKe !== null ? String(student.biodata.anakKe) : '',
-        jumlahSaudara: student.biodata?.jumlahSaudara !== undefined && student.biodata?.jumlahSaudara !== null ? String(student.biodata.jumlahSaudara) : '',
-        nisn: student.biodata?.nisn || '',
-        nisLokal: student.biodata?.nisLokal || '',
-        noGlodemy: student.biodata?.noGlodemy || '',
-        fullName: student.biodata?.fullName || '',
-        tempatLahir: student.biodata?.tempatLahir || '',
-        tanggalLahir: student.biodata?.tanggalLahir ? new Date(student.biodata.tanggalLahir).toISOString().split('T')[0] : '',
-        jenisKelamin: student.biodata?.jenisKelamin || 'L',
-        kewarganegaraan: student.biodata?.kewarganegaraan || 'WNI',
-        namaAyah: student.biodata?.namaAyah || '',
-        statusHidupAyah: student.biodata?.statusHidupAyah || 'Masih Hidup',
-        nikAyah: student.biodata?.nikAyah || '',
-        tempatLahirAyah: student.biodata?.tempatLahirAyah || '',
-        tanggalLahirAyah: student.biodata?.tanggalLahirAyah ? new Date(student.biodata.tanggalLahirAyah).toISOString().split('T')[0] : '',
-        pekerjaanAyah: student.biodata?.pekerjaanAyah || '',
-        pendidikanAyah: student.biodata?.pendidikanAyah || '',
-        penghasilanAyah: student.biodata?.penghasilanAyah || '',
-        namaIbu: student.biodata?.namaIbu || '',
-        statusHidupIbu: student.biodata?.statusHidupIbu || 'Masih Hidup',
-        nikIbu: student.biodata?.nikIbu || '',
-        tempatLahirIbu: student.biodata?.tempatLahirIbu || '',
-        tanggalLahirIbu: student.biodata?.tanggalLahirIbu ? new Date(student.biodata.tanggalLahirIbu).toISOString().split('T')[0] : '',
-        pekerjaanIbu: student.biodata?.pekerjaanIbu || '',
-        pendidikanIbu: student.biodata?.pendidikanIbu || '',
-        penghasilanIbu: student.biodata?.penghasilanIbu || '',
-        address: student.biodata?.address || '',
-        phone: student.biodata?.phone || '',
-        kontakDaruratNama: student.biodata?.kontakDaruratNama || '',
-        kontakDaruratTelp: student.biodata?.kontakDaruratTelp || '',
-        kontakDaruratHubungan: student.biodata?.kontakDaruratHubungan || '',
-        fotoUrl: student.biodata?.fotoUrl || '',
-        ijazahUrl: student.biodata?.ijazahUrl || '',
-        kkUrl: student.biodata?.kkUrl || '',
+        nik: b?.nik || '',
+        noKk: b?.noKk || '',
+        anakKe: b?.anakKe !== undefined && b?.anakKe !== null ? String(b.anakKe) : '',
+        jumlahSaudara: b?.jumlahSaudara !== undefined && b?.jumlahSaudara !== null ? String(b.jumlahSaudara) : '',
+        nisn: b?.nisn || '',
+        nisLokal: b?.nisLokal || '',
+        noGlodemy: b?.noGlodemy || '',
+        fullName: b?.fullName || '',
+        tempatLahir: b?.tempatLahir || '',
+        tanggalLahir: b?.tanggalLahir ? new Date(b.tanggalLahir).toISOString().split('T')[0] : '',
+        jenisKelamin: b?.jenisKelamin || 'L',
+        kewarganegaraan: b?.kewarganegaraan || 'WNI',
+        namaAyah: b?.namaAyah || '',
+        statusHidupAyah: b?.statusHidupAyah || 'Masih Hidup',
+        nikAyah: b?.nikAyah || '',
+        tempatLahirAyah: b?.tempatLahirAyah || '',
+        tanggalLahirAyah: b?.tanggalLahirAyah ? new Date(b.tanggalLahirAyah).toISOString().split('T')[0] : '',
+        pekerjaanAyah: b?.pekerjaanAyah || '',
+        pendidikanAyah: b?.pendidikanAyah || '',
+        penghasilanAyah: b?.penghasilanAyah || '',
+        namaIbu: b?.namaIbu || '',
+        statusHidupIbu: b?.statusHidupIbu || 'Masih Hidup',
+        nikIbu: b?.nikIbu || '',
+        tempatLahirIbu: b?.tempatLahirIbu || '',
+        tanggalLahirIbu: b?.tanggalLahirIbu ? new Date(b.tanggalLahirIbu).toISOString().split('T')[0] : '',
+        pekerjaanIbu: b?.pekerjaanIbu || '',
+        pendidikanIbu: b?.pendidikanIbu || '',
+        penghasilanIbu: b?.penghasilanIbu || '',
+        address: b?.address || '',
+        phone: b?.phone || '',
+        kontakDaruratNama: b?.kontakDaruratNama || '',
+        kontakDaruratTelp: b?.kontakDaruratTelp || '',
+        kontakDaruratHubungan: b?.kontakDaruratHubungan || '',
+        fotoUrl: b?.fotoUrl || '',
+        ijazahUrl: b?.ijazahUrl || '',
+        kkUrl: b?.kkUrl || '',
         wilayahId: student.wilayahId || '',
         cabangId: student.cabangId || '',
         kelasId: (student.siswaFormal as any)?.kelasId || '',
@@ -417,29 +426,46 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
         statusHafidz: student.statusHafidz || '',
         tanggalMasuk: student.riwayatPendidikan?.[0]?.tanggalMasuk ? new Date(student.riwayatPendidikan[0].tanggalMasuk).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         isActive: student.isActive !== undefined ? student.isActive : true,
-        alamatProvId: student.biodata?.alamatProvId || '',
-        alamatProvName: student.biodata?.alamatProvName || '',
-        alamatKabId: student.biodata?.alamatKabId || '',
-        alamatKabName: student.biodata?.alamatKabName || '',
-        alamatKecId: student.biodata?.alamatKecId || '',
-        alamatKecName: student.biodata?.alamatKecName || '',
-        alamatKelId: student.biodata?.alamatKelId || '',
-        alamatKelName: student.biodata?.alamatKelName || '',
-        alamatJalan: student.biodata?.alamatJalan || '',
+        alamatProvId: '',
+        alamatProvName: b?.alamatProvName || '',
+        alamatKabId: '',
+        alamatKabName: b?.alamatKabName || '',
+        alamatKecId: '',
+        alamatKecName: b?.alamatKecName || '',
+        alamatKelId: '',
+        alamatKelName: b?.alamatKelName || '',
+        alamatJalan: b?.alamatJalan || '',
       });
 
-      if (student.biodata?.alamatProvId) {
-        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${student.biodata.alamatProvId}.json`)
-          .then((r) => r.json()).then((d) => setRegencies(d)).catch(console.error);
-      }
-      if (student.biodata?.alamatKabId) {
-        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${student.biodata.alamatKabId}.json`)
-          .then((r) => r.json()).then((d) => setDistricts(d)).catch(console.error);
-      }
-      if (student.biodata?.alamatKecId) {
-        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${student.biodata.alamatKecId}.json`)
-          .then((r) => r.json()).then((d) => setVillages(d)).catch(console.error);
-      }
+      // Resolusi otomatis seluruh hierarki wilayah secara simultan
+      wilayahService.resolveHierarchy({
+        provId: b?.alamatProvId,
+        provName: b?.alamatProvName,
+        kabId: b?.alamatKabId,
+        kabName: b?.alamatKabName,
+        kecId: b?.alamatKecId,
+        kecName: b?.alamatKecName,
+        kelId: b?.alamatKelId,
+        kelName: b?.alamatKelName,
+        jalan: b?.alamatJalan,
+      }).then((res) => {
+        if (res.provinces.length) setProvinces(res.provinces);
+        if (res.regencies.length) setRegencies(res.regencies);
+        if (res.districts.length) setDistricts(res.districts);
+        if (res.villages.length) setVillages(res.villages);
+
+        setFormData(prev => ({
+          ...prev,
+          alamatProvId: res.selectedProv?.kode || '',
+          alamatProvName: res.selectedProv?.nama || b?.alamatProvName || '',
+          alamatKabId: res.selectedKab?.kode || '',
+          alamatKabName: res.selectedKab?.nama || b?.alamatKabName || '',
+          alamatKecId: res.selectedKec?.kode || '',
+          alamatKecName: res.selectedKec?.nama || b?.alamatKecName || '',
+          alamatKelId: res.selectedKel?.kode || '',
+          alamatKelName: res.selectedKel?.nama || b?.alamatKelName || '',
+        }));
+      }).catch(console.error);
     }
   }, [student]);
 
@@ -1046,14 +1072,14 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           value={formData.alamatProvId}
                           onChange={(e) => {
                             const id = e.target.value;
-                            const name = provinces.find((p) => p.id === id)?.name || '';
+                            const name = provinces.find((p) => p.kode === id || p.id === id)?.nama || provinces.find((p) => p.kode === id || p.id === id)?.name || '';
                             setFormData({ ...formData, alamatProvId: id, alamatProvName: name, alamatKabId: '', alamatKabName: '', alamatKecId: '', alamatKecName: '', alamatKelId: '', alamatKelName: '', alamatJalan: '', address: '' });
                             setFieldErrors({ ...fieldErrors, alamatProvId: '' });
                           }}
                           className={`${selectCls} ${fieldErrors['alamatProvId'] ? 'border-rose-300' : ''}`}
                         >
                           <option value="">{t('siswa.form.provinsi_ph')}</option>
-                          {provinces.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          {provinces.map((p) => <option key={p.kode || p.id} value={p.kode || p.id}>{p.nama || p.name}</option>)}
                         </select>
                       </InputField>
                       <InputField label={t('siswa.form.kabupaten')} required error={fieldErrors['alamatKabId']}>
@@ -1062,14 +1088,14 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           disabled={!formData.alamatProvId}
                           onChange={(e) => {
                             const id = e.target.value;
-                            const name = regencies.find((r) => r.id === id)?.name || '';
+                            const name = regencies.find((r) => r.kode === id || r.id === id)?.nama || regencies.find((r) => r.kode === id || r.id === id)?.name || '';
                             setFormData({ ...formData, alamatKabId: id, alamatKabName: name, alamatKecId: '', alamatKecName: '', alamatKelId: '', alamatKelName: '', alamatJalan: '', address: '' });
                             setFieldErrors({ ...fieldErrors, alamatKabId: '' });
                           }}
                           className={`${selectCls} ${fieldErrors['alamatKabId'] ? 'border-rose-300' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <option value="">{t('siswa.form.kabupaten_ph')}</option>
-                          {regencies.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                          {regencies.map((r) => <option key={r.kode || r.id} value={r.kode || r.id}>{r.nama || r.name}</option>)}
                         </select>
                       </InputField>
                       <InputField label={t('siswa.form.kecamatan')} required error={fieldErrors['alamatKecId']}>
@@ -1078,14 +1104,14 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           disabled={!formData.alamatKabId}
                           onChange={(e) => {
                             const id = e.target.value;
-                            const name = districts.find((d) => d.id === id)?.name || '';
+                            const name = districts.find((d) => d.kode === id || d.id === id)?.nama || districts.find((d) => d.kode === id || d.id === id)?.name || '';
                             setFormData({ ...formData, alamatKecId: id, alamatKecName: name, alamatKelId: '', alamatKelName: '', alamatJalan: '', address: '' });
                             setFieldErrors({ ...fieldErrors, alamatKecId: '' });
                           }}
                           className={`${selectCls} ${fieldErrors['alamatKecId'] ? 'border-rose-300' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <option value="">{t('siswa.form.kecamatan_ph')}</option>
-                          {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                          {districts.map((d) => <option key={d.kode || d.id} value={d.kode || d.id}>{d.nama || d.name}</option>)}
                         </select>
                       </InputField>
                       <InputField label={t('siswa.form.kelurahan')} required error={fieldErrors['alamatKelId']}>
@@ -1094,14 +1120,14 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
                           disabled={!formData.alamatKecId}
                           onChange={(e) => {
                             const id = e.target.value;
-                            const name = villages.find((v) => v.id === id)?.name || '';
+                            const name = villages.find((v) => v.kode === id || v.id === id)?.nama || villages.find((v) => v.kode === id || v.id === id)?.name || '';
                             setFormData({ ...formData, alamatKelId: id, alamatKelName: name, alamatJalan: '', address: '' });
                             setFieldErrors({ ...fieldErrors, alamatKelId: '' });
                           }}
                           className={`${selectCls} ${fieldErrors['alamatKelId'] ? 'border-rose-300' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <option value="">{t('siswa.form.kelurahan_ph')}</option>
-                          {villages.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                          {villages.map((v) => <option key={v.kode || v.id} value={v.kode || v.id}>{v.nama || v.name}</option>)}
                         </select>
                       </InputField>
                       <div className="sm:col-span-2">

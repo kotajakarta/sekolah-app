@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { X, Loader2, Save, Building, Users, MapPin, Phone, Shield } from 'lucide-react';
 import apiClient from '../../../lib/apiClient';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { wilayahService, findMatchingWilayah, normalizeWilayahCode, WilayahItem } from '../../../services/wilayah.service';
 
 interface ProfileCabangModalProps {
   cabangId: string;
@@ -42,26 +43,24 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
   const [statusTanah, setStatusTanah] = useState('');
   const [statusBangunan, setStatusBangunan] = useState('');
 
-  // Dropdown lists from Emsifa API
-  const [provinces, setProvinces] = useState<any[]>([]);
-  const [regencies, setRegencies] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [villages, setVillages] = useState<any[]>([]);
+  // Dropdown lists from Wilindo API
+  const [provinces, setProvinces] = useState<WilayahItem[]>([]);
+  const [regencies, setRegencies] = useState<WilayahItem[]>([]);
+  const [districts, setDistricts] = useState<WilayahItem[]>([]);
+  const [villages, setVillages] = useState<WilayahItem[]>([]);
 
   // Fetch provinces
   useEffect(() => {
-    fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
-      .then((r) => r.json())
-      .then((data) => setProvinces(data))
+    wilayahService.getProvinces()
+      .then(setProvinces)
       .catch((e) => console.error('Gagal mengambil data provinsi', e));
   }, []);
 
   // Fetch regencies when province changes
   useEffect(() => {
     if (alamatProvId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${alamatProvId}.json`)
-        .then((r) => r.json())
-        .then((data) => setRegencies(data))
+      wilayahService.getRegencies(alamatProvId)
+        .then(setRegencies)
         .catch((e) => console.error('Gagal mengambil data kabupaten', e));
     } else {
       setRegencies([]);
@@ -71,9 +70,8 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
   // Fetch districts when regency changes
   useEffect(() => {
     if (alamatKabId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${alamatKabId}.json`)
-        .then((r) => r.json())
-        .then((data) => setDistricts(data))
+      wilayahService.getDistricts(alamatKabId)
+        .then(setDistricts)
         .catch((e) => console.error('Gagal mengambil data kecamatan', e));
     } else {
       setDistricts([]);
@@ -83,9 +81,8 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
   // Fetch villages when district changes
   useEffect(() => {
     if (alamatKecId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${alamatKecId}.json`)
-        .then((r) => r.json())
-        .then((data) => setVillages(data))
+      wilayahService.getVillages(alamatKecId)
+        .then(setVillages)
         .catch((e) => console.error('Gagal mengambil data kelurahan', e));
     } else {
       setVillages([]);
@@ -108,38 +105,53 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
         setKetuaMuadalahId(data.ketuaMuadalahId || '');
         setKetuaIslerId(data.ketuaIslerId || '');
 
-        setAlamatProvId(data.alamatProvId || '');
+        setAlamatProvId('');
         setAlamatProvName(data.alamatProvName || '');
-        setAlamatKabId(data.alamatKabId || '');
+        setAlamatKabId('');
         setAlamatKabName(data.alamatKabName || '');
-        setAlamatKecId(data.alamatKecId || '');
+        setAlamatKecId('');
         setAlamatKecName(data.alamatKecName || '');
-        setAlamatKelId(data.alamatKelId || '');
+        setAlamatKelId('');
         setAlamatKelName(data.alamatKelName || '');
         setAlamatJalan(data.alamatJalan || '');
 
         setStatusTanah(data.statusTanah || '');
         setStatusBangunan(data.statusBangunan || '');
 
-        // Preload sub-regions
-        if (data.alamatProvId) {
-          fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${data.alamatProvId}.json`)
-            .then((r) => r.json())
-            .then((d) => setRegencies(d))
-            .catch((e) => console.error(e));
-        }
-        if (data.alamatKabId) {
-          fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${data.alamatKabId}.json`)
-            .then((r) => r.json())
-            .then((d) => setDistricts(d))
-            .catch((e) => console.error(e));
-        }
-        if (data.alamatKecId) {
-          fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${data.alamatKecId}.json`)
-            .then((r) => r.json())
-            .then((d) => setVillages(d))
-            .catch((e) => console.error(e));
-        }
+        // Resolusi otomatis seluruh hierarki wilayah secara simultan
+        wilayahService.resolveHierarchy({
+          provId: data.alamatProvId,
+          provName: data.alamatProvName,
+          kabId: data.alamatKabId,
+          kabName: data.alamatKabName,
+          kecId: data.alamatKecId,
+          kecName: data.alamatKecName,
+          kelId: data.alamatKelId,
+          kelName: data.alamatKelName,
+          jalan: data.alamatJalan,
+        }).then((res) => {
+          if (res.provinces.length) setProvinces(res.provinces);
+          if (res.regencies.length) setRegencies(res.regencies);
+          if (res.districts.length) setDistricts(res.districts);
+          if (res.villages.length) setVillages(res.villages);
+
+          if (res.selectedProv) {
+            setAlamatProvId(res.selectedProv.kode);
+            setAlamatProvName(res.selectedProv.nama);
+          }
+          if (res.selectedKab) {
+            setAlamatKabId(res.selectedKab.kode);
+            setAlamatKabName(res.selectedKab.nama);
+          }
+          if (res.selectedKec) {
+            setAlamatKecId(res.selectedKec.kode);
+            setAlamatKecName(res.selectedKec.nama);
+          }
+          if (res.selectedKel) {
+            setAlamatKelId(res.selectedKel.kode);
+            setAlamatKelName(res.selectedKel.nama);
+          }
+        }).catch(console.error);
       } catch (err: any) {
         setError('Gagal memuat profil cabang');
       } finally {
@@ -380,7 +392,7 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
                       className="mt-1.5 block w-full rounded-lg border border-slate-355 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                     >
                       <option value="">-- Pilih Provinsi --</option>
-                      {provinces.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      {provinces.map((p) => <option key={p.kode || p.id} value={p.kode || p.id}>{p.nama || p.name}</option>)}
                     </select>
                   </div>
 
@@ -392,7 +404,8 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
                       disabled={!alamatProvId}
                       onChange={(e) => {
                         const id = e.target.value;
-                        const name = regencies.find((r) => r.id === id)?.name || '';
+                        const selected = regencies.find((r) => r.kode === id || r.id === id);
+                        const name = selected?.nama || selected?.name || '';
                         setAlamatKabId(id);
                         setAlamatKabName(name);
                         setAlamatKecId('');
@@ -403,7 +416,7 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
                       className="mt-1.5 block w-full rounded-lg border border-slate-355 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-slate-50 disabled:text-slate-400"
                     >
                       <option value="">-- Pilih Kota/Kabupaten --</option>
-                      {regencies.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                      {regencies.map((r) => <option key={r.kode || r.id} value={r.kode || r.id}>{r.nama || r.name}</option>)}
                     </select>
                   </div>
 
@@ -415,7 +428,8 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
                       disabled={!alamatKabId}
                       onChange={(e) => {
                         const id = e.target.value;
-                        const name = districts.find((d) => d.id === id)?.name || '';
+                        const selected = districts.find((d) => d.kode === id || d.id === id);
+                        const name = selected?.nama || selected?.name || '';
                         setAlamatKecId(id);
                         setAlamatKecName(name);
                         setAlamatKelId('');
@@ -424,7 +438,7 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
                       className="mt-1.5 block w-full rounded-lg border border-slate-355 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-slate-50 disabled:text-slate-400"
                     >
                       <option value="">-- Pilih Kecamatan --</option>
-                      {districts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      {districts.map((d) => <option key={d.kode || d.id} value={d.kode || d.id}>{d.nama || d.name}</option>)}
                     </select>
                   </div>
 
@@ -436,14 +450,15 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
                       disabled={!alamatKecId}
                       onChange={(e) => {
                         const id = e.target.value;
-                        const name = villages.find((v) => v.id === id)?.name || '';
+                        const selected = villages.find((v) => v.kode === id || v.id === id);
+                        const name = selected?.nama || selected?.name || '';
                         setAlamatKelId(id);
                         setAlamatKelName(name);
                       }}
                       className="mt-1.5 block w-full rounded-lg border border-slate-355 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-slate-50 disabled:text-slate-400"
                     >
                       <option value="">-- Pilih Kelurahan/Desa --</option>
-                      {villages.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                      {villages.map((v) => <option key={v.kode || v.id} value={v.kode || v.id}>{v.nama || v.name}</option>)}
                     </select>
                   </div>
 

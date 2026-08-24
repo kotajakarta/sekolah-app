@@ -6,6 +6,7 @@ import { Loader2, ArrowRight, CheckCircle, ChevronLeft, Building, Upload, Image 
 import { useToast } from '../../contexts/ToastContext';
 import imageCompression from 'browser-image-compression';
 import { normalizeTurkish, sanitizeTurkishDeep } from '../../utils/text';
+import { wilayahService, WilayahItem } from '../../services/wilayah.service';
 
 const PENDIDIKAN_OPTIONS = ['SD/Sederajat', 'SMP/Sederajat', 'SMA/Sederajat', 'D1', 'D2', 'D3', 'D4/S1', 'S2', 'S3', 'Tidak Bersekolah', 'Lainnya'];
 const PEKERJAAN_OPTIONS = ['Tidak Bekerja', 'Pensiunan', 'PNS', 'TNI/Polisi', 'Guru/Dosen', 'Pegawai Swasta', 'Wiraswasta', 'Pengacara/Jaksa/Hakim/Notaris', 'Seniman/Pelukis/Artis/Sejenis', 'Dokter/Bidan/Perawat', 'Pilot/Pramugara', 'Pedagang', 'Petani/Peternak', 'Nelayan', 'Buruh (Tani/Pabrik/Bangunan)', 'Sopir/Masinis/Kondektur', 'Politikus', 'Lainnya'];
@@ -220,38 +221,40 @@ export default function DaftarUlang() {
     alamatJalan: '',
   });
 
-  const [provinces, setProvinces] = useState<any[]>([]);
-  const [regencies, setRegencies] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [villages, setVillages] = useState<any[]>([]);
+  const [provinces, setProvinces] = useState<WilayahItem[]>([]);
+  const [regencies, setRegencies] = useState<WilayahItem[]>([]);
+  const [districts, setDistricts] = useState<WilayahItem[]>([]);
+  const [villages, setVillages] = useState<WilayahItem[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
-      .then((r) => r.json())
-      .then((data) => setProvinces(data))
+    wilayahService.getProvinces()
+      .then(setProvinces)
       .catch(console.error);
   }, []);
 
   useEffect(() => {
     if (formData.alamatProvId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${formData.alamatProvId}.json`)
-        .then((r) => r.json()).then((d) => setRegencies(d)).catch(console.error);
+      wilayahService.getRegencies(formData.alamatProvId)
+        .then(setRegencies)
+        .catch(console.error);
     } else { setRegencies([]); }
   }, [formData.alamatProvId]);
 
   useEffect(() => {
     if (formData.alamatKabId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${formData.alamatKabId}.json`)
-        .then((r) => r.json()).then((d) => setDistricts(d)).catch(console.error);
+      wilayahService.getDistricts(formData.alamatKabId)
+        .then(setDistricts)
+        .catch(console.error);
     } else { setDistricts([]); }
   }, [formData.alamatKabId]);
 
   useEffect(() => {
     if (formData.alamatKecId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${formData.alamatKecId}.json`)
-        .then((r) => r.json()).then((d) => setVillages(d)).catch(console.error);
+      wilayahService.getVillages(formData.alamatKecId)
+        .then(setVillages)
+        .catch(console.error);
     } else { setVillages([]); }
   }, [formData.alamatKecId]);
 
@@ -662,34 +665,42 @@ export default function DaftarUlang() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                   <InputField label="Provinsi" required>
                     <select name="alamatProvId" value={formData.alamatProvId} required onChange={(e) => {
-                      setFormData({ ...formData, alamatProvId: e.target.value, alamatProvName: e.target.options[e.target.selectedIndex].text });
+                      const id = e.target.value;
+                      const name = provinces.find(p => p.kode === id || p.id === id)?.nama || provinces.find(p => p.kode === id || p.id === id)?.name || '';
+                      setFormData({ ...formData, alamatProvId: id, alamatProvName: name, alamatKabId: '', alamatKabName: '', alamatKecId: '', alamatKecName: '', alamatKelId: '', alamatKelName: '' });
                     }} className={selectCls}>
                       <option value="">Pilih Provinsi</option>
-                      {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      {provinces.map(p => <option key={p.kode || p.id} value={p.kode || p.id}>{p.nama || p.name}</option>)}
                     </select>
                   </InputField>
                   <InputField label="Kabupaten/Kota" required>
                     <select name="alamatKabId" value={formData.alamatKabId} required disabled={!formData.alamatProvId} onChange={(e) => {
-                      setFormData({ ...formData, alamatKabId: e.target.value, alamatKabName: e.target.options[e.target.selectedIndex].text });
+                      const id = e.target.value;
+                      const name = regencies.find(r => r.kode === id || r.id === id)?.nama || regencies.find(r => r.kode === id || r.id === id)?.name || '';
+                      setFormData({ ...formData, alamatKabId: id, alamatKabName: name, alamatKecId: '', alamatKecName: '', alamatKelId: '', alamatKelName: '' });
                     }} className={selectCls}>
                       <option value="">Pilih Kabupaten/Kota</option>
-                      {regencies.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                      {regencies.map(r => <option key={r.kode || r.id} value={r.kode || r.id}>{r.nama || r.name}</option>)}
                     </select>
                   </InputField>
                   <InputField label="Kecamatan" required>
                     <select name="alamatKecId" value={formData.alamatKecId} required disabled={!formData.alamatKabId} onChange={(e) => {
-                      setFormData({ ...formData, alamatKecId: e.target.value, alamatKecName: e.target.options[e.target.selectedIndex].text });
+                      const id = e.target.value;
+                      const name = districts.find(d => d.kode === id || d.id === id)?.nama || districts.find(d => d.kode === id || d.id === id)?.name || '';
+                      setFormData({ ...formData, alamatKecId: id, alamatKecName: name, alamatKelId: '', alamatKelName: '' });
                     }} className={selectCls}>
                       <option value="">Pilih Kecamatan</option>
-                      {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      {districts.map(d => <option key={d.kode || d.id} value={d.kode || d.id}>{d.nama || d.name}</option>)}
                     </select>
                   </InputField>
                   <InputField label="Kelurahan/Desa" required>
                     <select name="alamatKelId" value={formData.alamatKelId} required disabled={!formData.alamatKecId} onChange={(e) => {
-                      setFormData({ ...formData, alamatKelId: e.target.value, alamatKelName: e.target.options[e.target.selectedIndex].text });
+                      const id = e.target.value;
+                      const name = villages.find(v => v.kode === id || v.id === id)?.nama || villages.find(v => v.kode === id || v.id === id)?.name || '';
+                      setFormData({ ...formData, alamatKelId: id, alamatKelName: name });
                     }} className={selectCls}>
                       <option value="">Pilih Kelurahan/Desa</option>
-                      {villages.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                      {villages.map(v => <option key={v.kode || v.id} value={v.kode || v.id}>{v.nama || v.name}</option>)}
                     </select>
                   </InputField>
                   <InputField label="Alamat Lengkap (Jalan, RT/RW)" required colSpan>

@@ -9,6 +9,7 @@ import {
 import Pagination from '../../components/Pagination';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
+import { wilayahService, findMatchingWilayah, normalizeWilayahCode, WilayahItem } from '../../services/wilayah.service';
 
 interface SantriBreakdownGender {
   l: number;
@@ -142,11 +143,11 @@ export default function LembagaMuadalahPage() {
   const [filterName, setFilterName] = useState('');
   const [filterJenjang, setFilterJenjang] = useState('');
 
-  // Address API States (Emsifa)
-  const [provinces, setProvinces] = useState<any[]>([]);
-  const [regencies, setRegencies] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [villages, setVillages] = useState<any[]>([]);
+  // Address API States (Wilindo)
+  const [provinces, setProvinces] = useState<WilayahItem[]>([]);
+  const [regencies, setRegencies] = useState<WilayahItem[]>([]);
+  const [districts, setDistricts] = useState<WilayahItem[]>([]);
+  const [villages, setVillages] = useState<WilayahItem[]>([]);
 
   const [alamatProvId, setAlamatProvId] = useState('');
   const [alamatKabId, setAlamatKabId] = useState('');
@@ -155,17 +156,15 @@ export default function LembagaMuadalahPage() {
 
   // Fetch provinces on load
   React.useEffect(() => {
-    fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
-      .then((r) => r.json())
-      .then((data) => setProvinces(data))
+    wilayahService.getProvinces()
+      .then(setProvinces)
       .catch((e) => console.error('Gagal mengambil data provinsi', e));
   }, []);
 
   React.useEffect(() => {
     if (alamatProvId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${alamatProvId}.json`)
-        .then((r) => r.json())
-        .then((data) => setRegencies(data))
+      wilayahService.getRegencies(alamatProvId)
+        .then(setRegencies)
         .catch((e) => console.error('Gagal mengambil data kabupaten', e));
     } else {
       setRegencies([]);
@@ -174,9 +173,8 @@ export default function LembagaMuadalahPage() {
 
   React.useEffect(() => {
     if (alamatKabId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${alamatKabId}.json`)
-        .then((r) => r.json())
-        .then((data) => setDistricts(data))
+      wilayahService.getDistricts(alamatKabId)
+        .then(setDistricts)
         .catch((e) => console.error('Gagal mengambil data kecamatan', e));
     } else {
       setDistricts([]);
@@ -185,9 +183,8 @@ export default function LembagaMuadalahPage() {
 
   React.useEffect(() => {
     if (alamatKecId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${alamatKecId}.json`)
-        .then((r) => r.json())
-        .then((data) => setVillages(data))
+      wilayahService.getVillages(alamatKecId)
+        .then(setVillages)
         .catch((e) => console.error('Gagal mengambil data kelurahan', e));
     } else {
       setVillages([]);
@@ -378,36 +375,33 @@ export default function LembagaMuadalahPage() {
     setAlamatKelId('');
 
     if (item.provinsi) {
-      const pMatch = provinces.find(p => p.name.toUpperCase() === item.provinsi?.toUpperCase());
+      const pMatch = findMatchingWilayah(provinces, null, item.provinsi, 1);
       if (pMatch) {
-        setAlamatProvId(pMatch.id);
+        setAlamatProvId(pMatch.kode);
         try {
-          const regRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${pMatch.id}.json`);
-          const regData = await regRes.json();
+          const regData = await wilayahService.getRegencies(pMatch.kode);
           setRegencies(regData);
           
           if (item.kabupaten) {
-            const kMatch = regData.find((r: any) => r.name.toUpperCase() === item.kabupaten?.toUpperCase());
+            const kMatch = findMatchingWilayah(regData, null, item.kabupaten, 2);
             if (kMatch) {
-              setAlamatKabId(kMatch.id);
+              setAlamatKabId(kMatch.kode);
               
-              const distRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${kMatch.id}.json`);
-              const distData = await distRes.json();
+              const distData = await wilayahService.getDistricts(kMatch.kode);
               setDistricts(distData);
               
               if (item.kecamatan) {
-                const kecMatch = distData.find((d: any) => d.name.toUpperCase() === item.kecamatan?.toUpperCase());
+                const kecMatch = findMatchingWilayah(distData, null, item.kecamatan, 3);
                 if (kecMatch) {
-                  setAlamatKecId(kecMatch.id);
+                  setAlamatKecId(kecMatch.kode);
                   
-                  const vilRes = await fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${kecMatch.id}.json`);
-                  const vilData = await vilRes.json();
+                  const vilData = await wilayahService.getVillages(kecMatch.kode);
                   setVillages(vilData);
                   
                   if (item.kelurahan) {
-                    const kelMatch = vilData.find((v: any) => v.name.toUpperCase() === item.kelurahan?.toUpperCase());
+                    const kelMatch = findMatchingWilayah(vilData, null, item.kelurahan, 4);
                     if (kelMatch) {
-                      setAlamatKelId(kelMatch.id);
+                      setAlamatKelId(kelMatch.kode);
                     }
                   }
                 }
@@ -1211,7 +1205,8 @@ export default function LembagaMuadalahPage() {
                       value={alamatProvId}
                       onChange={(e) => {
                         const id = e.target.value;
-                        const name = provinces.find((p) => p.id === id)?.name || '';
+                        const selected = provinces.find(p => p.kode === id || p.id === id);
+                        const name = selected?.nama || selected?.name || '';
                         setAlamatProvId(id);
                         setFormData(prev => ({ ...prev, provinsi: name, kabupaten: '', kecamatan: '', kelurahan: '' }));
                         setAlamatKabId('');
@@ -1222,7 +1217,7 @@ export default function LembagaMuadalahPage() {
                     >
                       <option value="">-- Pilih Provinsi --</option>
                       {provinces.map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
+                        <option key={p.kode || p.id} value={p.kode || p.id}>{p.nama || p.name}</option>
                       ))}
                     </select>
                   </div>
@@ -1234,7 +1229,8 @@ export default function LembagaMuadalahPage() {
                       disabled={!alamatProvId}
                       onChange={(e) => {
                         const id = e.target.value;
-                        const name = regencies.find((r) => r.id === id)?.name || '';
+                        const selected = regencies.find(r => r.kode === id || r.id === id);
+                        const name = selected?.nama || selected?.name || '';
                         setAlamatKabId(id);
                         setFormData(prev => ({ ...prev, kabupaten: name, kecamatan: '', kelurahan: '' }));
                         setAlamatKecId('');
@@ -1244,7 +1240,7 @@ export default function LembagaMuadalahPage() {
                     >
                       <option value="">-- Pilih Kabupaten --</option>
                       {regencies.map((r) => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
+                        <option key={r.kode || r.id} value={r.kode || r.id}>{r.nama || r.name}</option>
                       ))}
                     </select>
                   </div>
@@ -1256,7 +1252,8 @@ export default function LembagaMuadalahPage() {
                       disabled={!alamatKabId}
                       onChange={(e) => {
                         const id = e.target.value;
-                        const name = districts.find((d) => d.id === id)?.name || '';
+                        const selected = districts.find(d => d.kode === id || d.id === id);
+                        const name = selected?.nama || selected?.name || '';
                         setAlamatKecId(id);
                         setFormData(prev => ({ ...prev, kecamatan: name, kelurahan: '' }));
                         setAlamatKelId('');
@@ -1265,7 +1262,7 @@ export default function LembagaMuadalahPage() {
                     >
                       <option value="">-- Pilih Kecamatan --</option>
                       {districts.map((d) => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
+                        <option key={d.kode || d.id} value={d.kode || d.id}>{d.nama || d.name}</option>
                       ))}
                     </select>
                   </div>
@@ -1277,7 +1274,8 @@ export default function LembagaMuadalahPage() {
                       disabled={!alamatKecId}
                       onChange={(e) => {
                         const id = e.target.value;
-                        const name = villages.find((v) => v.id === id)?.name || '';
+                        const selected = villages.find(v => v.kode === id || v.id === id);
+                        const name = selected?.nama || selected?.name || '';
                         setAlamatKelId(id);
                         setFormData(prev => ({ ...prev, kelurahan: name }));
                       }}
@@ -1285,7 +1283,7 @@ export default function LembagaMuadalahPage() {
                     >
                       <option value="">-- Pilih Kelurahan --</option>
                       {villages.map((v) => (
-                        <option key={v.id} value={v.id}>{v.name}</option>
+                        <option key={v.kode || v.id} value={v.kode || v.id}>{v.nama || v.name}</option>
                       ))}
                     </select>
                   </div>

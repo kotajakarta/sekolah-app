@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { normalizeTurkish, sanitizeTurkishDeep } from '../../../utils/text';
+import { wilayahService, findMatchingWilayah, normalizeWilayahCode, WilayahItem } from '../../../services/wilayah.service';
 
 const PENDIDIKAN_OPTIONS = [
   'SD/Sederajat',
@@ -84,18 +85,17 @@ export default function ModalEditBiodataSantri({
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Multi-dropdown address states matching /daftar-ulang
-  const [provinces, setProvinces] = useState<any[]>([]);
-  const [regencies, setRegencies] = useState<any[]>([]);
-  const [districts, setDistricts] = useState<any[]>([]);
-  const [villages, setVillages] = useState<any[]>([]);
+  // State dropdown wilayah
+  const [provinces, setProvinces] = useState<WilayahItem[]>([]);
+  const [regencies, setRegencies] = useState<WilayahItem[]>([]);
+  const [districts, setDistricts] = useState<WilayahItem[]>([]);
+  const [villages, setVillages] = useState<WilayahItem[]>([]);
 
   // Load provinces on modal open
   useEffect(() => {
     if (isOpen) {
-      fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
-        .then((r) => r.json())
-        .then((data) => setProvinces(data))
+      wilayahService.getProvinces()
+        .then(setProvinces)
         .catch(console.error);
     }
   }, [isOpen]);
@@ -103,9 +103,8 @@ export default function ModalEditBiodataSantri({
   // Cascading fetch: Regencies when Provinsi changes
   useEffect(() => {
     if (formData.alamatProvId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${formData.alamatProvId}.json`)
-        .then((r) => r.json())
-        .then((d) => setRegencies(d))
+      wilayahService.getRegencies(formData.alamatProvId)
+        .then(setRegencies)
         .catch(console.error);
     } else {
       setRegencies([]);
@@ -115,9 +114,8 @@ export default function ModalEditBiodataSantri({
   // Cascading fetch: Districts when Kabupaten changes
   useEffect(() => {
     if (formData.alamatKabId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${formData.alamatKabId}.json`)
-        .then((r) => r.json())
-        .then((d) => setDistricts(d))
+      wilayahService.getDistricts(formData.alamatKabId)
+        .then(setDistricts)
         .catch(console.error);
     } else {
       setDistricts([]);
@@ -127,9 +125,8 @@ export default function ModalEditBiodataSantri({
   // Cascading fetch: Villages when Kecamatan changes
   useEffect(() => {
     if (formData.alamatKecId) {
-      fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${formData.alamatKecId}.json`)
-        .then((r) => r.json())
-        .then((d) => setVillages(d))
+      wilayahService.getVillages(formData.alamatKecId)
+        .then(setVillages)
         .catch(console.error);
     } else {
       setVillages([]);
@@ -179,14 +176,14 @@ export default function ModalEditBiodataSantri({
         pendidikanIbu: initialBiodata.pendidikanIbu || '',
         penghasilanIbu: initialBiodata.penghasilanIbu || '',
 
-        // 3. Alamat Domisili
-        alamatProvId: initialBiodata.alamatProvId || '',
+        // 3. Alamat
+        alamatProvId: '',
         alamatProvName: initialBiodata.alamatProvName || '',
-        alamatKabId: initialBiodata.alamatKabId || '',
+        alamatKabId: '',
         alamatKabName: initialBiodata.alamatKabName || '',
-        alamatKecId: initialBiodata.alamatKecId || '',
+        alamatKecId: '',
         alamatKecName: initialBiodata.alamatKecName || '',
-        alamatKelId: initialBiodata.alamatKelId || '',
+        alamatKelId: '',
         alamatKelName: initialBiodata.alamatKelName || '',
         alamatJalan: initialBiodata.alamatJalan || '',
 
@@ -196,37 +193,37 @@ export default function ModalEditBiodataSantri({
         kkUrl: initialBiodata.kkUrl || '',
       });
 
-      // Pre-fetch cascaded address data if initial IDs exist
-      if (initialBiodata.alamatProvId) {
-        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${initialBiodata.alamatProvId}.json`)
-          .then((r) => r.json())
-          .then((d) => setRegencies(d))
-          .catch(console.error);
-      }
-      if (initialBiodata.alamatKabId) {
-        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${initialBiodata.alamatKabId}.json`)
-          .then((r) => r.json())
-          .then((d) => setDistricts(d))
-          .catch(console.error);
-      }
-      if (initialBiodata.alamatKecId) {
-        fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${initialBiodata.alamatKecId}.json`)
-          .then((r) => r.json())
-          .then((d) => setVillages(d))
-          .catch(console.error);
-      }
+      // Resolusi otomatis seluruh hierarki wilayah secara simultan
+      wilayahService.resolveHierarchy({
+        provId: initialBiodata.alamatProvId,
+        provName: initialBiodata.alamatProvName,
+        kabId: initialBiodata.alamatKabId,
+        kabName: initialBiodata.alamatKabName,
+        kecId: initialBiodata.alamatKecId,
+        kecName: initialBiodata.alamatKecName,
+        kelId: initialBiodata.alamatKelId,
+        kelName: initialBiodata.alamatKelName,
+        jalan: initialBiodata.alamatJalan,
+      }).then((res) => {
+        if (res.provinces.length) setProvinces(res.provinces);
+        if (res.regencies.length) setRegencies(res.regencies);
+        if (res.districts.length) setDistricts(res.districts);
+        if (res.villages.length) setVillages(res.villages);
+
+        setFormData((prev: any) => ({
+          ...prev,
+          alamatProvId: res.selectedProv?.kode || '',
+          alamatProvName: res.selectedProv?.nama || initialBiodata.alamatProvName || '',
+          alamatKabId: res.selectedKab?.kode || '',
+          alamatKabName: res.selectedKab?.nama || initialBiodata.alamatKabName || '',
+          alamatKecId: res.selectedKec?.kode || '',
+          alamatKecName: res.selectedKec?.nama || initialBiodata.alamatKecName || '',
+          alamatKelId: res.selectedKel?.kode || '',
+          alamatKelName: res.selectedKel?.nama || initialBiodata.alamatKelName || '',
+        }));
+      }).catch(console.error);
     }
   }, [initialBiodata, isOpen]);
-
-  // Match province ID by name if ID was not stored
-  useEffect(() => {
-    if (provinces.length > 0 && !formData.alamatProvId && formData.alamatProvName) {
-      const match = provinces.find((p) => p.name.toLowerCase() === formData.alamatProvName.toLowerCase());
-      if (match) {
-        setFormData((prev: any) => ({ ...prev, alamatProvId: match.id }));
-      }
-    }
-  }, [provinces, formData.alamatProvName, formData.alamatProvId]);
 
   const handleChange = (field: string, val: any) => {
     const cleanVal = typeof val === 'string' ? normalizeTurkish(val) : val;
@@ -779,11 +776,13 @@ export default function ModalEditBiodataSantri({
                   <select
                     value={formData.alamatProvId}
                     onChange={(e) => {
-                      const selectedText = e.target.options[e.target.selectedIndex]?.text || '';
+                      const id = e.target.value;
+                      const selected = provinces.find(p => p.kode === id || p.id === id);
+                      const name = selected?.nama || selected?.name || '';
                       setFormData((prev: any) => ({
                         ...prev,
-                        alamatProvId: e.target.value,
-                        alamatProvName: selectedText === 'Pilih Provinsi' ? '' : selectedText,
+                        alamatProvId: id,
+                        alamatProvName: name,
                         alamatKabId: '',
                         alamatKabName: '',
                         alamatKecId: '',
@@ -796,8 +795,8 @@ export default function ModalEditBiodataSantri({
                   >
                     <option value="">Pilih Provinsi</option>
                     {provinces.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
+                      <option key={p.kode || p.id} value={p.kode || p.id}>
+                        {p.nama || p.name}
                       </option>
                     ))}
                   </select>
@@ -812,11 +811,13 @@ export default function ModalEditBiodataSantri({
                     value={formData.alamatKabId}
                     disabled={!formData.alamatProvId}
                     onChange={(e) => {
-                      const selectedText = e.target.options[e.target.selectedIndex]?.text || '';
+                      const id = e.target.value;
+                      const selected = regencies.find(r => r.kode === id || r.id === id);
+                      const name = selected?.nama || selected?.name || '';
                       setFormData((prev: any) => ({
                         ...prev,
-                        alamatKabId: e.target.value,
-                        alamatKabName: selectedText === 'Pilih Kabupaten/Kota' ? '' : selectedText,
+                        alamatKabId: id,
+                        alamatKabName: name,
                         alamatKecId: '',
                         alamatKecName: '',
                         alamatKelId: '',
@@ -827,8 +828,8 @@ export default function ModalEditBiodataSantri({
                   >
                     <option value="">Pilih Kabupaten/Kota</option>
                     {regencies.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
+                      <option key={r.kode || r.id} value={r.kode || r.id}>
+                        {r.nama || r.name}
                       </option>
                     ))}
                   </select>
@@ -843,11 +844,13 @@ export default function ModalEditBiodataSantri({
                     value={formData.alamatKecId}
                     disabled={!formData.alamatKabId}
                     onChange={(e) => {
-                      const selectedText = e.target.options[e.target.selectedIndex]?.text || '';
+                      const id = e.target.value;
+                      const selected = districts.find(d => d.kode === id || d.id === id);
+                      const name = selected?.nama || selected?.name || '';
                       setFormData((prev: any) => ({
                         ...prev,
-                        alamatKecId: e.target.value,
-                        alamatKecName: selectedText === 'Pilih Kecamatan' ? '' : selectedText,
+                        alamatKecId: id,
+                        alamatKecName: name,
                         alamatKelId: '',
                         alamatKelName: ''
                       }));
@@ -856,8 +859,8 @@ export default function ModalEditBiodataSantri({
                   >
                     <option value="">Pilih Kecamatan</option>
                     {districts.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
+                      <option key={d.kode || d.id} value={d.kode || d.id}>
+                        {d.nama || d.name}
                       </option>
                     ))}
                   </select>
@@ -872,19 +875,21 @@ export default function ModalEditBiodataSantri({
                     value={formData.alamatKelId}
                     disabled={!formData.alamatKecId}
                     onChange={(e) => {
-                      const selectedText = e.target.options[e.target.selectedIndex]?.text || '';
+                      const id = e.target.value;
+                      const selected = villages.find(v => v.kode === id || v.id === id);
+                      const name = selected?.nama || selected?.name || '';
                       setFormData((prev: any) => ({
                         ...prev,
-                        alamatKelId: e.target.value,
-                        alamatKelName: selectedText === 'Pilih Kelurahan/Desa' ? '' : selectedText
+                        alamatKelId: id,
+                        alamatKelName: name
                       }));
                     }}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:border-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <option value="">Pilih Kelurahan/Desa</option>
                     {villages.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name}
+                      <option key={v.kode || v.id} value={v.kode || v.id}>
+                        {v.nama || v.name}
                       </option>
                     ))}
                   </select>

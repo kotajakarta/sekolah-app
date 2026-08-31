@@ -778,8 +778,15 @@ export default function DashboardBapAdmin() {
 
                       <td className="px-6 py-4 text-right">
                         <button
-                          onClick={() => navigate('/dashboard/kegiatan')}
-                          className="px-3.5 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition-colors cursor-pointer shadow-2xs"
+                          type="button"
+                          onClick={() => {
+                            const params = new URLSearchParams();
+                            if (cab.cabangName) params.set('cabang', cab.cabangName);
+                            if (cab.cabangId) params.set('cabangId', cab.cabangId);
+                            if (selectedTemplateFilter) params.set('templateId', selectedTemplateFilter);
+                            navigate(`/dashboard/kegiatan?${params.toString()}`);
+                          }}
+                          className="px-3.5 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 hover:border-indigo-300 transition-all cursor-pointer shadow-2xs inline-flex items-center gap-1"
                         >
                           Lihat Laporan
                         </button>
@@ -947,8 +954,13 @@ export default function DashboardBapAdmin() {
                           </button>
                         ) : (
                           <button
-                            onClick={() => navigate('/dashboard/kegiatan')}
-                            className="px-3.5 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition-colors cursor-pointer shadow-2xs"
+                            type="button"
+                            onClick={() => {
+                              const params = new URLSearchParams();
+                              if (tmpl.templateId) params.set('templateId', tmpl.templateId);
+                              navigate(`/dashboard/kegiatan?${params.toString()}`);
+                            }}
+                            className="px-3.5 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 hover:border-indigo-300 transition-all cursor-pointer shadow-2xs inline-flex items-center gap-1"
                           >
                             Lihat Laporan
                           </button>

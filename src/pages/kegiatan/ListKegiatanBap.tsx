@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
@@ -36,6 +36,9 @@ interface Dokumen {
 
 interface Kegiatan {
   id: string;
+  templateId?: string;
+  cabangId?: string;
+  asramaId?: string | null;
   deskripsi?: string;
   tanggalKegiatan?: string | null;
   waktuKegiatan?: string | null;
@@ -53,12 +56,13 @@ interface Kegiatan {
   isConfirmed: boolean;
   confirmedAt: string | null;
   confirmedByUser: { operatorName: string | null; username: string } | null;
-  cabang: { name: string };
-  asrama?: { nama: string } | null;
+  cabang: { id?: string; name: string };
+  asrama?: { id?: string; nama: string } | null;
   panitia: Panitia[];
   dokumen: Dokumen[];
   createdAt: string;
   template: {
+    id?: string;
     judul: string;
     deskripsi?: string;
     deadline: string;
@@ -180,15 +184,53 @@ export default function ListKegiatanBap() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<Dokumen | null>(null);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialCabang = searchParams.get('cabang') || searchParams.get('cabangName') || searchParams.get('cabangId') || 'ALL';
+  const initialTemplate = searchParams.get('templateId') || searchParams.get('template') || 'ALL';
+  const initialStatus = (searchParams.get('status') as any) || 'ALL';
+  const initialSearch = searchParams.get('search') || searchParams.get('q') || '';
+  const initialJenis = searchParams.get('jenis') || 'ALL';
+
   // Advanced Filter States
-  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedJenis, setSelectedJenis] = useState('ALL');
-  const [selectedCabang, setSelectedCabang] = useState('ALL');
-  const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'CONFIRMED' | 'PENDING'>('ALL');
+  const [isFilterExpanded, setIsFilterExpanded] = useState(
+    initialCabang !== 'ALL' || initialTemplate !== 'ALL' || initialStatus !== 'ALL' || !!initialSearch
+  );
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
+  const [selectedJenis, setSelectedJenis] = useState(initialJenis);
+  const [selectedCabang, setSelectedCabang] = useState(initialCabang);
+  const [selectedTemplate, setSelectedTemplate] = useState(initialTemplate);
+  const [selectedStatus, setSelectedStatus] = useState<'ALL' | 'CONFIRMED' | 'PENDING'>(
+    ['ALL', 'CONFIRMED', 'PENDING'].includes(initialStatus) ? initialStatus : 'ALL'
+  );
   const [selectedDeadline, setSelectedDeadline] = useState<'ALL' | 'ACTIVE' | 'CLOSED'>('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // Sinkronisasi jika URL search params berubah (misal navigasi dari Dashboard BAP)
+  useEffect(() => {
+    const c = searchParams.get('cabang') || searchParams.get('cabangName') || searchParams.get('cabangId');
+    if (c) {
+      setSelectedCabang(c);
+      setIsFilterExpanded(true);
+    }
+    const t = searchParams.get('templateId') || searchParams.get('template');
+    if (t) {
+      setSelectedTemplate(t);
+      setIsFilterExpanded(true);
+    }
+    const s = searchParams.get('status');
+    if (s && ['ALL', 'CONFIRMED', 'PENDING'].includes(s)) {
+      setSelectedStatus(s as any);
+    }
+    const q = searchParams.get('search') || searchParams.get('q');
+    if (q !== null && q !== undefined) {
+      setSearchQuery(q);
+    }
+    const j = searchParams.get('jenis');
+    if (j) {
+      setSelectedJenis(j);
+    }
+  }, [searchParams]);
 
   // Fetch all BAPs
   const { data: BAPs = [], isLoading, isError } = useQuery<Kegiatan[]>({
@@ -214,6 +256,16 @@ export default function ListKegiatanBap() {
       if (b.cabang?.name) set.add(b.cabang.name);
     });
     return Array.from(set).sort();
+  }, [BAPs]);
+
+  const templateList = useMemo(() => {
+    const map = new Map<string, string>();
+    BAPs.forEach(b => {
+      if (b.template?.id && b.template?.judul) {
+        map.set(b.template.id, b.template.judul);
+      }
+    });
+    return Array.from(map.entries()).map(([id, judul]) => ({ id, judul }));
   }, [BAPs]);
 
   // Filtered BAPs
@@ -242,8 +294,23 @@ export default function ListKegiatanBap() {
       }
 
       // 3. Cabang
-      if (selectedCabang !== 'ALL' && bap.cabang?.name !== selectedCabang) {
-        return false;
+      if (selectedCabang !== 'ALL') {
+        const target = selectedCabang.toLowerCase();
+        const matchName = bap.cabang?.name?.toLowerCase() === target;
+        const matchId = bap.cabangId === selectedCabang || bap.cabang?.id === selectedCabang;
+        if (!matchName && !matchId) {
+          return false;
+        }
+      }
+
+      // 3.1 Template
+      if (selectedTemplate !== 'ALL') {
+        const target = selectedTemplate.toLowerCase();
+        const matchId = bap.templateId === selectedTemplate || bap.template?.id === selectedTemplate;
+        const matchJudul = bap.template?.judul?.toLowerCase() === target;
+        if (!matchId && !matchJudul) {
+          return false;
+        }
       }
 
       // 4. Status Konfirmasi
@@ -271,7 +338,7 @@ export default function ListKegiatanBap() {
 
       return true;
     });
-  }, [BAPs, searchQuery, selectedJenis, selectedCabang, selectedStatus, selectedDeadline, startDate, endDate]);
+  }, [BAPs, searchQuery, selectedJenis, selectedCabang, selectedTemplate, selectedStatus, selectedDeadline, startDate, endDate]);
 
   // Active filter count
   const activeFiltersCount = useMemo(() => {
@@ -279,21 +346,24 @@ export default function ListKegiatanBap() {
     if (searchQuery.trim()) count++;
     if (selectedJenis !== 'ALL') count++;
     if (selectedCabang !== 'ALL') count++;
+    if (selectedTemplate !== 'ALL') count++;
     if (selectedStatus !== 'ALL') count++;
     if (selectedDeadline !== 'ALL') count++;
     if (startDate) count++;
     if (endDate) count++;
     return count;
-  }, [searchQuery, selectedJenis, selectedCabang, selectedStatus, selectedDeadline, startDate, endDate]);
+  }, [searchQuery, selectedJenis, selectedCabang, selectedTemplate, selectedStatus, selectedDeadline, startDate, endDate]);
 
   const handleResetFilters = () => {
     setSearchQuery('');
     setSelectedJenis('ALL');
     setSelectedCabang('ALL');
+    setSelectedTemplate('ALL');
     setSelectedStatus('ALL');
     setSelectedDeadline('ALL');
     setStartDate('');
     setEndDate('');
+    setSearchParams({});
   };
 
   // Mutation to confirm BAP receipt (Pusat Only)
@@ -520,6 +590,23 @@ export default function ListKegiatanBap() {
               </select>
             </div>
 
+            {/* Template Kegiatan */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                Template Kegiatan
+              </label>
+              <select
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-600 transition-all cursor-pointer"
+              >
+                <option value="ALL">Semua Template Kegiatan</option>
+                {templateList.map(t => (
+                  <option key={t.id} value={t.id}>{t.judul}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Status Tenggat */}
             <div>
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
@@ -564,6 +651,81 @@ export default function ListKegiatanBap() {
           </div>
         )}
       </div>
+
+      {/* Active Filter Indicators Banner */}
+      {(selectedCabang !== 'ALL' || selectedTemplate !== 'ALL' || selectedStatus !== 'ALL') && (
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 bg-indigo-50/70 border border-indigo-200/80 rounded-2xl animate-in fade-in duration-200">
+          <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5 mr-1">
+            <Filter className="w-3.5 h-3.5 text-indigo-600" /> Filter Aktif:
+          </span>
+          {selectedCabang !== 'ALL' && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-white text-indigo-700 border border-indigo-200 shadow-2xs">
+              <Building className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Cabang: {selectedCabang}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCabang('ALL');
+                  const p = new URLSearchParams(searchParams);
+                  p.delete('cabang');
+                  p.delete('cabangName');
+                  p.delete('cabangId');
+                  setSearchParams(p);
+                }}
+                className="text-slate-400 hover:text-rose-600 ml-1 cursor-pointer"
+                title="Hapus filter cabang"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          )}
+          {selectedTemplate !== 'ALL' && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-white text-indigo-700 border border-indigo-200 shadow-2xs">
+              <FileText className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Template: {templateList.find(t => t.id === selectedTemplate)?.judul || selectedTemplate}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTemplate('ALL');
+                  const p = new URLSearchParams(searchParams);
+                  p.delete('templateId');
+                  p.delete('template');
+                  setSearchParams(p);
+                }}
+                className="text-slate-400 hover:text-rose-600 ml-1 cursor-pointer"
+                title="Hapus filter template"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          )}
+          {selectedStatus !== 'ALL' && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-white text-indigo-700 border border-indigo-200 shadow-2xs">
+              <span>Status: {selectedStatus === 'CONFIRMED' ? 'Diterima Pusat' : 'Menunggu Verifikasi'}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedStatus('ALL');
+                  const p = new URLSearchParams(searchParams);
+                  p.delete('status');
+                  setSearchParams(p);
+                }}
+                className="text-slate-400 hover:text-rose-600 ml-1 cursor-pointer"
+                title="Hapus filter status"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleResetFilters}
+            className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline ml-auto cursor-pointer"
+          >
+            Hapus Semua Filter
+          </button>
+        </div>
+      )}
 
       {/* Main BAP Content (Compact 1-Line Table View) */}
       {isLoading ? (

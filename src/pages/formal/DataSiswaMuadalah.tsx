@@ -18,9 +18,10 @@ export default function DataSiswaMuadalah() {
   const queryClient = useQueryClient();
   const [studentToEdit, setStudentToEdit] = useState<any>(null);
   
+  const isLockedScope = user?.scope === 'CABANG' || user?.scope === 'WALI_KELAS' || user?.scope === 'GURU';
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
-    wilayahId: user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? user?.wilayahId || '' : '',
-    cabangId: user?.scope === 'CABANG' ? user?.cabangId || '' : '',
+    wilayahId: user?.scope === 'WILAYAH' || isLockedScope ? user?.wilayahId || '' : '',
+    cabangId: isLockedScope ? user?.cabangId || '' : '',
     kelasId: '',
     lembagaMuadalahId: ''
   });

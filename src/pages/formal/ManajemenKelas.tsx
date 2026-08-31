@@ -111,9 +111,10 @@ export default function ManajemenKelas() {
   const [isConfirmDeleteAllOpen, setIsConfirmDeleteAllOpen] = useState(false);
 
   // Filter states
+  const isBranchLocked = user?.scope === 'CABANG' || user?.scope === 'WALI_KELAS' || user?.scope === 'GURU';
   const [filterMuadalah, setFilterMuadalah] = useState('');
-  const [filterWilayah, setFilterWilayah] = useState(user?.scope === 'CABANG' || user?.scope === 'WILAYAH' ? user?.wilayahId || '' : '');
-  const [filterCabang, setFilterCabang] = useState(user?.scope === 'CABANG' ? user?.cabangId || '' : '');
+  const [filterWilayah, setFilterWilayah] = useState(user?.scope === 'WILAYAH' || isBranchLocked ? user?.wilayahId || '' : '');
+  const [filterCabang, setFilterCabang] = useState(isBranchLocked ? user?.cabangId || '' : '');
   const [filterStatus, setFilterStatus] = useState('');
 
   const { data: kelasList, isLoading } = useQuery<Kelas[]>({

@@ -39,9 +39,12 @@ export default function AdvancedFilterBar({
   
   const [isExpanded, setIsExpanded] = useState(false);
   
+  const isBranchLocked = userScope === 'CABANG' || userScope === 'WALI_KELAS' || userScope === 'GURU';
+  const isWilayahLocked = userScope === 'WILAYAH' || isBranchLocked;
+
   const [filters, setFilters] = useState<FilterState>({
-    wilayahId: userScope === 'WILAYAH' || userScope === 'CABANG' ? userWilayahId || '' : '',
-    cabangId: userScope === 'CABANG' ? userCabangId || '' : '',
+    wilayahId: isWilayahLocked ? userWilayahId || '' : '',
+    cabangId: isBranchLocked ? userCabangId || '' : '',
     kelasId: '',
     lembagaMuadalahId: '',
     jenisDaimi: '',
@@ -50,8 +53,8 @@ export default function AdvancedFilterBar({
 
   const getActiveFiltersCount = () => {
     let count = 0;
-    if (filters.wilayahId && userScope !== 'WILAYAH' && userScope !== 'CABANG') count++;
-    if (filters.cabangId && userScope !== 'CABANG') count++;
+    if (filters.wilayahId && !isWilayahLocked) count++;
+    if (filters.cabangId && !isBranchLocked) count++;
     if (filters.kelasId) count++;
     if (filters.lembagaMuadalahId) count++;
     if (filters.jenisDaimi) count++;
@@ -192,7 +195,7 @@ export default function AdvancedFilterBar({
               <select
                 value={filters.wilayahId}
                 onChange={(e) => handleChange('wilayahId', e.target.value)}
-                disabled={userScope === 'WILAYAH' || userScope === 'CABANG'}
+                disabled={isWilayahLocked}
                 className="w-full text-xs rounded-lg border border-slate-300 bg-slate-50 py-1.5 px-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500"
               >
                 <option value="">Semua Wilayah</option>
@@ -207,7 +210,7 @@ export default function AdvancedFilterBar({
               <select
                 value={filters.cabangId}
                 onChange={(e) => handleChange('cabangId', e.target.value)}
-                disabled={userScope === 'CABANG'}
+                disabled={isBranchLocked}
                 className="w-full text-xs rounded-lg border border-slate-300 bg-slate-50 py-1.5 px-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500"
               >
                 <option value="">Semua Cabang</option>

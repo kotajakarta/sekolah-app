@@ -42,7 +42,7 @@ export default function AbsensiSiswa() {
   const { user } = useAuth();
   const isGlobal = user?.scope === 'GLOBAL';
   const isWilayah = user?.scope === 'WILAYAH';
-  const isCabang = user?.scope === 'CABANG';
+  const isCabang = user?.scope === 'CABANG' || user?.scope === 'WALI_KELAS' || user?.scope === 'GURU';
 
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedWilayah, setSelectedWilayah] = useState<string>('');
@@ -147,6 +147,13 @@ export default function AbsensiSiswa() {
       setSelectedProgram(programs[0].id);
     }
   }, [programs, selectedProgram]);
+
+  // Auto select class if only 1 class is available (e.g. for Wali Kelas)
+  useEffect(() => {
+    if (classes && classes.length === 1 && !selectedKelas) {
+      setSelectedKelas(classes[0].id);
+    }
+  }, [classes, selectedKelas]);
 
   // 5. Load attendance list of students when filters change
   const { data: fetchedKehadiran, isLoading: loadingKehadiran, refetch, isError } = useQuery<KehadiranRow[]>({

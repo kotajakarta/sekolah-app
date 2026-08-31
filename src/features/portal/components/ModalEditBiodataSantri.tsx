@@ -553,12 +553,13 @@ export default function ModalEditBiodataSantri({
                       className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold"
                     >
                       <option value="Masih Hidup">Masih Hidup</option>
-                      <option value="Wafat">Wafat</option>
+                      <option value="Sudah Meninggal">Sudah Meninggal</option>
+                      <option value="Tidak Diketahui">Tidak Diketahui</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
-                      NIK Ayah {formData.statusHidupAyah !== 'Wafat' && <span className="text-rose-500">*</span>}
+                      NIK Ayah {formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat' && <span className="text-rose-500">*</span>}
                     </label>
                     <input
                       type="text"
@@ -666,12 +667,13 @@ export default function ModalEditBiodataSantri({
                       className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold"
                     >
                       <option value="Masih Hidup">Masih Hidup</option>
-                      <option value="Wafat">Wafat</option>
+                      <option value="Sudah Meninggal">Sudah Meninggal</option>
+                      <option value="Tidak Diketahui">Tidak Diketahui</option>
                     </select>
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
-                      NIK Ibu {formData.statusHidupIbu !== 'Wafat' && <span className="text-rose-500">*</span>}
+                      NIK Ibu {formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat' && <span className="text-rose-500">*</span>}
                     </label>
                     <input
                       type="text"

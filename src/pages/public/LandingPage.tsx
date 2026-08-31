@@ -56,15 +56,13 @@ export default function LandingPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-3">
-            <a
-              href="https://pendaftaran.tahfidzsulaimaniyah.org/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-bold text-sky-700 hover:text-sky-800 bg-sky-50 hover:bg-sky-100 px-4 py-2 rounded-full transition-colors border border-sky-200"
+            <button
+              onClick={() => navigate('/ppdb')}
+              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-bold text-sky-700 hover:text-sky-800 bg-sky-50 hover:bg-sky-100 px-4 py-2 rounded-full transition-colors border border-sky-200 cursor-pointer"
             >
               <GraduationCap className="w-4 h-4 text-sky-600" />
-              PPDB
-            </a>
+              Info PPDB
+            </button>
             <button
               onClick={() => navigate('/portal-register')}
               className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-full transition-colors border border-emerald-200/80"
@@ -119,15 +117,13 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center gap-4 flex-wrap justify-center">
-            <a
-              href="https://pendaftaran.tahfidzsulaimaniyah.org/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-8 py-4 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5"
+            <button
+              onClick={() => navigate('/ppdb')}
+              className="px-8 py-4 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5 cursor-pointer"
             >
               <GraduationCap className="w-5 h-5" />
-              PPDB Santri Baru
-            </a>
+              Info Lengkap PPDB
+            </button>
             <button
               onClick={() => navigate('/portal-register')}
               className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5"
@@ -515,14 +511,21 @@ export default function LandingPage() {
             Segera manfaatkan teknologi untuk mereduksi birokrasi dan meningkatkan produktivitas. Akses eSantri sekarang juga!
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <button
+              onClick={() => navigate('/ppdb')}
+              className="px-8 py-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold rounded-full transition-all shadow-xl flex items-center gap-2 cursor-pointer"
+            >
+              <GraduationCap className="w-5 h-5" />
+              Info Lengkap PPDB
+            </button>
             <a
               href="https://pendaftaran.tahfidzsulaimaniyah.org/"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-8 py-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold rounded-full transition-all shadow-xl flex items-center gap-2"
+              className="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full transition-all shadow-xl flex items-center gap-2"
             >
-              <GraduationCap className="w-5 h-5" />
-              Pendaftaran PPDB
+              <ExternalLink className="w-5 h-5" />
+              Daftar Online PPDB
             </a>
             <button
               onClick={() => navigate('/login')}
@@ -562,13 +565,21 @@ export default function LandingPage() {
             <h4 className="text-white font-semibold mb-4">Akses Cepat</h4>
             <ul className="space-y-2 text-sm">
               <li>
+                <button
+                  onClick={() => navigate('/ppdb')}
+                  className="hover:text-[#00B4D8] transition-colors inline-flex items-center gap-1 text-sky-400 font-semibold cursor-pointer"
+                >
+                  Informasi PPDB 2027–2028 <ChevronRight className="w-3 h-3 ml-0.5" />
+                </button>
+              </li>
+              <li>
                 <a
                   href="https://pendaftaran.tahfidzsulaimaniyah.org/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-[#00B4D8] transition-colors inline-flex items-center gap-1 text-sky-400 font-semibold"
+                  className="hover:text-[#00B4D8] transition-colors inline-flex items-center gap-1 text-emerald-400 font-semibold"
                 >
-                  PPDB Santri Baru <ExternalLink className="w-3 h-3 ml-0.5" />
+                  Portal Pendaftaran PPDB <ExternalLink className="w-3 h-3 ml-0.5" />
                 </a>
               </li>
               <li><a href="#beranda" className="hover:text-[#00B4D8] transition-colors">Beranda</a></li>

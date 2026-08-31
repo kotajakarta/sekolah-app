@@ -92,6 +92,26 @@ export default function DataCabang() {
     }
   }, [cabang, location.search, navigate]);
 
+// Helper to normalize Turkish characters and casing for daimi keys
+const normalizeDaimiKey = (str?: string | null): string => {
+  if (!str) return '';
+  return str
+    .trim()
+    .toUpperCase()
+    .replace(/İ/g, 'I')
+    .replace(/ı/g, 'I')
+    .replace(/Ü/g, 'U')
+    .replace(/ü/g, 'U')
+    .replace(/Ö/g, 'O')
+    .replace(/ö/g, 'O')
+    .replace(/Ş/g, 'S')
+    .replace(/ş/g, 'S')
+    .replace(/Ç/g, 'C')
+    .replace(/ç/g, 'C')
+    .replace(/Ğ/g, 'G')
+    .replace(/ğ/g, 'G');
+};
+
   // Helper to extract student stats per cabang based on selected Jenis Daimi filter
   const getSiswaStatsForCabang = (item: Cabang, selectedJenis: string) => {
     const base = item.siswaStats || {
@@ -100,27 +120,81 @@ export default function DataCabang() {
       tingkat: { tingkat7: 0, tingkat8: 0, tingkat9: 0, tingkat10: 0, tingkat11: 0, tingkat12: 0, lulus: 0, sekolahLain: 0 }
     };
 
-    if (selectedJenis === 'ALL') {
+    if (selectedJenis === 'ALL' || !selectedJenis) {
       return base;
     }
 
     const byGrup = base.byGrup || {};
-    const upperSel = selectedJenis.toUpperCase().trim();
+    const normSelected = normalizeDaimiKey(selectedJenis);
 
-    let matchedStats = byGrup[upperSel];
-    if (!matchedStats) {
-      const matchKey = Object.keys(byGrup).find(k => k.includes(upperSel) || upperSel.includes(k));
-      if (matchKey) {
-        matchedStats = byGrup[matchKey];
+    // If filtering for NO_GRUP / Tanpa Grup Daimi
+    if (normSelected === 'NO_GRUP' || normSelected.includes('TANPA')) {
+      const noGrupStats = {
+        totalSiswa: 0,
+        grup: base.grup,
+        tingkat: { tingkat7: 0, tingkat8: 0, tingkat9: 0, tingkat10: 0, tingkat11: 0, tingkat12: 0, lulus: 0, sekolahLain: 0 }
+      };
+      let found = false;
+      Object.keys(byGrup).forEach(k => {
+        const normK = normalizeDaimiKey(k);
+        if (normK === 'NO_GRUP' || normK.includes('TANPA') || normK === '-' || normK === 'NONE' || normK === 'BELUM ADA') {
+          found = true;
+          const s = byGrup[k];
+          noGrupStats.totalSiswa += s.totalSiswa || 0;
+          noGrupStats.tingkat.tingkat7 += s.tingkat?.tingkat7 || 0;
+          noGrupStats.tingkat.tingkat8 += s.tingkat?.tingkat8 || 0;
+          noGrupStats.tingkat.tingkat9 += s.tingkat?.tingkat9 || 0;
+          noGrupStats.tingkat.tingkat10 += s.tingkat?.tingkat10 || 0;
+          noGrupStats.tingkat.tingkat11 += s.tingkat?.tingkat11 || 0;
+          noGrupStats.tingkat.tingkat12 += s.tingkat?.tingkat12 || 0;
+          noGrupStats.tingkat.lulus += s.tingkat?.lulus || 0;
+          noGrupStats.tingkat.sekolahLain += s.tingkat?.sekolahLain || 0;
+        }
+      });
+      if (found) return noGrupStats;
+    }
+
+    // Exact normalized key match first
+    for (const [key, val] of Object.entries(byGrup)) {
+      if (normalizeDaimiKey(key) === normSelected) {
+        return {
+          totalSiswa: val.totalSiswa || 0,
+          grup: base.grup,
+          tingkat: val.tingkat || { tingkat7: 0, tingkat8: 0, tingkat9: 0, tingkat10: 0, tingkat11: 0, tingkat12: 0, lulus: 0, sekolahLain: 0 }
+        };
       }
     }
 
-    if (matchedStats) {
-      return {
-        totalSiswa: matchedStats.totalSiswa,
-        grup: base.grup,
-        tingkat: matchedStats.tingkat
-      };
+    // Fallback: match partial/includes with category safeguards
+    const aggStats = {
+      totalSiswa: 0,
+      grup: base.grup,
+      tingkat: { tingkat7: 0, tingkat8: 0, tingkat9: 0, tingkat10: 0, tingkat11: 0, tingkat12: 0, lulus: 0, sekolahLain: 0 }
+    };
+    let matchCount = 0;
+
+    Object.keys(byGrup).forEach(k => {
+      const normK = normalizeDaimiKey(k);
+      const isLiseMismatch = (normK.includes('LISE') && !normSelected.includes('LISE')) || (!normK.includes('LISE') && normSelected.includes('LISE'));
+      const isOrtaokulMismatch = (normK.includes('ORTAOKUL') && !normSelected.includes('ORTAOKUL')) || (!normK.includes('ORTAOKUL') && normSelected.includes('ORTAOKUL'));
+
+      if (!isLiseMismatch && !isOrtaokulMismatch && (normK === normSelected || normK.includes(normSelected) || normSelected.includes(normK))) {
+        matchCount++;
+        const s = byGrup[k];
+        aggStats.totalSiswa += s.totalSiswa || 0;
+        aggStats.tingkat.tingkat7 += s.tingkat?.tingkat7 || 0;
+        aggStats.tingkat.tingkat8 += s.tingkat?.tingkat8 || 0;
+        aggStats.tingkat.tingkat9 += s.tingkat?.tingkat9 || 0;
+        aggStats.tingkat.tingkat10 += s.tingkat?.tingkat10 || 0;
+        aggStats.tingkat.tingkat11 += s.tingkat?.tingkat11 || 0;
+        aggStats.tingkat.tingkat12 += s.tingkat?.tingkat12 || 0;
+        aggStats.tingkat.lulus += s.tingkat?.lulus || 0;
+        aggStats.tingkat.sekolahLain += s.tingkat?.sekolahLain || 0;
+      }
+    });
+
+    if (matchCount > 0) {
+      return aggStats;
     }
 
     return {
@@ -237,7 +311,7 @@ export default function DataCabang() {
                        (s.tingkat?.tingkat11 || 0) +
                        (s.tingkat?.tingkat12 || 0) +
                        (s.tingkat?.sekolahLain || 0);
-        return rowSum > 0;
+        return (s.totalSiswa || 0) > 0 || rowSum > 0;
       });
     }
 
@@ -562,11 +636,7 @@ export default function DataCabang() {
         item.alamatProvName
       ].filter(Boolean).join(', ') || '-';
 
-      const s = item.siswaStats || {
-        totalSiswa: item._count?.students || 0,
-        grup: { hazirlik: 0, hafizlik: 0, ibtidai: 0, ihzari: 0 },
-        tingkat: { tingkat7: 0, tingkat8: 0, tingkat9: 0, tingkat10: 0, tingkat11: 0, tingkat12: 0, lulus: 0, sekolahLain: 0 }
-      };
+      const s = getSiswaStatsForCabang(item, filterJenisDaimi);
       const t = item.targetKuota || {
         targetHazirlik: 0, targetHafizlik: 0, targetIbtidai: 0, targetIhzari: 0,
         targetTingkat7: 0, targetTingkat8: 0, targetTingkat9: 0, targetTingkat10: 0, targetTingkat11: 0, targetTingkat12: 0

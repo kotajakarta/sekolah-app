@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { usePortalStudent } from '../../features/portal/context/PortalStudentContext';
@@ -116,6 +117,7 @@ export default function PortalCctv() {
     staleTime: 60_000,
   });
 
+  const isCctvFeatureActive = moduleSettings?.cctvEnabled !== false && moduleSettings?.walsanCctvEnabled !== false;
   const isProtectionEnabled = moduleSettings?.cctvProtectionEnabled !== false;
   const [isUnlocked, setIsUnlocked] = useState(
     () => !isProtectionEnabled || sessionStorage.getItem('cctv_unlocked_session') === 'true'
@@ -132,7 +134,7 @@ export default function PortalCctv() {
       });
       return res.data;
     },
-    enabled: !!selectedLink?.studentId && (!isProtectionEnabled || isUnlocked),
+    enabled: isCctvFeatureActive && !!selectedLink?.studentId && (!isProtectionEnabled || isUnlocked),
   });
 
   const activeChannels: CCTVChannel[] = (dbChannels || []).map((c: any) => ({
@@ -166,6 +168,31 @@ export default function PortalCctv() {
       setSelectedChannel(null);
     }
   }, [dbChannels]);
+
+  // ── FITUR DINONAKTIFKAN SCREEN ──
+  if (moduleSettings && !isCctvFeatureActive) {
+    return (
+      <div className="max-w-xl mx-auto my-12 p-8 bg-white rounded-3xl border border-slate-200/80 shadow-xs text-center space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 mx-auto">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <div className="space-y-1">
+          <h2 className="text-xl font-bold text-slate-800">Fitur Live CCTV Dinonaktifkan</h2>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+            Layanan pemantauan CCTV saat ini sedang dinonaktifkan oleh administrator sistem.
+          </p>
+        </div>
+        <div className="pt-2">
+          <Link
+            to="/portal"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-sm"
+          >
+            Kembali ke Beranda Portal
+          </Link>
+        </div>
+      </div>
+    );
+  }
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);

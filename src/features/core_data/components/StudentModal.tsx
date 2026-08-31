@@ -592,11 +592,11 @@ export default function StudentModal({ student, onClose }: StudentModalProps) {
       errors['noKk'] = 'Nomor KK harus 16 digit angka';
       if (!firstErrorTab) firstErrorTab = 'SANTRI';
     }
-    if (formData.nikAyah && (formData.statusHidupAyah !== 'Wafat' || formData.nikAyah.trim()) && !/^\d{16}$/.test(formData.nikAyah.trim())) {
+    if (formData.nikAyah && ((formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat') || formData.nikAyah.trim()) && !/^\d{16}$/.test(formData.nikAyah.trim())) {
       errors['nikAyah'] = 'NIK Ayah harus 16 digit angka';
       if (!firstErrorTab) firstErrorTab = 'ORANG_TUA';
     }
-    if (formData.nikIbu && (formData.statusHidupIbu !== 'Wafat' || formData.nikIbu.trim()) && !/^\d{16}$/.test(formData.nikIbu.trim())) {
+    if (formData.nikIbu && ((formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat') || formData.nikIbu.trim()) && !/^\d{16}$/.test(formData.nikIbu.trim())) {
       errors['nikIbu'] = 'NIK Ibu harus 16 digit angka';
       if (!firstErrorTab) firstErrorTab = 'ORANG_TUA';
     }

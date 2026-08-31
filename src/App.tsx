@@ -66,6 +66,8 @@ import LembagaMuadalahPage from './pages/formal/LembagaMuadalah';
 import ManajemenRuang from './pages/sarpras/ManajemenRuang';
 import ManajemenFasilitas from './pages/sarpras/ManajemenFasilitas';
 import KelolaFaq from './pages/settings/KelolaFaq';
+import KelolaPpdb from './pages/settings/KelolaPpdb';
+import PpdbPage from './pages/public/PpdbPage';
 import FormKegiatan from './pages/kegiatan/FormKegiatan';
 import ListKegiatanBap from './pages/kegiatan/ListKegiatanBap';
 import KelolaJenisKegiatan from './pages/kegiatan/KelolaJenisKegiatan';
@@ -511,6 +513,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<LandingPage />} />
+            <Route path="/ppdb" element={<PpdbPage />} />
             <Route path="/daftar-ulang" element={<DaftarUlang />} />
             <Route path="/dafta-ulng" element={<Navigate to="/daftar-ulang" replace />} />
             <Route path="/portal-register" element={<PortalRegisterPage />} />
@@ -550,6 +553,7 @@ export default function App() {
               <Route path="settings/kalender" element={<ScopeRoute allowed={['GLOBAL']}><KelolaKalender /></ScopeRoute>} />
               <Route path="settings/keaktifan-mapel" element={<ScopeRoute allowed={['GLOBAL']}><KeaktifanMapel /></ScopeRoute>} />
               <Route path="settings/faq" element={<ScopeRoute allowed={['GLOBAL']}><KelolaFaq /></ScopeRoute>} />
+              <Route path="settings/ppdb" element={<ScopeRoute allowed={['GLOBAL']}><KelolaPpdb /></ScopeRoute>} />
               <Route path="dashboard/ketersediaan-guru" element={<ScopeRoute allowed={['GLOBAL', 'WILAYAH', 'AUDITOR']}><KetersediaanGuruMapel /></ScopeRoute>} />
               <Route path="absensi/siswa" element={<AbsensiSiswa />} />
               <Route path="absensi/guru" element={<AbsensiGuru />} />

@@ -102,20 +102,30 @@ export interface Student {
     } | null;
   } | null;
   siswaFormal?: {
+    id?: string;
+    studentId?: string;
     isVerval?: boolean;
     kelasId?: string | null;
+    tingkat?: string | null;
+    nis?: string | null;
+    nisn?: string | null;
     kelas?: {
       id: string;
       name: string;
       tingkat?: string | null;
       isActive?: boolean;
       tahunAjaran?: string | null;
+      lembagaMuadalahId?: string | null;
       lembagaMuadalah?: {
         id: string;
         name: string;
       } | null;
     } | null;
   } | null;
+  daftarUlangAt?: string | null;
+  daftarUlangJenis?: string | null;
+  daftarUlangTahunAjaran?: string | null;
+  daftarUlangSemester?: string | null;
   isActive?: boolean;
 }
 

@@ -58,7 +58,7 @@ export default function PortalLayout() {
       to: '/portal/cctv',
       label: 'CCTV Live',
       icon: Video,
-      show: moduleSettings?.walsanCctvEnabled !== false,
+      show: moduleSettings?.cctvEnabled !== false && moduleSettings?.walsanCctvEnabled !== false,
     },
     {
       to: '/portal/pengumuman',

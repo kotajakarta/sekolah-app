@@ -100,7 +100,7 @@ export default function DataSiswa() {
   const availableTingkats = useMemo(() => {
     const set = new Set<string>();
     (students || []).forEach((s: any) => {
-      const tingkat = s.siswaFormal?.kelas?.tingkat;
+      const tingkat = s.siswaFormal?.kelas?.tingkat || s.siswaFormal?.tingkat;
       if (tingkat) set.add(String(tingkat));
     });
     const order = ['Non Muadalah', '7', '8', '9', '10', '11', '12'];
@@ -162,7 +162,10 @@ export default function DataSiswa() {
       const d = s.dataDaimi?.grup?.jenis || s.grupDaimi;
       if (!d || d.trim().toLowerCase() !== advancedFilters.jenisDaimi.trim().toLowerCase()) return false;
     }
-    if (advancedFilters.tingkat && s.siswaFormal?.kelas?.tingkat !== advancedFilters.tingkat) return false;
+    if (advancedFilters.tingkat) {
+      const studentTingkat = s.siswaFormal?.kelas?.tingkat || s.siswaFormal?.tingkat;
+      if (studentTingkat !== advancedFilters.tingkat) return false;
+    }
 
     // Search query
     const q = normalizeTurkish(searchQuery).toLowerCase();
@@ -180,15 +183,15 @@ export default function DataSiswa() {
     const exportData = filteredStudents.map((student: Student, index: number) => {
       const progress = calculateProgress(student);
       const kelasInfo = student.siswaFormal?.kelas?.name || '-';
-      const tingkatInfo = student.siswaFormal?.kelas?.tingkat || '-';
+      const tingkatInfo = student.siswaFormal?.kelas?.tingkat || student.siswaFormal?.tingkat || '-';
       const daimiInfo = student.dataDaimi?.grup?.jenis || student.grupDaimi || '-';
 
       return {
         'No': index + 1,
         'Nama Lengkap': student.biodata?.fullName || '-',
         'NIK': student.biodata?.nik || '-',
-        'NISN': student.biodata?.nisn || '-',
-        'NIS Lokal': student.biodata?.nisLokal || '-',
+        'NISN': student.biodata?.nisn || student.siswaFormal?.nisn || '-',
+        'NIS Lokal': student.biodata?.nisLokal || student.siswaFormal?.nis || '-',
         'No Glodemy': student.biodata?.noGlodemy || '-',
         'Jenis Kelamin': student.biodata?.jenisKelamin || '-',
         'Tempat Lahir': student.biodata?.tempatLahir || '-',
@@ -217,16 +220,30 @@ export default function DataSiswa() {
     });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    // Format identity and phone columns as text so Excel doesn't turn numbers into scientific notation
+    Object.keys(worksheet).forEach((cellRef) => {
+      if (cellRef.startsWith('!')) return;
+      const cell = worksheet[cellRef];
+      if (cell && cell.v !== undefined && cell.v !== null) {
+        if (!cellRef.startsWith('A')) {
+          cell.t = 's';
+          cell.v = String(cell.v);
+          cell.z = '@';
+        }
+      }
+    });
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Data Santri');
 
     const colWidths = [
       { wch: 6 },  // No
       { wch: 25 }, // Nama
-      { wch: 18 }, // NIK
-      { wch: 15 }, // NISN
-      { wch: 15 }, // NIS Lokal
-      { wch: 15 }, // No Glodemy
+      { wch: 20 }, // NIK
+      { wch: 16 }, // NISN
+      { wch: 16 }, // NIS Lokal
+      { wch: 16 }, // No Glodemy
       { wch: 14 }, // JK
       { wch: 16 }, // Tempat Lahir
       { wch: 14 }, // Tanggal Lahir
@@ -239,12 +256,12 @@ export default function DataSiswa() {
       { wch: 12 }, // Status Aktif
       { wch: 16 }, // Progress
       { wch: 22 }, // Nama Ayah
-      { wch: 18 }, // NIK Ayah
+      { wch: 20 }, // NIK Ayah
       { wch: 18 }, // Pekerjaan Ayah
       { wch: 22 }, // Nama Ibu
-      { wch: 18 }, // NIK Ibu
+      { wch: 20 }, // NIK Ibu
       { wch: 18 }, // Pekerjaan Ibu
-      { wch: 16 }, // Phone
+      { wch: 18 }, // Phone
       { wch: 30 }, // Alamat
       { wch: 20 }, // Kel
       { wch: 20 }, // Kec
@@ -260,10 +277,11 @@ export default function DataSiswa() {
   const handleExportEmis = () => {
     if (!filteredStudents || filteredStudents.length === 0) return;
 
-    const formatDate = (dateStr?: string | null): string => {
+    const formatDate = (dateStr?: string | Date | null): string => {
       if (!dateStr) return '';
       try {
         const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
         const dd = String(d.getDate()).padStart(2, '0');
         const mm = String(d.getMonth() + 1).padStart(2, '0');
         const yyyy = d.getFullYear();
@@ -276,57 +294,160 @@ export default function DataSiswa() {
     const formatPhone = (phone?: string | null): string => {
       if (!phone) return '';
       let cleaned = phone.replace(/\D/g, '');
+      if (!cleaned) return '';
       if (cleaned.startsWith('0')) cleaned = '62' + cleaned.slice(1);
       if (!cleaned.startsWith('62')) cleaned = '62' + cleaned;
       return cleaned;
     };
 
     const emisData = filteredStudents.map((student: Student) => {
-      // Use earliest riwayat masuk date
-      const riwayatSorted = (student.riwayatPendidikan || []).slice().sort(
-        (a, b) => new Date(a.tanggalMasuk).getTime() - new Date(b.tanggalMasuk).getTime()
-      );
-      const tanggalMasuk = riwayatSorted.length > 0 ? formatDate(riwayatSorted[0].tanggalMasuk) : '';
+      // 1. Tanggal Masuk: Earliest valid riwayatPendidikan, fallback to daftarUlangAt
+      const validRiwayat = (student.riwayatPendidikan || [])
+        .filter(r => r && r.tanggalMasuk && !isNaN(new Date(r.tanggalMasuk).getTime()))
+        .sort((a, b) => new Date(a.tanggalMasuk).getTime() - new Date(b.tanggalMasuk).getTime());
+      
+      const tanggalMasuk = validRiwayat.length > 0 
+        ? formatDate(validRiwayat[0].tanggalMasuk) 
+        : (student.daftarUlangAt ? formatDate(student.daftarUlangAt) : '');
 
-      const tingkat = student.siswaFormal?.kelas?.tingkat;
-      const tingkatLabel = tingkat && tingkat !== 'Non Muadalah' ? `Kelas ${tingkat}` : (tingkat || '');
+      // 2. Jenis Kelamin: Normalisasi format standar EMIS
+      const jkRaw = (student.biodata?.jenisKelamin || '').trim().toUpperCase();
+      let jkFormatted = '';
+      if (jkRaw === 'L' || jkRaw === 'LAKI-LAKI' || jkRaw === 'LAKI_LAKI' || jkRaw === 'LAKI - LAKI' || jkRaw === 'LAKI') {
+        jkFormatted = 'Laki-laki';
+      } else if (jkRaw === 'P' || jkRaw === 'PEREMPUAN' || jkRaw === 'PR') {
+        jkFormatted = 'Perempuan';
+      } else {
+        jkFormatted = student.biodata?.jenisKelamin || '';
+      }
 
-      // Derive jenjang from tingkat
+      // 3. NISN & NIK: Pastikan sinkron dan tidak kosong jika ada di siswaFormal
+      const nisnVal = student.biodata?.nisn || student.siswaFormal?.nisn || '';
+      const nikVal = student.biodata?.nik || '';
+
+      // 4. Kewarganegaraan & Asal Negara
+      const kwRaw = (student.biodata?.kewarganegaraan || '').trim();
+      let kewarganegaraan = 'WNI';
+      let asalNegara = '';
+      if (kwRaw && kwRaw !== 'WNI' && kwRaw !== 'Indonesia') {
+        kewarganegaraan = 'WNA';
+        asalNegara = kwRaw === 'WNA' ? '' : kwRaw;
+      } else {
+        kewarganegaraan = 'WNI';
+        asalNegara = 'Indonesia';
+      }
+
+      // 5. Tingkat & Jenjang
+      const tingkatRaw = student.siswaFormal?.kelas?.tingkat || student.siswaFormal?.tingkat || '';
       let jenjang = '';
-      if (tingkat) {
-        const t = parseInt(tingkat);
-        if (t >= 7 && t <= 9) jenjang = 'Wustha';
-        else if (t >= 10 && t <= 12) jenjang = 'Ulya';
-        else if (tingkat === 'Non Muadalah') jenjang = 'Non Muadalah';
+      let tingkatLabel = '';
+      if (tingkatRaw) {
+        const match = String(tingkatRaw).match(/\d+/);
+        const t = match ? parseInt(match[0], 10) : null;
+        if (t) {
+          tingkatLabel = `Kelas ${t}`;
+          if (t >= 1 && t <= 6) jenjang = 'Ula';
+          else if (t >= 7 && t <= 9) jenjang = 'Wustha';
+          else if (t >= 10 && t <= 12) jenjang = 'Ulya';
+        } else if (String(tingkatRaw).toLowerCase().includes('wustha')) {
+          jenjang = 'Wustha';
+          tingkatLabel = String(tingkatRaw);
+        } else if (String(tingkatRaw).toLowerCase().includes('ulya')) {
+          jenjang = 'Ulya';
+          tingkatLabel = String(tingkatRaw);
+        } else if (String(tingkatRaw).toLowerCase().includes('ula')) {
+          jenjang = 'Ula';
+          tingkatLabel = String(tingkatRaw);
+        } else if (tingkatRaw === 'Non Muadalah') {
+          jenjang = 'Non Muadalah';
+          tingkatLabel = 'Non Muadalah';
+        } else {
+          tingkatLabel = String(tingkatRaw);
+        }
+      }
+
+      // 6. Data Orang Tua & Status Hidup
+      const formatStatusHidup = (status?: string | null, nama?: string | null) => {
+        const s = (status || '').trim();
+        if (!s) return nama ? 'Masih Hidup' : '';
+        const lower = s.toLowerCase();
+        if (lower === 'wafat' || lower === 'sudah meninggal' || lower === 'deceased' || lower === 'meninggal') {
+          return 'Sudah Meninggal';
+        }
+        if (lower === 'masih hidup' || lower === 'hidup') {
+          return 'Masih Hidup';
+        }
+        if (lower === 'tidak diketahui' || lower === 'unknown') {
+          return 'Tidak Diketahui';
+        }
+        return s;
+      };
+
+      const namaAyah = student.biodata?.namaAyah || '';
+      const statusAyah = formatStatusHidup(student.biodata?.statusHidupAyah, namaAyah);
+      const nikAyah = student.biodata?.nikAyah || '';
+
+      const namaIbu = student.biodata?.namaIbu || '';
+      const statusIbu = formatStatusHidup(student.biodata?.statusHidupIbu, namaIbu);
+      const nikIbu = student.biodata?.nikIbu || '';
+
+      // 7. Status Wali & Nama Wali
+      const kontakDaruratNama = student.biodata?.kontakDaruratNama || '';
+      const kontakDaruratHubungan = student.biodata?.kontakDaruratHubungan || '';
+      const hasSeparateWali = !!kontakDaruratNama && kontakDaruratNama !== namaAyah;
+
+      let statusWali = '';
+      let namaWali = '';
+      if (hasSeparateWali) {
+        statusWali = kontakDaruratHubungan || 'Wali';
+        namaWali = kontakDaruratNama;
+      } else if (namaAyah) {
+        statusWali = 'Sama Dengan Ayah Kandung';
+        namaWali = namaAyah;
+      } else if (namaIbu) {
+        statusWali = 'Sama Dengan Ibu Kandung';
+        namaWali = namaIbu;
       }
 
       return {
         'Tanggal Masuk': tanggalMasuk,
         'Nama Lengkap': student.biodata?.fullName || '',
-        'Kewarganegaraan': student.biodata?.kewarganegaraan || 'WNI',
-        'NIK': student.biodata?.nik || '',
-        'NISN': student.biodata?.nisn || '',
-        'Jenis Kelamin': student.biodata?.jenisKelamin === 'L' ? 'Laki-laki' : student.biodata?.jenisKelamin === 'P' ? 'Perempuan' : (student.biodata?.jenisKelamin || ''),
+        'Kewarganegaraan': kewarganegaraan,
+        'NIK': nikVal,
+        'NISN': nisnVal,
+        'Jenis Kelamin': jkFormatted,
         'Tempat Lahir': student.biodata?.tempatLahir || '',
         'Tanggal Lahir': formatDate(student.biodata?.tanggalLahir),
         'Agama': 'Islam',
         'No Handphone': formatPhone(student.biodata?.phone),
-        'Nama Ayah Kandung': student.biodata?.namaAyah || '',
-        'Status Ayah Kandung': student.biodata?.statusHidupAyah || '',
-        'NIK Ayah': student.biodata?.nikAyah || '',
-        'Nama Ibu Kandung': student.biodata?.namaIbu || '',
-        'Status Ibu Kandung': student.biodata?.statusHidupIbu || '',
-        'NIK Ibu': student.biodata?.nikIbu || '',
-        'Status Wali': 'Sama Dengan Ayah Kandung',
-        'Nama Wali': '',
+        'Nama Ayah Kandung': namaAyah,
+        'Status Ayah Kandung': statusAyah,
+        'NIK Ayah': nikAyah,
+        'Nama Ibu Kandung': namaIbu,
+        'Status Ibu Kandung': statusIbu,
+        'NIK Ibu': nikIbu,
+        'Status Wali': statusWali,
+        'Nama Wali': namaWali,
         'Jenjang': jenjang,
         'Tingkat Kelas': tingkatLabel,
         'KITAS': '',
-        'Asal Negara': '',
+        'Asal Negara': asalNegara,
       };
     });
 
     const worksheet = XLSX.utils.json_to_sheet(emisData);
+
+    // Kunci seluruh sel teks agar Excel tidak mengubah NIK/NISN menjadi notasi ilmiah atau memotong leading 0
+    Object.keys(worksheet).forEach((cellRef) => {
+      if (cellRef.startsWith('!')) return;
+      const cell = worksheet[cellRef];
+      if (cell && cell.v !== undefined && cell.v !== null) {
+        cell.t = 's';
+        cell.v = String(cell.v);
+        cell.z = '@';
+      }
+    });
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Data EMIS');
 
@@ -334,25 +455,25 @@ export default function DataSiswa() {
       { wch: 14 }, // Tanggal Masuk
       { wch: 28 }, // Nama Lengkap
       { wch: 16 }, // Kewarganegaraan
-      { wch: 18 }, // NIK
-      { wch: 15 }, // NISN
+      { wch: 20 }, // NIK
+      { wch: 16 }, // NISN
       { wch: 14 }, // JK
       { wch: 18 }, // Tempat Lahir
       { wch: 14 }, // Tanggal Lahir
       { wch: 10 }, // Agama
       { wch: 18 }, // No HP
       { wch: 28 }, // Nama Ayah
-      { wch: 16 }, // Status Ayah
-      { wch: 18 }, // NIK Ayah
+      { wch: 18 }, // Status Ayah
+      { wch: 20 }, // NIK Ayah
       { wch: 28 }, // Nama Ibu
-      { wch: 16 }, // Status Ibu
-      { wch: 18 }, // NIK Ibu
-      { wch: 14 }, // Status Wali
-      { wch: 22 }, // Nama Wali
+      { wch: 18 }, // Status Ibu
+      { wch: 20 }, // NIK Ibu
+      { wch: 24 }, // Status Wali
+      { wch: 24 }, // Nama Wali
       { wch: 14 }, // Jenjang
-      { wch: 14 }, // Tingkat Kelas
+      { wch: 16 }, // Tingkat Kelas
       { wch: 12 }, // KITAS
-      { wch: 14 }, // Asal Negara
+      { wch: 16 }, // Asal Negara
     ];
     worksheet['!cols'] = colWidths;
 

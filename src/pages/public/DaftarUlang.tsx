@@ -427,10 +427,10 @@ export default function DaftarUlang() {
     if (formData.nisn && !/^\d{10}$/.test(formData.nisn.trim())) {
       errors.nisn = 'NISN harus 10 digit angka';
     }
-    if (formData.nikAyah && formData.statusHidupAyah !== 'Wafat' && !/^\d{16}$/.test(formData.nikAyah.trim())) {
+    if (formData.nikAyah && formData.statusHidupAyah !== 'Sudah Meninggal' && !/^\d{16}$/.test(formData.nikAyah.trim())) {
       errors.nikAyah = 'NIK Ayah harus 16 digit angka';
     }
-    if (formData.nikIbu && formData.statusHidupIbu !== 'Wafat' && !/^\d{16}$/.test(formData.nikIbu.trim())) {
+    if (formData.nikIbu && formData.statusHidupIbu !== 'Sudah Meninggal' && !/^\d{16}$/.test(formData.nikIbu.trim())) {
       errors.nikIbu = 'NIK Ibu harus 16 digit angka';
     }
 
@@ -580,26 +580,27 @@ export default function DaftarUlang() {
                     <InputField label="Status Hidup Ayah" required>
                       <select name="statusHidupAyah" value={formData.statusHidupAyah} onChange={handleChange} required className={selectCls}>
                         <option value="Masih Hidup">Masih Hidup</option>
-                        <option value="Wafat">Wafat</option>
+                        <option value="Sudah Meninggal">Sudah Meninggal</option>
+                        <option value="Tidak Diketahui">Tidak Diketahui</option>
                       </select>
                     </InputField>
-                    <InputField label="NIK Ayah" required={formData.statusHidupAyah !== 'Wafat'} error={fieldErrors['nikAyah']}><input name="nikAyah" value={formData.nikAyah} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 16); setFormData(prev => ({ ...prev, nikAyah: val })); setFieldErrors(prev => ({ ...prev, nikAyah: '' })); }} required={formData.statusHidupAyah !== 'Wafat'} maxLength={16} placeholder="Masukkan 16 digit NIK Ayah" className={`${inputCls} ${fieldErrors['nikAyah'] ? 'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500' : ''}`} /></InputField>
-                    <InputField label="Tempat Lahir Ayah" required={formData.statusHidupAyah !== 'Wafat'}><input name="tempatLahirAyah" value={formData.tempatLahirAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} className={inputCls} /></InputField>
-                    <InputField label="Tanggal Lahir Ayah" required={formData.statusHidupAyah !== 'Wafat'}><input type="date" name="tanggalLahirAyah" value={formData.tanggalLahirAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} className={inputCls} /></InputField>
-                    <InputField label="Pekerjaan Ayah" required={formData.statusHidupAyah !== 'Wafat'}>
-                      <select name="pekerjaanAyah" value={formData.pekerjaanAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} className={selectCls}>
+                    <InputField label="NIK Ayah" required={formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat'} error={fieldErrors['nikAyah']}><input name="nikAyah" value={formData.nikAyah} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 16); setFormData(prev => ({ ...prev, nikAyah: val })); setFieldErrors(prev => ({ ...prev, nikAyah: '' })); }} required={formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat'} maxLength={16} placeholder="Masukkan 16 digit NIK Ayah" className={`${inputCls} ${fieldErrors['nikAyah'] ? 'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500' : ''}`} /></InputField>
+                    <InputField label="Tempat Lahir Ayah" required={formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat'}><input name="tempatLahirAyah" value={formData.tempatLahirAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat'} className={inputCls} /></InputField>
+                    <InputField label="Tanggal Lahir Ayah" required={formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat'}><input type="date" name="tanggalLahirAyah" value={formData.tanggalLahirAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat'} className={inputCls} /></InputField>
+                    <InputField label="Pekerjaan Ayah" required={formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat'}>
+                      <select name="pekerjaanAyah" value={formData.pekerjaanAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat'} className={selectCls}>
                         <option value="">Pilih Pekerjaan</option>
                         {PEKERJAAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </InputField>
-                    <InputField label="Pendidikan Ayah" required={formData.statusHidupAyah !== 'Wafat'}>
-                      <select name="pendidikanAyah" value={formData.pendidikanAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} className={selectCls}>
+                    <InputField label="Pendidikan Ayah" required={formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat'}>
+                      <select name="pendidikanAyah" value={formData.pendidikanAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat'} className={selectCls}>
                         <option value="">Pilih Pendidikan</option>
                         {PENDIDIKAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </InputField>
-                    <InputField label="Rata-rata Penghasilan Ayah" required={formData.statusHidupAyah !== 'Wafat'}>
-                      <select name="penghasilanAyah" value={formData.penghasilanAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Wafat'} className={selectCls}>
+                    <InputField label="Rata-rata Penghasilan Ayah" required={formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat'}>
+                      <select name="penghasilanAyah" value={formData.penghasilanAyah} onChange={handleChange} required={formData.statusHidupAyah !== 'Sudah Meninggal' && formData.statusHidupAyah !== 'Wafat'} className={selectCls}>
                         <option value="">Pilih Penghasilan</option>
                         {PENGHASILAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
@@ -611,26 +612,27 @@ export default function DaftarUlang() {
                     <InputField label="Status Hidup Ibu" required>
                       <select name="statusHidupIbu" value={formData.statusHidupIbu} onChange={handleChange} required className={selectCls}>
                         <option value="Masih Hidup">Masih Hidup</option>
-                        <option value="Wafat">Wafat</option>
+                        <option value="Sudah Meninggal">Sudah Meninggal</option>
+                        <option value="Tidak Diketahui">Tidak Diketahui</option>
                       </select>
                     </InputField>
-                    <InputField label="NIK Ibu" required={formData.statusHidupIbu !== 'Wafat'} error={fieldErrors['nikIbu']}><input name="nikIbu" value={formData.nikIbu} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 16); setFormData(prev => ({ ...prev, nikIbu: val })); setFieldErrors(prev => ({ ...prev, nikIbu: '' })); }} required={formData.statusHidupIbu !== 'Wafat'} maxLength={16} placeholder="Masukkan 16 digit NIK Ibu" className={`${inputCls} ${fieldErrors['nikIbu'] ? 'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500' : ''}`} /></InputField>
-                    <InputField label="Tempat Lahir Ibu" required={formData.statusHidupIbu !== 'Wafat'}><input name="tempatLahirIbu" value={formData.tempatLahirIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} className={inputCls} /></InputField>
-                    <InputField label="Tanggal Lahir Ibu" required={formData.statusHidupIbu !== 'Wafat'}><input type="date" name="tanggalLahirIbu" value={formData.tanggalLahirIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} className={inputCls} /></InputField>
-                    <InputField label="Pekerjaan Ibu" required={formData.statusHidupIbu !== 'Wafat'}>
-                      <select name="pekerjaanIbu" value={formData.pekerjaanIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} className={selectCls}>
+                    <InputField label="NIK Ibu" required={formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat'} error={fieldErrors['nikIbu']}><input name="nikIbu" value={formData.nikIbu} onChange={(e) => { const val = e.target.value.replace(/\D/g, '').slice(0, 16); setFormData(prev => ({ ...prev, nikIbu: val })); setFieldErrors(prev => ({ ...prev, nikIbu: '' })); }} required={formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat'} maxLength={16} placeholder="Masukkan 16 digit NIK Ibu" className={`${inputCls} ${fieldErrors['nikIbu'] ? 'border-rose-300 ring-4 ring-rose-500/10 focus:border-rose-500' : ''}`} /></InputField>
+                    <InputField label="Tempat Lahir Ibu" required={formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat'}><input name="tempatLahirIbu" value={formData.tempatLahirIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat'} className={inputCls} /></InputField>
+                    <InputField label="Tanggal Lahir Ibu" required={formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat'}><input type="date" name="tanggalLahirIbu" value={formData.tanggalLahirIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat'} className={inputCls} /></InputField>
+                    <InputField label="Pekerjaan Ibu" required={formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat'}>
+                      <select name="pekerjaanIbu" value={formData.pekerjaanIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat'} className={selectCls}>
                         <option value="">Pilih Pekerjaan</option>
                         {PEKERJAAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </InputField>
-                    <InputField label="Pendidikan Ibu" required={formData.statusHidupIbu !== 'Wafat'}>
-                      <select name="pendidikanIbu" value={formData.pendidikanIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} className={selectCls}>
+                    <InputField label="Pendidikan Ibu" required={formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat'}>
+                      <select name="pendidikanIbu" value={formData.pendidikanIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat'} className={selectCls}>
                         <option value="">Pilih Pendidikan</option>
                         {PENDIDIKAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </InputField>
-                    <InputField label="Rata-rata Penghasilan Ibu" required={formData.statusHidupIbu !== 'Wafat'}>
-                      <select name="penghasilanIbu" value={formData.penghasilanIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Wafat'} className={selectCls}>
+                    <InputField label="Rata-rata Penghasilan Ibu" required={formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat'}>
+                      <select name="penghasilanIbu" value={formData.penghasilanIbu} onChange={handleChange} required={formData.statusHidupIbu !== 'Sudah Meninggal' && formData.statusHidupIbu !== 'Wafat'} className={selectCls}>
                         <option value="">Pilih Penghasilan</option>
                         {PENGHASILAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>

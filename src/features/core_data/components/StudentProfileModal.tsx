@@ -4,7 +4,7 @@ import { X, Edit2, User, Phone, MapPin, Calendar, Activity, GraduationCap, Users
 import { Student } from '../hooks/useGetStudents';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../hooks/useAuth';
-import PrintStudentProfile from './PrintStudentProfile';
+import PrintStudentProfile, { formatJenisTingkatDaimi } from './PrintStudentProfile';
 import StudentClassHistoryModal from './StudentClassHistoryModal';
 import { useState } from 'react';
 import { useGetRiwayatKelas } from '../hooks/useRiwayatKelas';
@@ -55,7 +55,7 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
                 className="inline-flex items-center px-3 py-1.5 border border-slate-200 shadow-sm text-sm font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 <Printer className="h-4 w-4 mr-1.5 text-slate-500" />
-                {t('siswa.print_cv') || 'Cetak CV'}
+                {t('siswa.print_biodata') || t('siswa.print_cv') || 'Cetak Biodata'}
               </button>
               <button
                 onClick={() => setIsClassHistoryOpen(true)}
@@ -170,7 +170,7 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
                 <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-slate-400" /> Penempatan & Akademik
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
                     <span className="block text-xs font-medium text-slate-500 mb-1">Wilayah</span>
                     <span className="text-sm text-slate-900 font-medium">{student.wilayah?.name || '-'}</span>
@@ -178,6 +178,10 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
                   <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
                     <span className="block text-xs font-medium text-slate-500 mb-1">Cabang</span>
                     <span className="text-sm text-slate-900 font-medium">{student.cabang?.name || '-'}</span>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                    <span className="block text-xs font-medium text-slate-500 mb-1">Jenis / Tingkat Daimi</span>
+                    <span className="text-sm text-slate-900 font-bold text-indigo-900">{formatJenisTingkatDaimi(student.dataDaimi?.grup?.jenis || student.dataDaimi?.grup?.name || student.grupDaimi)}</span>
                   </div>
                 </div>
               </div>
@@ -244,7 +248,7 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
                       <span className="block text-xs text-slate-500">Status</span>
                       <span className="text-sm text-slate-900">{student.biodata?.statusHidupAyah || '-'}</span>
                     </div>
-                    {student.biodata?.statusHidupAyah === 'Masih Hidup' && (
+                    {(!student.biodata?.statusHidupAyah || student.biodata?.statusHidupAyah === 'Masih Hidup') && (
                       <>
                         <div>
                           <span className="block text-xs text-slate-500">NIK Ayah</span>
@@ -281,7 +285,7 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
                       <span className="block text-xs text-slate-500">Status</span>
                       <span className="text-sm text-slate-900">{student.biodata?.statusHidupIbu || '-'}</span>
                     </div>
-                    {student.biodata?.statusHidupIbu === 'Masih Hidup' && (
+                    {(!student.biodata?.statusHidupIbu || student.biodata?.statusHidupIbu === 'Masih Hidup') && (
                       <>
                         <div>
                           <span className="block text-xs text-slate-500">NIK Ibu</span>

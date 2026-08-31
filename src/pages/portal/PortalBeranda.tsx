@@ -126,12 +126,12 @@ export default function PortalBeranda() {
       { key: 'phone', label: 'No. Handphone / WhatsApp', category: 'Pribadi', isComplete: !!biodata.phone?.trim() },
       
       { key: 'namaAyah', label: 'Nama Ayah Kandung', category: 'Orang Tua', isComplete: !!biodata.namaAyah?.trim() },
-      { key: 'nikAyah', label: 'NIK Ayah', category: 'Orang Tua', isComplete: biodata.statusHidupAyah === 'Wafat' || (!!biodata.nikAyah?.trim() && biodata.nikAyah.replace(/\D/g, '').length === 16) },
-      { key: 'pekerjaanAyah', label: 'Pekerjaan Ayah', category: 'Orang Tua', isComplete: biodata.statusHidupAyah === 'Wafat' || !!biodata.pekerjaanAyah?.trim() },
+      { key: 'nikAyah', label: 'NIK Ayah', category: 'Orang Tua', isComplete: (biodata.statusHidupAyah === 'Sudah Meninggal' || biodata.statusHidupAyah === 'Wafat') || (!!biodata.nikAyah?.trim() && biodata.nikAyah.replace(/\D/g, '').length === 16) },
+      { key: 'pekerjaanAyah', label: 'Pekerjaan Ayah', category: 'Orang Tua', isComplete: (biodata.statusHidupAyah === 'Sudah Meninggal' || biodata.statusHidupAyah === 'Wafat') || !!biodata.pekerjaanAyah?.trim() },
       
       { key: 'namaIbu', label: 'Nama Ibu Kandung', category: 'Orang Tua', isComplete: !!biodata.namaIbu?.trim() },
-      { key: 'nikIbu', label: 'NIK Ibu', category: 'Orang Tua', isComplete: biodata.statusHidupIbu === 'Wafat' || (!!biodata.nikIbu?.trim() && biodata.nikIbu.replace(/\D/g, '').length === 16) },
-      { key: 'pekerjaanIbu', label: 'Pekerjaan Ibu', category: 'Orang Tua', isComplete: biodata.statusHidupIbu === 'Wafat' || !!biodata.pekerjaanIbu?.trim() },
+      { key: 'nikIbu', label: 'NIK Ibu', category: 'Orang Tua', isComplete: (biodata.statusHidupIbu === 'Sudah Meninggal' || biodata.statusHidupIbu === 'Wafat') || (!!biodata.nikIbu?.trim() && biodata.nikIbu.replace(/\D/g, '').length === 16) },
+      { key: 'pekerjaanIbu', label: 'Pekerjaan Ibu', category: 'Orang Tua', isComplete: (biodata.statusHidupIbu === 'Sudah Meninggal' || biodata.statusHidupIbu === 'Wafat') || !!biodata.pekerjaanIbu?.trim() },
       
       { key: 'alamatProv', label: 'Provinsi Domisili', category: 'Alamat', isComplete: !!biodata.alamatProvId || !!biodata.alamatProvName },
       { key: 'alamatKab', label: 'Kabupaten/Kota Domisili', category: 'Alamat', isComplete: !!biodata.alamatKabId || !!biodata.alamatKabName },
@@ -956,7 +956,7 @@ export default function PortalBeranda() {
                 <span className="text-slate-400 font-medium">Nama Ayah</span>
                 <span className="text-slate-800 font-semibold text-right">
                   {biodata?.namaAyah || '-'}
-                  {biodata?.statusHidupAyah === 'Wafat' && (
+                  {(biodata?.statusHidupAyah === 'Sudah Meninggal' || biodata?.statusHidupAyah === 'Wafat') && (
                     <span className="text-[10px] text-slate-400 font-normal ml-1">(Alm)</span>
                   )}
                 </span>
@@ -966,7 +966,7 @@ export default function PortalBeranda() {
                 <span className="text-slate-400 font-medium">Nama Ibu</span>
                 <span className="text-slate-800 font-semibold text-right">
                   {biodata?.namaIbu || '-'}
-                  {biodata?.statusHidupIbu === 'Wafat' && (
+                  {(biodata?.statusHidupIbu === 'Sudah Meninggal' || biodata?.statusHidupIbu === 'Wafat') && (
                     <span className="text-[10px] text-slate-400 font-normal ml-1">(Almh)</span>
                   )}
                 </span>

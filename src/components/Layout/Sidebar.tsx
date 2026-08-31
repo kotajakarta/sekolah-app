@@ -269,6 +269,7 @@ export const Sidebar: React.FC = () => {
                       <NavLink to="/dashboard/settings/kalender" icon={FileText}>Kelola Kalender</NavLink>
                       <NavLink to="/dashboard/settings/keaktifan-mapel" icon={Database}>Keaktifan Mapel</NavLink>
                       <NavLink to="/dashboard/settings/faq" icon={FileText}>Kelola FAQ</NavLink>
+                      <NavLink to="/dashboard/settings/ppdb" icon={GraduationCap}>Kelola PPDB</NavLink>
                     </ul>
                   </div>
                 )}

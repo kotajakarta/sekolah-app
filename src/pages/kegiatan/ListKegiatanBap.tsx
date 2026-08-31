@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
+import { getFileUrl } from '../../utils/photo';
 import {
   Calendar, FileText, Download, CheckCircle2, AlertCircle, Info,
   Building, Clock, ChevronDown, ChevronUp, Sparkles, Loader2, Plus,
@@ -76,7 +77,7 @@ function FileViewer({ doc, onClose }: FileViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
 
-  const fileUrl = `${apiClient.defaults.baseURL || ''}${doc.filePath}`;
+  const fileUrl = getFileUrl(doc.filePath);
   const isImage = /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(doc.fileName) || doc.fileType?.startsWith('image');
   const isPdf = /\.pdf$/i.test(doc.fileName) || doc.fileType === 'application/pdf';
 
@@ -342,7 +343,7 @@ export default function ListKegiatanBap() {
   };
 
   const handleDownload = (filePath: string, fileName: string) => {
-    const url = `${apiClient.defaults.baseURL || ''}${filePath}`;
+    const url = getFileUrl(filePath);
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
@@ -883,7 +884,7 @@ export default function ListKegiatanBap() {
                                       </span>
                                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                                         {photoFiles.map(doc => {
-                                          const photoUrl = `${apiClient.defaults.baseURL || ''}${doc.filePath}`;
+                                          const photoUrl = getFileUrl(doc.filePath);
                                           return (
                                             <div
                                               key={doc.id}

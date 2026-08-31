@@ -5,6 +5,7 @@ import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../contexts/ToastContext';
 import { processMultipleKegiatanFiles, formatFileSize } from '../../utils/kegiatanCompressor';
+import { getFileUrl } from '../../utils/photo';
 import { Calendar, Upload, Users, AlertCircle, FileText, X, Check, ArrowLeft, Loader2, Info, Tag, Download, Image as ImageIcon, Edit, CheckCircle, Clock, Eye, ZoomIn, ZoomOut, RotateCw, File, Lock } from 'lucide-react';
 
 interface Guru {
@@ -214,7 +215,7 @@ export default function FormKegiatan() {
   };
 
   const handleDownload = (filePath: string, fileName: string) => {
-    const url = `${apiClient.defaults.baseURL || ''}${filePath}`;
+    const url = getFileUrl(filePath);
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
@@ -1141,7 +1142,7 @@ export default function FormKegiatan() {
                   <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Foto Tersimpan:</span>
                   <div className="grid grid-cols-3 gap-2">
                     {editingBap.dokumen.filter((d: any) => d.fileType === 'PHOTO').map((photo: any) => {
-                      const photoUrl = `${apiClient.defaults.baseURL || ''}${photo.filePath}`;
+                      const photoUrl = getFileUrl(photo.filePath);
                       return (
                         <div
                           key={photo.id}
@@ -1279,13 +1280,13 @@ export default function FormKegiatan() {
               <div className="flex-1 overflow-auto flex items-center justify-center bg-slate-50 rounded-b-2xl" style={{ minHeight: 300 }}>
                 {(/\.(jpe?g|png|gif|webp|bmp)$/i.test(viewingDoc.fileName) || viewingDoc.fileType?.startsWith('image')) ? (
                   <img
-                    src={`${apiClient.defaults.baseURL || ''}${viewingDoc.filePath}`}
+                    src={getFileUrl(viewingDoc.filePath)}
                     alt={viewingDoc.fileName}
                     style={{ maxWidth: '100%', maxHeight: '70vh', objectFit: 'contain' }}
                   />
                 ) : /\.pdf$/i.test(viewingDoc.fileName) ? (
                   <iframe
-                    src={`${apiClient.defaults.baseURL || ''}${viewingDoc.filePath}`}
+                    src={getFileUrl(viewingDoc.filePath)}
                     title={viewingDoc.fileName}
                     className="w-full rounded-b-2xl border-0"
                     style={{ height: '70vh' }}

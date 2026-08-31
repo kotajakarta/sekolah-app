@@ -27,6 +27,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const syncCookie = (tok: string | null) => {
+    if (typeof document === 'undefined') return;
+    if (tok) {
+      const secureFlag = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `token=${tok}; path=/; max-age=86400; SameSite=Lax${secureFlag}`;
+    } else {
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    }
+  };
+
   useEffect(() => {
     // Check for stored token and user info on mount
     const storedToken = localStorage.getItem('token');
@@ -35,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
+      syncCookie(storedToken);
     }
     
     setIsLoading(false);
@@ -45,6 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(newUser);
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(newUser));
+    syncCookie(newToken);
   };
 
   const logout = () => {
@@ -53,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     sessionStorage.removeItem('dismissed_popup_ids');
+    syncCookie(null);
   };
 
   return (

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useToast } from '../../contexts/ToastContext';
 import { processMultipleKegiatanFiles, formatFileSize } from '../../utils/kegiatanCompressor';
+import { getFileUrl } from '../../utils/photo';
 import { FileText, Plus, Trash2, Edit, Save, X, Loader2, AlertCircle, Calendar, Tag, Info, Upload, Download } from 'lucide-react';
 
 interface JenisKegiatan {
@@ -287,7 +288,7 @@ export default function KelolaTemplateKegiatan() {
   };
 
   const handleDownload = (filePath: string, fileName: string) => {
-    const url = `${apiClient.defaults.baseURL || ''}${filePath}`;
+    const url = getFileUrl(filePath);
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;

@@ -111,6 +111,8 @@ export const useGetGuru = () => {
       const response = await apiClient.get<Staff[]>('/master-data/guru');
       return response.data;
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 };
 
@@ -135,6 +137,8 @@ export const useGetCabang = () => {
       const response = await apiClient.get<Cabang[]>('/master-data/cabang');
       return response.data;
     },
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 };
 
@@ -171,5 +175,7 @@ export const useGetWilayah = () => {
       const response = await apiClient.get<Wilayah[]>('/master-data/wilayah');
       return response.data;
     },
+    staleTime: 15 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 };

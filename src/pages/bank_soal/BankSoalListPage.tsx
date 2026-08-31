@@ -48,9 +48,12 @@ import type { QuestionBank, BankSoalAssignment } from '../../features/bank_soal/
 export const BankSoalListPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isTeacher = user?.scope === 'GURU' || user?.scope === 'WALI_KELAS';
 
-  // Active Main Tab: matches PortalWalsanPage style
-  const [activeTab, setActiveTab] = useState<'overview' | 'banks' | 'projects' | 'my-tasks'>('overview');
+  // Active Main Tab: defaults to 'my-tasks' for teachers, 'overview' for admins
+  const [activeTab, setActiveTab] = useState<'overview' | 'banks' | 'projects' | 'my-tasks'>(
+    isTeacher ? 'my-tasks' : 'overview'
+  );
 
   // Filters & State for Tab (Bank Soal)
   const [search, setSearch] = useState('');

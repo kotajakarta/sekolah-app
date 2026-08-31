@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UserCheck, Plus, UserMinus, UserPlus, Edit2, Trash2, LayoutDashboard, Users } from 'lucide-react';
+import { UserCheck, Plus, UserMinus, UserPlus, Edit2, Trash2, LayoutDashboard, Users, Search, X, RotateCcw } from 'lucide-react';
 import { useGetGuru, useDeleteGuru } from '../../features/core_data/hooks/useMasterData';
 import { Guru } from '../../features/core_data/hooks/usePoolGuru';
 import LepasGuruModal from '../../features/core_data/components/LepasGuruModal';
@@ -19,6 +19,7 @@ import { useToast } from '../../contexts/ToastContext';
 export default function DataGuru() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'data'>('dashboard');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
   const itemsPerPage = 10;
 
   const { user } = useAuth();
@@ -26,14 +27,16 @@ export default function DataGuru() {
   const isAdmin = user?.scope === 'GLOBAL';
   const queryClient = useQueryClient();
 
-  const { data: guru, isLoading: isLoadingGuru, isError } = useGetGuru();
+  const { data: guru = [], isLoading: isLoadingGuru, isError } = useGetGuru();
 
   const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery<any[]>({
     queryKey: ['guru-mapel-kelas'],
     queryFn: async () => {
       const res = await apiClient.get('/formal/guru-mapel-kelas');
       return res.data;
-    }
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 
   const isLoading = isLoadingGuru || isLoadingAssignments;
@@ -76,31 +79,60 @@ export default function DataGuru() {
     }
   }, [guru, location.search, navigate]);
 
-  const filteredGuru = (Array.isArray(guru) ? guru : []).filter((g: any) => {
-    // Advanced filters
-    if (advancedFilters.wilayahId && g.wilayahId !== advancedFilters.wilayahId) return false;
-    if (advancedFilters.cabangId && g.cabangId !== advancedFilters.cabangId) return false;
-    
-    // Guru is connected to Kelas via guruMapelKelas
-    if (advancedFilters.kelasId) {
-      const hasKelas = g.guruMapelKelas?.some((asg: any) => asg.kelasId === advancedFilters.kelasId);
-      if (!hasKelas) return false;
-    }
+  // Fast memoized filtering
+  const filteredGuru = useMemo(() => {
+    const rawList = Array.isArray(guru) ? guru : [];
+    const query = searchQuery.trim().toLowerCase();
 
-    if (advancedFilters.lembagaMuadalahId) {
-      const hasMuadalah = g.guruMapelKelas?.some((asg: any) => asg.kelas?.lembagaMuadalahId === advancedFilters.lembagaMuadalahId);
-      if (!hasMuadalah) return false;
-    }
+    return rawList.filter((g: any) => {
+      // 1. Search Query Filter (Nama, NIK, Jabatan, Cabang, Wilayah, Mapel)
+      if (query) {
+        const nameMatch = g.name?.toLowerCase().includes(query);
+        const nikMatch = g.nik?.includes(query);
+        const posMatch = g.position?.toLowerCase().includes(query);
+        const cabMatch = g.cabang?.name?.toLowerCase().includes(query);
+        const wilMatch = g.wilayah?.name?.toLowerCase().includes(query);
+        const mapelMatch = g.guruMapelKelas?.some((asg: any) =>
+          asg.mataPelajaran?.name?.toLowerCase().includes(query) ||
+          asg.kelas?.name?.toLowerCase().includes(query)
+        );
+        const mapelUmumMatch = Array.isArray(g.mapelUmum) && g.mapelUmum.some((m: string) => m.toLowerCase().includes(query));
 
-    return true;
-  });
+        if (!nameMatch && !nikMatch && !posMatch && !cabMatch && !wilMatch && !mapelMatch && !mapelUmumMatch) {
+          return false;
+        }
+      }
+
+      // 2. Advanced filters
+      if (advancedFilters.wilayahId && g.wilayahId !== advancedFilters.wilayahId) return false;
+      if (advancedFilters.cabangId && g.cabangId !== advancedFilters.cabangId) return false;
+      
+      // Guru is connected to Kelas via guruMapelKelas
+      if (advancedFilters.kelasId) {
+        const hasKelas = g.guruMapelKelas?.some((asg: any) => asg.kelasId === advancedFilters.kelasId);
+        if (!hasKelas) return false;
+      }
+
+      if (advancedFilters.lembagaMuadalahId) {
+        const hasMuadalah = g.guruMapelKelas?.some((asg: any) => asg.kelas?.lembagaMuadalahId === advancedFilters.lembagaMuadalahId);
+        if (!hasMuadalah) return false;
+      }
+
+      return true;
+    });
+  }, [guru, searchQuery, advancedFilters]);
+
+  // Reset page when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, advancedFilters]);
 
   const deleteAllMutation = useMutation({
     mutationFn: async () => {
       return apiClient.delete('/master-data/guru/all');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['guru'] });
+      queryClient.invalidateQueries({ queryKey: ['master-data', 'guru'] });
       showToast('success', t('guru.delete_all_success'));
       setIsConfirmDeleteAllOpen(false);
     },
@@ -152,7 +184,7 @@ export default function DataGuru() {
             {isAdmin && guru && guru.length > 0 && (
               <button 
                 onClick={() => setIsConfirmDeleteAllOpen(true)}
-                className="inline-flex items-center justify-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-lg text-red-700 bg-red-50 hover:bg-red-100 transition-colors cursor-pointer"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 {t('common.delete_all') || 'Hapus Semua'}
@@ -161,13 +193,13 @@ export default function DataGuru() {
             {(user?.scope === 'CABANG' || user?.scope === 'WILAYAH') && (
               <button 
                 onClick={() => setIsTarikModalOpen(true)}
-                className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors cursor-pointer"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 {t('guru.tarik_btn')}
               </button>
             )}
-            <button onClick={handleCreate} className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
+            <button onClick={handleCreate} className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer">
               <Plus className="w-4 h-4 mr-2" />
               {t('guru.add_button')}
             </button>
@@ -179,7 +211,7 @@ export default function DataGuru() {
       <div className="flex border-b border-slate-200 gap-2">
         <button
           onClick={() => setActiveTab('dashboard')}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all ${
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
             activeTab === 'dashboard'
               ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50 rounded-t-xl font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl'
@@ -190,7 +222,7 @@ export default function DataGuru() {
         </button>
         <button
           onClick={() => setActiveTab('data')}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all ${
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
             activeTab === 'data'
               ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50 rounded-t-xl font-bold'
               : 'border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-t-xl'
@@ -198,6 +230,11 @@ export default function DataGuru() {
         >
           <Users className="w-4 h-4" />
           {t('guru.tab_data')}
+          {guru && guru.length > 0 && (
+            <span className="ml-1.5 px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-600 font-bold">
+              {guru.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -212,19 +249,59 @@ export default function DataGuru() {
         />
       ) : (
         <>
+          {/* Advanced Filter Bar */}
           <AdvancedFilterBar 
             onFilterChange={setAdvancedFilters} 
             userScope={user?.scope || ''} 
             userWilayahId={user?.wilayahId} 
             userCabangId={user?.cabangId} 
           />
+
+          {/* Search Box on Data Tab */}
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari nama guru, NIK, jabatan, cabang, wilayah, mata pelajaran yang diampu..."
+                className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 justify-end">
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl whitespace-nowrap">
+                Menampilkan <strong className="text-indigo-600 font-extrabold">{filteredGuru.length}</strong> dari {guru.length} Guru
+              </span>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                  title="Hapus pencarian"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
           
           <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden">
             {isLoading ? (
-              <div className="p-8 text-center text-slate-500">{t('common.loading')}</div>
+              <div className="p-12 text-center text-slate-500 font-medium">{t('common.loading')}</div>
             ) : isError ? (
-              <div className="p-8 text-center text-red-500">{t('common.failed')}</div>
-            ) : guru && guru.length > 0 ? (<>
+              <div className="p-12 text-center text-red-500 font-medium">{t('common.failed')}</div>
+            ) : filteredGuru && filteredGuru.length > 0 ? (<>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-200">
                   <thead className="bg-slate-50/80 border-b border-slate-200">
@@ -239,77 +316,80 @@ export default function DataGuru() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-slate-200">
-                    {filteredGuru.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item: any, idx: number) => (
-                      <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
-                          {(currentPage - 1) * itemsPerPage + idx + 1}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
-                          {item.name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                          <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                            item.position === 'Kepala Cabang' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-800'
-                          }`}>
-                            {item.position || '-'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                          {item.wilayah?.name || '-'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                          {item.cabang?.name || '-'}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-700">
-                          <div className="flex flex-wrap gap-1">
-                            {(() => {
-                              const teacherAssignments = assignments.filter((asg: any) => asg.staffId === item.id);
-                              return (
-                                <>
-                                  {teacherAssignments.map((asg: any) => (
-                                    <span key={asg.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-150">
-                                      {asg.mataPelajaran?.name || t('guru.mapel')} ({asg.kelas?.name || t('guru.kelas')})
-                                    </span>
-                                  ))}
-                                  {teacherAssignments.length === 0 && (
-                                    <span className="text-xs text-slate-400 font-normal">-</span>
-                                  )}
-                                </>
-                              );
-                            })()}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          {user?.scope !== 'AUDITOR' ? (
-                            <>
-                              <button
-                                onClick={() => handleEdit(item)}
-                                className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-xs font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors mr-2"
-                              >
-                                <Edit2 className="h-3.5 w-3.5 mr-1" />
-                                {t('guru.form.edit_btn')}
-                              </button>
-                              <button
-                                onClick={() => setGuruToLepas(item)}
-                                className="inline-flex items-center px-3 py-1.5 border border-amber-200 shadow-sm text-xs font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors mr-2"
-                              >
-                                <UserMinus className="h-3.5 w-3.5 mr-1" />
-                                {t('guru.form.lepas_btn')}
-                              </button>
-                              <button
-                                onClick={() => handleDelete(item.id)}
-                                className="inline-flex items-center px-3 py-1.5 border border-red-200 shadow-sm text-xs font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                              >
-                                <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                {t('common.delete')}
-                              </button>
-                            </>
-                          ) : (
-                            <span className="text-xs text-slate-400 font-normal">Read-Only</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredGuru.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item: any, idx: number) => {
+                      const teacherAssignments = item.guruMapelKelas || assignments.filter((asg: any) => asg.staffId === item.id);
+
+                      return (
+                        <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-slate-400">
+                            {(currentPage - 1) * itemsPerPage + idx + 1}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
+                            <div className="font-extrabold text-slate-900">{item.name}</div>
+                            {item.nik && (
+                              <div className="text-[11px] text-slate-400 font-mono">NIK: {item.nik}</div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold leading-5 ${
+                              item.position === 'Kepala Cabang'
+                                ? 'bg-indigo-100 text-indigo-800'
+                                : 'bg-slate-100 text-slate-800'
+                            }`}>
+                              {item.position || '-'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                            {item.wilayah?.name || '-'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                            {item.cabang?.name || '-'}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-slate-700">
+                            <div className="flex flex-wrap gap-1">
+                              {teacherAssignments && teacherAssignments.length > 0 ? (
+                                teacherAssignments.map((asg: any) => (
+                                  <span key={asg.id} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-150">
+                                    {asg.mataPelajaran?.name || t('guru.mapel')} ({asg.kelas?.name || t('guru.kelas')})
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-xs text-slate-400 font-normal">-</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            {user?.scope !== 'AUDITOR' ? (
+                              <>
+                                <button
+                                  onClick={() => handleEdit(item)}
+                                  className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-xs font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors mr-2 cursor-pointer"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5 mr-1" />
+                                  {t('guru.form.edit_btn')}
+                                </button>
+                                <button
+                                  onClick={() => setGuruToLepas(item)}
+                                  className="inline-flex items-center px-3 py-1.5 border border-amber-200 shadow-sm text-xs font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors mr-2 cursor-pointer"
+                                >
+                                  <UserMinus className="h-3.5 w-3.5 mr-1" />
+                                  {t('guru.form.lepas_btn')}
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(item.id)}
+                                  className="inline-flex items-center px-3 py-1.5 border border-red-200 shadow-sm text-xs font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                  {t('common.delete')}
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-xs text-slate-400 font-normal">Read-Only</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -322,14 +402,25 @@ export default function DataGuru() {
               />
             </>
             ) : (
-              <div className="p-12 text-center flex flex-col items-center justify-center">
+              <div className="p-16 text-center flex flex-col items-center justify-center">
                 <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 ring-1 ring-slate-100">
                   <UserCheck className="w-6 h-6 text-slate-400" />
                 </div>
-                <h3 className="text-sm font-medium text-slate-800">{t('guru.no_data_title')}</h3>
+                <h3 className="text-sm font-bold text-slate-800">
+                  {searchQuery ? 'Tidak ada guru yang cocok dengan kata kunci pencarian.' : t('guru.no_data_title')}
+                </h3>
                 <p className="text-sm text-slate-500 mt-1.5 max-w-sm">
-                  {t('guru.no_data_desc')}
+                  {searchQuery ? 'Coba ubah kata kunci atau bersihkan pencarian.' : t('guru.no_data_desc')}
                 </p>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="mt-3 px-4 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition-colors cursor-pointer"
+                  >
+                    Bersihkan Pencarian
+                  </button>
+                )}
               </div>
             )}
           </div>

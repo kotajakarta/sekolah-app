@@ -49,6 +49,10 @@ export function useNavEntries(): NavEntry[] {
   });
 
   return useMemo(() => {
+    const isRaporEnabled = moduleSettings?.raporMuadalahEnabled !== false;
+    const isPortalEnabled = moduleSettings?.portalWalsanEnabled !== false;
+    const isBankSoalEnabled = moduleSettings?.bankSoalEnabled !== false;
+
     if (user?.scope === 'AUDITOR') {
       const auditorKelembagaan = [
         { to: '/dashboard/core/cabang', label: t('sidebar.cabang') || 'Data Cabang' },
@@ -86,6 +90,153 @@ export function useNavEntries(): NavEntry[] {
       ];
     }
 
+    // =========================================================================
+    // ROLE: GURU (Guru Pengampu Mata Pelajaran)
+    // =========================================================================
+    if (user?.scope === 'GURU') {
+      const guruEntries: NavEntry[] = [
+        { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard Guru', icon: Home, to: '/dashboard' },
+      ];
+
+      if (isBankSoalEnabled) {
+        guruEntries.push({
+          type: 'link',
+          key: 'bank-soal',
+          label: 'Bank Soal (Tugas Saya)',
+          icon: FileQuestion,
+          to: '/dashboard/bank-soal',
+          highlight: true,
+        });
+      }
+
+      guruEntries.push(
+        {
+          type: 'link',
+          key: 'pembelajaran',
+          label: 'Jurnal / Silabus Mapel',
+          icon: BookOpen,
+          to: '/dashboard/pembelajaran',
+          highlight: true,
+        },
+        {
+          type: 'link',
+          key: 'absensi-siswa',
+          label: 'Absensi Siswa',
+          icon: UserCheck,
+          to: '/dashboard/absensi/siswa',
+        },
+      );
+
+      if (isRaporEnabled) {
+        guruEntries.push({
+          type: 'link',
+          key: 'rapor',
+          label: 'Input Nilai (e-Rapor)',
+          icon: FileText,
+          to: '/dashboard/formal/rapor',
+        });
+      }
+
+      guruEntries.push({
+        type: 'group',
+        key: 'layanan',
+        label: t('sidebar.layanan') || 'Layanan & Informasi',
+        icon: HeartHandshake,
+        items: [
+          { to: '/dashboard/umum/pengumuman', label: t('sidebar.pengumuman') || 'Pengumuman' },
+          { to: '/dashboard/umum/kalender', label: t('sidebar.kalender') || 'Kalender Pendidikan' },
+        ],
+      });
+
+      return guruEntries;
+    }
+
+    // =========================================================================
+    // ROLE: WALI_KELAS (Wali Kelas Rombel)
+    // =========================================================================
+    if (user?.scope === 'WALI_KELAS') {
+      const waliEntries: NavEntry[] = [
+        { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard Wali Kelas', icon: Home, to: '/dashboard' },
+      ];
+
+      if (isBankSoalEnabled) {
+        waliEntries.push({
+          type: 'link',
+          key: 'bank-soal',
+          label: 'Bank Soal',
+          icon: FileQuestion,
+          to: '/dashboard/bank-soal',
+          highlight: true,
+        });
+      }
+
+      waliEntries.push(
+        {
+          type: 'link',
+          key: 'rombel',
+          label: 'Rombel Kelas Saya',
+          icon: UserCheck,
+          to: '/dashboard/formal/kelas',
+        },
+        {
+          type: 'link',
+          key: 'santri-kelas',
+          label: 'Santri Kelas Saya',
+          icon: User,
+          to: '/dashboard/formal/siswa',
+        },
+        {
+          type: 'link',
+          key: 'pembelajaran',
+          label: 'Kontrol Pembelajaran',
+          icon: BookOpen,
+          to: '/dashboard/pembelajaran',
+          highlight: true,
+        },
+        {
+          type: 'link',
+          key: 'absensi-siswa',
+          label: 'Absensi Siswa',
+          icon: UserCheck,
+          to: '/dashboard/absensi/siswa',
+        },
+      );
+
+      if (isRaporEnabled) {
+        waliEntries.push({
+          type: 'link',
+          key: 'rapor',
+          label: 'Rapor Kelas Saya',
+          icon: FileText,
+          to: '/dashboard/formal/rapor',
+        });
+      }
+
+      waliEntries.push(
+        {
+          type: 'group',
+          key: 'konfirmasi',
+          label: 'Perizinan',
+          icon: CheckCircle,
+          items: [
+            { to: '/dashboard/core/permohonan-izin', label: 'Konfirmasi Izin Santri' },
+          ],
+        },
+        {
+          type: 'group',
+          key: 'layanan',
+          label: t('sidebar.layanan') || 'Layanan & Informasi',
+          icon: HeartHandshake,
+          items: [
+            { to: '/dashboard/umum/pengumuman', label: t('sidebar.pengumuman') || 'Pengumuman' },
+            { to: '/dashboard/umum/kalender', label: t('sidebar.kalender') || 'Kalender Pendidikan' },
+          ],
+        },
+      );
+
+      return waliEntries;
+    }
+
     const showKelembagaan =
       user?.scope === 'CABANG' ||
       user?.divisi === 'FORMAL' ||
@@ -94,9 +245,6 @@ export function useNavEntries(): NavEntry[] {
       user?.scope === 'WILAYAH';
 
     const showRombonganBelajar = user?.divisi === 'FORMAL' || user?.divisi === 'ALL';
-    const isRaporEnabled = moduleSettings?.raporMuadalahEnabled !== false;
-    const isPortalEnabled = moduleSettings?.portalWalsanEnabled !== false;
-    const isBankSoalEnabled = moduleSettings?.bankSoalEnabled !== false;
 
     const kelembagaanItems = [
       { to: '/dashboard/profile', label: t('sidebar.profil_saya') || 'Profil Saya', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },

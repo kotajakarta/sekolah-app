@@ -9,7 +9,7 @@ import { Sidebar } from './components/Layout/Sidebar';
 import MobileBottomNav from './components/Layout/MobileBottomNav';
 import HeaderSearch from './components/Layout/HeaderSearch';
 import { GlobalSearch } from './components/Layout/GlobalSearch';
-import { Bell, Search, UserCircle, LogOut, Loader2, Sparkles, LifeBuoy, CheckCircle, Globe, ChevronDown, Check } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, Loader2, Sparkles, LifeBuoy, CheckCircle, Globe, ChevronDown, Check, ExternalLink } from 'lucide-react';
 import { useAuth, AuthProvider, type AuthUser } from './hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import Select from 'react-select';
@@ -315,8 +315,36 @@ const MainLayout = () => {
                 <span className="hidden sm:inline">Cabang:&nbsp;</span>{user.cabangName || 'Semua Cabang'}
               </span>
             )}
+            {user?.scope === 'WALI_KELAS' && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200 shadow-sm truncate max-w-[160px] sm:max-w-none">
+                <span className="hidden sm:inline">Peran:&nbsp;</span>Wali Kelas {user.cabangName ? `(${user.cabangName})` : ''}
+              </span>
+            )}
+            {user?.scope === 'GURU' && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200 shadow-sm truncate max-w-[160px] sm:max-w-none">
+                <span className="hidden sm:inline">Peran:&nbsp;</span>Guru {user.cabangName ? `(${user.cabangName})` : ''}
+              </span>
+            )}
+            {user?.scope === 'AUDITOR' && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 shadow-sm truncate">
+                <span className="hidden sm:inline">Peran:&nbsp;</span>Auditor
+              </span>
+            )}
 
-            <button onClick={() => navigate('/dashboard/faq')} className="flex items-center gap-2 hover:text-gray-900 transition-colors">
+            {/* Tombol Menuju Beranda Publik */}
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 hover:border-indigo-200 transition-all shadow-2xs cursor-pointer group"
+              title="Buka Beranda / Landing Page Publik eSantri"
+            >
+              <Globe className="w-3.5 h-3.5 text-indigo-600 group-hover:scale-110 transition-transform" />
+              <span className="hidden sm:inline">Beranda Publik</span>
+              <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-indigo-600" />
+            </a>
+
+            <button onClick={() => navigate('/dashboard/faq')} className="flex items-center gap-2 hover:text-gray-900 transition-colors cursor-pointer">
               <LifeBuoy className="w-4 h-4" />
               <span className="hidden sm:inline">{t('nav.support') || "Support"}</span>
             </button>

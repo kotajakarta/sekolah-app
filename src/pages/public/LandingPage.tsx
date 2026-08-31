@@ -56,6 +56,17 @@ export default function LandingPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-3">
+            <a
+              href="https://peveri.sulaimaniyah.sch.id"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden lg:inline-flex items-center gap-1.5 text-sm font-bold text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 px-3.5 py-2 rounded-full transition-all border border-amber-200/80 shadow-2xs group cursor-pointer"
+              title="Penerbitan dan Verifikasi Ijazah PP Sulaimaniyah"
+            >
+              <Award className="w-4 h-4 text-amber-600 group-hover:scale-110 transition-transform" />
+              <span>Peveri (Ijazah)</span>
+              <ExternalLink className="w-3 h-3 text-amber-600 opacity-75" />
+            </a>
             <button
               onClick={() => navigate('/ppdb')}
               className="hidden sm:inline-flex items-center gap-1.5 text-sm font-bold text-sky-700 hover:text-sky-800 bg-sky-50 hover:bg-sky-100 px-4 py-2 rounded-full transition-colors border border-sky-200 cursor-pointer"
@@ -65,20 +76,20 @@ export default function LandingPage() {
             </button>
             <button
               onClick={() => navigate('/portal-register')}
-              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-full transition-colors border border-emerald-200/80"
+              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-full transition-colors border border-emerald-200/80 cursor-pointer"
             >
               <HeartHandshake className="w-4 h-4 text-emerald-600" />
               Portal Walsan
             </button>
             <button
               onClick={() => navigate('/daftar-ulang')}
-              className="hidden sm:block text-sm font-semibold text-[#4A5568] hover:text-[#0369A1] transition-colors"
+              className="hidden sm:block text-sm font-semibold text-[#4A5568] hover:text-[#0369A1] transition-colors cursor-pointer"
             >
               Daftar Ulang
             </button>
             <button
               onClick={() => navigate('/login')}
-              className="bg-[#0A192F] hover:bg-[#132F52] text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all shadow-lg flex items-center gap-2"
+              className="bg-[#0A192F] hover:bg-[#132F52] text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all shadow-lg flex items-center gap-2 cursor-pointer"
             >
               Masuk <ChevronRight className="w-4 h-4" />
             </button>
@@ -117,29 +128,40 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center gap-4 flex-wrap justify-center">
+            <a
+              href="https://peveri.sulaimaniyah.sch.id"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-7 py-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-full font-bold text-base sm:text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5 group cursor-pointer"
+              title="Penerbitan dan Verifikasi Ijazah Resmi PP Sulaimaniyah"
+            >
+              <Award className="w-5 h-5 text-amber-200 group-hover:rotate-12 transition-transform" />
+              <span>Peveri (Ijazah)</span>
+              <ExternalLink className="w-4 h-4 text-amber-200 opacity-80" />
+            </a>
             <button
               onClick={() => navigate('/ppdb')}
-              className="px-8 py-4 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5 cursor-pointer"
+              className="px-7 py-4 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white rounded-full font-bold text-base sm:text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5 cursor-pointer"
             >
               <GraduationCap className="w-5 h-5" />
               Info Lengkap PPDB
             </button>
             <button
               onClick={() => navigate('/portal-register')}
-              className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5"
+              className="px-7 py-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-full font-bold text-base sm:text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5 cursor-pointer"
             >
               <HeartHandshake className="w-5 h-5" />
               Portal Wali Santri
             </button>
             <button
               onClick={() => navigate('/login')}
-              className="px-8 py-4 bg-[#0A192F] hover:bg-[#132F52] text-white rounded-full font-bold text-lg transition-all shadow-xl hover:scale-105"
+              className="px-7 py-4 bg-[#0A192F] hover:bg-[#132F52] text-white rounded-full font-bold text-base sm:text-lg transition-all shadow-xl hover:scale-105 cursor-pointer"
             >
               Login Dashboard
             </button>
             <button
               onClick={() => navigate('/daftar-ulang')}
-              className="px-8 py-4 bg-white hover:bg-sky-50 text-[#0A192F] border-2 border-[#0A192F] rounded-full font-bold text-lg transition-all flex items-center gap-2"
+              className="px-7 py-4 bg-white hover:bg-sky-50 text-[#0A192F] border-2 border-[#0A192F] rounded-full font-bold text-base sm:text-lg transition-all flex items-center gap-2 cursor-pointer"
             >
               Daftar Ulang Santri
             </button>
@@ -152,7 +174,7 @@ export default function LandingPage() {
               <div className="w-12 h-12 bg-sky-50 rounded-2xl flex items-center justify-center mb-4">
                 <Users className="w-6 h-6 text-[#0369A1]" />
               </div>
-              <h3 className="text-3xl font-extrabold text-[#0A192F] mb-1">15.000+</h3>
+              <h3 className="text-3xl font-extrabold text-[#0A192F] mb-1">5.000+</h3>
               <p className="text-sm font-medium text-[#4A5568]">Santri Aktif & Terdata</p>
             </div>
 
@@ -161,9 +183,9 @@ export default function LandingPage() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#00B4D8]/20 blur-2xl rounded-full"></div>
               <h3 className="text-xl font-bold mb-4">Total Cabang</h3>
               <div className="flex items-end gap-2 mb-2">
-                <span className="text-5xl font-black">54+</span>
+                <span className="text-5xl font-black">100+</span>
                 {/* Aksen #00B4D8 hanya di atas bg gelap — BENAR */}
-                <span className="text-[#00B4D8] font-medium pb-1">Wilayah</span>
+                <span className="text-[#00B4D8] font-medium pb-1">Mitra</span>
               </div>
               <p className="text-slate-400 text-sm">Terintegrasi dalam satu sistem komprehensif.</p>
             </div>
@@ -510,7 +532,18 @@ export default function LandingPage() {
           <p className="text-slate-300 text-lg mb-10 max-w-2xl mx-auto">
             Segera manfaatkan teknologi untuk mereduksi birokrasi dan meningkatkan produktivitas. Akses eSantri sekarang juga!
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 flex-wrap">
+            <a
+              href="https://peveri.sulaimaniyah.sch.id"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold rounded-full transition-all shadow-xl flex items-center gap-2 cursor-pointer"
+              title="Penerbitan dan Verifikasi Ijazah Resmi PP Sulaimaniyah"
+            >
+              <Award className="w-5 h-5 text-amber-200" />
+              Peveri (Ijazah)
+              <ExternalLink className="w-4 h-4 text-amber-200" />
+            </a>
             <button
               onClick={() => navigate('/ppdb')}
               className="px-8 py-4 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold rounded-full transition-all shadow-xl flex items-center gap-2 cursor-pointer"
@@ -522,20 +555,20 @@ export default function LandingPage() {
               href="https://pendaftaran.tahfidzsulaimaniyah.org/"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full transition-all shadow-xl flex items-center gap-2"
+              className="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-full transition-all shadow-xl flex items-center gap-2 cursor-pointer"
             >
               <ExternalLink className="w-5 h-5" />
               Daftar Online PPDB
             </a>
             <button
               onClick={() => navigate('/login')}
-              className="px-8 py-4 bg-white text-[#0A192F] font-bold rounded-full hover:bg-sky-50 transition-colors shadow-xl"
+              className="px-8 py-4 bg-white text-[#0A192F] font-bold rounded-full hover:bg-sky-50 transition-colors shadow-xl cursor-pointer"
             >
               Menuju Dashboard Internal
             </button>
             <button
               onClick={() => navigate('/daftar-ulang')}
-              className="px-8 py-4 border-2 border-[#00B4D8] text-[#00B4D8] font-bold rounded-full hover:bg-[#00B4D8]/10 transition-colors"
+              className="px-8 py-4 border-2 border-[#00B4D8] text-[#00B4D8] font-bold rounded-full hover:bg-[#00B4D8]/10 transition-colors cursor-pointer"
             >
               Daftar Ulang Santri
             </button>
@@ -564,6 +597,16 @@ export default function LandingPage() {
           <div>
             <h4 className="text-white font-semibold mb-4">Akses Cepat</h4>
             <ul className="space-y-2 text-sm">
+              <li>
+                <a
+                  href="https://peveri.sulaimaniyah.sch.id"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#00B4D8] transition-colors inline-flex items-center gap-1 text-amber-400 font-semibold"
+                >
+                  Peveri (Verifikasi Ijazah) <ExternalLink className="w-3 h-3 ml-0.5" />
+                </a>
+              </li>
               <li>
                 <button
                   onClick={() => navigate('/ppdb')}

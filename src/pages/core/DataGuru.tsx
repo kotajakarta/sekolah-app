@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UserCheck, Plus, UserMinus, UserPlus, Edit2, Trash2, LayoutDashboard, Users, Search, X, RotateCcw } from 'lucide-react';
+import { UserCheck, Plus, UserMinus, UserPlus, Edit2, Trash2, LayoutDashboard, Users, Search, X, RotateCcw, KeyRound, Sparkles, Send } from 'lucide-react';
 import { useGetGuru, useDeleteGuru } from '../../features/core_data/hooks/useMasterData';
 import { Guru } from '../../features/core_data/hooks/usePoolGuru';
 import LepasGuruModal from '../../features/core_data/components/LepasGuruModal';
 import TarikGuruMassalModal from '../../features/core_data/components/TarikGuruMassalModal';
 import GuruModal from '../../features/core_data/components/GuruModal';
 import GuruDashboardTab from '../../features/core_data/components/GuruDashboardTab';
+import TeacherAccountModal from '../../features/core_data/components/TeacherAccountModal';
+import BulkTeacherAccountModal from '../../features/core_data/components/BulkTeacherAccountModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
@@ -49,6 +51,12 @@ export default function DataGuru() {
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [guruIdToDelete, setGuruIdToDelete] = useState<string | null>(null);
   const [guruToEdit, setGuruToEdit] = useState<Guru | null>(null);
+
+  // Modal Akun Guru
+  const [accountModalStaff, setAccountModalStaff] = useState<any | null>(null);
+  const [accountModalMode, setAccountModalMode] = useState<'create' | 'reset'>('create');
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [isBulkAccountModalOpen, setIsBulkAccountModalOpen] = useState(false);
   
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
     wilayahId: user?.scope === 'WILAYAH' || user?.scope === 'CABANG' ? user?.wilayahId || '' : '',
@@ -172,6 +180,11 @@ export default function DataGuru() {
     setGuruIdToDelete(null);
   };
 
+  const teachersWithoutAccount = useMemo(() => {
+    const raw = Array.isArray(guru) ? guru : [];
+    return raw.filter((g: any) => !g.user);
+  }, [guru]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -190,6 +203,19 @@ export default function DataGuru() {
                 {t('common.delete_all') || 'Hapus Semua'}
               </button>
             )}
+            <button 
+              onClick={() => setIsBulkAccountModalOpen(true)}
+              className="inline-flex items-center justify-center px-4 py-2 border border-teal-200 shadow-sm text-sm font-medium rounded-lg text-teal-700 bg-teal-50 hover:bg-teal-100 transition-colors cursor-pointer"
+              title="Generate akun login untuk seluruh guru yang belum memiliki akun"
+            >
+              <Sparkles className="w-4 h-4 mr-2 text-teal-600" />
+              <span>Generate Akun Massal</span>
+              {teachersWithoutAccount.length > 0 && (
+                <span className="ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-600 text-white">
+                  {teachersWithoutAccount.length}
+                </span>
+              )}
+            </button>
             {(user?.scope === 'CABANG' || user?.scope === 'WILAYAH') && (
               <button 
                 onClick={() => setIsTarikModalOpen(true)}
@@ -312,6 +338,7 @@ export default function DataGuru() {
                       <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.table_wilayah')}</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.table_cabang')}</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('guru.table_tugas')}</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Akun Login eSantri</th>
                       <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
                     </tr>
                   </thead>
@@ -358,6 +385,78 @@ export default function DataGuru() {
                               )}
                             </div>
                           </td>
+
+                          {/* Kolom Akun Login eSantri */}
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            {item.user ? (
+                              <div className="flex items-center gap-2">
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                                    <span className="font-mono font-bold text-xs text-slate-800">{item.user.username}</span>
+                                  </div>
+                                  <span className={`mt-0.5 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold w-fit ${
+                                    item.user.scope === 'WALI_KELAS'
+                                      ? 'bg-teal-100 text-teal-800'
+                                      : 'bg-sky-100 text-sky-800'
+                                  }`}>
+                                    {item.user.scope === 'WALI_KELAS' ? 'Wali Kelas' : 'Guru Mapel'}
+                                  </span>
+                                </div>
+                                {user?.scope !== 'AUDITOR' && (
+                                  <div className="flex items-center gap-1 ml-auto">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAccountModalStaff(item);
+                                        setAccountModalMode('reset');
+                                        setIsAccountModalOpen(true);
+                                      }}
+                                      className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 transition-colors cursor-pointer"
+                                      title="Reset Password Guru"
+                                    >
+                                      <KeyRound className="w-3.5 h-3.5" />
+                                    </button>
+                                    {item.phone && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setAccountModalStaff(item);
+                                          setAccountModalMode('reset');
+                                          setIsAccountModalOpen(true);
+                                        }}
+                                        className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
+                                        title="Kirim / Bagikan Akun via WA"
+                                      >
+                                        <Send className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+                                  Belum Ada Akun
+                                </span>
+                                {user?.scope !== 'AUDITOR' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setAccountModalStaff(item);
+                                      setAccountModalMode('create');
+                                      setIsAccountModalOpen(true);
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-all cursor-pointer"
+                                  >
+                                    <KeyRound className="w-3 h-3" />
+                                    <span>+ Buat Akun</span>
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
+
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             {user?.scope !== 'AUDITOR' ? (
                               <>
@@ -444,6 +543,34 @@ export default function DataGuru() {
         <GuruModal
           guru={guruToEdit}
           onClose={() => setIsGuruModalOpen(false)}
+        />
+      )}
+
+      {isAccountModalOpen && accountModalStaff && (
+        <TeacherAccountModal
+          isOpen={isAccountModalOpen}
+          staff={accountModalStaff}
+          mode={accountModalMode}
+          onClose={() => {
+            setIsAccountModalOpen(false);
+            setAccountModalStaff(null);
+          }}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['master-data', 'guru'] });
+          }}
+        />
+      )}
+
+      {isBulkAccountModalOpen && (
+        <BulkTeacherAccountModal
+          isOpen={isBulkAccountModalOpen}
+          cabangId={user?.cabangId || undefined}
+          cabangName={user?.cabangName || undefined}
+          teachersWithoutAccount={teachersWithoutAccount}
+          onClose={() => setIsBulkAccountModalOpen(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['master-data', 'guru'] });
+          }}
         />
       )}
 

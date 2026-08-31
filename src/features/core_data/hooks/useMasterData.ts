@@ -5,7 +5,43 @@ export interface Staff {
   id: string;
   name: string;
   position: string;
+  nik?: string;
+  phone?: string;
+  jenisKelamin?: string;
+  pendidikanTerakhir?: string;
+  perguruanTinggi?: string;
+  programStudi?: string;
+  tahunLulus?: string;
+  tempatLahir?: string;
+  tanggalLahir?: string;
+  statusPool?: string;
+  mapelUmum?: string[];
+  waliKelas?: string;
   cabangId?: string | null;
+  wilayahId?: string | null;
+  grupDaimiId?: string | null;
+  wilayah?: { id: string; name: string };
+  cabang?: { id: string; name: string; wilayahId?: string };
+  grupDaimi?: { id: string; name: string };
+  user?: {
+    id: string;
+    username: string;
+    scope: string;
+    status: string;
+    isApproved: boolean;
+  };
+  kelasWali?: Array<{
+    id: string;
+    name: string;
+    tingkat: string;
+  }>;
+  guruMapelKelas?: Array<{
+    id: string;
+    kelasId: string;
+    mataPelajaranId: string;
+    mataPelajaran?: { id: string; name: string };
+    kelas?: { id: string; name: string; tingkat?: number | string };
+  }>;
 }
 
 export interface Wilayah {
@@ -177,5 +213,44 @@ export const useGetWilayah = () => {
     },
     staleTime: 15 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+  });
+};
+
+export const useCreateTeacherAccount = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ staffId, username, password, scope }: { staffId: string; username?: string; password?: string; scope?: string }) => {
+      const response = await apiClient.post(`/master-data/guru/${staffId}/create-account`, { username, password, scope });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['master-data', 'guru'] });
+    },
+  });
+};
+
+export const useResetTeacherPassword = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ staffId, newPassword }: { staffId: string; newPassword?: string }) => {
+      const response = await apiClient.post(`/master-data/guru/${staffId}/reset-password`, { newPassword });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['master-data', 'guru'] });
+    },
+  });
+};
+
+export const useBulkCreateTeacherAccounts = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { cabangId?: string; defaultPassword?: string }) => {
+      const response = await apiClient.post('/master-data/guru/bulk-create-accounts', data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['master-data', 'guru'] });
+    },
   });
 };

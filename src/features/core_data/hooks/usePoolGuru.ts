@@ -24,6 +24,18 @@ export interface Guru {
   ijazahUrl?: string;
   phone?: string;
   waliKelas?: string;
+  user?: {
+    id: string;
+    username: string;
+    scope: string;
+    status: string;
+    isApproved: boolean;
+  };
+  kelasWali?: Array<{
+    id: string;
+    name: string;
+    tingkat: string;
+  }>;
 }
 
 export const useGetPoolGuru = () => {

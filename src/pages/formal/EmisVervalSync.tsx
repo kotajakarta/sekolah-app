@@ -448,6 +448,7 @@ export default function EmisVervalSync() {
       // Optimasi payload: Hanya kirim atribut yang dibutuhkan algoritma pemadanan untuk mencegah payload terlalu besar
       const slimEmis = (emisStudents || []).map((s) => ({
         id: s.id || s._emis_id || '',
+        nik: s.nik || s.list_nik || s.identity_number || s.no_identitas || s.no_kk || '',
         nisn: s.nisn || s.list_nisn || '',
         full_name: s.full_name || s.nama || s.list_full_name || '',
         birth_place: s.birth_place || s.tempat_lahir || s.list_birth_place || '',

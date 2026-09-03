@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import apiClient from '../../lib/apiClient';
 import { useToast } from '../../contexts/ToastContext';
@@ -25,6 +25,10 @@ import {
   Info,
   Plus,
   Trash2,
+  History,
+  Calendar,
+  X,
+  Clock,
 } from 'lucide-react';
 
 interface CabangStat {
@@ -67,6 +71,8 @@ interface ReconciledStudent {
 }
 
 interface ReconciliationSummary {
+  batchId?: string;
+  executedAt?: string;
   totalSantriEsantri: number;
   totalTerdaftarEmis: number;
   totalBelumEmis: number;
@@ -84,6 +90,11 @@ export default function EmisVervalSync() {
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'komparasi' | 'fetch-emis' | 'fetch-verval' | 'upload-csv'>('komparasi');
+
+  // State Riwayat Audit dari Database
+  const [historyModalOpen, setHistoryModalOpen] = useState<boolean>(false);
+  const [historyList, setHistoryList] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(false);
 
   // State untuk Live Fetch EMIS (Multi-Token Support)
   interface EmisTokenEntry {
@@ -383,6 +394,53 @@ export default function EmisVervalSync() {
     reader.readAsText(file);
   };
 
+  // --- Otomatis Muat Hasil Audit Terakhir dari Database saat Halaman Dibuka ---
+  useEffect(() => {
+    const loadLatestAudit = async () => {
+      try {
+        const res = await apiClient.get('/formal/emis/latest');
+        if (res.data?.data && res.data.data.students?.length > 0) {
+          setReconData(res.data.data);
+        }
+      } catch {
+        // Abaikan jika belum ada audit yang tersimpan sebelumnya
+      }
+    };
+    loadLatestAudit();
+  }, []);
+
+  // --- Buka Modal Riwayat Audit ---
+  const handleOpenHistory = async () => {
+    setHistoryModalOpen(true);
+    setHistoryLoading(true);
+    try {
+      const res = await apiClient.get('/formal/emis/history');
+      setHistoryList(res.data?.data || []);
+    } catch {
+      showToast('error', 'Gagal memuat riwayat sesi audit dari database.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // --- Muat Snapshot dari Riwayat Tertentu ---
+  const handleSelectHistoryBatch = async (batchId: string) => {
+    setReconLoading(true);
+    try {
+      const res = await apiClient.get(`/formal/emis/history/${batchId}`);
+      if (res.data?.data) {
+        setReconData(res.data.data);
+        setActiveTab('komparasi');
+        setHistoryModalOpen(false);
+        showToast('success', `Snapshot audit #${batchId.slice(0, 8)} berhasil dimuat.`);
+      }
+    } catch {
+      showToast('error', 'Gagal memuat detail snapshot audit.');
+    } finally {
+      setReconLoading(false);
+    }
+  };
+
   // --- Jalankan Komparasi dengan Database eSantri ---
   const handleRunReconcile = async () => {
     setReconLoading(true);
@@ -418,7 +476,7 @@ export default function EmisVervalSync() {
       });
       setReconData(res.data?.data);
       setActiveTab('komparasi');
-      showToast('success', 'Komparasi data dengan database eSantri selesai!');
+      showToast('success', 'Komparasi data selesai dan berhasil disimpan permanen ke database!');
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Gagal menjalankan komparasi';
       showToast('error', msg);
@@ -513,6 +571,15 @@ export default function EmisVervalSync() {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={handleOpenHistory}
+              disabled={reconLoading || historyLoading}
+              className="inline-flex items-center px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+              title="Lihat riwayat snapshot audit yang tersimpan di database"
+            >
+              <History className="w-4 h-4 mr-2 text-slate-600" />
+              Riwayat Audit DB
+            </button>
+            <button
               onClick={handleRunReconcile}
               disabled={reconLoading}
               className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors cursor-pointer disabled:opacity-50"
@@ -523,8 +590,32 @@ export default function EmisVervalSync() {
           </div>
         </div>
 
+        {/* Banner Snapshot Database */}
+        {reconData?.batchId && (
+          <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
+            <div className="flex items-center gap-2 text-emerald-800 text-xs">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="font-semibold">Hasil Audit Tersimpan di Database:</span>
+              <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-mono font-medium">
+                Batch #{reconData.batchId.slice(0, 8)}
+              </span>
+              {reconData.executedAt && (
+                <span className="text-emerald-700 hidden sm:inline">
+                  • {new Date(reconData.executedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleOpenHistory}
+              className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline flex items-center gap-1 cursor-pointer"
+            >
+              Buka Riwayat Sesi Lain
+            </button>
+          </div>
+        )}
+
         {/* Banner Keamanan Data */}
-        <div className="mt-4 p-3 bg-blue-50/70 border border-blue-200 rounded-lg flex items-start gap-3">
+        <div className="mt-3 p-3 bg-blue-50/70 border border-blue-200 rounded-lg flex items-start gap-3">
           <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
           <div className="text-xs text-blue-800 leading-relaxed">
             <strong>Keamanan Data Terjamin:</strong> Modul ini bekerja murni secara <em>read-only</em>.
@@ -1304,6 +1395,113 @@ export default function EmisVervalSync() {
               <RefreshCw className="w-4 h-4 mr-2" />
               Jalankan Komparasi dengan Data File Terunggah
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL RIWAYAT SNAPSHOT AUDIT DATABASE */}
+      {historyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 rounded-lg text-indigo-700">
+                  <History className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base">Riwayat Snapshot Audit Database</h3>
+                  <p className="text-xs text-slate-500">Daftar sesi komparasi data santri yang tersimpan di PostgreSQL</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setHistoryModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-3 flex-1">
+              {historyLoading ? (
+                <div className="py-12 text-center text-slate-500 text-sm flex flex-col items-center justify-center gap-2">
+                  <RefreshCw className="w-6 h-6 animate-spin text-indigo-600" />
+                  <span>Memuat riwayat sesi audit...</span>
+                </div>
+              ) : historyList.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-sm">
+                  Belum ada riwayat komparasi yang tersimpan di database. Silakan jalankan komparasi pertama Anda.
+                </div>
+              ) : (
+                historyList.map((h: any) => {
+                  const isCurrent = reconData?.batchId === h.id;
+                  const execDate = new Date(h.executedAt).toLocaleString('id-ID', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  });
+                  return (
+                    <div
+                      key={h.id}
+                      className={`border rounded-xl p-4 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        isCurrent
+                          ? 'bg-emerald-50/70 border-emerald-300 ring-2 ring-emerald-400/20'
+                          : 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm'
+                      }`}
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                            #{h.id.slice(0, 8)}
+                          </span>
+                          <span className="text-xs text-slate-600 flex items-center gap-1 font-medium">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            {execDate}
+                          </span>
+                          {isCurrent && (
+                            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+                              Sedang Aktif
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-slate-600 flex-wrap pt-1">
+                          <span>Total: <strong>{h.totalSantriEsantri}</strong></span>
+                          <span className="text-emerald-700">EMIS: <strong>{h.totalTerdaftarEmis}</strong></span>
+                          <span className="text-blue-700">Verval OK: <strong>{h.totalVervalOk}</strong></span>
+                          <span className="text-amber-700">Residu: <strong>{h.totalResiduVerval}</strong></span>
+                          {h.totalButuhTindakan > 0 && (
+                            <span className="text-rose-600 font-semibold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                              Tindak Lanjut: {h.totalButuhTindakan}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <button
+                          onClick={() => handleSelectHistoryBatch(h.id)}
+                          disabled={reconLoading || isCurrent}
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer disabled:opacity-40 ${
+                            isCurrent
+                              ? 'bg-emerald-600 text-white cursor-default'
+                              : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
+                          }`}
+                        >
+                          {isCurrent ? 'Snapshot Aktif' : 'Buka Snapshot'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="px-6 py-3 border-t border-slate-200 bg-slate-50 flex justify-end">
+              <button
+                onClick={() => setHistoryModalOpen(false)}
+                className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

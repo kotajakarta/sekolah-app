@@ -28,6 +28,7 @@ import PenugasanGuru from './pages/formal/PenugasanGuru';
 import KontrolPembelajaran from './pages/pembelajaran/KontrolPembelajaran';
 import UsersWilayah from './pages/admin/UsersWilayah';
 import DataSiswaMuadalah from './pages/formal/DataSiswaMuadalah';
+import EmisVervalSync from './pages/formal/EmisVervalSync';
 import PoolSiswa from './pages/core/PoolSiswa';
 import PoolGuru from './pages/core/PoolGuru';
 import DataSiswa from './pages/core/DataSiswa';
@@ -565,6 +566,7 @@ export default function App() {
               <Route path="faq" element={<FaqPage />} />
               <Route path="profile" element={<ProfileUser />} />
               <Route path="formal/siswa" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><DataSiswaMuadalah /></ScopeRoute>} />
+              <Route path="formal/emis-sync" element={<ScopeRoute allowed={['GLOBAL']}><EmisVervalSync /></ScopeRoute>} />
               <Route path="formal/kelas" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><ManajemenKelas /></ScopeRoute>} />
               <Route path="formal/muadalah" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><LembagaMuadalahPage /></ScopeRoute>} />
               <Route path="formal/mapel" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><ManajemenMapel /></ScopeRoute>} />
@@ -575,6 +577,7 @@ export default function App() {
               <Route path="formal/rapor" element={<ScopeRoute allowedDivisi={['FORMAL', 'ALL']}><ERaporPage /></ScopeRoute>} />
               <Route path="settings/users" element={<ScopeRoute allowed={['GLOBAL']}><UsersWilayah /></ScopeRoute>} />
               <Route path="settings/sync" element={<ScopeRoute allowed={['GLOBAL']}><Sinkronisasi /></ScopeRoute>} />
+              <Route path="settings/emis-sync" element={<ScopeRoute allowed={['GLOBAL']}><EmisVervalSync /></ScopeRoute>} />
               <Route path="settings/modul" element={<ScopeRoute allowed={['GLOBAL']}><PengaturanModul /></ScopeRoute>} />
               <Route path="settings/akademik" element={<ScopeRoute allowed={['GLOBAL']}><PengaturanAkademik /></ScopeRoute>} />
               <Route path="settings/pengumuman" element={<ScopeRoute allowed={['GLOBAL']}><KelolaPengumuman /></ScopeRoute>} />

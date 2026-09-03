@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import {
   HeartHandshake,
@@ -33,6 +34,21 @@ interface VerifiedStudent {
 
 export default function PortalRegisterPage() {
   const navigate = useNavigate();
+
+  const { data: moduleSettings, isLoading: isLoadingSettings } = useQuery({
+    queryKey: ['module-settings'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/pengaturan/modules');
+        return res.data;
+      } catch (e) {
+        return { portalWalsanEnabled: true };
+      }
+    },
+    staleTime: 60000,
+  });
+
+  const isPortalEnabled = moduleSettings?.portalWalsanEnabled !== false;
 
   // Step state: 1 = verify student, 2 = fill parent info, 3 = success
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -169,6 +185,75 @@ export default function PortalRegisterPage() {
       setIsSubmitting(false);
     }
   };
+
+  if (!isLoadingSettings && !isPortalEnabled) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-between selection:bg-emerald-200">
+        <header className="bg-white border-b border-slate-200/80 sticky top-0 z-40">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-slate-600 to-slate-700 flex items-center justify-center text-white shadow-md">
+                <HeartHandshake className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-lg text-slate-900 tracking-tight">Portal Wali Santri</span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md">
+                    Nonaktif
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">Pusdatin PP Sulaimaniyah</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/login"
+                className="text-xs sm:text-sm font-semibold text-slate-600 hover:text-slate-900 px-3 py-2 rounded-xl transition-colors"
+              >
+                Login Petugas
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 max-w-xl mx-auto w-full px-4 py-16 flex items-center justify-center">
+          <div className="bg-white rounded-3xl p-8 sm:p-10 border border-slate-200/80 shadow-xl text-center space-y-6 w-full">
+            <div className="w-16 h-16 bg-rose-50 border border-rose-200/80 rounded-3xl mx-auto flex items-center justify-center text-rose-600 shadow-sm">
+              <AlertCircle className="w-8 h-8" />
+            </div>
+            <div className="space-y-2.5">
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                Modul Portal Wali Santri Sedang Nonaktif
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
+                Layanan pendaftaran akun dan akses Portal Wali Santri saat ini sedang dinonaktifkan oleh Administrator Pusat. Silakan hubungi pengurus pesantren atau cabang terkait untuk informasi lebih lanjut.
+              </p>
+            </div>
+            <div className="pt-3 flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="px-6 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all cursor-pointer"
+              >
+                Kembali ke Beranda
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="px-6 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
+              >
+                Login Internal
+              </button>
+            </div>
+          </div>
+        </main>
+
+        <footer className="py-6 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
+          &copy; {new Date().getFullYear()} eSantri PP Sulaimaniyah. Hak Cipta Dilindungi.
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between selection:bg-emerald-200">

@@ -14,6 +14,7 @@ import {
   Sparkles,
   Video,
   Banknote,
+  AlertCircle,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortalStudent } from '../../features/portal/context/PortalStudentContext';
@@ -99,6 +100,32 @@ export default function PortalLayout() {
     logout();
     navigate('/login');
   };
+
+  if (moduleSettings && moduleSettings.portalWalsanEnabled === false) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200/80 text-center space-y-5 shadow-xl">
+          <div className="w-16 h-16 bg-rose-50 border border-rose-200/80 text-rose-600 rounded-3xl mx-auto flex items-center justify-center shadow-sm">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Portal Wali Santri Nonaktif</h2>
+            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              Akses Portal Wali Santri saat ini sedang dinonaktifkan oleh Administrator Pusat. Silakan hubungi pengurus cabang pesantren Anda.
+            </p>
+          </div>
+          <div className="pt-2">
+            <button
+              onClick={handleLogout}
+              className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-bold transition-all shadow-md cursor-pointer"
+            >
+              Keluar Sesi (Logout)
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-slate-50/80 min-h-screen flex flex-col font-sans antialiased text-slate-800">

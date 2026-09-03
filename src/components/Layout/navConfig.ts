@@ -250,6 +250,7 @@ export function useNavEntries(): NavEntry[] {
       { to: '/dashboard/profile', label: t('sidebar.profil_saya') || 'Profil Saya', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
       { to: '/dashboard/profile-cabang', label: t('sidebar.profil_cabang') || 'Profil Cabang', show: user?.scope === 'CABANG' },
       { to: '/dashboard/formal/muadalah', label: t('sidebar.lembaga_muadalah') || 'Lembaga Muadalah', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
+      { to: '/dashboard/formal/emis-sync', label: 'Validasi EMIS & Verval', show: user?.scope === 'GLOBAL' },
       { to: '/dashboard/core/cabang', label: t('sidebar.cabang') || 'Data Cabang', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
       { to: '/dashboard/core/wilayah', label: t('sidebar.wilayah') || 'Data Wilayah', show: user?.scope === 'GLOBAL' },
       { to: '/dashboard/formal/mapel', label: t('sidebar.mapel') || 'Mata Pelajaran', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import apiClient from '../../lib/apiClient';
 import { Lock, Mail, Loader2, Eye, EyeOff, ShieldCheck, KeyRound } from 'lucide-react';
@@ -18,6 +19,21 @@ export default function LoginPage() {
 
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const { data: moduleSettings } = useQuery({
+    queryKey: ['module-settings'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/pengaturan/modules');
+        return res.data;
+      } catch (e) {
+        return { portalWalsanEnabled: true };
+      }
+    },
+    staleTime: 60000,
+  });
+
+  const isPortalEnabled = moduleSettings?.portalWalsanEnabled !== false;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,19 +233,21 @@ export default function LoginPage() {
           )}
 
           <div className="mt-6 border-t border-slate-100 pt-6 space-y-3 text-center">
-            <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-left flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold text-emerald-900">Wali Santri / Orang Tua?</p>
-                <p className="text-[11px] text-emerald-700">Belum memiliki akun untuk memantau santri?</p>
+            {isPortalEnabled && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-left flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold text-emerald-900">Wali Santri / Orang Tua?</p>
+                  <p className="text-[11px] text-emerald-700">Belum memiliki akun untuk memantau santri?</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/portal-register')}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors shrink-0"
+                >
+                  Daftar Akun
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate('/portal-register')}
-                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors shrink-0"
-              >
-                Daftar Akun
-              </button>
-            </div>
+            )}
 
             <span className="block text-xs text-slate-500">
               Calon Santri Baru?{' '}

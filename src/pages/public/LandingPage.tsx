@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import apiClient from '../../lib/apiClient';
 import {
   ShieldCheck, Zap, Users, GraduationCap, BarChart, CheckCircle,
   ChevronRight, LayoutDashboard, Calendar, FileText, HeartHandshake,
@@ -18,6 +20,21 @@ import {
 export default function LandingPage() {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
+
+  const { data: moduleSettings } = useQuery({
+    queryKey: ['module-settings'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/pengaturan/modules');
+        return res.data;
+      } catch (e) {
+        return { portalWalsanEnabled: true };
+      }
+    },
+    staleTime: 60000,
+  });
+
+  const isPortalEnabled = moduleSettings?.portalWalsanEnabled !== false;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -74,13 +91,15 @@ export default function LandingPage() {
               <GraduationCap className="w-4 h-4 text-sky-600" />
               Info PPDB
             </button>
-            <button
-              onClick={() => navigate('/portal-register')}
-              className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-full transition-colors border border-emerald-200/80 cursor-pointer"
-            >
-              <HeartHandshake className="w-4 h-4 text-emerald-600" />
-              Portal Walsan
-            </button>
+            {isPortalEnabled && (
+              <button
+                onClick={() => navigate('/portal-register')}
+                className="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-full transition-colors border border-emerald-200/80 cursor-pointer"
+              >
+                <HeartHandshake className="w-4 h-4 text-emerald-600" />
+                Portal Walsan
+              </button>
+            )}
             <button
               onClick={() => navigate('/daftar-ulang')}
               className="hidden sm:block text-sm font-semibold text-[#4A5568] hover:text-[#0369A1] transition-colors cursor-pointer"
@@ -146,13 +165,15 @@ export default function LandingPage() {
               <GraduationCap className="w-5 h-5" />
               Info Lengkap PPDB
             </button>
-            <button
-              onClick={() => navigate('/portal-register')}
-              className="px-7 py-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-full font-bold text-base sm:text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5 cursor-pointer"
-            >
-              <HeartHandshake className="w-5 h-5" />
-              Portal Wali Santri
-            </button>
+            {isPortalEnabled && (
+              <button
+                onClick={() => navigate('/portal-register')}
+                className="px-7 py-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-full font-bold text-base sm:text-lg transition-all shadow-xl hover:scale-105 flex items-center gap-2.5 cursor-pointer"
+              >
+                <HeartHandshake className="w-5 h-5" />
+                Portal Wali Santri
+              </button>
+            )}
             <button
               onClick={() => navigate('/login')}
               className="px-7 py-4 bg-[#0A192F] hover:bg-[#132F52] text-white rounded-full font-bold text-base sm:text-lg transition-all shadow-xl hover:scale-105 cursor-pointer"

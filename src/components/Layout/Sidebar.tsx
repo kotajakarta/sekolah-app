@@ -263,6 +263,7 @@ export const Sidebar: React.FC = () => {
                     <ul className="space-y-1">
                       <NavLink to="/dashboard/settings/users" icon={Users}>Manage account</NavLink>
                       <NavLink to="/dashboard/settings/sync" icon={Database}>Sinkronisasi</NavLink>
+                      <NavLink to="/dashboard/formal/emis-sync" icon={Database}>Validasi EMIS & Verval</NavLink>
                       <NavLink to="/dashboard/settings/modul" icon={Sliders}>Pengaturan Modul</NavLink>
                       <NavLink to="/dashboard/settings/akademik" icon={GraduationCap}>Pengaturan Akademik</NavLink>
                       <NavLink to="/dashboard/settings/pengumuman" icon={FileText}>Kelola Pengumuman</NavLink>

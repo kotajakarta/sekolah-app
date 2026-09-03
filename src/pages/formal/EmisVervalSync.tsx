@@ -316,13 +316,15 @@ export default function EmisVervalSync() {
       'Cabang': s.cabangName,
       'Wilayah': s.wilayahName,
       'Lembaga Muadalah': s.lembagaMuadalahName,
-      'Kelas': s.kelasName,
+      'Tingkat eSantri': s.tingkat || '-',
+      'Kelas / Rombel eSantri': s.kelasName,
       'NISN eSantri': s.nisnEsantri,
       'NIK eSantri': s.nikEsantri,
       'Tempat Lahir': s.tempatLahirEsantri,
       'Tanggal Lahir': s.tanggalLahirEsantri,
       'Status EMIS Kemenag': s.statusEmis === 'TERDAFTAR' ? 'Terdaftar' : s.statusEmis === 'DISKREPANSI' ? 'Ada Selisih' : 'BELUM TERDAFTAR',
       'NISN di EMIS': s.nisnEmis || '-',
+      'Rombel di EMIS': s.rombelEmis || '-',
       'Status Verval Kemendikbud': s.statusVerval === 'VERVAL_OK' ? 'Valid' : s.statusVerval === 'RESIDU_VERVAL' ? 'RESIDU' : 'Belum Terdaftar',
       'NISN di Verval': s.nisnVerval || '-',
       'Detail Selisih / Residu': s.discrepancies.join('; ') || (s.residuDetail ? JSON.stringify(s.residuDetail) : '-'),
@@ -679,14 +681,28 @@ export default function EmisVervalSync() {
                             <td className="px-3.5 py-2 font-mono text-slate-700">{s.nisnEsantri}</td>
                             <td className="px-3.5 py-2">
                               {s.statusEmis === 'TERDAFTAR' && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-                                  ✓ Terdaftar ({s.nisnEmis})
-                                </span>
+                                <div>
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
+                                    ✓ Terdaftar ({s.nisnEmis})
+                                  </span>
+                                  {s.rombelEmis && s.rombelEmis !== '-' && (
+                                    <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                                      Rombel: {s.rombelEmis}
+                                    </div>
+                                  )}
+                                </div>
                               )}
                               {s.statusEmis === 'DISKREPANSI' && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800">
-                                  ⚠ Selisih NISN ({s.nisnEmis})
-                                </span>
+                                <div>
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800">
+                                    ⚠ Selisih ({s.nisnEmis})
+                                  </span>
+                                  {s.rombelEmis && s.rombelEmis !== '-' && (
+                                    <div className="text-[10px] text-amber-700 font-mono mt-0.5">
+                                      Rombel: {s.rombelEmis}
+                                    </div>
+                                  )}
+                                </div>
                               )}
                               {s.statusEmis === 'BELUM_TERDAFTAR' && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-800">

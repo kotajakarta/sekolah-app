@@ -214,7 +214,8 @@ export default function EmisVervalSync() {
     addEmisLog(`[${entry.label}] Memulai pengambilan daftar santri dari API EMIS...`);
 
     try {
-      const res = await apiClient.post('/formal/emis/fetch-list', { token: entry.token.trim() });
+      const cleanToken = entry.token.trim().replace(/^Bearer\s+/i, '');
+      const res = await apiClient.post('/formal/emis/fetch-list', { token: cleanToken });
       const items = (res.data?.data || []).map((s: any) => ({
         ...s,
         _source_lembaga: entry.label,
@@ -256,7 +257,8 @@ export default function EmisVervalSync() {
       addEmisLog(`(${i + 1}/${validEntries.length}) [${entry.label}] Menghubungi API EMIS...`);
 
       try {
-        const res = await apiClient.post('/formal/emis/fetch-list', { token: entry.token.trim() });
+        const cleanToken = entry.token.trim().replace(/^Bearer\s+/i, '');
+        const res = await apiClient.post('/formal/emis/fetch-list', { token: cleanToken });
         const items = (res.data?.data || []).map((s: any) => ({
           ...s,
           _source_lembaga: entry.label,
@@ -385,9 +387,34 @@ export default function EmisVervalSync() {
   const handleRunReconcile = async () => {
     setReconLoading(true);
     try {
+      // Optimasi payload: Hanya kirim atribut yang dibutuhkan algoritma pemadanan untuk mencegah payload terlalu besar
+      const slimEmis = (emisStudents || []).map((s) => ({
+        id: s.id || s._emis_id || '',
+        nisn: s.nisn || s.list_nisn || '',
+        full_name: s.full_name || s.nama || s.list_full_name || '',
+        birth_place: s.birth_place || s.tempat_lahir || s.list_birth_place || '',
+        birth_date: s.birth_date || s.tanggal_lahir || s.list_birth_date || '',
+        gender: s.gender || s.jenis_kelamin || '',
+        tingkat: s.tingkat || s.la_study_group_name || s.study_group_name || s.rombel || s._parsed_rombel || '',
+        _source_lembaga: s._source_lembaga || '',
+      }));
+
+      const slimVerval = (vervalStudents || []).map((v) => ({
+        pesertaDidikId: v.pesertaDidikId || v.id || '',
+        nik: v.nik || '',
+        nisn: v.nisn || '',
+        nama: v.nama || '',
+        tempatLahir: v.tempatLahir || '',
+        tanggalLahir: v.tanggalLahir || '',
+        namaIbuKandung: v.namaIbuKandung || '',
+        jenisKelamin: v.jenisKelamin || '',
+        isResidu: Boolean(v.isResidu),
+        residuDetail: v.residuDetail || null,
+      }));
+
       const res = await apiClient.post('/formal/emis/reconcile', {
-        emisStudents,
-        vervalStudents,
+        emisStudents: slimEmis,
+        vervalStudents: slimVerval,
       });
       setReconData(res.data?.data);
       setActiveTab('komparasi');

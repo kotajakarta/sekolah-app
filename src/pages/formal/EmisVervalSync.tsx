@@ -22,7 +22,9 @@ import {
   Key,
   ExternalLink,
   ChevronRight,
-  Info
+  Info,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 
 interface CabangStat {
@@ -83,12 +85,85 @@ export default function EmisVervalSync() {
 
   const [activeTab, setActiveTab] = useState<'komparasi' | 'fetch-emis' | 'fetch-verval' | 'upload-csv'>('komparasi');
 
-  // State untuk Live Fetch EMIS
-  const [emisToken, setEmisToken] = useState<string>(() => localStorage.getItem('esantri_emis_token') || '');
+  // State untuk Live Fetch EMIS (Multi-Token Support)
+  interface EmisTokenEntry {
+    id: string;
+    label: string;
+    token: string;
+  }
+
+  const [tokenEntries, setTokenEntries] = useState<EmisTokenEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem('esantri_emis_tokens_list');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    const oldToken = localStorage.getItem('esantri_emis_token') || '';
+    return [
+      { id: '1', label: 'PDF Ulya (Sekolah 1)', token: oldToken },
+      { id: '2', label: 'PDF Wustha (Sekolah 2)', token: '' },
+    ];
+  });
+
+  const [isAppendMode, setIsAppendMode] = useState<boolean>(true);
   const [emisStudents, setEmisStudents] = useState<any[]>([]);
   const [emisLoading, setEmisLoading] = useState<boolean>(false);
   const [emisLog, setEmisLog] = useState<string[]>([]);
   const [emisProgress, setEmisProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
+
+  const saveTokens = (tokens: EmisTokenEntry[]) => {
+    setTokenEntries(tokens);
+    try {
+      localStorage.setItem('esantri_emis_tokens_list', JSON.stringify(tokens));
+      if (tokens.length > 0 && tokens[0].token) {
+        localStorage.setItem('esantri_emis_token', tokens[0].token);
+      }
+    } catch {}
+  };
+
+  const handleAddTokenEntry = () => {
+    const nextIdx = tokenEntries.length + 1;
+    saveTokens([
+      ...tokenEntries,
+      { id: String(Date.now()), label: `Sekolah / Lembaga ${nextIdx}`, token: '' },
+    ]);
+  };
+
+  const handleUpdateTokenEntry = (id: string, field: 'label' | 'token', val: string) => {
+    const updated = tokenEntries.map((t) => (t.id === id ? { ...t, [field]: val } : t));
+    saveTokens(updated);
+  };
+
+  const handleRemoveTokenEntry = (id: string) => {
+    if (tokenEntries.length <= 1) {
+      showToast('warning', 'Minimal harus ada 1 entri token sekolah.');
+      return;
+    }
+    const updated = tokenEntries.filter((t) => t.id !== id);
+    saveTokens(updated);
+  };
+
+  // Helper deduplikasi saat merge santri antar sekolah
+  const mergeEmisStudents = (existing: any[], incoming: any[]): any[] => {
+    const map = new Map<string, any>();
+    for (const item of existing) {
+      const nisn = (item.nisn || item.list_nisn || '').trim();
+      const nama = item.full_name || item.nama || item.list_full_name || '';
+      const tmpt = item.birth_place || item.tempat_lahir || '';
+      const key = nisn ? `NISN:${nisn}` : `KEY:${nama.toLowerCase()}|${tmpt.toLowerCase()}`;
+      map.set(key, item);
+    }
+    for (const item of incoming) {
+      const nisn = (item.nisn || item.list_nisn || '').trim();
+      const nama = item.full_name || item.nama || item.list_full_name || '';
+      const tmpt = item.birth_place || item.tempat_lahir || '';
+      const key = nisn ? `NISN:${nisn}` : `KEY:${nama.toLowerCase()}|${tmpt.toLowerCase()}`;
+      map.set(key, item);
+    }
+    return Array.from(map.values());
+  };
 
   // State untuk Live Fetch Verval
   const [vervalCookie, setVervalCookie] = useState<string>('');
@@ -129,31 +204,76 @@ export default function EmisVervalSync() {
     setVervalLog((prev) => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
   };
 
-  // --- Handlers Live Fetch EMIS ---
-  const handleFetchEmisList = async () => {
-    if (!emisToken.trim()) {
-      showToast('error', 'Masukkan Bearer Token EMIS terlebih dahulu!');
+  // --- Handlers Live Fetch EMIS (Single Token) ---
+  const handleFetchSingleToken = async (entry: EmisTokenEntry) => {
+    if (!entry.token.trim()) {
+      showToast('error', `Token untuk [${entry.label}] masih kosong!`);
       return;
     }
-    localStorage.setItem('esantri_emis_token', emisToken.trim());
     setEmisLoading(true);
-    setEmisLog([]);
-    addEmisLog('Memulai pengambilan daftar santri dari API EMIS...');
+    addEmisLog(`[${entry.label}] Memulai pengambilan daftar santri dari API EMIS...`);
 
     try {
-      const res = await apiClient.post('/formal/emis/fetch-list', { token: emisToken.trim() });
-      const items = res.data?.data || [];
-      setEmisStudents(items);
-      setEmisProgress({ current: items.length, total: items.length });
-      addEmisLog(`Berhasil mengambil ${items.length} santri dari EMIS Kemenag.`);
-      showToast('success', `Berhasil menarik ${items.length} data santri dari EMIS.`);
+      const res = await apiClient.post('/formal/emis/fetch-list', { token: entry.token.trim() });
+      const items = (res.data?.data || []).map((s: any) => ({
+        ...s,
+        _source_lembaga: entry.label,
+      }));
+
+      setEmisStudents((prev) => {
+        const merged = isAppendMode ? mergeEmisStudents(prev, items) : items;
+        setEmisProgress({ current: merged.length, total: merged.length });
+        return merged;
+      });
+
+      addEmisLog(`[${entry.label}] Berhasil mengambil ${items.length} santri.`);
+      showToast('success', `[${entry.label}] Berhasil menarik ${items.length} santri.`);
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Gagal menghubungi server EMIS';
-      addEmisLog(`Error: ${msg}`);
-      showToast('error', msg);
+      addEmisLog(`[${entry.label}] Error: ${msg}`);
+      showToast('error', `[${entry.label}]: ${msg}`);
     } finally {
       setEmisLoading(false);
     }
+  };
+
+  // --- Handlers Live Fetch EMIS (Batch All Tokens) ---
+  const handleFetchAllTokens = async () => {
+    const validEntries = tokenEntries.filter((t) => t.token.trim().length > 0);
+    if (validEntries.length === 0) {
+      showToast('error', 'Tidak ada token yang terisi. Masukkan minimal 1 Bearer Token.');
+      return;
+    }
+
+    setEmisLoading(true);
+    setEmisLog([]);
+    addEmisLog(`Memulai penarikan data dari ${validEntries.length} sekolah / lembaga terdaftar...`);
+
+    let accumulated: any[] = isAppendMode ? [...emisStudents] : [];
+
+    for (let i = 0; i < validEntries.length; i++) {
+      const entry = validEntries[i];
+      addEmisLog(`(${i + 1}/${validEntries.length}) [${entry.label}] Menghubungi API EMIS...`);
+
+      try {
+        const res = await apiClient.post('/formal/emis/fetch-list', { token: entry.token.trim() });
+        const items = (res.data?.data || []).map((s: any) => ({
+          ...s,
+          _source_lembaga: entry.label,
+        }));
+        accumulated = mergeEmisStudents(accumulated, items);
+        addEmisLog(`(${i + 1}/${validEntries.length}) [${entry.label}] Berhasil: +${items.length} santri. (Total terkumpul: ${accumulated.length})`);
+      } catch (err: any) {
+        const msg = err.response?.data?.message || err.message || 'Gagal menghubungi server EMIS';
+        addEmisLog(`(${i + 1}/${validEntries.length}) [${entry.label}] Gagal: ${msg}`);
+      }
+    }
+
+    setEmisStudents(accumulated);
+    setEmisProgress({ current: accumulated.length, total: accumulated.length });
+    setEmisLoading(false);
+    addEmisLog(`✅ Penarikan selesai! Total ${accumulated.length} santri terkumpul dari semua lembaga.`);
+    showToast('success', `Berhasil menarik total ${accumulated.length} santri dari semua lembaga.`);
   };
 
   // --- Handlers Live Fetch Verval ---
@@ -793,28 +913,116 @@ export default function EmisVervalSync() {
             </p>
           </div>
 
-          <div className="space-y-3 max-w-2xl">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-              Bearer Token EMIS (Dari Browser DevTools)
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="password"
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                value={emisToken}
-                onChange={(e) => setEmisToken(e.target.value)}
-                className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
-              />
+          <div className="space-y-4 max-w-3xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  Daftar Token Sekolah / Lembaga EMIS ({tokenEntries.length} Lembaga)
+                </label>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Masukkan Bearer Token untuk masing-masing sekolah/jenjang (misal: Ulya, Wustha, Cabang) agar data dapat digabungkan.
+                </p>
+              </div>
               <button
-                onClick={handleFetchEmisList}
-                disabled={emisLoading}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                type="button"
+                onClick={handleAddTokenEntry}
+                className="inline-flex items-center px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
               >
-                {emisLoading ? 'Menarik Data...' : '⚡ Tarik Daftar Santri'}
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                Tambah Sekolah
               </button>
             </div>
+
+            {/* List of Token Rows */}
+            <div className="space-y-2.5">
+              {tokenEntries.map((entry, idx) => (
+                <div key={entry.id} className="p-3 bg-slate-50/70 border border-slate-200 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      Sekolah #{idx + 1}
+                    </span>
+                    {tokenEntries.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTokenEntry(entry.id)}
+                        className="text-slate-400 hover:text-rose-600 text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Hapus token sekolah ini"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus</span>
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nama Lembaga (misal: PDF Ulya)"
+                      value={entry.label}
+                      onChange={(e) => handleUpdateTokenEntry(entry.id, 'label', e.target.value)}
+                      className="w-full sm:w-52 px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <input
+                      type="password"
+                      placeholder="Bearer Token EMIS (eyJhbGciOiJIUz...)"
+                      value={entry.token}
+                      onChange={(e) => handleUpdateTokenEntry(entry.id, 'token', e.target.value)}
+                      className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-mono focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleFetchSingleToken(entry)}
+                      disabled={emisLoading || !entry.token.trim()}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-40 transition-colors"
+                      title={`Tarik data santri khusus dari ${entry.label}`}
+                    >
+                      Tarik Ini
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions Bar */}
+            <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleFetchAllTokens}
+                  disabled={emisLoading}
+                  className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${emisLoading ? 'animate-spin' : ''}`} />
+                  {emisLoading ? 'Sedang Menarik Data...' : '⚡ Tarik Semua Sekolah Sekaligus'}
+                </button>
+
+                {emisStudents.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('Kosongkan data santri EMIS yang sudah terkumpul?')) {
+                        setEmisStudents([]);
+                        showToast('info', 'Data santri EMIS dikosongkan.');
+                      }
+                    }}
+                    className="px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-lg font-medium cursor-pointer"
+                  >
+                    Reset Data Terkumpul
+                  </button>
+                )}
+              </div>
+
+              <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isAppendMode}
+                  onChange={(e) => setIsAppendMode(e.target.checked)}
+                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span>Akumulasi (gabungkan santri antar sekolah tanpa menghapus)</span>
+              </label>
+            </div>
             <p className="text-[11px] text-slate-400">
-              Tips: Buka portal <strong>emis.kemenag.go.id</strong> → Login operator → Buka F12 DevTools → Tab Network → Cari request API → Salin nilai Authorization Bearer token.
+              Tips: Buka portal <strong>emis.kemenag.go.id</strong> untuk tiap sekolah → Login operator → Buka F12 DevTools → Tab Network → Salin token Authorization Bearer masing-masing.
             </p>
           </div>
 
@@ -837,7 +1045,7 @@ export default function EmisVervalSync() {
             <div className="space-y-3 pt-4 border-t border-slate-200">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold text-slate-800">
-                  Pratinjau Data EMIS ({emisStudents.length} Santri Berhasil Ditarik)
+                  Pratinjau Data EMIS ({emisStudents.length} Santri Terkumpul dari Berbagai Sekolah)
                 </div>
                 <button
                   onClick={handleRunReconcile}
@@ -851,21 +1059,27 @@ export default function EmisVervalSync() {
                 <table className="w-full text-left text-xs text-slate-600">
                   <thead className="bg-slate-50 text-slate-700 font-semibold sticky top-0">
                     <tr>
+                      <th className="px-3 py-2">Asal Sekolah</th>
                       <th className="px-3 py-2">ID EMIS</th>
                       <th className="px-3 py-2">Nama Santri</th>
                       <th className="px-3 py-2">NISN</th>
                       <th className="px-3 py-2">Tempat, Tanggal Lahir</th>
-                      <th className="px-3 py-2">Rombel</th>
+                      <th className="px-3 py-2">Rombel / Tingkat</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {emisStudents.slice(0, 50).map((s, idx) => (
                       <tr key={idx} className="hover:bg-slate-50">
+                        <td className="px-3 py-1.5">
+                          <span className="bg-indigo-50 text-indigo-700 text-[10px] px-2 py-0.5 rounded font-semibold border border-indigo-200">
+                            {s._source_lembaga || 'EMIS'}
+                          </span>
+                        </td>
                         <td className="px-3 py-1.5 font-mono text-[11px] text-slate-400">{s.id || s._emis_id || '-'}</td>
-                        <td className="px-3 py-1.5 font-medium text-slate-800">{s.full_name || s.nama || '-'}</td>
-                        <td className="px-3 py-1.5 font-mono">{s.nisn || '-'}</td>
+                        <td className="px-3 py-1.5 font-medium text-slate-800">{s.full_name || s.nama || s.list_full_name || '-'}</td>
+                        <td className="px-3 py-1.5 font-mono">{s.nisn || s.list_nisn || '-'}</td>
                         <td className="px-3 py-1.5">{s.birth_place || s.tempat_lahir || '-'}, {s.birth_date || s.tanggal_lahir || '-'}</td>
-                        <td className="px-3 py-1.5">{s.la_study_group_name || s.study_group_name || '-'}</td>
+                        <td className="px-3 py-1.5">{s._parsed_rombel || s.tingkat || s.la_study_group_name || s.study_group_name || '-'}</td>
                       </tr>
                     ))}
                   </tbody>

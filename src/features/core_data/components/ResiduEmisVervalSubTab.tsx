@@ -70,7 +70,7 @@ export default function ResiduEmisVervalSubTab({
   selectedWilayahId,
 }: ResiduEmisVervalSubTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTION' | 'BELUM_EMIS' | 'RESIDU_VERVAL' | 'DISKREPANSI' | 'VALID'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTION' | 'TERDAFTAR_EMIS' | 'BELUM_EMIS' | 'VERVAL_VALID' | 'RESIDU_VERVAL' | 'DISKREPANSI' | 'VALID'>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStudent, setSelectedStudent] = useState<ReconciledStudentItem | null>(null);
   const itemsPerPage = 10;
@@ -119,7 +119,9 @@ export default function ResiduEmisVervalSubTab({
 
       // Quick status filter
       if (statusFilter === 'ACTION') return s.butuhTindakan;
+      if (statusFilter === 'TERDAFTAR_EMIS') return s.statusEmis === 'TERDAFTAR' || s.statusEmis === 'DISKREPANSI';
       if (statusFilter === 'BELUM_EMIS') return s.statusEmis === 'BELUM_TERDAFTAR';
+      if (statusFilter === 'VERVAL_VALID') return s.statusVerval === 'VERVAL_OK';
       if (statusFilter === 'RESIDU_VERVAL') return s.statusVerval === 'RESIDU_VERVAL';
       if (statusFilter === 'DISKREPANSI') return s.discrepancies && s.discrepancies.length > 0;
       if (statusFilter === 'VALID') return !s.butuhTindakan && s.statusEmis === 'TERDAFTAR' && s.statusVerval === 'VERVAL_OK';
@@ -202,11 +204,11 @@ export default function ResiduEmisVervalSubTab({
                 </span>
               )}
             </div>
-            <h2 className="text-xl font-bold tracking-tight">Hasil Komparasi EMIS 4.0 & Verval PD</h2>
-            <p className="text-sm text-indigo-200/80 mt-1 max-w-2xl">
+            <h2 className="text-xl font-bold tracking-tight text-white">Hasil Komparasi EMIS 4.0 & Verval PD</h2>
+            <p className="text-sm text-slate-100 font-normal mt-1 max-w-2xl leading-relaxed">
               Data audit pembanding antara pangkalan data eSantri dengan EMIS Kemenag & Verval PD Kemendikbud.
               {formattedExecutionDate && (
-                <span className="block mt-1 font-medium text-amber-300">
+                <span className="inline-flex items-center gap-1.5 mt-2 font-semibold text-amber-200 bg-amber-500/20 px-3 py-1 rounded-lg border border-amber-400/30 text-xs">
                   📅 Waktu Penyelarasan Terakhir: {formattedExecutionDate} WIB
                 </span>
               )}
@@ -265,141 +267,228 @@ export default function ResiduEmisVervalSubTab({
         <>
           {/* KPI Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-sm">
+            <div
+              onClick={() => { setStatusFilter('ALL'); setCurrentPage(1); }}
+              className={`p-4 rounded-2xl border shadow-sm cursor-pointer transition-all hover:shadow-md ${
+                statusFilter === 'ALL'
+                  ? 'bg-blue-50/40 border-blue-500 ring-2 ring-blue-500/20'
+                  : 'bg-white border-slate-200/80 hover:border-blue-300'
+              }`}
+            >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase text-slate-500">Total Santri</span>
-                <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Total Santri</span>
+                <span className="p-2 bg-blue-50 text-blue-700 rounded-xl">
                   <Users className="w-4 h-4" />
                 </span>
               </div>
               <p className="text-2xl font-black text-slate-900 mt-2">{reconcileData.totalSantriEsantri}</p>
-              <p className="text-xs text-slate-400 mt-0.5">Basis eSantri</p>
+              <p className="text-xs text-slate-500 mt-0.5 font-medium">Basis eSantri</p>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-sm">
+            <div
+              onClick={() => { setStatusFilter('TERDAFTAR_EMIS'); setCurrentPage(1); }}
+              className={`p-4 rounded-2xl border shadow-sm cursor-pointer transition-all hover:shadow-md ${
+                statusFilter === 'TERDAFTAR_EMIS'
+                  ? 'bg-emerald-50/50 border-emerald-600 ring-2 ring-emerald-600/20'
+                  : 'bg-white border-emerald-200 hover:border-emerald-400'
+              }`}
+            >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase text-slate-500">Di EMIS</span>
-                <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-900">Di EMIS</span>
+                <span className="p-2 bg-emerald-100 text-emerald-800 rounded-xl">
                   <CheckCircle2 className="w-4 h-4" />
                 </span>
               </div>
-              <p className="text-2xl font-black text-emerald-600 mt-2">{reconcileData.totalTerdaftarEmis}</p>
-              <p className="text-xs text-slate-400 mt-0.5">Terdaftar Kemenag</p>
+              <p className="text-2xl font-black text-emerald-700 mt-2">{reconcileData.totalTerdaftarEmis}</p>
+              <p className="text-xs text-emerald-800 mt-0.5 font-semibold">Terdaftar Kemenag</p>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm">
+            <div
+              onClick={() => { setStatusFilter('BELUM_EMIS'); setCurrentPage(1); }}
+              className={`p-4 rounded-2xl border shadow-sm cursor-pointer transition-all hover:shadow-md ${
+                statusFilter === 'BELUM_EMIS'
+                  ? 'bg-rose-50/50 border-rose-600 ring-2 ring-rose-600/20'
+                  : 'bg-white border-rose-200 hover:border-rose-400'
+              }`}
+            >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase text-rose-700">Belum EMIS</span>
-                <span className="p-2 bg-rose-50 text-rose-600 rounded-xl">
+                <span className="text-xs font-bold uppercase tracking-wider text-rose-900">Belum EMIS</span>
+                <span className="p-2 bg-rose-100 text-rose-800 rounded-xl">
                   <XCircle className="w-4 h-4" />
                 </span>
               </div>
-              <p className="text-2xl font-black text-rose-600 mt-2">{reconcileData.totalBelumEmis}</p>
-              <p className="text-xs text-rose-500 mt-0.5 font-medium">Perlu Didaftarkan</p>
+              <p className="text-2xl font-black text-rose-700 mt-2">{reconcileData.totalBelumEmis}</p>
+              <p className="text-xs text-rose-800 mt-0.5 font-semibold">Perlu Didaftarkan</p>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-slate-200/70 shadow-sm">
+            <div
+              onClick={() => { setStatusFilter('VERVAL_VALID'); setCurrentPage(1); }}
+              className={`p-4 rounded-2xl border shadow-sm cursor-pointer transition-all hover:shadow-md ${
+                statusFilter === 'VERVAL_VALID'
+                  ? 'bg-teal-50/50 border-teal-600 ring-2 ring-teal-600/20'
+                  : 'bg-white border-teal-200 hover:border-teal-400'
+              }`}
+            >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase text-slate-500">Verval Valid</span>
-                <span className="p-2 bg-teal-50 text-teal-600 rounded-xl">
+                <span className="text-xs font-bold uppercase tracking-wider text-teal-900">Verval Valid</span>
+                <span className="p-2 bg-teal-100 text-teal-800 rounded-xl">
                   <CheckCircle2 className="w-4 h-4" />
                 </span>
               </div>
-              <p className="text-2xl font-black text-teal-600 mt-2">{reconcileData.totalVervalOk}</p>
-              <p className="text-xs text-slate-400 mt-0.5">Kemendikbud OK</p>
+              <p className="text-2xl font-black text-teal-700 mt-2">{reconcileData.totalVervalOk}</p>
+              <p className="text-xs text-teal-800 mt-0.5 font-semibold">Kemendikbud OK</p>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-amber-100 shadow-sm">
+            <div
+              onClick={() => { setStatusFilter('RESIDU_VERVAL'); setCurrentPage(1); }}
+              className={`p-4 rounded-2xl border shadow-sm cursor-pointer transition-all hover:shadow-md ${
+                statusFilter === 'RESIDU_VERVAL'
+                  ? 'bg-amber-50/50 border-amber-600 ring-2 ring-amber-600/20'
+                  : 'bg-white border-amber-200 hover:border-amber-400'
+              }`}
+            >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase text-amber-700">Residu Verval</span>
-                <span className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-900">Residu Verval</span>
+                <span className="p-2 bg-amber-100 text-amber-800 rounded-xl">
                   <AlertTriangle className="w-4 h-4" />
                 </span>
               </div>
-              <p className="text-2xl font-black text-amber-600 mt-2">{reconcileData.totalResiduVerval}</p>
-              <p className="text-xs text-amber-600 mt-0.5 font-medium">Perbaikan Identitas</p>
+              <p className="text-2xl font-black text-amber-700 mt-2">{reconcileData.totalResiduVerval}</p>
+              <p className="text-xs text-amber-800 mt-0.5 font-semibold">Perbaikan Identitas</p>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-purple-100 shadow-sm">
+            <div
+              onClick={() => { setStatusFilter('ACTION'); setCurrentPage(1); }}
+              className={`p-4 rounded-2xl border shadow-sm cursor-pointer transition-all hover:shadow-md ${
+                statusFilter === 'ACTION'
+                  ? 'bg-purple-50/50 border-purple-600 ring-2 ring-purple-600/20'
+                  : 'bg-white border-purple-200 hover:border-purple-400'
+              }`}
+            >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase text-purple-700">Butuh Tindakan</span>
-                <span className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-900">Butuh Tindakan</span>
+                <span className="p-2 bg-purple-100 text-purple-800 rounded-xl">
                   <ShieldAlert className="w-4 h-4" />
                 </span>
               </div>
               <p className="text-2xl font-black text-purple-700 mt-2">{reconcileData.totalButuhTindakan}</p>
-              <p className="text-xs text-purple-600 mt-0.5 font-bold">Total Tugas Cabang</p>
+              <p className="text-xs text-purple-800 mt-0.5 font-bold">Total Tugas Cabang</p>
             </div>
           </div>
 
           {/* Action & Filter Bar */}
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/60 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             {/* Quick Status Buttons */}
             <div className="flex flex-wrap items-center gap-2">
+              {/* Semua */}
               <button
+                type="button"
                 onClick={() => { setStatusFilter('ALL'); setCurrentPage(1); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                   statusFilter === 'ALL'
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900/20'
+                    : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100 hover:text-slate-950'
                 }`}
               >
                 Semua ({rawStudents.length})
               </button>
+
+              {/* Terdaftar di EMIS */}
               <button
-                onClick={() => { setStatusFilter('ACTION'); setCurrentPage(1); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                  statusFilter === 'ACTION'
-                    ? 'bg-purple-600 text-white shadow-sm'
-                    : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
+                type="button"
+                onClick={() => { setStatusFilter('TERDAFTAR_EMIS'); setCurrentPage(1); }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  statusFilter === 'TERDAFTAR_EMIS'
+                    ? 'bg-emerald-700 text-white border-emerald-800 shadow-md ring-2 ring-emerald-600/30'
+                    : 'bg-emerald-50 text-emerald-950 border-emerald-300 hover:bg-emerald-100 hover:text-emerald-950'
                 }`}
               >
-                <ShieldAlert className="w-3.5 h-3.5" />
-                Butuh Tindakan ({reconcileData.totalButuhTindakan})
+                <CheckCircle2 className={`w-3.5 h-3.5 ${statusFilter === 'TERDAFTAR_EMIS' ? 'text-white' : 'text-emerald-700'}`} />
+                <span>Terdaftar di EMIS ({reconcileData.totalTerdaftarEmis})</span>
               </button>
+
+              {/* Belum di EMIS */}
               <button
+                type="button"
                 onClick={() => { setStatusFilter('BELUM_EMIS'); setCurrentPage(1); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                   statusFilter === 'BELUM_EMIS'
-                    ? 'bg-rose-600 text-white shadow-sm'
-                    : 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                    ? 'bg-rose-700 text-white border-rose-800 shadow-md ring-2 ring-rose-600/30'
+                    : 'bg-rose-50 text-rose-950 border-rose-300 hover:bg-rose-100 hover:text-rose-950'
                 }`}
               >
-                <XCircle className="w-3.5 h-3.5" />
-                Belum di EMIS ({reconcileData.totalBelumEmis})
+                <XCircle className={`w-3.5 h-3.5 ${statusFilter === 'BELUM_EMIS' ? 'text-white' : 'text-rose-700'}`} />
+                <span>Belum di EMIS ({reconcileData.totalBelumEmis})</span>
               </button>
+
+              {/* Verval Valid */}
               <button
+                type="button"
+                onClick={() => { setStatusFilter('VERVAL_VALID'); setCurrentPage(1); }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  statusFilter === 'VERVAL_VALID'
+                    ? 'bg-teal-700 text-white border-teal-800 shadow-md ring-2 ring-teal-600/30'
+                    : 'bg-teal-50 text-teal-950 border-teal-300 hover:bg-teal-100 hover:text-teal-950'
+                }`}
+              >
+                <CheckCircle2 className={`w-3.5 h-3.5 ${statusFilter === 'VERVAL_VALID' ? 'text-white' : 'text-teal-700'}`} />
+                <span>Verval Valid ({reconcileData.totalVervalOk})</span>
+              </button>
+
+              {/* Residu Verval */}
+              <button
+                type="button"
                 onClick={() => { setStatusFilter('RESIDU_VERVAL'); setCurrentPage(1); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                   statusFilter === 'RESIDU_VERVAL'
-                    ? 'bg-amber-600 text-white shadow-sm'
-                    : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                    ? 'bg-amber-600 text-white border-amber-700 shadow-md ring-2 ring-amber-500/30'
+                    : 'bg-amber-50 text-amber-950 border-amber-300 hover:bg-amber-100 hover:text-amber-950'
                 }`}
               >
-                <AlertTriangle className="w-3.5 h-3.5" />
-                Residu Verval ({reconcileData.totalResiduVerval})
+                <AlertTriangle className={`w-3.5 h-3.5 ${statusFilter === 'RESIDU_VERVAL' ? 'text-white' : 'text-amber-700'}`} />
+                <span>Residu Verval ({reconcileData.totalResiduVerval})</span>
               </button>
+
+              {/* Selisih Data */}
               <button
+                type="button"
                 onClick={() => { setStatusFilter('DISKREPANSI'); setCurrentPage(1); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
                   statusFilter === 'DISKREPANSI'
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    ? 'bg-indigo-700 text-white border-indigo-800 shadow-md ring-2 ring-indigo-600/30'
+                    : 'bg-indigo-50 text-indigo-950 border-indigo-300 hover:bg-indigo-100 hover:text-indigo-950'
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                Selisih Data ({reconcileData.totalDiskrepansi})
+                <Sparkles className={`w-3.5 h-3.5 ${statusFilter === 'DISKREPANSI' ? 'text-white' : 'text-indigo-700'}`} />
+                <span>Selisih Data ({reconcileData.totalDiskrepansi})</span>
               </button>
+
+              {/* Butuh Tindakan */}
               <button
-                onClick={() => { setStatusFilter('VALID'); setCurrentPage(1); }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                  statusFilter === 'VALID'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                type="button"
+                onClick={() => { setStatusFilter('ACTION'); setCurrentPage(1); }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  statusFilter === 'ACTION'
+                    ? 'bg-purple-700 text-white border-purple-800 shadow-md ring-2 ring-purple-600/30'
+                    : 'bg-purple-50 text-purple-950 border-purple-300 hover:bg-purple-100 hover:text-purple-950'
                 }`}
               >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Sesuai & Valid
+                <ShieldAlert className={`w-3.5 h-3.5 ${statusFilter === 'ACTION' ? 'text-white' : 'text-purple-700'}`} />
+                <span>Butuh Tindakan ({reconcileData.totalButuhTindakan})</span>
+              </button>
+
+              {/* Sesuai & Valid */}
+              <button
+                type="button"
+                onClick={() => { setStatusFilter('VALID'); setCurrentPage(1); }}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                  statusFilter === 'VALID'
+                    ? 'bg-emerald-800 text-white border-emerald-900 shadow-md ring-2 ring-emerald-700/30'
+                    : 'bg-emerald-50 text-emerald-950 border-emerald-300 hover:bg-emerald-100 hover:text-emerald-950'
+                }`}
+              >
+                <CheckCircle2 className={`w-3.5 h-3.5 ${statusFilter === 'VALID' ? 'text-white' : 'text-emerald-700'}`} />
+                <span>Sesuai & Valid</span>
               </button>
             </div>
 

@@ -29,6 +29,8 @@ import {
   Calendar,
   X,
   Clock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 interface CabangStat {
@@ -121,6 +123,8 @@ export default function EmisVervalSync() {
   const [isAppendMode, setIsAppendMode] = useState<boolean>(true);
   const [emisStudents, setEmisStudents] = useState<any[]>([]);
   const [emisLoading, setEmisLoading] = useState<boolean>(false);
+  const [activeEmisFetchId, setActiveEmisFetchId] = useState<string | null>(null);
+  const [showTokenMap, setShowTokenMap] = useState<Record<string, boolean>>({});
   const [emisLog, setEmisLog] = useState<string[]>([]);
   const [emisProgress, setEmisProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
 
@@ -177,10 +181,100 @@ export default function EmisVervalSync() {
   };
 
   // State untuk Live Fetch Verval
-  const [vervalCookie, setVervalCookie] = useState<string>('');
+  interface VervalCookieEntry {
+    id: string;
+    label: string;
+    cookie: string;
+  }
+
+  const [vervalEntries, setVervalEntries] = useState<VervalCookieEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem('esantri_verval_cookies_list');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    const oldCookie = localStorage.getItem('esantri_verval_cookie') || '';
+    return [
+      { id: '1', label: 'PDF Ulya (Sekolah 1)', cookie: oldCookie },
+      { id: '2', label: 'PDF Wustha (Sekolah 2)', cookie: '' },
+    ];
+  });
+
+  const [isVervalAppendMode, setIsVervalAppendMode] = useState<boolean>(true);
   const [vervalStudents, setVervalStudents] = useState<any[]>([]);
   const [vervalLoading, setVervalLoading] = useState<boolean>(false);
+  const [activeVervalFetch, setActiveVervalFetch] = useState<{ id: string; mode: 'all' | 'daftar' | 'residu' } | null>(null);
+  const [showCookieMap, setShowCookieMap] = useState<Record<string, boolean>>({});
   const [vervalLog, setVervalLog] = useState<string[]>([]);
+
+  const saveVervalCookies = (entries: VervalCookieEntry[]) => {
+    setVervalEntries(entries);
+    try {
+      localStorage.setItem('esantri_verval_cookies_list', JSON.stringify(entries));
+      if (entries.length > 0 && entries[0].cookie) {
+        localStorage.setItem('esantri_verval_cookie', entries[0].cookie);
+      }
+    } catch {}
+  };
+
+  const handleAddVervalEntry = () => {
+    const nextIdx = vervalEntries.length + 1;
+    saveVervalCookies([
+      ...vervalEntries,
+      { id: String(Date.now()), label: `Sekolah / Lembaga ${nextIdx}`, cookie: '' },
+    ]);
+  };
+
+  const handleUpdateVervalEntry = (id: string, field: 'label' | 'cookie', val: string) => {
+    const updated = vervalEntries.map((v) => (v.id === id ? { ...v, [field]: val } : v));
+    saveVervalCookies(updated);
+  };
+
+  const handleRemoveVervalEntry = (id: string) => {
+    if (vervalEntries.length <= 1) {
+      showToast('warning', 'Minimal harus ada 1 entri cookie sekolah.');
+      return;
+    }
+    const updated = vervalEntries.filter((v) => v.id !== id);
+    saveVervalCookies(updated);
+  };
+
+  // Helper deduplikasi saat merge santri Verval antar sekolah
+  const mergeVervalStudents = (existing: any[], incoming: any[]): any[] => {
+    const map = new Map<string, any>();
+    for (const item of existing) {
+      const pdId = item.pesertaDidikId ? `PD:${item.pesertaDidikId}` : '';
+      const nisn = (item.nisn || '').trim();
+      const nik = (item.nik || '').trim();
+      const nama = (item.nama || '').trim().toLowerCase();
+      const tmpt = (item.tempatLahir || '').trim().toLowerCase();
+      const key = pdId || (nisn ? `NISN:${nisn}` : (nik ? `NIK:${nik}` : `KEY:${nama}|${tmpt}`));
+      map.set(key, item);
+    }
+    for (const item of incoming) {
+      const pdId = item.pesertaDidikId ? `PD:${item.pesertaDidikId}` : '';
+      const nisn = (item.nisn || '').trim();
+      const nik = (item.nik || '').trim();
+      const nama = (item.nama || '').trim().toLowerCase();
+      const tmpt = (item.tempatLahir || '').trim().toLowerCase();
+      const key = pdId || (nisn ? `NISN:${nisn}` : (nik ? `NIK:${nik}` : `KEY:${nama}|${tmpt}`));
+      if (map.has(key)) {
+        const prev = map.get(key);
+        map.set(key, {
+          ...prev,
+          ...item,
+          isResidu: prev.isResidu || item.isResidu,
+          residuDetail: { ...(prev.residuDetail || {}), ...(item.residuDetail || {}) },
+          _source_lembaga: prev._source_lembaga || item._source_lembaga,
+        });
+      } else {
+        map.set(key, item);
+      }
+    }
+    return Array.from(map.values());
+  };
 
   // State Rekonsiliasi & Filter
   const [reconData, setReconData] = useState<ReconciliationSummary | null>(null);
@@ -222,6 +316,7 @@ export default function EmisVervalSync() {
       return;
     }
     setEmisLoading(true);
+    setActiveEmisFetchId(entry.id);
     addEmisLog(`[${entry.label}] Memulai pengambilan daftar santri dari API EMIS...`);
 
     try {
@@ -246,6 +341,7 @@ export default function EmisVervalSync() {
       showToast('error', `[${entry.label}]: ${msg}`);
     } finally {
       setEmisLoading(false);
+      setActiveEmisFetchId(null);
     }
   };
 
@@ -289,59 +385,104 @@ export default function EmisVervalSync() {
     showToast('success', `Berhasil menarik total ${accumulated.length} santri dari semua lembaga.`);
   };
 
-  // --- Handlers Live Fetch Verval ---
-  const handleFetchVervalDaftar = async () => {
-    if (!vervalCookie.trim()) {
-      showToast('error', 'Masukkan Browser Cookie VervalPD terlebih dahulu!');
+  // --- Handlers Live Fetch Verval (Single School) ---
+  const handleFetchSingleVerval = async (entry: VervalCookieEntry, mode: 'all' | 'daftar' | 'residu' = 'all') => {
+    if (!entry.cookie.trim()) {
+      showToast('error', `Cookie Verval untuk [${entry.label}] masih kosong!`);
       return;
     }
     setVervalLoading(true);
-    setVervalLog([]);
-    addVervalLog('Memulai penarikan data siswa dari VervalPD Kemendikbud...');
+    setActiveVervalFetch({ id: entry.id, mode });
+    addVervalLog(`[${entry.label}] Memulai penarikan data dari VervalPD Kemendikbud...`);
 
     try {
-      const res = await apiClient.post('/formal/emis/verval/fetch-daftar', { cookie: vervalCookie.trim() });
-      const items = res.data?.data || [];
-      setVervalStudents(items);
-      addVervalLog(`Berhasil mengambil ${items.length} santri dari VervalPD.`);
-      showToast('success', `Berhasil menarik ${items.length} data siswa VervalPD.`);
+      let items: any[] = [];
+
+      if (mode === 'all' || mode === 'daftar') {
+        addVervalLog(`[${entry.label}] Mengambil daftar siswa VervalPD...`);
+        const resDaftar = await apiClient.post('/formal/emis/verval/fetch-daftar', { cookie: entry.cookie.trim() });
+        const daftarItems = (resDaftar.data?.data || []).map((s: any) => ({
+          ...s,
+          _source_lembaga: entry.label,
+        }));
+        items = daftarItems;
+        addVervalLog(`[${entry.label}] Berhasil mengambil ${daftarItems.length} siswa daftar Verval.`);
+      }
+
+      if (mode === 'all' || mode === 'residu') {
+        addVervalLog(`[${entry.label}] Mengambil data residu siswa VervalPD...`);
+        const resResidu = await apiClient.post('/formal/emis/verval/fetch-residu', { cookie: entry.cookie.trim() });
+        const residuItems = (resResidu.data?.data || []).map((s: any) => ({
+          ...s,
+          _source_lembaga: entry.label,
+          isResidu: true,
+        }));
+        items = mergeVervalStudents(items, residuItems);
+        addVervalLog(`[${entry.label}] Berhasil mengambil ${residuItems.length} siswa residu Verval.`);
+      }
+
+      setVervalStudents((prev) => {
+        return isVervalAppendMode ? mergeVervalStudents(prev, items) : items;
+      });
+
+      showToast('success', `[${entry.label}] Berhasil menarik data siswa VervalPD.`);
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Gagal menghubungi VervalPD';
-      addVervalLog(`Error: ${msg}`);
-      showToast('error', msg);
+      addVervalLog(`[${entry.label}] Error: ${msg}`);
+      showToast('error', `[${entry.label}]: ${msg}`);
     } finally {
       setVervalLoading(false);
+      setActiveVervalFetch(null);
     }
   };
 
-  const handleFetchVervalResidu = async () => {
-    if (!vervalCookie.trim()) {
-      showToast('error', 'Masukkan Browser Cookie VervalPD terlebih dahulu!');
+  // --- Handlers Live Fetch Verval (Batch All Schools) ---
+  const handleFetchAllVerval = async () => {
+    const validEntries = vervalEntries.filter((v) => v.cookie.trim().length > 0);
+    if (validEntries.length === 0) {
+      showToast('error', 'Tidak ada cookie yang terisi. Masukkan minimal 1 Cookie VervalPD.');
       return;
     }
-    setVervalLoading(true);
-    addVervalLog('Memulai penarikan data residu dari VervalPD Kemendikbud...');
 
-    try {
-      const res = await apiClient.post('/formal/emis/verval/fetch-residu', { cookie: vervalCookie.trim() });
-      const items = res.data?.data || [];
-      // Merge residu info into verval students
-      setVervalStudents((prev) => {
-        const map = new Map(prev.map((s) => [s.pesertaDidikId, s]));
-        for (const r of items) {
-          map.set(r.pesertaDidikId, { ...r, isResidu: true });
-        }
-        return Array.from(map.values());
-      });
-      addVervalLog(`Berhasil mengambil ${items.length} santri residu dari VervalPD.`);
-      showToast('success', `Berhasil menarik ${items.length} data residu VervalPD.`);
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Gagal menghubungi VervalPD';
-      addVervalLog(`Error: ${msg}`);
-      showToast('error', msg);
-    } finally {
-      setVervalLoading(false);
+    setVervalLoading(true);
+    setVervalLog([]);
+    addVervalLog(`Memulai penarikan data dari ${validEntries.length} sekolah / lembaga VervalPD...`);
+
+    let accumulated: any[] = isVervalAppendMode ? [...vervalStudents] : [];
+
+    for (let i = 0; i < validEntries.length; i++) {
+      const entry = validEntries[i];
+      addVervalLog(`(${i + 1}/${validEntries.length}) [${entry.label}] Menghubungi VervalPD...`);
+
+      try {
+        // 1. Fetch Daftar
+        const resDaftar = await apiClient.post('/formal/emis/verval/fetch-daftar', { cookie: entry.cookie.trim() });
+        const daftarItems = (resDaftar.data?.data || []).map((s: any) => ({
+          ...s,
+          _source_lembaga: entry.label,
+        }));
+        accumulated = mergeVervalStudents(accumulated, daftarItems);
+        addVervalLog(`(${i + 1}/${validEntries.length}) [${entry.label}] Daftar: +${daftarItems.length} siswa.`);
+
+        // 2. Fetch Residu
+        const resResidu = await apiClient.post('/formal/emis/verval/fetch-residu', { cookie: entry.cookie.trim() });
+        const residuItems = (resResidu.data?.data || []).map((s: any) => ({
+          ...s,
+          _source_lembaga: entry.label,
+          isResidu: true,
+        }));
+        accumulated = mergeVervalStudents(accumulated, residuItems);
+        addVervalLog(`(${i + 1}/${validEntries.length}) [${entry.label}] Residu: +${residuItems.length} santri. (Total terkumpul: ${accumulated.length})`);
+      } catch (err: any) {
+        const msg = err.response?.data?.message || err.message || 'Gagal menghubungi VervalPD';
+        addVervalLog(`(${i + 1}/${validEntries.length}) [${entry.label}] Gagal: ${msg}`);
+      }
     }
+
+    setVervalStudents(accumulated);
+    setVervalLoading(false);
+    addVervalLog(`✅ Penarikan Verval selesai! Total ${accumulated.length} siswa terkumpul dari semua lembaga.`);
+    showToast('success', `Berhasil menarik total ${accumulated.length} siswa VervalPD dari semua lembaga.`);
   };
 
   // --- Handlers Upload CSV Offline ---
@@ -1080,21 +1221,38 @@ export default function EmisVervalSync() {
                       onChange={(e) => handleUpdateTokenEntry(entry.id, 'label', e.target.value)}
                       className="w-full sm:w-52 px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium focus:ring-1 focus:ring-indigo-500"
                     />
-                    <input
-                      type="password"
-                      placeholder="Bearer Token EMIS (eyJhbGciOiJIUz...)"
-                      value={entry.token}
-                      onChange={(e) => handleUpdateTokenEntry(entry.id, 'token', e.target.value)}
-                      className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-mono focus:ring-1 focus:ring-indigo-500"
-                    />
+                    <div className="relative flex-1">
+                      <input
+                        type={showTokenMap[entry.id] ? 'text' : 'password'}
+                        placeholder="Bearer Token EMIS (eyJhbGciOiJIUz...)"
+                        value={entry.token}
+                        onChange={(e) => handleUpdateTokenEntry(entry.id, 'token', e.target.value)}
+                        className="w-full px-3 py-1.5 pr-8 text-xs border border-slate-300 rounded-lg bg-white font-mono focus:ring-1 focus:ring-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowTokenMap((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                        title={showTokenMap[entry.id] ? 'Sembunyikan Token' : 'Tampilkan Token'}
+                      >
+                        {showTokenMap[entry.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
                     <button
                       type="button"
                       onClick={() => handleFetchSingleToken(entry)}
                       disabled={emisLoading || !entry.token.trim()}
-                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-40 transition-colors"
+                      className="inline-flex items-center justify-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-40 transition-colors"
                       title={`Tarik data santri khusus dari ${entry.label}`}
                     >
-                      Tarik Ini
+                      {activeEmisFetchId === entry.id ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                          <span>Menarik...</span>
+                        </>
+                      ) : (
+                        <span>Tarik Ini</span>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1218,39 +1376,172 @@ export default function EmisVervalSync() {
               Live Extractor VervalPD Kemendikbud
             </h2>
             <p className="text-xs text-slate-500 mt-1">
-              Menarik data verifikasi identitas santri & data residu langsung dari portal resmi VervalPD.
+              Menarik data verifikasi identitas santri & data residu langsung dari portal resmi VervalPD untuk beberapa sekolah / lembaga.
             </p>
           </div>
 
-          <div className="space-y-3 max-w-2xl">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-              Browser Cookie VervalPD
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="password"
-                placeholder="ci_session=...; TS01d1a227=..."
-                value={vervalCookie}
-                onChange={(e) => setVervalCookie(e.target.value)}
-                className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
-              />
+          <div className="space-y-4">
+            {/* Header List Cookie Sekolah */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  Daftar Browser Cookie VervalPD Per Sekolah / Lembaga
+                </label>
+                <p className="text-xs text-slate-400">
+                  Dapat menambahkan beberapa sekolah (misal: PDF Ulya, PDF Wustha, dll.) dan menarik data secara akumulatif.
+                </p>
+              </div>
               <button
-                onClick={handleFetchVervalDaftar}
-                disabled={vervalLoading}
-                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                type="button"
+                onClick={handleAddVervalEntry}
+                className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-semibold cursor-pointer transition-colors w-fit"
               >
-                Tarik Daftar Verval
-              </button>
-              <button
-                onClick={handleFetchVervalResidu}
-                disabled={vervalLoading}
-                className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer disabled:opacity-50 shrink-0"
-              >
-                Tarik Residu
+                <Plus className="w-3.5 h-3.5 mr-1" />
+                Tambah Sekolah
               </button>
             </div>
+
+            {/* List of Verval Rows */}
+            <div className="space-y-2.5">
+              {vervalEntries.map((entry, idx) => (
+                <div key={entry.id} className="p-3 bg-slate-50/70 border border-slate-200 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      Sekolah #{idx + 1}
+                    </span>
+                    {vervalEntries.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVervalEntry(entry.id)}
+                        className="text-slate-400 hover:text-rose-600 text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Hapus cookie sekolah ini"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus</span>
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nama Lembaga (misal: PDF Ulya)"
+                      value={entry.label}
+                      onChange={(e) => handleUpdateVervalEntry(entry.id, 'label', e.target.value)}
+                      className="w-full sm:w-52 px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium focus:ring-1 focus:ring-blue-500"
+                    />
+                    <div className="relative flex-1">
+                      <input
+                        type={showCookieMap[entry.id] ? 'text' : 'password'}
+                        placeholder="Browser Cookie (ci_session=...; TS01d1a227=...)"
+                        value={entry.cookie}
+                        onChange={(e) => handleUpdateVervalEntry(entry.id, 'cookie', e.target.value)}
+                        className="w-full px-3 py-1.5 pr-8 text-xs border border-slate-300 rounded-lg bg-white font-mono focus:ring-1 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCookieMap((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                        title={showCookieMap[entry.id] ? 'Sembunyikan Cookie' : 'Tampilkan Cookie'}
+                      >
+                        {showCookieMap[entry.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleFetchSingleVerval(entry, 'all')}
+                        disabled={vervalLoading || !entry.cookie.trim()}
+                        className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-40 transition-colors"
+                        title={`Tarik Semua (Daftar & Residu) khusus dari ${entry.label}`}
+                      >
+                        {activeVervalFetch?.id === entry.id && activeVervalFetch?.mode === 'all' ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" />
+                            <span>Menarik...</span>
+                          </>
+                        ) : (
+                          <span>Tarik Semua</span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleFetchSingleVerval(entry, 'daftar')}
+                        disabled={vervalLoading || !entry.cookie.trim()}
+                        className="inline-flex items-center justify-center px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium cursor-pointer disabled:opacity-40 transition-colors"
+                        title={`Tarik hanya Daftar Siswa dari ${entry.label}`}
+                      >
+                        {activeVervalFetch?.id === entry.id && activeVervalFetch?.mode === 'daftar' ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" />
+                            <span>Daftar...</span>
+                          </>
+                        ) : (
+                          <span>Daftar</span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleFetchSingleVerval(entry, 'residu')}
+                        disabled={vervalLoading || !entry.cookie.trim()}
+                        className="inline-flex items-center justify-center px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-lg text-xs font-medium cursor-pointer disabled:opacity-40 transition-colors"
+                        title={`Tarik hanya Residu dari ${entry.label}`}
+                      >
+                        {activeVervalFetch?.id === entry.id && activeVervalFetch?.mode === 'residu' ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 mr-1 animate-spin" />
+                            <span>Residu...</span>
+                          </>
+                        ) : (
+                          <span>Residu</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions Bar */}
+            <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleFetchAllVerval}
+                  disabled={vervalLoading}
+                  className="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${vervalLoading ? 'animate-spin' : ''}`} />
+                  {vervalLoading ? 'Sedang Menarik Data...' : '⚡ Tarik Semua Sekolah Sekaligus'}
+                </button>
+
+                {vervalStudents.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('Kosongkan data siswa VervalPD yang sudah terkumpul?')) {
+                        setVervalStudents([]);
+                        showToast('info', 'Data siswa VervalPD dikosongkan.');
+                      }
+                    }}
+                    className="px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-lg font-medium cursor-pointer"
+                  >
+                    Reset Data Terkumpul
+                  </button>
+                )}
+              </div>
+
+              <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isVervalAppendMode}
+                  onChange={(e) => setIsVervalAppendMode(e.target.checked)}
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span>Akumulasi (gabungkan santri antar sekolah tanpa menghapus)</span>
+              </label>
+            </div>
             <p className="text-[11px] text-slate-400">
-              Tips: Buka <strong>vervalpd.data.kemendikdasmen.go.id</strong> → Login operator → Tekan F12 → Application → Cookies → Salin nilai Cookie yang aktif.
+              Tips: Buka <strong>vervalpd.data.kemendikdasmen.go.id</strong> untuk tiap sekolah → Login operator → Tekan F12 → Application → Cookies → Salin nilai Cookie yang aktif.
             </p>
           </div>
 
@@ -1273,7 +1564,8 @@ export default function EmisVervalSync() {
             <div className="space-y-3 pt-4 border-t border-slate-200">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold text-slate-800">
-                  Pratinjau Data VervalPD ({vervalStudents.length} Siswa)
+                  Pratinjau Data VervalPD ({vervalStudents.length} Siswa Terkumpul dari Berbagai Sekolah
+                  {vervalStudents.length > 50 ? ' — Menampilkan 50 data teratas' : ''})
                 </div>
                 <button
                   onClick={handleRunReconcile}
@@ -1287,6 +1579,7 @@ export default function EmisVervalSync() {
                 <table className="w-full text-left text-xs text-slate-600">
                   <thead className="bg-slate-50 text-slate-700 font-semibold sticky top-0">
                     <tr>
+                      <th className="px-3 py-2">Asal Sekolah</th>
                       <th className="px-3 py-2">Nama Siswa</th>
                       <th className="px-3 py-2">NISN</th>
                       <th className="px-3 py-2">NIK</th>
@@ -1297,6 +1590,11 @@ export default function EmisVervalSync() {
                   <tbody className="divide-y divide-slate-100">
                     {vervalStudents.slice(0, 50).map((s, idx) => (
                       <tr key={idx} className="hover:bg-slate-50">
+                        <td className="px-3 py-1.5">
+                          <span className="bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded font-semibold border border-blue-200">
+                            {s._source_lembaga || 'VervalPD'}
+                          </span>
+                        </td>
                         <td className="px-3 py-1.5 font-medium text-slate-800">{s.nama}</td>
                         <td className="px-3 py-1.5 font-mono">{s.nisn || '-'}</td>
                         <td className="px-3 py-1.5 font-mono">{s.nik || '-'}</td>

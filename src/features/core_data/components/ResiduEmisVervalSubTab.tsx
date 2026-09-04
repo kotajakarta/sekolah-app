@@ -422,17 +422,33 @@ export default function ResiduEmisVervalSubTab({
           {/* Table Data Residu Komparasi */}
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200/60 overflow-hidden">
             <div className="overflow-x-auto relative">
-              <table className="w-full text-sm text-left whitespace-nowrap">
+              <table className="w-full text-sm text-left border-collapse">
                 <thead className="text-xs text-slate-600 uppercase bg-slate-50/90 border-b border-slate-200">
                   <tr>
-                    <th className="px-4 py-4 font-bold text-center w-12">No</th>
-                    <th className="px-4 py-4 font-bold min-w-[220px]">Santri eSantri</th>
-                    <th className="px-4 py-4 font-bold">Cabang / Kelas</th>
-                    <th className="px-4 py-4 font-bold">Status EMIS (Kemenag)</th>
-                    <th className="px-4 py-4 font-bold">Status Verval (Kemendikbud)</th>
-                    <th className="px-4 py-4 font-bold">Diskrepansi / Catatan</th>
-                    <th className="px-4 py-4 font-bold min-w-[240px]">Rekomendasi Tindakan Cabang</th>
-                    <th className="px-4 py-4 font-bold text-center w-16">Aksi</th>
+                    <th className="px-4 py-4 font-bold text-center w-12 sticky left-0 bg-slate-50 z-20 shadow-[1px_0_0_0_#e2e8f0]">
+                      No
+                    </th>
+                    <th className="px-4 py-4 font-bold min-w-[220px] sticky left-[48px] bg-slate-50 z-20 shadow-[1px_0_0_0_#e2e8f0]">
+                      Santri eSantri
+                    </th>
+                    <th className="px-4 py-4 font-bold whitespace-nowrap">
+                      Cabang / Kelas
+                    </th>
+                    <th className="px-4 py-4 font-bold whitespace-nowrap">
+                      Status EMIS (Kemenag)
+                    </th>
+                    <th className="px-4 py-4 font-bold whitespace-nowrap">
+                      Status Verval (Kemendikbud)
+                    </th>
+                    <th className="px-4 py-4 font-bold min-w-[280px] max-w-[340px]">
+                      Diskrepansi / Catatan
+                    </th>
+                    <th className="px-4 py-4 font-bold min-w-[320px] max-w-[420px]">
+                      Rekomendasi Tindakan Cabang
+                    </th>
+                    <th className="px-4 py-4 font-bold text-center w-16 whitespace-nowrap">
+                      Aksi
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -444,19 +460,19 @@ export default function ResiduEmisVervalSubTab({
                       return (
                         <tr
                           key={s.id}
-                          className={`hover:bg-slate-50/80 transition-colors ${
+                          className={`hover:bg-slate-50/80 transition-colors group ${
                             s.butuhTindakan ? 'bg-amber-50/15' : ''
                           }`}
                         >
                           {/* No */}
-                          <td className="px-4 py-3 text-center text-xs font-semibold text-slate-500">
+                          <td className="px-4 py-3.5 text-center text-xs font-semibold text-slate-500 align-top sticky left-0 bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">
                             {rowNum}
                           </td>
 
                           {/* Santri eSantri */}
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3.5 align-top sticky left-[48px] bg-white group-hover:bg-slate-50 z-10 shadow-[1px_0_0_0_#e2e8f0]">
                             <div className="font-bold text-slate-900 text-sm">{s.nama}</div>
-                            <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-mono">
+                            <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 font-mono">
                               <span>NIK: <strong className="text-slate-700">{s.nikEsantri || '-'}</strong></span>
                               <span>•</span>
                               <span>NISN: <strong className="text-slate-700">{s.nisnEsantri || '-'}</strong></span>
@@ -467,15 +483,15 @@ export default function ResiduEmisVervalSubTab({
                           </td>
 
                           {/* Cabang & Kelas */}
-                          <td className="px-4 py-3">
-                            <div className="font-medium text-slate-800 text-xs">{s.cabangName}</div>
+                          <td className="px-4 py-3.5 align-top whitespace-nowrap">
+                            <div className="font-semibold text-slate-800 text-xs">{s.cabangName}</div>
                             <div className="text-[11px] text-slate-500 mt-0.5">
                               {s.tingkat ? `Tingkat ${s.tingkat}` : ''} {s.kelasName ? `• ${s.kelasName}` : ''}
                             </div>
                           </td>
 
                           {/* Status EMIS */}
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3.5 align-top whitespace-nowrap">
                             {s.statusEmis === 'TERDAFTAR' ? (
                               <div className="space-y-1">
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-lg text-xs font-semibold">
@@ -505,7 +521,7 @@ export default function ResiduEmisVervalSubTab({
                           </td>
 
                           {/* Status Verval */}
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3.5 align-top whitespace-nowrap">
                             {s.statusVerval === 'VERVAL_OK' ? (
                               <div className="space-y-1">
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-teal-50 text-teal-700 border border-teal-200/60 rounded-lg text-xs font-semibold">
@@ -538,41 +554,53 @@ export default function ResiduEmisVervalSubTab({
                           </td>
 
                           {/* Diskrepansi / Temuan */}
-                          <td className="px-4 py-3 max-w-[260px]">
+                          <td className="px-4 py-3.5 align-top min-w-[280px] max-w-[340px] whitespace-normal">
                             {hasDiscrepancy ? (
-                              <div className="space-y-1">
+                              <div className="space-y-1.5">
                                 {s.discrepancies.map((disc, dIdx) => (
-                                  <span
+                                  <div
                                     key={dIdx}
-                                    className="inline-block px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded text-[11px] font-medium mr-1 mb-1"
+                                    className="p-2 bg-amber-50/90 border border-amber-200/80 rounded-xl text-xs text-amber-900 leading-snug flex items-start gap-1.5 shadow-2xs"
                                   >
-                                    ⚠️ {disc}
-                                  </span>
+                                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                                    <span className="break-words font-medium">{disc}</span>
+                                  </div>
                                 ))}
                               </div>
+                            ) : s.statusEmis === 'BELUM_TERDAFTAR' && s.statusVerval === 'BELUM_TERDAFTAR' ? (
+                              <span className="text-xs text-slate-400 italic">Belum terdaftar di eksternal</span>
+                            ) : s.statusEmis === 'BELUM_TERDAFTAR' ? (
+                              <span className="text-xs text-slate-400 italic">Belum terdaftar di EMIS</span>
                             ) : (
-                              <span className="text-xs text-slate-400 flex items-center gap-1">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                                Data Cocok
+                              <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50/80 border border-emerald-200/60 px-2.5 py-1 rounded-lg font-medium">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                Data Sesuai
                               </span>
                             )}
                           </td>
 
                           {/* Rekomendasi Tindakan Cabang */}
-                          <td className="px-4 py-3">
-                            <div
-                              className={`p-2 rounded-xl text-xs ${
-                                s.butuhTindakan
-                                  ? 'bg-rose-50/70 border border-rose-200/80 text-rose-900 font-medium'
-                                  : 'bg-slate-50 border border-slate-200/60 text-slate-600'
-                              }`}
-                            >
-                              {s.rekomendasiTindakan}
-                            </div>
+                          <td className="px-4 py-3.5 align-top min-w-[320px] max-w-[420px] whitespace-normal">
+                            {s.butuhTindakan ? (
+                              <div className="p-2.5 rounded-xl text-xs leading-relaxed bg-rose-50/90 border border-rose-200/90 text-rose-950 shadow-2xs space-y-1">
+                                <div className="flex items-start gap-1.5 font-semibold text-rose-900">
+                                  <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                                  <span>Instruksi Cabang:</span>
+                                </div>
+                                <div className="text-rose-800 break-words font-medium leading-relaxed pl-5">
+                                  {s.rekomendasiTindakan}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="p-2 rounded-xl text-xs leading-relaxed bg-slate-50 border border-slate-200 text-slate-600 flex items-center gap-1.5">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                <span>{s.rekomendasiTindakan || 'Data sudah sesuai & aman.'}</span>
+                              </div>
+                            )}
                           </td>
 
                           {/* Aksi / Detail */}
-                          <td className="px-4 py-3 text-center">
+                          <td className="px-4 py-3.5 align-top text-center whitespace-nowrap">
                             <button
                               onClick={() => setSelectedStudent(s)}
                               className="p-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-600 rounded-lg transition-colors"

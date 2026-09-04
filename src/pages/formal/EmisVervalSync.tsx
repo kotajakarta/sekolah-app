@@ -760,8 +760,12 @@ export default function EmisVervalSync() {
         <div className="mt-3 p-3 bg-blue-50/70 border border-blue-200 rounded-lg flex items-start gap-3">
           <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
           <div className="text-xs text-blue-800 leading-relaxed">
-            <strong>Keamanan Data Terjamin:</strong> Modul ini bekerja murni secara <em>read-only</em>.
-            Penarikan data kementerian dan pencocokan dengan database eSantri tidak akan mengubah, menimpa, atau menghapus data santri yang ada di database.
+            <div>
+              <strong>Keamanan Data Terjamin:</strong> Modul ini bekerja murni secara <em>read-only</em> terhadap data pokok santri eSantri.
+            </div>
+            <div className="mt-1 text-blue-700">
+              💡 <strong>Smart Snapshot Merge Aktif:</strong> Jika Anda menarik EMIS dan VervalPD pada hari/sesi yang berbeda, sistem secara otomatis mempertahankan dan menggabungkan data dari sesi sebelumnya, sehingga hasil komparasi kedua sumber tetap utuh dan tidak saling menghilangkan.
+            </div>
           </div>
         </div>
 

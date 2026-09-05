@@ -228,6 +228,69 @@ export default function Ringkasan() {
     return filteredUnitBreakdown.slice((tablePage - 1) * tableLimit, tablePage * tableLimit);
   }, [filteredUnitBreakdown, tablePage]);
 
+  // Aggregated totals across all filtered units for the top summary row
+  const summaryTotals = useMemo(() => {
+    const list = filteredUnitBreakdown;
+    const totalCabang = list.reduce((acc, u) => acc + (u.jumlahCabang || 0), 0);
+    const totalKelas = list.reduce((acc, u) => acc + (u.jumlahKelas || 0), 0);
+    const totalSiswa = list.reduce((acc, u) => acc + (u.jumlahSiswa || 0), 0);
+    const totalSilabusCompleted = list.reduce((acc, u) => acc + (u.silabusCompleted || 0), 0);
+    const totalSilabusTarget = list.reduce((acc, u) => acc + (u.silabusTotal || 0), 0);
+    const persenSilabus = totalSilabusTarget > 0 ? Math.round((totalSilabusCompleted / totalSilabusTarget) * 100) : 0;
+    const totalHadir = list.reduce((acc, u) => acc + (u.hadir || 0), 0);
+    const totalAbsensi = list.reduce((acc, u) => acc + (u.totalAbsensi || 0), 0);
+    const persenKehadiran = totalAbsensi > 0 ? Math.round((totalHadir / totalAbsensi) * 100) : 0;
+
+    const weeksInfo = data?.weeksInfo || [];
+    const weeks = weeksInfo.map((_, wIdx) => {
+      let mapelCompleted = 0;
+      let mapelTarget = 0;
+      let hadir = 0;
+      let totalAbsensi = 0;
+      let isFuture = false;
+      const allDetails: MapelDetailItem[] = [];
+
+      list.forEach(u => {
+        const w = u.weeks?.[wIdx];
+        if (w) {
+          if (w.isFuture) isFuture = true;
+          mapelCompleted += (w.mapelCompleted || 0);
+          mapelTarget += (w.mapelTarget ?? (u.jumlahKelas ? u.jumlahKelas * 5 : 0));
+          hadir += (w.hadir || 0);
+          totalAbsensi += (w.totalAbsensi || 0);
+          if (w.details) allDetails.push(...w.details);
+        }
+      });
+
+      const persenMapel = isFuture || mapelTarget === 0 ? 0 : Math.min(100, Math.round((mapelCompleted / mapelTarget) * 100));
+      const persenKehadiran = isFuture || totalAbsensi === 0 ? 0 : Math.min(100, Math.round((hadir / totalAbsensi) * 100));
+
+      return {
+        mapelCompleted,
+        mapelTarget,
+        persenMapel,
+        hadir,
+        totalAbsensi,
+        persenKehadiran,
+        isFuture,
+        details: allDetails
+      };
+    });
+
+    return {
+      totalCabang,
+      totalKelas,
+      totalSiswa,
+      totalSilabusCompleted,
+      totalSilabusTarget,
+      persenSilabus,
+      totalHadir,
+      totalAbsensi,
+      persenKehadiran,
+      weeks
+    };
+  }, [filteredUnitBreakdown, data?.weeksInfo]);
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[50vh] font-sans text-sm text-slate-500">
@@ -509,6 +572,128 @@ export default function Ringkasan() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
+              {/* TOP SUMMARY TOTAL ROW (Posisi tanda merah pada gambar) */}
+              {filteredUnitBreakdown.length > 0 && (
+                <tr className="bg-slate-100/95 font-extrabold border-b-2 border-slate-300 text-slate-900 shadow-xs">
+                  {/* Sticky Nama Unit: "TOTAL" */}
+                  <td className="px-4 py-3.5 sticky left-0 bg-slate-100 z-10 border-r border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-800 text-white text-[11px] font-black tracking-wider uppercase shadow-2xs">
+                        TOTAL
+                      </span>
+                      <span className="text-xs font-black text-slate-800 uppercase tracking-tight">
+                        ({filteredUnitBreakdown.length} {data.unitLabel})
+                      </span>
+                    </div>
+                  </td>
+
+                  {/* Total Cabang */}
+                  {data.unitLabel === 'Wilayah' && (
+                    <td className="px-3 py-3.5 text-center">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-purple-100 text-purple-900 text-xs font-black border border-purple-300 shadow-2xs">
+                        {summaryTotals.totalCabang.toLocaleString('id-ID')} Cabang
+                      </span>
+                    </td>
+                  )}
+
+                  {/* Total Kelas */}
+                  {(data.unitLabel === 'Wilayah' || data.unitLabel === 'Cabang') && (
+                    <td className="px-3 py-3.5 text-center">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-amber-100 text-amber-900 text-xs font-black border border-amber-300 shadow-2xs">
+                        {summaryTotals.totalKelas.toLocaleString('id-ID')} Kelas
+                      </span>
+                    </td>
+                  )}
+
+                  {/* Total Siswa */}
+                  <td className="px-3 py-3.5 text-center">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-blue-100 text-brand text-xs font-black border border-blue-300 shadow-2xs">
+                      {summaryTotals.totalSiswa.toLocaleString('id-ID')} Siswa
+                    </span>
+                  </td>
+
+                  {/* Multi-Week Columns for Total */}
+                  {weeksHeaderInfo.map((wHeader, wIdx) => {
+                    const wData = summaryTotals.weeks[wIdx];
+                    const isFuture = wData?.isFuture;
+
+                    return (
+                      <td key={wIdx} className="px-3 py-3.5 text-center border-l border-slate-200">
+                        {wData ? (
+                          <div className="space-y-1">
+                            {/* Mapel Week Badge + Info button */}
+                            <div className="flex items-center justify-center gap-1">
+                              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-extrabold border shadow-2xs ${getMapelBadgeClass(wData.persenMapel, isFuture)}`}>
+                                <span>Mapel: {wData.mapelCompleted.toLocaleString('id-ID')}/{wData.mapelTarget.toLocaleString('id-ID')}</span>
+                                <span>({wData.persenMapel}%)</span>
+                              </div>
+
+                              <button
+                                onClick={() => setDetailModalItem({
+                                  id: 'TOTAL',
+                                  name: `TOTAL KESELURUHAN — ${wHeader.dateLabel}`,
+                                  parentName: '',
+                                  silabusCompleted: wData.mapelCompleted,
+                                  silabusTotal: wData.mapelTarget,
+                                  persenSilabus: wData.persenMapel,
+                                  hadir: wData.hadir,
+                                  totalAbsensi: wData.totalAbsensi,
+                                  persenKehadiran: wData.persenKehadiran,
+                                  status: wData.persenMapel >= 90 ? 'Optimal' : wData.persenMapel >= 70 ? 'Sesuai Jalur' : 'Berisiko',
+                                  details: wData.details || []
+                                })}
+                                title={`Detail Pengerjaan & Kehadiran Total ${wHeader.dateLabel}`}
+                                className="p-1 text-slate-400 hover:text-brand hover:bg-white rounded-lg transition-all shrink-0 cursor-pointer"
+                              >
+                                <Info className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Kehadiran Week Text */}
+                            <div className="text-[10px] font-bold text-slate-600">
+                              Hadir: <span className={getKehadiranTextClass(wData.persenKehadiran, isFuture)}>{wData.persenKehadiran}%</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 text-xs font-bold">—</span>
+                        )}
+                      </td>
+                    );
+                  })}
+
+                  {/* Total Ringkasan Column */}
+                  <td className="px-4 py-3.5 border-l border-slate-200">
+                    <div className="space-y-1.5">
+                      {/* Mapel Summary */}
+                      <div className="flex items-center justify-between text-xs font-extrabold">
+                        <span className="text-slate-700">Mapel:</span>
+                        <span className="text-brand">
+                          {summaryTotals.totalSilabusCompleted.toLocaleString('id-ID')}/{summaryTotals.totalSilabusTarget.toLocaleString('id-ID')} ({summaryTotals.persenSilabus}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${
+                            summaryTotals.persenSilabus >= 85 ? 'bg-emerald-500' :
+                            summaryTotals.persenSilabus >= 70 ? 'bg-brand' : 'bg-rose-500'
+                          }`}
+                          style={{ width: `${summaryTotals.persenSilabus}%` }}
+                        />
+                      </div>
+
+                      {/* Kehadiran Summary */}
+                      <div className="flex items-center justify-between text-xs font-extrabold pt-0.5">
+                        <span className="text-slate-700">Hadir:</span>
+                        <span className={`${
+                          summaryTotals.persenKehadiran >= 85 ? 'text-emerald-700' :
+                          summaryTotals.persenKehadiran >= 70 ? 'text-blue-700' : 'text-slate-800'
+                        }`}>{summaryTotals.persenKehadiran}%</span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
               {paginatedUnitBreakdown.length > 0 ? (
                 paginatedUnitBreakdown.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">

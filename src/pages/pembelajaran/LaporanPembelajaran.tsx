@@ -47,13 +47,18 @@ export default function LaporanPembelajaran() {
   const isGlobal = user?.scope === 'GLOBAL';
   const isWilayah = user?.scope === 'WILAYAH';
 
+  const currentMonthValue = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+
   const [selectedWilayah, setSelectedWilayah] = useState('');
   const [selectedCabang, setSelectedCabang] = useState('');
   const [selectedMapel, setSelectedMapel] = useState('');
-  const [mode, setMode] = useState<'weekly' | 'monthly' | 'semester'>('weekly');
+  const [mode, setMode] = useState<'weekly' | 'monthly' | 'semester'>('monthly');
 
   const [weekStart, setWeekStart] = useState('');
-  const [month, setMonth] = useState('');
+  const [month, setMonth] = useState(currentMonthValue());
   const [tahunAjaran, setTahunAjaran] = useState('');
   const [semester, setSemester] = useState('Ganjil');
 

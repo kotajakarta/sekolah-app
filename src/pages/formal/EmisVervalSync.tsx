@@ -160,22 +160,44 @@ export default function EmisVervalSync() {
     saveTokens(updated);
   };
 
+  // Helper kunci unik EMIS di frontend
+  const getEmisStudentKey = (item: any): string => {
+    const nik = String(item.nik || item.list_nik || item.identity_number || item.no_identitas || item.no_kk || '').replace(/\D/g, '').trim();
+    if (nik && nik.length >= 10) return `NIK:${nik}`;
+
+    const nisn = String(item.nisn || item.list_nisn || '').trim();
+    if (nisn && nisn !== '-' && nisn.length >= 8) return `NISN:${nisn}`;
+
+    const id = String(item.id || item._emis_id || '').trim();
+    if (id && !id.startsWith('temp-')) return `ID:${id}`;
+
+    const nama = String(item.full_name || item.nama || item.list_full_name || '').trim().toLowerCase();
+    const tgl = String(item.birth_date || item.tanggal_lahir || item.list_birth_date || '').trim();
+    if (nama && tgl) return `NAME_DOB:${nama}|${tgl}`;
+
+    const tmpt = String(item.birth_place || item.tempat_lahir || item.list_birth_place || '').trim().toLowerCase();
+    if (nama && tmpt) return `NAME_POB:${nama}|${tmpt}`;
+
+    return nama ? `NAME:${nama}` : '';
+  };
+
   // Helper deduplikasi saat merge santri antar sekolah
   const mergeEmisStudents = (existing: any[], incoming: any[]): any[] => {
     const map = new Map<string, any>();
     for (const item of existing) {
-      const nisn = (item.nisn || item.list_nisn || '').trim();
-      const nama = item.full_name || item.nama || item.list_full_name || '';
-      const tmpt = item.birth_place || item.tempat_lahir || '';
-      const key = nisn ? `NISN:${nisn}` : `KEY:${nama.toLowerCase()}|${tmpt.toLowerCase()}`;
-      map.set(key, item);
+      const key = getEmisStudentKey(item);
+      if (key) map.set(key, item);
     }
     for (const item of incoming) {
-      const nisn = (item.nisn || item.list_nisn || '').trim();
-      const nama = item.full_name || item.nama || item.list_full_name || '';
-      const tmpt = item.birth_place || item.tempat_lahir || '';
-      const key = nisn ? `NISN:${nisn}` : `KEY:${nama.toLowerCase()}|${tmpt.toLowerCase()}`;
-      map.set(key, item);
+      const key = getEmisStudentKey(item);
+      if (key) {
+        const prev = map.get(key);
+        map.set(key, {
+          ...prev,
+          ...item,
+          _source_lembaga: item._source_lembaga || prev?._source_lembaga,
+        });
+      }
     }
     return Array.from(map.values());
   };
@@ -241,36 +263,45 @@ export default function EmisVervalSync() {
     saveVervalCookies(updated);
   };
 
+  // Helper kunci unik VervalPD di frontend
+  const getVervalStudentKey = (item: any): string => {
+    const nik = String(item.nik || '').replace(/\D/g, '').trim();
+    if (nik && nik.length >= 10) return `NIK:${nik}`;
+
+    const nisn = String(item.nisn || '').trim();
+    if (nisn && nisn !== '-' && nisn.length >= 8) return `NISN:${nisn}`;
+
+    const pdId = String(item.pesertaDidikId || item.id || '').trim();
+    if (pdId && !pdId.startsWith('temp-')) return `PD:${pdId}`;
+
+    const nama = String(item.nama || '').trim().toLowerCase();
+    const tgl = String(item.tanggalLahir || '').trim();
+    if (nama && tgl) return `NAME_DOB:${nama}|${tgl}`;
+
+    const tmpt = String(item.tempatLahir || '').trim().toLowerCase();
+    if (nama && tmpt) return `NAME_POB:${nama}|${tmpt}`;
+
+    return nama ? `NAME:${nama}` : '';
+  };
+
   // Helper deduplikasi saat merge santri Verval antar sekolah
   const mergeVervalStudents = (existing: any[], incoming: any[]): any[] => {
     const map = new Map<string, any>();
     for (const item of existing) {
-      const pdId = item.pesertaDidikId ? `PD:${item.pesertaDidikId}` : '';
-      const nisn = (item.nisn || '').trim();
-      const nik = (item.nik || '').trim();
-      const nama = (item.nama || '').trim().toLowerCase();
-      const tmpt = (item.tempatLahir || '').trim().toLowerCase();
-      const key = pdId || (nisn ? `NISN:${nisn}` : (nik ? `NIK:${nik}` : `KEY:${nama}|${tmpt}`));
-      map.set(key, item);
+      const key = getVervalStudentKey(item);
+      if (key) map.set(key, item);
     }
     for (const item of incoming) {
-      const pdId = item.pesertaDidikId ? `PD:${item.pesertaDidikId}` : '';
-      const nisn = (item.nisn || '').trim();
-      const nik = (item.nik || '').trim();
-      const nama = (item.nama || '').trim().toLowerCase();
-      const tmpt = (item.tempatLahir || '').trim().toLowerCase();
-      const key = pdId || (nisn ? `NISN:${nisn}` : (nik ? `NIK:${nik}` : `KEY:${nama}|${tmpt}`));
-      if (map.has(key)) {
+      const key = getVervalStudentKey(item);
+      if (key) {
         const prev = map.get(key);
         map.set(key, {
           ...prev,
           ...item,
-          isResidu: prev.isResidu || item.isResidu,
-          residuDetail: { ...(prev.residuDetail || {}), ...(item.residuDetail || {}) },
-          _source_lembaga: prev._source_lembaga || item._source_lembaga,
+          isResidu: item.isResidu !== undefined ? item.isResidu : prev?.isResidu,
+          residuDetail: { ...(prev?.residuDetail || {}), ...(item.residuDetail || {}) },
+          _source_lembaga: item._source_lembaga || prev?._source_lembaga,
         });
-      } else {
-        map.set(key, item);
       }
     }
     return Array.from(map.values());
@@ -327,14 +358,16 @@ export default function EmisVervalSync() {
         _source_lembaga: entry.label,
       }));
 
+      let totalCount = 0;
       setEmisStudents((prev) => {
         const merged = isAppendMode ? mergeEmisStudents(prev, items) : items;
+        totalCount = merged.length;
         setEmisProgress({ current: merged.length, total: merged.length });
         return merged;
       });
 
-      addEmisLog(`[${entry.label}] Berhasil mengambil ${items.length} santri.`);
-      showToast('success', `[${entry.label}] Berhasil menarik ${items.length} santri.`);
+      addEmisLog(`[${entry.label}] Berhasil mengambil ${items.length} santri. (Total santri terakumulasi: ${totalCount || items.length} santri)`);
+      showToast('success', `[${entry.label}] Berhasil menarik ${items.length} santri. Total data tersimpan: ${totalCount || items.length} santri.`);
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Gagal menghubungi server EMIS';
       addEmisLog(`[${entry.label}] Error: ${msg}`);
@@ -421,11 +454,15 @@ export default function EmisVervalSync() {
         addVervalLog(`[${entry.label}] Berhasil mengambil ${residuItems.length} siswa residu Verval.`);
       }
 
+      let totalCount = 0;
       setVervalStudents((prev) => {
-        return isVervalAppendMode ? mergeVervalStudents(prev, items) : items;
+        const merged = isVervalAppendMode ? mergeVervalStudents(prev, items) : items;
+        totalCount = merged.length;
+        return merged;
       });
 
-      showToast('success', `[${entry.label}] Berhasil menarik data siswa VervalPD.`);
+      addVervalLog(`[${entry.label}] Penarikan selesai. Total siswa terakumulasi: ${totalCount || items.length} siswa.`);
+      showToast('success', `[${entry.label}] Berhasil menarik ${items.length} siswa. Total data tersimpan: ${totalCount || items.length} siswa.`);
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Gagal menghubungi VervalPD';
       addVervalLog(`[${entry.label}] Error: ${msg}`);
@@ -542,6 +579,50 @@ export default function EmisVervalSync() {
         const res = await apiClient.get('/formal/emis/latest');
         if (res.data?.data && res.data.data.students?.length > 0) {
           setReconData(res.data.data);
+
+          // Otomatis populasi daftar santri EMIS yang tersimpan dari penarikan sebelumnya
+          const savedEmis = res.data.data.students
+            .filter((s: any) => s.statusEmis === 'TERDAFTAR' || s.statusEmis === 'DISKREPANSI')
+            .map((s: any) => ({
+              id: s.emisId || s.id,
+              _emis_id: s.emisId,
+              full_name: s.nama,
+              nama: s.nama,
+              nisn: s.nisnEmis && s.nisnEmis !== '-' ? s.nisnEmis : s.nisnEsantri,
+              nik: s.nikEsantri,
+              birth_place: s.tempatLahirEsantri,
+              tempat_lahir: s.tempatLahirEsantri,
+              birth_date: s.tanggalLahirEsantri,
+              tanggal_lahir: s.tanggalLahirEsantri,
+              gender: s.jenisKelaminEsantri,
+              jenis_kelamin: s.jenisKelaminEsantri,
+              tingkat: s.tingkat,
+              rombel: s.rombelEmis,
+              _parsed_rombel: s.rombelEmis,
+              _source_lembaga: s.sourceLembagaEmis || 'Snapshot Tersimpan',
+            }));
+          if (savedEmis.length > 0) {
+            setEmisStudents((prev) => (prev.length === 0 ? savedEmis : prev));
+          }
+
+          // Otomatis populasi daftar siswa VervalPD yang tersimpan dari penarikan sebelumnya
+          const savedVerval = res.data.data.students
+            .filter((s: any) => s.statusVerval === 'VERVAL_OK' || s.statusVerval === 'RESIDU_VERVAL')
+            .map((s: any) => ({
+              pesertaDidikId: s.vervalPdId || s.id,
+              nama: s.nama,
+              nisn: s.nisnVerval && s.nisnVerval !== '-' ? s.nisnVerval : s.nisnEsantri,
+              nik: s.nikEsantri,
+              tempatLahir: s.tempatLahirEsantri,
+              tanggalLahir: s.tanggalLahirEsantri,
+              jenisKelamin: s.jenisKelaminEsantri,
+              isResidu: s.statusVerval === 'RESIDU_VERVAL',
+              residuDetail: s.residuDetail,
+              _source_lembaga: s.sourceLembagaEmis || 'Snapshot Tersimpan',
+            }));
+          if (savedVerval.length > 0) {
+            setVervalStudents((prev) => (prev.length === 0 ? savedVerval : prev));
+          }
         }
       } catch {
         // Abaikan jika belum ada audit yang tersimpan sebelumnya
@@ -571,6 +652,42 @@ export default function EmisVervalSync() {
       const res = await apiClient.get(`/formal/emis/history/${batchId}`);
       if (res.data?.data) {
         setReconData(res.data.data);
+        const students = res.data.data.students || [];
+
+        // Populasi ulang santri EMIS dari snapshot yang dipilih
+        const snapEmis = students
+          .filter((s: any) => s.statusEmis === 'TERDAFTAR' || s.statusEmis === 'DISKREPANSI')
+          .map((s: any) => ({
+            id: s.emisId || s.id,
+            _emis_id: s.emisId,
+            full_name: s.nama,
+            nama: s.nama,
+            nisn: s.nisnEmis && s.nisnEmis !== '-' ? s.nisnEmis : s.nisnEsantri,
+            nik: s.nikEsantri,
+            birth_place: s.tempatLahirEsantri,
+            birth_date: s.tanggalLahirEsantri,
+            rombel: s.rombelEmis,
+            _parsed_rombel: s.rombelEmis,
+            _source_lembaga: s.sourceLembagaEmis || 'Snapshot Tersimpan',
+          }));
+        setEmisStudents(snapEmis);
+
+        // Populasi ulang siswa Verval dari snapshot yang dipilih
+        const snapVerval = students
+          .filter((s: any) => s.statusVerval === 'VERVAL_OK' || s.statusVerval === 'RESIDU_VERVAL')
+          .map((s: any) => ({
+            pesertaDidikId: s.vervalPdId || s.id,
+            nama: s.nama,
+            nisn: s.nisnVerval && s.nisnVerval !== '-' ? s.nisnVerval : s.nisnEsantri,
+            nik: s.nikEsantri,
+            tempatLahir: s.tempatLahirEsantri,
+            tanggalLahir: s.tanggalLahirEsantri,
+            isResidu: s.statusVerval === 'RESIDU_VERVAL',
+            residuDetail: s.residuDetail,
+            _source_lembaga: s.sourceLembagaEmis || 'Snapshot Tersimpan',
+          }));
+        setVervalStudents(snapVerval);
+
         setActiveTab('komparasi');
         setHistoryModalOpen(false);
         showToast('success', `Snapshot audit #${batchId.slice(0, 8)} berhasil dimuat.`);
@@ -1324,13 +1441,16 @@ export default function EmisVervalSync() {
           {/* Preview Hasil Fetch */}
           {emisStudents.length > 0 && (
             <div className="space-y-3 pt-4 border-t border-slate-200">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-slate-800">
-                  Pratinjau Data EMIS ({emisStudents.length} Santri Terkumpul dari Berbagai Sekolah)
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="text-sm font-semibold text-slate-800 flex flex-wrap items-center gap-2">
+                  <span>Pratinjau Data EMIS ({emisStudents.length} Santri Terkumpul)</span>
+                  <span className="bg-emerald-50 text-emerald-700 text-[11px] font-medium px-2 py-0.5 rounded-full border border-emerald-200">
+                    ✓ Akumulasi Aktif (Data kemarin aman)
+                  </span>
                 </div>
                 <button
                   onClick={handleRunReconcile}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm cursor-pointer"
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm cursor-pointer w-fit"
                 >
                   Bandingkan dengan Database eSantri →
                 </button>
@@ -1566,14 +1686,19 @@ export default function EmisVervalSync() {
           {/* Preview Hasil Fetch Verval */}
           {vervalStudents.length > 0 && (
             <div className="space-y-3 pt-4 border-t border-slate-200">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-semibold text-slate-800">
-                  Pratinjau Data VervalPD ({vervalStudents.length} Siswa Terkumpul dari Berbagai Sekolah
-                  {vervalStudents.length > 50 ? ' — Menampilkan 50 data teratas' : ''})
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="text-sm font-semibold text-slate-800 flex flex-wrap items-center gap-2">
+                  <span>
+                    Pratinjau Data VervalPD ({vervalStudents.length} Siswa Terkumpul
+                    {vervalStudents.length > 50 ? ' — Menampilkan 50 data teratas' : ''})
+                  </span>
+                  <span className="bg-blue-50 text-blue-700 text-[11px] font-medium px-2 py-0.5 rounded-full border border-blue-200">
+                    ✓ Akumulasi Aktif (Data kemarin aman)
+                  </span>
                 </div>
                 <button
                   onClick={handleRunReconcile}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm cursor-pointer"
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm cursor-pointer w-fit"
                 >
                   Bandingkan dengan Database eSantri →
                 </button>

@@ -194,16 +194,28 @@ export default function LaporanPembelajaran() {
         persenPelaksanaan: 0
       };
     }
-    const totalWilayah = wilayahSummaryList.length;
-    const totalCabang = wilayahSummaryList.reduce((acc, w) => acc + w.totalCabang, 0);
-    const totalRombel = wilayahSummaryList.reduce((acc, w) => acc + w.jumlahRombel, 0);
-    const totalSiswa = wilayahSummaryList.reduce((acc, w) => acc + w.jumlahSiswa, 0);
-    const silabusCompleted = wilayahSummaryList.reduce((acc, w) => acc + w.silabusCompleted, 0);
-    const silabusTotal = wilayahSummaryList.reduce((acc, w) => acc + w.silabusTotal, 0);
-    const hadir = wilayahSummaryList.reduce((acc, w) => acc + w.hadir, 0);
-    const totalAbsensi = wilayahSummaryList.reduce((acc, w) => acc + w.totalAbsensi, 0);
-    const pelaksanaanCompleted = wilayahSummaryList.reduce((acc, w) => acc + w.pelaksanaanCompleted, 0);
-    const pelaksanaanTotal = wilayahSummaryList.reduce((acc, w) => acc + w.pelaksanaanTotal, 0);
+    const isExcluded = (name?: string) => {
+      const n = (name || '').toUpperCase();
+      return n.includes('TES-WILAYAH') || n.startsWith('TES-');
+    };
+    const validWilayahList = wilayahSummaryList.filter(w => !isExcluded(w.wilayahName));
+    const totalWilayah = validWilayahList.length;
+    const totalCabang = validWilayahList.reduce((acc, w) => acc + w.totalCabang, 0);
+    const totalRombel = validWilayahList.reduce((acc, w) => acc + w.jumlahRombel, 0);
+    const totalSiswa = validWilayahList.reduce((acc, w) => acc + w.jumlahSiswa, 0);
+    const silabusCompleted = validWilayahList.reduce((acc, w) => acc + w.silabusCompleted, 0);
+    const silabusTotal = validWilayahList.reduce((acc, w) => acc + w.silabusTotal, 0);
+    const hadir = validWilayahList.reduce((acc, w) => acc + w.hadir, 0);
+    const totalAbsensi = validWilayahList.reduce((acc, w) => acc + w.totalAbsensi, 0);
+    const pelaksanaanCompleted = validWilayahList.reduce((acc, w) => acc + w.pelaksanaanCompleted, 0);
+    const pelaksanaanTotal = validWilayahList.reduce((acc, w) => acc + w.pelaksanaanTotal, 0);
+
+    // Hitung rata-rata persen kehadiran termasuk wilayah yang 0%
+    const sumPersenKehadiran = validWilayahList.reduce((acc, w) => {
+      const pct = w.totalAbsensi > 0 ? Math.round((w.hadir / w.totalAbsensi) * 100) : 0;
+      return acc + pct;
+    }, 0);
+    const persenKehadiran = validWilayahList.length > 0 ? Math.round(sumPersenKehadiran / validWilayahList.length) : 0;
 
     return {
       totalWilayah,
@@ -215,7 +227,7 @@ export default function LaporanPembelajaran() {
       persenSilabus: silabusTotal > 0 ? Math.round((silabusCompleted / silabusTotal) * 100) : 0,
       hadir,
       totalAbsensi,
-      persenKehadiran: totalAbsensi > 0 ? Math.round((hadir / totalAbsensi) * 100) : 0,
+      persenKehadiran,
       pelaksanaanCompleted,
       pelaksanaanTotal,
       persenPelaksanaan: pelaksanaanTotal > 0 ? Math.round((pelaksanaanCompleted / pelaksanaanTotal) * 100) : 0
@@ -276,8 +288,14 @@ export default function LaporanPembelajaran() {
     };
   }, [filteredCabangList]);
 
-  const renderProgressCell = (completed: number, total: number, isTotalCell: boolean = false, customColor?: { bar: string; badge: string; text: string }) => {
-    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const renderProgressCell = (
+    completed: number,
+    total: number,
+    isTotalCell: boolean = false,
+    customColor?: { bar: string; badge: string; text: string },
+    forcedPct?: number
+  ) => {
+    const pct = forcedPct !== undefined ? forcedPct : (total > 0 ? Math.round((completed / total) * 100) : 0);
     const clampedPct = Math.min(pct, 100);
 
     let textColor = customColor?.text || 'text-emerald-600 font-bold';
@@ -606,7 +624,7 @@ export default function LaporanPembelajaran() {
                         {wilayahTotals.hadir.toLocaleString('id-ID')} / {wilayahTotals.totalAbsensi.toLocaleString('id-ID')}
                       </td>
                       <td className="py-2 px-3 text-center bg-emerald-50/90 border-r border-emerald-300">
-                        {renderProgressCell(wilayahTotals.hadir, wilayahTotals.totalAbsensi, true)}
+                        {renderProgressCell(wilayahTotals.hadir, wilayahTotals.totalAbsensi, true, undefined, wilayahTotals.persenKehadiran)}
                       </td>
                       <td className="py-2 px-3 text-center bg-indigo-100/70 border-r border-indigo-200 font-extrabold text-slate-900">
                         {wilayahTotals.totalSiswa.toLocaleString('id-ID')} Siswa

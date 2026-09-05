@@ -230,7 +230,15 @@ export default function Ringkasan() {
 
   // Aggregated totals across all filtered units for the top summary row
   const summaryTotals = useMemo(() => {
-    const list = filteredUnitBreakdown;
+    // Saring TES-WILAYAH agar tidak dihitung dalam total (hanya 7 wilayah resmi yang dihitung)
+    const isExcluded = (name?: string, parentName?: string) => {
+      const n = (name || '').toUpperCase();
+      const p = (parentName || '').toUpperCase();
+      return n.includes('TES-WILAYAH') || p.includes('TES-WILAYAH') || n.startsWith('TES-');
+    };
+
+    const list = filteredUnitBreakdown.filter(u => !isExcluded(u.name, u.parentName));
+    const totalCount = list.length;
     const totalCabang = list.reduce((acc, u) => acc + (u.jumlahCabang || 0), 0);
     const totalKelas = list.reduce((acc, u) => acc + (u.jumlahKelas || 0), 0);
     const totalSiswa = list.reduce((acc, u) => acc + (u.jumlahSiswa || 0), 0);
@@ -239,7 +247,10 @@ export default function Ringkasan() {
     const persenSilabus = totalSilabusTarget > 0 ? Math.round((totalSilabusCompleted / totalSilabusTarget) * 100) : 0;
     const totalHadir = list.reduce((acc, u) => acc + (u.hadir || 0), 0);
     const totalAbsensi = list.reduce((acc, u) => acc + (u.totalAbsensi || 0), 0);
-    const persenKehadiran = totalAbsensi > 0 ? Math.round((totalHadir / totalAbsensi) * 100) : 0;
+
+    // Perhitungan persen hadir total: yang 0% juga dihitung dengan membagi rata seluruh unit valid yang dihitung
+    const sumTotalPersenKehadiran = list.reduce((acc, u) => acc + (u.persenKehadiran || 0), 0);
+    const persenKehadiran = list.length > 0 ? Math.round(sumTotalPersenKehadiran / list.length) : 0;
 
     const weeksInfo = data?.weeksInfo || [];
     const weeks = weeksInfo.map((_, wIdx) => {
@@ -263,7 +274,13 @@ export default function Ringkasan() {
       });
 
       const persenMapel = isFuture || mapelTarget === 0 ? 0 : Math.min(100, Math.round((mapelCompleted / mapelTarget) * 100));
-      const persenKehadiran = isFuture || totalAbsensi === 0 ? 0 : Math.min(100, Math.round((hadir / totalAbsensi) * 100));
+
+      // Persen kehadiran mingguan: yang 0% juga dihitung dengan membagi rata seluruh unit valid
+      const sumWeekPersenKehadiran = list.reduce((acc, u) => {
+        const w = u.weeks?.[wIdx];
+        return acc + (w?.persenKehadiran || 0);
+      }, 0);
+      const persenKehadiran = isFuture || list.length === 0 ? 0 : Math.round(sumWeekPersenKehadiran / list.length);
 
       return {
         mapelCompleted,
@@ -278,6 +295,7 @@ export default function Ringkasan() {
     });
 
     return {
+      totalCount,
       totalCabang,
       totalKelas,
       totalSiswa,
@@ -582,7 +600,7 @@ export default function Ringkasan() {
                         TOTAL
                       </span>
                       <span className="text-xs font-black text-slate-800 uppercase tracking-tight">
-                        ({filteredUnitBreakdown.length} {data.unitLabel})
+                        ({summaryTotals.totalCount} {data.unitLabel})
                       </span>
                     </div>
                   </td>

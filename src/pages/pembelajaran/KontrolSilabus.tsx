@@ -264,6 +264,11 @@ export default function KontrolSilabus() {
 
   // ── Daily Batch Mode Data Fetching & State Sync ──
 
+  // Keying by date too, otherwise a draft edit made while viewing one date
+  // bleeds into another date's row for the same kelas+mapel (and gets saved
+  // there), since dailyFormState previously only keyed on kelasId+mapelId.
+  const getDailyFormKey = (kelasId: string, mapelId: string) => `${kelasId}__${mapelId}__${selectedDate}`;
+
   const { data: dailyData, isLoading: dailyLoading, refetch: refetchDaily, isError: dailyError } = useQuery<DailyPelaksanaanResponse>({
     queryKey: ['pelaksanaan-silabus-daily', selectedCabang || user?.cabangId, selectedDate, tahunAjaran, semester],
     queryFn: async () => {
@@ -286,7 +291,7 @@ export default function KontrolSilabus() {
         const next = { ...prev };
         dailyData.classes.forEach(c => {
           c.mapels.forEach(m => {
-            const key = `${c.kelasId}__${m.mataPelajaranId}`;
+            const key = getDailyFormKey(c.kelasId, m.mataPelajaranId);
             const existing = next[key];
             next[key] = {
               status: m.status !== 'PENDING' ? m.status : (existing?.status || 'PENDING'),
@@ -304,17 +309,23 @@ export default function KontrolSilabus() {
 
   const dailySaveMutation = useMutation({
     mutationFn: async () => {
-      const logs = Object.entries(dailyFormState).map(([key, form]) => {
-        const [kelasId, mataPelajaranId] = key.split('__');
-        return {
-          kelasId,
-          mataPelajaranId,
-          silabusId: form.silabusId,
-          status: form.status,
-          guruId: form.guruId,
-          catatan: form.catatan
-        };
-      });
+      // Build logs from the currently displayed classes/mapels only, so a
+      // stale draft left over from a previously viewed date can never be
+      // saved under selectedDate's tanggal.
+      const logs = (dailyData?.classes || []).flatMap(c =>
+        c.mapels.map(m => {
+          const key = getDailyFormKey(c.kelasId, m.mataPelajaranId);
+          const form = dailyFormState[key] || { status: m.status, guruId: m.guruId || m.defaultGuruId, silabusId: m.silabusId, catatan: '' };
+          return {
+            kelasId: c.kelasId,
+            mataPelajaranId: m.mataPelajaranId,
+            silabusId: form.silabusId,
+            status: form.status,
+            guruId: form.guruId,
+            catatan: form.catatan
+          };
+        })
+      );
 
       const res = await apiClient.post('/pembelajaran/pelaksanaan/daily-bulk', {
         cabangId: selectedCabang || user?.cabangId,
@@ -335,7 +346,7 @@ export default function KontrolSilabus() {
 
   const handleDailyStatusChange = (kelasId: string, mapelId: string, status: 'PENDING' | 'COMPLETED' | 'LIBUR') => {
     if (isFutureDate(selectedDate)) return;
-    const key = `${kelasId}__${mapelId}`;
+    const key = getDailyFormKey(kelasId, mapelId);
     setDailyFormState(prev => ({
       ...prev,
       [key]: { ...prev[key], status }
@@ -345,7 +356,7 @@ export default function KontrolSilabus() {
 
   const handleDailySilabusChange = (kelasId: string, mapelId: string, silabusId: string) => {
     if (isFutureDate(selectedDate)) return;
-    const key = `${kelasId}__${mapelId}`;
+    const key = getDailyFormKey(kelasId, mapelId);
     setDailyFormState(prev => ({
       ...prev,
       [key]: { ...prev[key], silabusId: silabusId || null }
@@ -355,7 +366,7 @@ export default function KontrolSilabus() {
 
   const handleDailyGuruChange = (kelasId: string, mapelId: string, guruId: string) => {
     if (isFutureDate(selectedDate)) return;
-    const key = `${kelasId}__${mapelId}`;
+    const key = getDailyFormKey(kelasId, mapelId);
     setDailyFormState(prev => ({
       ...prev,
       [key]: { ...prev[key], guruId: guruId || null }
@@ -367,8 +378,13 @@ export default function KontrolSilabus() {
     if (isFutureDate(selectedDate)) return;
     setDailyFormState(prev => {
       const next = { ...prev };
-      Object.keys(next).forEach(key => {
-        next[key] = { ...next[key], status };
+      // Only flip status for rows belonging to the currently displayed date,
+      // not every kelas+mapel key ever accumulated across other dates.
+      (dailyData?.classes || []).forEach(c => {
+        c.mapels.forEach(m => {
+          const key = getDailyFormKey(c.kelasId, m.mataPelajaranId);
+          next[key] = { ...next[key], status };
+        });
       });
       return next;
     });
@@ -830,7 +846,7 @@ export default function KontrolSilabus() {
                       <tbody className="divide-y divide-slate-100 text-slate-800">
                         {cls.mapels.length > 0 ? (
                           cls.mapels.map((m) => {
-                            const formKey = `${cls.kelasId}__${m.mataPelajaranId}`;
+                            const formKey = getDailyFormKey(cls.kelasId, m.mataPelajaranId);
                             const currentForm = dailyFormState[formKey] || { status: m.status, guruId: m.guruId || m.defaultGuruId, silabusId: m.silabusId };
                             const isFuture = isFutureDate(selectedDate);
                             const isCompleted = currentForm.status === 'COMPLETED';

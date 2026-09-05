@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
-import { useGetGuru, useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
 import { Plus, Trash2, Loader2, BookOpen, UserCheck, AlertCircle, BarChart3, Building2, MapPin, X, LayoutDashboard } from 'lucide-react';
 import ConfirmModal from '../../components/ConfirmModal';
@@ -24,20 +23,17 @@ interface Assignment {
     name: string;
   };
   kelasId: string;
-  kelas: {
-    id: string;
-    name: string;
-    cabangId?: string;
-    cabang?: {
-      id: string;
-      name: string;
-      wilayahId?: string;
-      wilayah?: {
-        id: string;
-        name: string;
-      };
-    };
-  };
+  kelasName?: string;
+  cabangId?: string;
+}
+
+interface GuruMapelKelasBundle {
+  assignments: Assignment[];
+  guruList: any[];
+  wilayahs: any[];
+  cabangList: any[];
+  kelasList: any[];
+  mapelList: any[];
 }
 
 export default function PenugasanGuru() {
@@ -64,34 +60,29 @@ export default function PenugasanGuru() {
   const [summaryWilayah, setSummaryWilayah] = useState('');
   const [summaryCabang, setSummaryCabang] = useState('');
 
-  // Queries
-  const { data: assignments = [], isLoading: loadingAssignments } = useQuery<Assignment[]>({
-    queryKey: ['guru-mapel-kelas'],
+  // Single bundled request replaces what used to be 6 separate round trips
+  // (guru-mapel-kelas, guru, wilayah, cabang, kelas, mapel).
+  const { data: bundle, isLoading: loadingBundle } = useQuery<GuruMapelKelasBundle>({
+    queryKey: ['guru-mapel-kelas-bundle'],
     queryFn: async () => {
-      const res = await apiClient.get('/formal/guru-mapel-kelas');
+      const res = await apiClient.get('/formal/guru-mapel-kelas/bundle');
       return res.data;
     }
   });
 
-  const { data: guruList = [], isLoading: loadingGuru } = useGetGuru();
-  const { data: wilayahs = [] } = useGetWilayah();
-  const { data: cabangList = [] } = useGetCabang();
+  const assignments = bundle?.assignments || [];
+  const guruList = bundle?.guruList || [];
+  const wilayahs = bundle?.wilayahs || [];
+  const cabangList = bundle?.cabangList || [];
+  const kelasList = useMemo(() => (bundle?.kelasList || []).filter((k: any) => k.isActive), [bundle]);
+  const mapelList = useMemo(() => (bundle?.mapelList || []).filter((m: any) => m.isActive), [bundle]);
 
-  const { data: kelasList = [], isLoading: loadingKelas } = useQuery<any[]>({
-    queryKey: ['kelas'],
-    queryFn: async () => {
-      const res = await apiClient.get('/formal/kelas');
-      return res.data.filter((k: any) => k.isActive);
-    }
-  });
+  const loadingAssignments = loadingBundle;
+  const loadingGuru = loadingBundle;
+  const loadingKelas = loadingBundle;
+  const loadingMapel = loadingBundle;
 
-  const { data: mapelList = [], isLoading: loadingMapel } = useQuery<any[]>({
-    queryKey: ['mapel'],
-    queryFn: async () => {
-      const res = await apiClient.get('/formal/mapel');
-      return res.data.filter((m: any) => m.isActive);
-    }
-  });
+  const cabangById = useMemo(() => new Map(cabangList.map((c: any) => [c.id, c])), [cabangList]);
 
   // Mutations
   const createMutation = useMutation({
@@ -99,7 +90,7 @@ export default function PenugasanGuru() {
       return apiClient.post('/formal/guru-mapel-kelas', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['guru-mapel-kelas'] });
+      queryClient.invalidateQueries({ queryKey: ['guru-mapel-kelas-bundle'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setIsModalOpen(false);
       setFormData({ staffId: '', mataPelajaranId: '', kelasId: '' });
@@ -114,7 +105,7 @@ export default function PenugasanGuru() {
       return apiClient.delete(`/formal/guru-mapel-kelas/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['guru-mapel-kelas'] });
+      queryClient.invalidateQueries({ queryKey: ['guru-mapel-kelas-bundle'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setIsConfirmDeleteOpen(false);
       setAssignmentToDelete(null);
@@ -141,9 +132,9 @@ export default function PenugasanGuru() {
   const filteredAssignments = assignments.filter((asg) => {
     const matchGuru = asg.staff?.name?.toLowerCase().includes(filterGuru.toLowerCase());
     const matchMapel = asg.mataPelajaran?.name?.toLowerCase().includes(filterMapel.toLowerCase());
-    const matchKelas = asg.kelas?.name?.toLowerCase().includes(filterKelas.toLowerCase());
-    const matchWilayah = !filterWilayah || asg.kelas?.cabang?.wilayahId === filterWilayah;
-    const matchCabang = !filterCabang || asg.kelas?.cabangId === filterCabang;
+    const matchKelas = asg.kelasName?.toLowerCase().includes(filterKelas.toLowerCase());
+    const matchWilayah = !filterWilayah || cabangById.get(asg.cabangId || '')?.wilayahId === filterWilayah;
+    const matchCabang = !filterCabang || asg.cabangId === filterCabang;
     return matchGuru && matchMapel && matchKelas && matchWilayah && matchCabang;
   });
 
@@ -164,8 +155,8 @@ export default function PenugasanGuru() {
           staffId,
           staffName: asg.staff?.name || t('penugasan.staf_not_found') || 'Guru Tidak Ditemukan',
           staffPosition: asg.staff?.position || '',
-          cabangName: asg.kelas?.cabang?.name || t('penugasan.pusat') || '-',
-          wilayahName: asg.kelas?.cabang?.wilayah?.name || '-',
+          cabangName: cabangById.get(asg.cabangId || '')?.name || t('penugasan.pusat') || '-',
+          wilayahName: wilayahs.find((w: any) => w.id === cabangById.get(asg.cabangId || '')?.wilayahId)?.name || '-',
           items: []
         });
       }
@@ -173,7 +164,7 @@ export default function PenugasanGuru() {
     });
 
     return Array.from(map.values()).sort((a, b) => a.staffName.localeCompare(b.staffName));
-  }, [filteredAssignments, t]);
+  }, [filteredAssignments, t, cabangById, wilayahs]);
 
   const mapelKurangGuru = useMemo(() => {
     if (loadingAssignments || loadingKelas || loadingMapel || !mapelList.length || !kelasList.length) return [];
@@ -399,6 +390,8 @@ export default function PenugasanGuru() {
           guruList={guruList || []}
           kelasList={kelasList || []}
           mapelList={mapelList || []}
+          wilayahs={wilayahs || []}
+          cabangList={cabangList || []}
           isLoading={isLoading}
           userScope={user?.scope}
           userWilayahId={user?.wilayahId}
@@ -556,7 +549,7 @@ export default function PenugasanGuru() {
                             >
                               <BookOpen className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                               <span>
-                                {asg.mataPelajaran?.name || 'Mapel'} &bull; <span className="text-indigo-700 font-bold">{asg.kelas?.name || 'Kelas'}</span>
+                                {asg.mataPelajaran?.name || 'Mapel'} &bull; <span className="text-indigo-700 font-bold">{asg.kelasName || 'Kelas'}</span>
                               </span>
                               <button
                                 onClick={() => handleOpenDelete(asg.id)}

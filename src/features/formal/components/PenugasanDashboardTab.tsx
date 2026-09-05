@@ -4,13 +4,14 @@ import {
   BarChart3, Building2, MapPin, ShieldAlert, Sparkles, Filter,
   School, HelpCircle, AlertCircle
 } from 'lucide-react';
-import { useGetWilayah, useGetCabang } from '../../core_data/hooks/useMasterData';
 
 interface PenugasanDashboardTabProps {
   assignments: any[];
   guruList: any[];
   kelasList: any[];
   mapelList: any[];
+  wilayahs: any[];
+  cabangList: any[];
   isLoading: boolean;
   userScope?: string;
   userWilayahId?: string;
@@ -22,6 +23,8 @@ export default function PenugasanDashboardTab({
   guruList,
   kelasList,
   mapelList,
+  wilayahs,
+  cabangList,
   isLoading,
   userScope = '',
   userWilayahId = '',
@@ -34,8 +37,7 @@ export default function PenugasanDashboardTab({
     userScope === 'CABANG' ? userCabangId : ''
   );
 
-  const { data: wilayahs = [] } = useGetWilayah();
-  const { data: cabangList = [] } = useGetCabang();
+  const cabangById = useMemo(() => new Map((cabangList || []).map((c: any) => [c.id, c])), [cabangList]);
 
   const filteredBranches = useMemo(() => {
     if (userScope === 'WILAYAH') {
@@ -50,11 +52,11 @@ export default function PenugasanDashboardTab({
   // Filter assignments based on regional selection
   const filteredAssignments = useMemo(() => {
     return (assignments || []).filter((asg: any) => {
-      const matchWilayah = !filterWilayah || asg.kelas?.cabang?.wilayahId === filterWilayah;
-      const matchCabang = !filterCabang || asg.kelas?.cabangId === filterCabang;
+      const matchWilayah = !filterWilayah || cabangById.get(asg.cabangId)?.wilayahId === filterWilayah;
+      const matchCabang = !filterCabang || asg.cabangId === filterCabang;
       return matchWilayah && matchCabang;
     });
-  }, [assignments, filterWilayah, filterCabang]);
+  }, [assignments, filterWilayah, filterCabang, cabangById]);
 
   // Required core subjects
   const requiredNames = ['matematika', 'bahasa indonesia', 'bahasa inggris', 'ipa', 'pkn'];

@@ -4,12 +4,12 @@ import {
   Users, LayoutDashboard, Loader2,
   Calendar, ChevronRight, Activity,
   CheckCircle2, AlertCircle, FileText, Filter, Pencil, ArrowUpRight,
-  ShieldCheck, Phone, GraduationCap
+  ShieldCheck, Phone, GraduationCap, RefreshCw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import apiClient from '../lib/apiClient';
 import Pagination from '../components/Pagination';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
 
 interface DashboardStats {
@@ -64,6 +64,8 @@ export default function Dashboard() {
   const [statsData, setStatsData] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [syncSuccess, setSyncSuccess] = useState(false);
 
   // Global filters
   const [globalJenisRegion, setGlobalJenisRegion] = useState('wilayah');
@@ -98,7 +100,19 @@ export default function Dashboard() {
       }
     };
     fetchStats();
-  }, [t, globalJenisRegion, globalWilayah, globalLembagaMuadalah, globalCabang, globalJenisKelamin]);
+  }, [t, globalJenisRegion, globalWilayah, globalLembagaMuadalah, globalCabang, globalJenisKelamin, refreshTrigger]);
+
+  const syncMutation = useMutation({
+    mutationFn: async () => (await apiClient.post('/dashboard/stats/sync')).data,
+    onSuccess: () => {
+      setSyncSuccess(true);
+      setRefreshTrigger(v => v + 1);
+      setTimeout(() => setSyncSuccess(false), 3000);
+    },
+    onError: (err: any) => {
+      alert(err?.response?.data?.message || 'Gagal sinkronisasi data dashboard');
+    }
+  });
 
   // Fetch Master Data for global filters
   const { data: wilayahs = [] } = useQuery({
@@ -260,6 +274,19 @@ export default function Dashboard() {
                   </a>
                 )}
               </div>
+            )}
+
+            {user?.scope === 'GLOBAL' && (
+              <button
+                type="button"
+                onClick={() => syncMutation.mutate()}
+                disabled={syncMutation.isPending}
+                title="Hitung ulang data dashboard nasional"
+                className="inline-flex items-center px-2.5 py-0.5 bg-brand text-white rounded-lg text-[11px] font-bold shadow-sm hover:bg-brand/90 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3 h-3 mr-1 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+                {syncMutation.isPending ? 'Menyinkronkan...' : syncSuccess ? 'Data Diperbarui' : 'Sync Data'}
+              </button>
             )}
           </div>
         </div>

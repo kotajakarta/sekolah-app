@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
@@ -168,6 +168,8 @@ export default function DashboardBapAdmin() {
   const [cabangPage, setCabangPage] = useState(1);
   const CABANG_PER_PAGE = 8;
 
+  const [syncSuccess, setSyncSuccess] = useState(false);
+
   const { data, isLoading, isError, refetch, isRefetching } = useQuery<DashboardData>({
     queryKey: ['kegiatan', 'stats', selectedTemplateFilter, user?.scope],
     queryFn: async () => {
@@ -175,6 +177,20 @@ export default function DashboardBapAdmin() {
         params: { templateId: selectedTemplateFilter || undefined }
       });
       return res.data;
+    }
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: async () => (await apiClient.post('/kegiatan/stats/sync', null, {
+      params: { templateId: selectedTemplateFilter || undefined }
+    })).data,
+    onSuccess: () => {
+      setSyncSuccess(true);
+      refetch();
+      setTimeout(() => setSyncSuccess(false), 3000);
+    },
+    onError: (err: any) => {
+      alert(err?.response?.data?.message || 'Gagal sinkronisasi data kegiatan');
     }
   });
 
@@ -371,6 +387,18 @@ export default function DashboardBapAdmin() {
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isRefetching ? 'animate-spin' : ''}`} />
             </button>
+
+            {isGlobalScope && (
+              <button
+                onClick={() => syncMutation.mutate()}
+                disabled={syncMutation.isPending}
+                title="Hitung ulang data rekap kegiatan dari sumber data terbaru"
+                className="inline-flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs shadow-2xs transition-colors cursor-pointer border border-indigo-500/50 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+                {syncMutation.isPending ? 'Menyinkronkan...' : syncSuccess ? 'Data Diperbarui' : 'Sync Data'}
+              </button>
+            )}
 
             {isGlobalScope && (
               <button

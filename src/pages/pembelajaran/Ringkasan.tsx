@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import {
   Loader2, AlertCircle, Building2, CheckCircle2, Users, BookOpen,
-  ChevronLeft, ChevronRight, Search, ArrowUpRight, Calendar, X, Info
+  ChevronLeft, ChevronRight, Search, ArrowUpRight, Calendar, X, Info, RefreshCw
 } from 'lucide-react';
 import Pagination from '../../components/Pagination';
+import { useAuth } from '../../hooks/useAuth';
 
 interface ClassWeekDetail {
   kelasId: string;
@@ -175,6 +176,10 @@ const getKehadiranTextClass = (persen: number, isFuture?: boolean) => {
 type FilterMode = 'monthly' | 'semester' | 'yearly';
 
 export default function Ringkasan() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [syncSuccess, setSyncSuccess] = useState(false);
+
   const [filterMode, setFilterMode] = useState<FilterMode>('monthly');
   const [monthFilter, setMonthFilter] = useState(currentMonthValue());
   const [semesterFilter, setSemesterFilter] = useState<'GANJIL' | 'GENAP'>('GANJIL');
@@ -204,6 +209,26 @@ export default function Ringkasan() {
         cabangId: selectedCabangFilter || undefined,
       }
     })).data
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiClient.post('/pembelajaran/rekap/sync', {
+        mode: filterMode,
+        periodeKey: filterMode === 'monthly' ? monthFilter : undefined,
+        semester: filterMode === 'semester' ? semesterFilter : undefined,
+        tahunAjaran: (filterMode === 'semester' || filterMode === 'yearly') ? tahunAjaranFilter : undefined,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      setSyncSuccess(true);
+      queryClient.invalidateQueries({ queryKey: ['pembelajaran-ringkasan'] });
+      setTimeout(() => setSyncSuccess(false), 3000);
+    },
+    onError: (err: any) => {
+      alert(err?.response?.data?.message || 'Gagal sinkronisasi data ringkasan');
+    }
   });
 
   // Filtered cabang list based on selected Wilayah
@@ -471,6 +496,20 @@ export default function Ringkasan() {
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
+          )}
+
+          {/* Manual Sync Button (GLOBAL admin only) */}
+          {user?.scope === 'GLOBAL' && (
+            <button
+              type="button"
+              onClick={() => syncMutation.mutate()}
+              disabled={syncMutation.isPending}
+              title="Hitung ulang data ringkasan periode yang sedang dilihat"
+              className="inline-flex items-center px-3 py-1.5 bg-brand text-white rounded-xl text-xs font-bold shadow-sm hover:bg-brand/90 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+              {syncMutation.isPending ? 'Menyinkronkan...' : syncSuccess ? 'Data Diperbarui' : 'Sync Data'}
+            </button>
           )}
         </div>
       </div>

@@ -1061,7 +1061,9 @@ export default function EmisVervalSync() {
                   </div>
                   <div className="text-2xl font-bold text-emerald-700 mt-1">{reconData.totalTerdaftarEmis}</div>
                   <div className="text-[11px] text-emerald-600 mt-0.5">
-                    {Math.round((reconData.totalTerdaftarEmis / (reconData.totalSantriMuadalah || 1)) * 100)}% tercakup
+                    {reconData.totalSantriMuadalah > 0
+                      ? `${Math.round((reconData.totalTerdaftarEmis / reconData.totalSantriMuadalah) * 100)}% tercakup`
+                      : 'Jalankan ulang komparasi untuk data terbaru'}
                   </div>
                 </div>
 

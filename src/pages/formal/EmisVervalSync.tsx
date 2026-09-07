@@ -77,6 +77,7 @@ interface ReconciliationSummary {
   batchId?: string;
   executedAt?: string;
   totalSantriEsantri: number;
+  totalSantriMuadalah: number;
   totalTerdaftarEmis: number;
   totalBelumEmis: number;
   totalVervalOk: number;
@@ -804,19 +805,6 @@ export default function EmisVervalSync() {
     });
   }, [reconData, selectedCabang, statusFilter, searchQuery]);
 
-  // Total Santri Muadalah (tingkat 7-12 yang terdaftar di rombel kelas formal),
-  // berbeda dari Total Santri eSantri yang mencakup seluruh santri (termasuk non-muadalah).
-  const totalSantriMuadalah = useMemo(() => {
-    if (!reconData?.students) return 0;
-    const markers = ['7', '8', '9', '10', '11', '12', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-    return reconData.students.filter((s) => {
-      if (!s.kelasName || s.kelasName === '-') return false;
-      const t = (s.tingkat || '').toUpperCase().trim();
-      if (!t || t === '-') return false;
-      return markers.some((m) => t.includes(m));
-    }).length;
-  }, [reconData]);
-
   // Rekapitulasi per Wilayah, diagregasi dari cabangBreakdown (dikelompokkan berdasarkan nama wilayah)
   const wilayahBreakdown = useMemo(() => {
     if (!reconData?.cabangBreakdown) return [];
@@ -1063,7 +1051,7 @@ export default function EmisVervalSync() {
                   <div className="text-xs font-medium text-indigo-700 flex items-center gap-1">
                     <Users className="w-3.5 h-3.5 text-indigo-600" /> Total Santri Muadalah
                   </div>
-                  <div className="text-2xl font-bold text-indigo-700 mt-1">{totalSantriMuadalah}</div>
+                  <div className="text-2xl font-bold text-indigo-700 mt-1">{reconData.totalSantriMuadalah}</div>
                   <div className="text-[11px] text-indigo-600 mt-0.5">Tingkat 7-12 (dasar hitung EMIS/Verval)</div>
                 </div>
 
@@ -1073,7 +1061,7 @@ export default function EmisVervalSync() {
                   </div>
                   <div className="text-2xl font-bold text-emerald-700 mt-1">{reconData.totalTerdaftarEmis}</div>
                   <div className="text-[11px] text-emerald-600 mt-0.5">
-                    {Math.round((reconData.totalTerdaftarEmis / (reconData.totalSantriEsantri || 1)) * 100)}% tercakup
+                    {Math.round((reconData.totalTerdaftarEmis / (reconData.totalSantriMuadalah || 1)) * 100)}% tercakup
                   </div>
                 </div>
 
@@ -1127,7 +1115,7 @@ export default function EmisVervalSync() {
                       <tr>
                         <th className="px-4 py-2.5">Nama Wilayah</th>
                         <th className="px-4 py-2.5 text-center">Jml Cabang</th>
-                        <th className="px-4 py-2.5 text-center">Total Santri</th>
+                        <th className="px-4 py-2.5 text-center">Total Santri Muadalah</th>
                         <th className="px-4 py-2.5 text-center text-emerald-700">Masuk EMIS</th>
                         <th className="px-4 py-2.5 text-center text-rose-700">Belum EMIS</th>
                         <th className="px-4 py-2.5 text-center text-blue-700">Verval Valid</th>
@@ -1178,7 +1166,7 @@ export default function EmisVervalSync() {
                       <tr>
                         <th className="px-4 py-2.5">Nama Cabang</th>
                         <th className="px-4 py-2.5">Wilayah</th>
-                        <th className="px-4 py-2.5 text-center">Total Santri</th>
+                        <th className="px-4 py-2.5 text-center">Total Santri Muadalah</th>
                         <th className="px-4 py-2.5 text-center text-emerald-700">Masuk EMIS</th>
                         <th className="px-4 py-2.5 text-center text-rose-700">Belum EMIS</th>
                         <th className="px-4 py-2.5 text-center text-blue-700">Verval Valid</th>
@@ -1237,7 +1225,7 @@ export default function EmisVervalSync() {
                       }}
                       className="border border-slate-300 rounded-lg px-3 py-1.5 text-xs bg-white text-slate-700"
                     >
-                      <option value="ALL">Semua Cabang ({reconData.totalSantriEsantri})</option>
+                      <option value="ALL">Semua Cabang ({reconData.totalSantriMuadalah})</option>
                       {reconData.cabangBreakdown.map((c) => (
                         <option key={c.cabangId} value={c.cabangName}>
                           {c.cabangName} ({c.totalSantri})

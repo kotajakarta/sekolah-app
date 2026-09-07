@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import apiClient from '../../lib/apiClient';
 import { useToast } from '../../contexts/ToastContext';
@@ -87,11 +88,29 @@ interface ReconciliationSummary {
   students: ReconciledStudent[];
 }
 
+interface MuadalahLembagaOption {
+  id: string;
+  name: string;
+  emisSpm?: string;
+  emisSpmPass?: string;
+}
+
 export default function EmisVervalSync() {
   const { user } = useAuth();
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<'komparasi' | 'fetch-emis' | 'fetch-verval' | 'upload-csv'>('komparasi');
+
+  // Daftar Lembaga Muadalah (sumber nama sekolah & akun EMIS SPM untuk tab Tarik Data EMIS/VervalPD)
+  const { data: muadalahList = [] } = useQuery<MuadalahLembagaOption[]>({
+    queryKey: ['lembaga-muadalah'],
+    queryFn: async () => {
+      const res = await apiClient.get('/formal/muadalah');
+      return res.data;
+    },
+  });
+  const [showLembagaPassMapEmis, setShowLembagaPassMapEmis] = useState<Record<string, boolean>>({});
+  const [showLembagaPassMapVerval, setShowLembagaPassMapVerval] = useState<Record<string, boolean>>({});
 
   // State Riwayat Audit dari Database
   const [historyModalOpen, setHistoryModalOpen] = useState<boolean>(false);
@@ -103,6 +122,7 @@ export default function EmisVervalSync() {
     id: string;
     label: string;
     token: string;
+    lembagaMuadalahId?: string;
   }
 
   const [tokenEntries, setTokenEntries] = useState<EmisTokenEntry[]>(() => {
@@ -148,6 +168,14 @@ export default function EmisVervalSync() {
 
   const handleUpdateTokenEntry = (id: string, field: 'label' | 'token', val: string) => {
     const updated = tokenEntries.map((t) => (t.id === id ? { ...t, [field]: val } : t));
+    saveTokens(updated);
+  };
+
+  const handleSelectTokenLembaga = (id: string, lembagaId: string) => {
+    const lembaga = muadalahList.find((m) => m.id === lembagaId);
+    const updated = tokenEntries.map((t) =>
+      t.id === id ? { ...t, lembagaMuadalahId: lembagaId, label: lembaga?.name || t.label } : t
+    );
     saveTokens(updated);
   };
 
@@ -207,6 +235,7 @@ export default function EmisVervalSync() {
     id: string;
     label: string;
     cookie: string;
+    lembagaMuadalahId?: string;
   }
 
   const [vervalEntries, setVervalEntries] = useState<VervalCookieEntry[]>(() => {
@@ -251,6 +280,14 @@ export default function EmisVervalSync() {
 
   const handleUpdateVervalEntry = (id: string, field: 'label' | 'cookie', val: string) => {
     const updated = vervalEntries.map((v) => (v.id === id ? { ...v, [field]: val } : v));
+    saveVervalCookies(updated);
+  };
+
+  const handleSelectVervalLembaga = (id: string, lembagaId: string) => {
+    const lembaga = muadalahList.find((m) => m.id === lembagaId);
+    const updated = vervalEntries.map((v) =>
+      v.id === id ? { ...v, lembagaMuadalahId: lembagaId, label: lembaga?.name || v.label } : v
+    );
     saveVervalCookies(updated);
   };
 
@@ -767,6 +804,58 @@ export default function EmisVervalSync() {
     });
   }, [reconData, selectedCabang, statusFilter, searchQuery]);
 
+  // Total Santri Muadalah (tingkat 7-12 yang terdaftar di rombel kelas formal),
+  // berbeda dari Total Santri eSantri yang mencakup seluruh santri (termasuk non-muadalah).
+  const totalSantriMuadalah = useMemo(() => {
+    if (!reconData?.students) return 0;
+    const markers = ['7', '8', '9', '10', '11', '12', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+    return reconData.students.filter((s) => {
+      if (!s.kelasName || s.kelasName === '-') return false;
+      const t = (s.tingkat || '').toUpperCase().trim();
+      if (!t || t === '-') return false;
+      return markers.some((m) => t.includes(m));
+    }).length;
+  }, [reconData]);
+
+  // Rekapitulasi per Wilayah, diagregasi dari cabangBreakdown (dikelompokkan berdasarkan nama wilayah)
+  const wilayahBreakdown = useMemo(() => {
+    if (!reconData?.cabangBreakdown) return [];
+    const map = new Map<string, {
+      wilayahName: string;
+      totalCabang: number;
+      totalSantri: number;
+      terdaftarEmis: number;
+      belumEmis: number;
+      vervalOk: number;
+      residuVerval: number;
+      butuhTindakan: number;
+    }>();
+    reconData.cabangBreakdown.forEach((c) => {
+      const key = c.wilayahName || '-';
+      if (!map.has(key)) {
+        map.set(key, {
+          wilayahName: key,
+          totalCabang: 0,
+          totalSantri: 0,
+          terdaftarEmis: 0,
+          belumEmis: 0,
+          vervalOk: 0,
+          residuVerval: 0,
+          butuhTindakan: 0,
+        });
+      }
+      const w = map.get(key)!;
+      w.totalCabang++;
+      w.totalSantri += c.totalSantri;
+      w.terdaftarEmis += c.terdaftarEmis;
+      w.belumEmis += c.belumEmis;
+      w.vervalOk += c.vervalOk;
+      w.residuVerval += c.residuVerval;
+      w.butuhTindakan += c.butuhTindakan;
+    });
+    return Array.from(map.values()).sort((a, b) => a.wilayahName.localeCompare(b.wilayahName, 'id'));
+  }, [reconData]);
+
   // Ekspor Laporan Excel untuk Cabang
   const handleExportExcel = () => {
     if (filteredStudents.length === 0) {
@@ -963,11 +1052,19 @@ export default function EmisVervalSync() {
           ) : (
             <>
               {/* KPI Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
                 <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                   <div className="text-xs font-medium text-slate-500">Total Santri eSantri</div>
                   <div className="text-2xl font-bold text-slate-800 mt-1">{reconData.totalSantriEsantri}</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">Database aktif</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Seluruh santri (muadalah & non-muadalah)</div>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border border-indigo-200 bg-indigo-50/20 shadow-sm">
+                  <div className="text-xs font-medium text-indigo-700 flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5 text-indigo-600" /> Total Santri Muadalah
+                  </div>
+                  <div className="text-2xl font-bold text-indigo-700 mt-1">{totalSantriMuadalah}</div>
+                  <div className="text-[11px] text-indigo-600 mt-0.5">Tingkat 7-12 (dasar hitung EMIS/Verval)</div>
                 </div>
 
                 <div className="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/20 shadow-sm">
@@ -1010,6 +1107,57 @@ export default function EmisVervalSync() {
                   </div>
                   <div className="text-2xl font-bold text-purple-700 mt-1">{reconData.totalDiskrepansi}</div>
                   <div className="text-[11px] text-purple-600 mt-0.5">Beda NISN / Lahir</div>
+                </div>
+              </div>
+
+              {/* Rekapitulasi per Wilayah */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-indigo-600" />
+                    <h3 className="font-semibold text-slate-800 text-sm">Rekapitulasi Santri Butuh Tindak Lanjut per Wilayah</h3>
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    Menampilkan {wilayahBreakdown.length} Wilayah
+                  </span>
+                </div>
+                <div className="overflow-x-auto max-h-64 overflow-y-auto">
+                  <table className="w-full text-left text-xs text-slate-600">
+                    <thead className="bg-slate-100 text-slate-700 font-semibold sticky top-0">
+                      <tr>
+                        <th className="px-4 py-2.5">Nama Wilayah</th>
+                        <th className="px-4 py-2.5 text-center">Jml Cabang</th>
+                        <th className="px-4 py-2.5 text-center">Total Santri</th>
+                        <th className="px-4 py-2.5 text-center text-emerald-700">Masuk EMIS</th>
+                        <th className="px-4 py-2.5 text-center text-rose-700">Belum EMIS</th>
+                        <th className="px-4 py-2.5 text-center text-blue-700">Verval Valid</th>
+                        <th className="px-4 py-2.5 text-center text-amber-700">Residu Verval</th>
+                        <th className="px-4 py-2.5 text-center text-rose-800 font-bold">Butuh Tindakan</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {wilayahBreakdown.map((w) => (
+                        <tr key={w.wilayahName} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-2 font-medium text-slate-800">{w.wilayahName}</td>
+                          <td className="px-4 py-2 text-center">{w.totalCabang}</td>
+                          <td className="px-4 py-2 text-center font-medium">{w.totalSantri}</td>
+                          <td className="px-4 py-2 text-center text-emerald-600 font-medium">{w.terdaftarEmis}</td>
+                          <td className="px-4 py-2 text-center text-rose-600 font-medium">{w.belumEmis}</td>
+                          <td className="px-4 py-2 text-center text-blue-600 font-medium">{w.vervalOk}</td>
+                          <td className="px-4 py-2 text-center text-amber-600 font-medium">{w.residuVerval}</td>
+                          <td className="px-4 py-2 text-center">
+                            {w.butuhTindakan > 0 ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+                                {w.butuhTindakan} Santri
+                              </span>
+                            ) : (
+                              <span className="text-emerald-600 text-xs">✓ Lengkap</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
@@ -1335,13 +1483,16 @@ export default function EmisVervalSync() {
                     )}
                   </div>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Nama Lembaga (misal: PDF Ulya)"
-                      value={entry.label}
-                      onChange={(e) => handleUpdateTokenEntry(entry.id, 'label', e.target.value)}
+                    <select
+                      value={entry.lembagaMuadalahId || ''}
+                      onChange={(e) => handleSelectTokenLembaga(entry.id, e.target.value)}
                       className="w-full sm:w-52 px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium focus:ring-1 focus:ring-indigo-500"
-                    />
+                    >
+                      <option value="">{entry.label ? entry.label : '-- Pilih Lembaga --'}</option>
+                      {muadalahList.map((m) => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
                     <div className="relative flex-1">
                       <input
                         type={showTokenMap[entry.id] ? 'text' : 'password'}
@@ -1376,6 +1527,31 @@ export default function EmisVervalSync() {
                       )}
                     </button>
                   </div>
+                  {entry.lembagaMuadalahId && (() => {
+                    const lembaga = muadalahList.find((m) => m.id === entry.lembagaMuadalahId);
+                    if (!lembaga || (!lembaga.emisSpm && !lembaga.emisSpmPass)) return null;
+                    return (
+                      <div className="flex items-center gap-3 pt-1 text-[11px] text-slate-500">
+                        <span className="font-semibold text-slate-600">Akun EMIS SPM:</span>
+                        <span>Username: <span className="font-mono text-slate-700">{lembaga.emisSpm || '-'}</span></span>
+                        <span className="flex items-center gap-1">
+                          Password:{' '}
+                          <span className="font-mono text-slate-700">
+                            {lembaga.emisSpmPass ? (showLembagaPassMapEmis[entry.id] ? lembaga.emisSpmPass : '••••••••') : '-'}
+                          </span>
+                          {lembaga.emisSpmPass && (
+                            <button
+                              type="button"
+                              onClick={() => setShowLembagaPassMapEmis((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))}
+                              className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                            >
+                              {showLembagaPassMapEmis[entry.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                            </button>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>
@@ -1546,13 +1722,16 @@ export default function EmisVervalSync() {
                     )}
                   </div>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Nama Lembaga (misal: PDF Ulya)"
-                      value={entry.label}
-                      onChange={(e) => handleUpdateVervalEntry(entry.id, 'label', e.target.value)}
+                    <select
+                      value={entry.lembagaMuadalahId || ''}
+                      onChange={(e) => handleSelectVervalLembaga(entry.id, e.target.value)}
                       className="w-full sm:w-52 px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white font-medium focus:ring-1 focus:ring-blue-500"
-                    />
+                    >
+                      <option value="">{entry.label ? entry.label : '-- Pilih Lembaga --'}</option>
+                      {muadalahList.map((m) => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
                     <div className="relative flex-1">
                       <input
                         type={showCookieMap[entry.id] ? 'text' : 'password'}
@@ -1621,6 +1800,31 @@ export default function EmisVervalSync() {
                       </button>
                     </div>
                   </div>
+                  {entry.lembagaMuadalahId && (() => {
+                    const lembaga = muadalahList.find((m) => m.id === entry.lembagaMuadalahId);
+                    if (!lembaga || (!lembaga.emisSpm && !lembaga.emisSpmPass)) return null;
+                    return (
+                      <div className="flex items-center gap-3 pt-1 text-[11px] text-slate-500">
+                        <span className="font-semibold text-slate-600">Akun EMIS SPM:</span>
+                        <span>Username: <span className="font-mono text-slate-700">{lembaga.emisSpm || '-'}</span></span>
+                        <span className="flex items-center gap-1">
+                          Password:{' '}
+                          <span className="font-mono text-slate-700">
+                            {lembaga.emisSpmPass ? (showLembagaPassMapVerval[entry.id] ? lembaga.emisSpmPass : '••••••••') : '-'}
+                          </span>
+                          {lembaga.emisSpmPass && (
+                            <button
+                              type="button"
+                              onClick={() => setShowLembagaPassMapVerval((prev) => ({ ...prev, [entry.id]: !prev[entry.id] }))}
+                              className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                            >
+                              {showLembagaPassMapVerval[entry.id] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                            </button>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
             </div>

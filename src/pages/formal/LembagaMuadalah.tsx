@@ -10,6 +10,7 @@ import Pagination from '../../components/Pagination';
 import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
 import { wilayahService, findMatchingWilayah, normalizeWilayahCode, WilayahItem } from '../../services/wilayah.service';
+import { useGetWilayah } from '../../features/core_data/hooks/useMasterData';
 
 interface SantriBreakdownGender {
   l: number;
@@ -23,6 +24,8 @@ interface LembagaMuadalah {
   code: string;
   npsn?: string;
   nspp?: string;
+  wilayahId?: string;
+  wilayah?: { id: string; name: string };
   pesantrenInduk?: string;
   tahunBerdiri?: string;
   namaKetua?: string;
@@ -102,10 +105,11 @@ export default function LembagaMuadalahPage() {
   const [showProfileSpmPass, setShowProfileSpmPass] = useState(false);
   
   const [formData, setFormData] = useState({ 
-    name: '', 
-    code: '', 
-    npsn: '', 
-    nspp: '', 
+    name: '',
+    code: '',
+    npsn: '',
+    nspp: '',
+    wilayahId: '',
     pesantrenInduk: '',
     tahunBerdiri: '',
     namaKetua: '', 
@@ -142,6 +146,9 @@ export default function LembagaMuadalahPage() {
   // Filter states
   const [filterName, setFilterName] = useState('');
   const [filterJenjang, setFilterJenjang] = useState('');
+  const [filterWilayah, setFilterWilayah] = useState('');
+
+  const { data: wilayahList = [] } = useGetWilayah();
 
   // Address API States (Wilindo)
   const [provinces, setProvinces] = useState<WilayahItem[]>([]);
@@ -301,10 +308,11 @@ export default function LembagaMuadalahPage() {
     setShowEmisPontrenPass(false);
     setShowEmisSpmPass(false);
     setFormData({ 
-      name: '', 
-      code: '', 
-      npsn: '', 
-      nspp: '', 
+      name: '',
+      code: '',
+      npsn: '',
+      nspp: '',
+      wilayahId: '',
       pesantrenInduk: '',
       tahunBerdiri: '',
       namaKetua: '', 
@@ -342,10 +350,11 @@ export default function LembagaMuadalahPage() {
     setShowEmisPontrenPass(false);
     setShowEmisSpmPass(false);
     setFormData({ 
-      name: item.name, 
-      code: item.code, 
-      npsn: item.npsn || '', 
-      nspp: item.nspp || '', 
+      name: item.name,
+      code: item.code,
+      npsn: item.npsn || '',
+      nspp: item.nspp || '',
+      wilayahId: item.wilayahId || '',
       pesantrenInduk: item.pesantrenInduk || '',
       tahunBerdiri: item.tahunBerdiri || '',
       namaKetua: item.namaKetua || '', 
@@ -439,7 +448,9 @@ export default function LembagaMuadalahPage() {
 
     const matchJenjang = !filterJenjang || (item.jenjang || '').toUpperCase() === filterJenjang.toUpperCase();
 
-    return matchName && matchJenjang;
+    const matchWilayah = !filterWilayah || item.wilayahId === filterWilayah;
+
+    return matchName && matchJenjang && matchWilayah;
   });
 
   const filteredTotals = React.useMemo(() => {
@@ -679,6 +690,17 @@ export default function LembagaMuadalahPage() {
               <option value="ULYA">ULYA</option>
               <option value="ULA">ULA</option>
             </select>
+
+            <select
+              value={filterWilayah}
+              onChange={e => { setFilterWilayah(e.target.value); setCurrentPage(1); }}
+              className="px-3 py-1.5 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+            >
+              <option value="">-- Semua Wilayah --</option>
+              {wilayahList.map(w => (
+                <option key={w.id} value={w.id}>{w.name}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -696,6 +718,7 @@ export default function LembagaMuadalahPage() {
                   <tr>
                     <th className="py-3 px-3 text-center w-10">No</th>
                     <th className="py-3 px-3">Nama Lembaga</th>
+                    <th className="py-3 px-3">Wilayah</th>
                     <th className="py-3 px-3">Pesantren Induk</th>
                     <th className="py-3 px-3 text-center">Jenjang</th>
                     <th className="py-3 px-3 text-center">Tahun Berdiri</th>
@@ -819,6 +842,7 @@ export default function LembagaMuadalahPage() {
                         {/* ── SUB-TAB 1: IDENTITAS BODY ── */}
                         {activeSubTab === 'identitas' && (
                           <>
+                            <td className="py-3.5 px-3 text-slate-700 font-medium">{item.wilayah?.name || '-'}</td>
                             <td className="py-3.5 px-3 text-slate-700 font-medium">
                               <p className="font-semibold text-slate-800">{item.pesantrenInduk || '-'}</p>
                               <p className="text-[11px] font-medium text-slate-500 mt-0.5">
@@ -1058,6 +1082,20 @@ export default function LembagaMuadalahPage() {
                       <option value="WUSTHA">WUSTHA (SMP/MTs Equivalent)</option>
                       <option value="ULYA">ULYA (SMA/MA Equivalent)</option>
                       <option value="ULA">ULA (SD/MI Equivalent)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Wilayah</label>
+                    <select
+                      value={formData.wilayahId}
+                      onChange={(e) => setFormData({ ...formData, wilayahId: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                    >
+                      <option value="">-- Pilih Wilayah --</option>
+                      {wilayahList.map(w => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
                     </select>
                   </div>
 

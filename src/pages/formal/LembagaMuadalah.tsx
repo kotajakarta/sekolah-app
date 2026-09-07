@@ -506,6 +506,41 @@ export default function LembagaMuadalahPage() {
     };
   }, [filteredList]);
 
+  // Rekap jumlah santri per wilayah (Wustha, Ulya, Laki-laki, Perempuan) untuk kartu ringkasan
+  const wilayahSantriSummary = React.useMemo(() => {
+    type WilayahSantriStat = {
+      id: string;
+      name: string;
+      wustha: number;
+      ulya: number;
+      totalL: number;
+      totalP: number;
+      totalAll: number;
+    };
+    const map = new Map<string, WilayahSantriStat>();
+
+    wilayahList.forEach(w => {
+      map.set(w.id, { id: w.id, name: w.name, wustha: 0, ulya: 0, totalL: 0, totalP: 0, totalAll: 0 });
+    });
+
+    filteredList.forEach(m => {
+      const js = m.jumlahSantri;
+      if (!js) return;
+      const key = m.wilayahId || 'TANPA_WILAYAH';
+      if (!map.has(key)) {
+        map.set(key, { id: key, name: m.wilayah?.name || 'Tanpa Wilayah', wustha: 0, ulya: 0, totalL: 0, totalP: 0, totalAll: 0 });
+      }
+      const w = map.get(key)!;
+      w.wustha += js.wustha?.total?.total || 0;
+      w.ulya += js.ulya?.total?.total || 0;
+      w.totalL += js.totalL || 0;
+      w.totalP += js.totalP || 0;
+      w.totalAll += js.totalAll || 0;
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, 'id'));
+  }, [filteredList, wilayahList]);
+
   const renderTargetCell = (
     realisasi: number, 
     target: number = 0, 
@@ -703,6 +738,50 @@ export default function LembagaMuadalahPage() {
             </select>
           </div>
         </div>
+
+        {/* ── KARTU RINGKASAN SANTRI PER WILAYAH (Hanya di Sub-Tab Jumlah Santri) ── */}
+        {activeSubTab === 'jumlah_santri' && wilayahSantriSummary.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {wilayahSantriSummary.map(w => (
+              <div
+                key={w.id}
+                className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-xs hover:shadow-sm hover:border-indigo-200 transition-all"
+              >
+                <div className="flex items-center justify-between gap-2 mb-2.5">
+                  <h4 className="flex items-center gap-1 text-xs font-bold text-slate-800 truncate" title={w.name}>
+                    <MapPin className="w-3 h-3 text-indigo-500 shrink-0" />
+                    <span className="truncate">{w.name}</span>
+                  </h4>
+                  <span className="shrink-0 text-[10px] font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
+                    {w.totalAll}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mb-2.5">
+                  <div className="bg-sky-50 rounded-xl px-2.5 py-2 text-center">
+                    <p className="text-[9px] font-bold text-sky-700 uppercase tracking-wide">Wustha</p>
+                    <p className="text-base font-extrabold text-sky-900">{w.wustha}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-xl px-2.5 py-2 text-center">
+                    <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-wide">Ulya</p>
+                    <p className="text-base font-extrabold text-emerald-900">{w.ulya}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 border-t border-slate-100 pt-2">
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    L: <span className="text-slate-800 font-extrabold">{w.totalL}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                    P: <span className="text-slate-800 font-extrabold">{w.totalP}</span>
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── TABLE CONTAINER (Dynamic per SubTab) ── */}
         <div className="overflow-x-auto">

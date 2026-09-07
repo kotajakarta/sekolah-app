@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Map, Plus, Edit2, Trash2 } from 'lucide-react';
-import { useGetWilayah, Wilayah } from '../../features/core_data/hooks/useMasterData';
+import { useGetWilayah, useToggleWilayahActive, Wilayah } from '../../features/core_data/hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
 import WilayahModal from '../../features/core_data/components/WilayahModal';
@@ -13,13 +13,22 @@ import { useToast } from '../../contexts/ToastContext';
 export default function DataWilayah() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
 
-  const { data: wilayah, isLoading, isError } = useGetWilayah();
+  const { user } = useAuth();
+  const isAdmin = user?.scope === 'GLOBAL';
+  const { data: wilayah, isLoading, isError } = useGetWilayah(isAdmin);
   const { t } = useTranslation();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const isAdmin = user?.scope === 'GLOBAL';
+  const toggleActiveMutation = useToggleWilayahActive();
+
+  const filteredWilayah = useMemo(() => {
+    const list = Array.isArray(wilayah) ? wilayah : [];
+    if (statusFilter === 'ACTIVE') return list.filter(w => w.isActive !== false);
+    if (statusFilter === 'INACTIVE') return list.filter(w => w.isActive === false);
+    return list;
+  }, [wilayah, statusFilter]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [wilayahToEdit, setWilayahToEdit] = useState<Wilayah | null>(null);
@@ -115,31 +124,63 @@ export default function DataWilayah() {
           </div>
         )}
       </div>
-      
+
+      {isAdmin && (
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</label>
+          <select
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE'); setCurrentPage(1); }}
+            className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+          >
+            <option value="ALL">Semua Status</option>
+            <option value="ACTIVE">Aktif</option>
+            <option value="INACTIVE">Nonaktif</option>
+          </select>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl border border-slate-200/70 shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="p-8 text-center text-slate-500">{t('common.loading')}</div>
         ) : isError ? (
           <div className="p-8 text-center text-red-500">{t('common.failed')}</div>
-        ) : wilayah && wilayah.length > 0 ? (<>
+        ) : filteredWilayah.length > 0 ? (<>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50/80 border-b border-slate-200">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('wilayah.region_name')}</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">ID</th>
+                  {isAdmin && <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest">Status</th>}
                   {isAdmin && <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
-                {(Array.isArray(wilayah) ? wilayah : [])?.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                {filteredWilayah.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item) => (
+                  <tr key={item.id} className={`hover:bg-slate-50 transition-colors ${item.isActive === false ? 'opacity-60' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">
                       {item.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {item.id}
                     </td>
+                    {isAdmin && (
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          onClick={() => toggleActiveMutation.mutate({ id: item.id, isActive: !(item.isActive !== false) })}
+                          disabled={toggleActiveMutation.isPending}
+                          title={item.isActive === false ? 'Aktifkan wilayah' : 'Nonaktifkan wilayah'}
+                          className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-50 ${
+                            item.isActive === false
+                              ? 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                              : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                          }`}
+                        >
+                          {item.isActive === false ? 'Nonaktif' : 'Aktif'}
+                        </button>
+                      </td>
+                    )}
                     {isAdmin && (
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <button onClick={() => handleEdit(item)} className="text-indigo-600 hover:text-blue-900 mr-4">
@@ -155,12 +196,12 @@ export default function DataWilayah() {
               </tbody>
             </table>
           </div>
-          <Pagination 
-            currentPage={currentPage} 
-            totalPages={Math.ceil((wilayah?.length || 0) / itemsPerPage)} 
-            onPageChange={setCurrentPage} 
-            totalItems={wilayah?.length || 0} 
-            itemsPerPage={itemsPerPage} 
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(filteredWilayah.length / itemsPerPage)}
+            onPageChange={setCurrentPage}
+            totalItems={filteredWilayah.length}
+            itemsPerPage={itemsPerPage}
           />
         </>
         ) : (

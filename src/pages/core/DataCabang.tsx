@@ -7,7 +7,7 @@ import {
   UserCheck, Shield, Award, Target, FileSpreadsheet, Upload, RotateCcw, ChevronDown, ChevronUp,
   Copy, Check, ExternalLink
 } from 'lucide-react';
-import { useGetCabang, useGetWilayah, Cabang } from '../../features/core_data/hooks/useMasterData';
+import { useGetCabang, useGetWilayah, useToggleCabangActive, Cabang } from '../../features/core_data/hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
 import CabangModal from '../../features/core_data/components/CabangModal';
@@ -33,13 +33,14 @@ export default function DataCabang() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const { data: cabang, isLoading, isError } = useGetCabang();
+  const { user } = useAuth();
+  const isAdmin = user?.scope === 'GLOBAL';
+  const { data: cabang, isLoading, isError } = useGetCabang(isAdmin);
   const { data: wilayahList = [] } = useGetWilayah();
   const { t } = useTranslation();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const isAdmin = user?.scope === 'GLOBAL';
+  const toggleActiveMutation = useToggleCabangActive();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isHulasaModalOpen, setIsHulasaModalOpen] = useState(false);
@@ -58,6 +59,7 @@ export default function DataCabang() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterWilayah, setFilterWilayah] = useState('ALL');
   const [filterJenisDaimi, setFilterJenisDaimi] = useState('ALL');
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ACTIVE');
   const [sortField, setSortField] = useState<'name' | 'wilayah'>('wilayah');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -230,12 +232,14 @@ const normalizeDaimiKey = (str?: string | null): string => {
     let count = 0;
     if (filterWilayah !== 'ALL') count++;
     if (filterJenisDaimi !== 'ALL') count++;
+    if (filterStatus !== 'ACTIVE') count++;
     return count;
-  }, [filterWilayah, filterJenisDaimi]);
+  }, [filterWilayah, filterJenisDaimi, filterStatus]);
 
   const resetAdvancedFilters = () => {
     setFilterWilayah('ALL');
     setFilterJenisDaimi('ALL');
+    setFilterStatus('ACTIVE');
     setSearchQuery('');
   };
 
@@ -300,6 +304,13 @@ const normalizeDaimiKey = (str?: string | null): string => {
       result = result.filter(c => c.wilayah?.id === filterWilayah);
     }
 
+    // Filter Status Aktif/Nonaktif
+    if (filterStatus === 'ACTIVE') {
+      result = result.filter(c => c.isActive !== false);
+    } else if (filterStatus === 'INACTIVE') {
+      result = result.filter(c => c.isActive === false);
+    }
+
     // Filter Jenis Daimi (Hide cabangs that do not have students in the selected group when filter is active)
     if (filterJenisDaimi !== 'ALL') {
       result = result.filter(c => {
@@ -348,7 +359,7 @@ const normalizeDaimiKey = (str?: string | null): string => {
     });
 
     return result;
-  }, [cabang, searchQuery, filterWilayah, filterJenisDaimi, sortField, sortDirection]);
+  }, [cabang, searchQuery, filterWilayah, filterJenisDaimi, filterStatus, sortField, sortDirection]);
 
   // Aggregated totals per Wilayah (For Rekapitulasi Per Wilayah Table)
   const wilayahSummaryList = useMemo(() => {
@@ -980,6 +991,22 @@ const normalizeDaimiKey = (str?: string | null): string => {
                       <option value="NO_GRUP">Tanpa Grup Daimi</option>
                     </select>
                   </div>
+
+                  {/* Filter Status Aktif/Nonaktif */}
+                  {isAdmin && (
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">Filter Status</label>
+                      <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value as 'ALL' | 'ACTIVE' | 'INACTIVE')}
+                        className="w-full px-3 py-1.5 font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      >
+                        <option value="ACTIVE">Aktif</option>
+                        <option value="INACTIVE">Nonaktif</option>
+                        <option value="ALL">Semua Status</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1142,6 +1169,7 @@ const normalizeDaimiKey = (str?: string | null): string => {
                       <th className="py-3 px-3">Pimpinan Cabang</th>
                       <th className="py-3 px-3">PJ Muadalah</th>
                       <th className="py-3 px-3">Status Lahan & Gedung</th>
+                      {isAdmin && <th className="py-3 px-3 text-center">Status Cabang</th>}
                       <th className="py-3 px-3 text-right">Aksi</th>
                     </tr>
                   )}
@@ -1321,7 +1349,7 @@ const normalizeDaimiKey = (str?: string | null): string => {
                       const t = item.targetKuota || { targetHazirlik: 0, targetHafizlik: 0, targetIbtidai: 0, targetIhzari: 0, targetTingkat7: 0, targetTingkat8: 0, targetTingkat9: 0, targetTingkat10: 0, targetTingkat11: 0, targetTingkat12: 0 };
 
                       return (
-                        <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                        <tr key={item.id} className={`hover:bg-slate-50/80 transition-colors ${item.isActive === false ? 'opacity-60' : ''}`}>
                           <td className="py-3.5 px-3 text-center text-slate-400 font-medium">{rowNo}</td>
                           
                           {/* NAMA CABANG & WILAYAH (Always shown in first columns) */}
@@ -1408,6 +1436,22 @@ const normalizeDaimiKey = (str?: string | null): string => {
                                   {item.statusBangunan || 'N/A'} / {item.statusTanah || 'N/A'}
                                 </span>
                               </td>
+                              {isAdmin && (
+                                <td className="py-3.5 px-3 text-center">
+                                  <button
+                                    onClick={() => toggleActiveMutation.mutate({ id: item.id, isActive: !(item.isActive !== false) })}
+                                    disabled={toggleActiveMutation.isPending}
+                                    title={item.isActive === false ? 'Aktifkan cabang' : 'Nonaktifkan cabang'}
+                                    className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors cursor-pointer disabled:opacity-50 ${
+                                      item.isActive === false
+                                        ? 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                        : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                                    }`}
+                                  >
+                                    {item.isActive === false ? 'Nonaktif' : 'Aktif'}
+                                  </button>
+                                </td>
+                              )}
                             </>
                           )}
 

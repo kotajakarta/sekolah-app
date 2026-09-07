@@ -47,6 +47,7 @@ export interface Staff {
 export interface Wilayah {
   id: string;
   name: string;
+  isActive?: boolean;
 }
 
 export interface TargetKuota {
@@ -68,6 +69,7 @@ export interface TargetKuota {
 export interface Cabang {
   id: string;
   name: string;
+  isActive?: boolean;
   wilayahId: string;
   nameGlodemy?: string;
   nameResmi?: string;
@@ -166,15 +168,28 @@ export const useDeleteGuru = () => {
   });
 };
 
-export const useGetCabang = () => {
+export const useGetCabang = (includeInactive = false) => {
   return useQuery<Cabang[]>({
-    queryKey: ['master-data', 'cabang'],
+    queryKey: ['master-data', 'cabang', { includeInactive }],
     queryFn: async () => {
-      const response = await apiClient.get<Cabang[]>('/master-data/cabang');
+      const response = await apiClient.get<Cabang[]>('/master-data/cabang', { params: includeInactive ? { includeInactive: 'true' } : undefined });
       return response.data;
     },
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+  });
+};
+
+export const useToggleCabangActive = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const response = await apiClient.put(`/master-data/cabang/${id}/active`, { isActive });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['master-data', 'cabang'] });
+    },
   });
 };
 
@@ -204,15 +219,28 @@ export const useImportTargetKuota = () => {
   });
 };
 
-export const useGetWilayah = () => {
+export const useGetWilayah = (includeInactive = false) => {
   return useQuery<Wilayah[]>({
-    queryKey: ['master-data', 'wilayah'],
+    queryKey: ['master-data', 'wilayah', { includeInactive }],
     queryFn: async () => {
-      const response = await apiClient.get<Wilayah[]>('/master-data/wilayah');
+      const response = await apiClient.get<Wilayah[]>('/master-data/wilayah', { params: includeInactive ? { includeInactive: 'true' } : undefined });
       return response.data;
     },
     staleTime: 15 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
+  });
+};
+
+export const useToggleWilayahActive = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const response = await apiClient.put(`/master-data/wilayah/${id}/active`, { isActive });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['master-data', 'wilayah'] });
+    },
   });
 };
 

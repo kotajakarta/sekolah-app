@@ -56,6 +56,9 @@ interface Kegiatan {
   isConfirmed: boolean;
   confirmedAt: string | null;
   confirmedByUser: { operatorName: string | null; username: string } | null;
+  tidakBisaBap?: boolean;
+  alasanTidakBisaBap?: string | null;
+  tidakBisaBapAt?: string | null;
   cabang: { id?: string; name: string };
   asrama?: { id?: string; nama: string } | null;
   panitia: Panitia[];
@@ -874,7 +877,12 @@ export default function ListKegiatanBap() {
 
                         {/* 6. Status Badge */}
                         <td className="px-4 py-3 whitespace-nowrap text-center">
-                          {bap.isConfirmed ? (
+                          {bap.tidakBisaBap ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full font-bold">
+                              <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+                              Tidak Bisa BAP
+                            </span>
+                          ) : bap.isConfirmed ? (
                             <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold">
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                               Diterima
@@ -1063,6 +1071,24 @@ export default function ListKegiatanBap() {
                                       </div>
                                     </div>
                                   )}
+                                </div>
+                              )}
+
+                              {/* Keterangan Tidak Bisa BAP (ditampilkan sebelum Konfirmasi Terima BAP) */}
+                              {bap.tidakBisaBap && (
+                                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex items-start gap-2.5">
+                                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                                  <div className="text-xs">
+                                    <p className="font-bold text-rose-800">Cabang Tidak Bisa Membuat BAP untuk Kegiatan Ini</p>
+                                    <p className="text-rose-700 mt-1 leading-relaxed whitespace-pre-wrap">
+                                      {bap.alasanTidakBisaBap || '-'}
+                                    </p>
+                                    {bap.tidakBisaBapAt && (
+                                      <p className="text-rose-500 mt-1.5">
+                                        Ditandai pada {new Date(bap.tidakBisaBapAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                               )}
 

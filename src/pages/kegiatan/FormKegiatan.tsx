@@ -209,6 +209,26 @@ export default function FormKegiatan() {
     }
   });
 
+  // Modal "Tidak Bisa BAP": mengisi alasan (untuk cabang) atau melihat alasan yang sudah diisi
+  const [tidakBisaModalTemplate, setTidakBisaModalTemplate] = useState<TemplateKegiatan | null>(null);
+  const [lihatAlasanBap, setLihatAlasanBap] = useState<any | null>(null);
+  const [alasanTidakBisa, setAlasanTidakBisa] = useState('');
+
+  const tidakBisaBapMutation = useMutation({
+    mutationFn: async ({ templateId, alasan }: { templateId: string; alasan: string }) => {
+      return apiClient.post('/kegiatan/tidak-bisa-bap', { templateId, alasan });
+    },
+    onSuccess: () => {
+      showToast('success', 'Kegiatan berhasil ditandai Tidak Bisa BAP.');
+      setTidakBisaModalTemplate(null);
+      setAlasanTidakBisa('');
+      queryClient.invalidateQueries({ queryKey: ['kegiatan', 'branch-list'] });
+    },
+    onError: (error: any) => {
+      showToast('error', error.response?.data?.message || 'Gagal menandai kegiatan tidak bisa BAP.');
+    }
+  });
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -488,10 +508,11 @@ export default function FormKegiatan() {
               <tbody className="divide-y divide-slate-100">
                 {templates.map(tmpl => {
                   const associatedBap = baps.find(b => b.templateId === tmpl.id);
-                  const isDone = !!associatedBap;
+                  const isTidakBisa = associatedBap?.tidakBisaBap === true;
+                  const isDone = !!associatedBap && !isTidakBisa;
                   const isConfirmed = associatedBap?.isConfirmed === true;
                   const isLockedForCabang = isConfirmed && user?.scope === 'CABANG';
-                  
+
                   return (
                     <tr key={tmpl.id} className="hover:bg-slate-50/40 transition-colors">
                       <td className="px-6 py-4">
@@ -506,7 +527,15 @@ export default function FormKegiatan() {
                         {new Date(tmpl.deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {isDone ? (
+                        {isTidakBisa ? (
+                          <button
+                            onClick={() => setLihatAlasanBap(associatedBap)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
+                          >
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+                            Tidak Bisa BAP
+                          </button>
+                        ) : isDone ? (
                           isConfirmed ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 border border-emerald-300 text-emerald-800">
                               <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
@@ -526,7 +555,15 @@ export default function FormKegiatan() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {isDone ? (
+                        {isTidakBisa ? (
+                          <button
+                            onClick={() => setLihatAlasanBap(associatedBap)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors cursor-pointer"
+                          >
+                            <AlertCircle className="w-3.5 h-3.5" />
+                            Lihat Alasan
+                          </button>
+                        ) : isDone ? (
                           isLockedForCabang ? (
                             <button
                               onClick={() => startEdit(tmpl, associatedBap)}
@@ -546,13 +583,24 @@ export default function FormKegiatan() {
                             </button>
                           )
                         ) : (
-                          <button
-                            onClick={() => startCreate(tmpl)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-755 transition-colors cursor-pointer"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            Buat BAP
-                          </button>
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              onClick={() => startCreate(tmpl)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-755 transition-colors cursor-pointer"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              Buat BAP
+                            </button>
+                            {user?.scope === 'CABANG' && (
+                              <button
+                                onClick={() => { setTidakBisaModalTemplate(tmpl); setAlasanTidakBisa(''); }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-600 bg-white border border-rose-200 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                              >
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                Tidak Bisa BAP
+                              </button>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -560,6 +608,106 @@ export default function FormKegiatan() {
                 })}
               </tbody>
             </table>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Isi Alasan Tidak Bisa BAP */}
+        {tidakBisaModalTemplate && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-rose-500" />
+                  Tandai Tidak Bisa BAP
+                </h3>
+                <button onClick={() => setTidakBisaModalTemplate(null)} className="text-slate-400 hover:text-slate-500 cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-slate-600">
+                  Kegiatan <span className="font-bold">{tidakBisaModalTemplate.judul}</span> akan ditandai tidak dapat dilaksanakan oleh cabang Anda. Jelaskan alasannya di bawah ini.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan / Alasan *</label>
+                  <textarea
+                    required
+                    rows={4}
+                    value={alasanTidakBisa}
+                    onChange={(e) => setAlasanTidakBisa(e.target.value)}
+                    placeholder="Contoh: Kegiatan tidak dapat dilaksanakan karena bencana alam / kondisi darurat cabang."
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  />
+                </div>
+                <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setTidakBisaModalTemplate(null)}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    disabled={tidakBisaBapMutation.isPending || !alasanTidakBisa.trim()}
+                    onClick={() => tidakBisaBapMutation.mutate({ templateId: tidakBisaModalTemplate.id, alasan: alasanTidakBisa })}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 disabled:opacity-50 cursor-pointer"
+                  >
+                    {tidakBisaBapMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                    Simpan
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Lihat Alasan Tidak Bisa BAP */}
+        {lihatAlasanBap && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-rose-500" />
+                  Alasan Tidak Bisa BAP
+                </h3>
+                <button onClick={() => setLihatAlasanBap(null)} className="text-slate-400 hover:text-slate-500 cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="bg-rose-50 border border-rose-200 rounded-lg p-3.5 text-sm text-rose-900 leading-relaxed whitespace-pre-wrap">
+                  {lihatAlasanBap.alasanTidakBisaBap || '-'}
+                </div>
+                {lihatAlasanBap.tidakBisaBapAt && (
+                  <p className="text-xs text-slate-400">
+                    Ditandai pada {new Date(lihatAlasanBap.tidakBisaBapAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
+                )}
+                <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setLihatAlasanBap(null)}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 cursor-pointer"
+                  >
+                    Tutup
+                  </button>
+                  {user?.scope === 'CABANG' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tmpl = templates.find(t => t.id === lihatAlasanBap.templateId);
+                        setLihatAlasanBap(null);
+                        if (tmpl) startCreate(tmpl);
+                      }}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 cursor-pointer"
+                    >
+                      Buat BAP Sekarang
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}

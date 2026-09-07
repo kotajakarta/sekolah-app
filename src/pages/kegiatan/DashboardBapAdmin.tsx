@@ -111,7 +111,9 @@ interface CabangProgressStat {
   totalGuru: number;
   totalPeserta: number;
   completionRate: number;
-  status: string; // SELESAI, SEBAGIAN, BELUM_ADA
+  status: string; // SELESAI, SEBAGIAN, BELUM_ADA, TIDAK_BISA (hanya saat filter 1 template)
+  alasanTidakBisaBap?: string | null;
+  tidakBisaBapAt?: string | null;
 }
 
 interface TemplateOption {
@@ -169,6 +171,7 @@ export default function DashboardBapAdmin() {
   const CABANG_PER_PAGE = 8;
 
   const [syncSuccess, setSyncSuccess] = useState(false);
+  const [lihatAlasanCabang, setLihatAlasanCabang] = useState<CabangProgressStat | null>(null);
 
   const { data, isLoading, isError, refetch, isRefetching } = useQuery<DashboardData>({
     queryKey: ['kegiatan', 'stats', selectedTemplateFilter, user?.scope],
@@ -1012,7 +1015,14 @@ export default function DashboardBapAdmin() {
                           </td>
 
                           <td className="px-3 py-2.5 text-center whitespace-nowrap">
-                            {cab.status === 'SELESAI' ? (
+                            {cab.status === 'TIDAK_BISA' ? (
+                              <button
+                                onClick={() => setLihatAlasanCabang(cab)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+                              >
+                                <AlertCircle className="w-3 h-3 text-rose-500" /> Tidak Bisa BAP
+                              </button>
+                            ) : cab.status === 'SELESAI' ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200">
                                 <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Selesai 100%
                               </span>
@@ -1306,6 +1316,43 @@ export default function DashboardBapAdmin() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Modal: Lihat Alasan Tidak Bisa BAP */}
+        {lihatAlasanCabang && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-rose-500" />
+                  Alasan Tidak Bisa BAP
+                </h3>
+                <button onClick={() => setLihatAlasanCabang(null)} className="text-slate-400 hover:text-slate-500 cursor-pointer">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-xs font-bold text-slate-700">{lihatAlasanCabang.cabangName}</p>
+                <div className="bg-rose-50 border border-rose-200 rounded-lg p-3.5 text-sm text-rose-900 leading-relaxed whitespace-pre-wrap">
+                  {lihatAlasanCabang.alasanTidakBisaBap || '-'}
+                </div>
+                {lihatAlasanCabang.tidakBisaBapAt && (
+                  <p className="text-xs text-slate-400">
+                    Ditandai pada {new Date(lihatAlasanCabang.tidakBisaBapAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
+                )}
+                <div className="flex justify-end pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setLihatAlasanCabang(null)}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 cursor-pointer"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -164,6 +164,15 @@ const getMapelBadgeClass = (persen: number, isFuture?: boolean) => {
   return 'bg-emerald-50 text-emerald-700 border-emerald-200';
 };
 
+const getMapelPercentTextClass = (persen: number, isFuture?: boolean) => {
+  if (isFuture) return 'text-slate-400';
+  if (persen === 0) return 'text-rose-700';
+  if (persen < 50) return 'text-amber-700';
+  if (persen < 80) return 'text-blue-700';
+  if (persen < 100) return 'text-teal-700';
+  return 'text-emerald-700';
+};
+
 const getKehadiranTextClass = (persen: number, isFuture?: boolean) => {
   if (isFuture) return 'text-slate-400 font-bold';
   if (persen === 0) return 'text-rose-600 font-bold';
@@ -677,38 +686,40 @@ export default function Ringkasan() {
                     return (
                       <td key={wIdx} className="px-3 py-3.5 text-center border-l border-slate-200">
                         {wData ? (
-                          <div className="space-y-1">
-                            {/* Mapel Week Badge + Info button */}
-                            <div className="flex items-center justify-center gap-1">
-                              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-extrabold border shadow-2xs ${getMapelBadgeClass(wData.persenMapel, isFuture)}`}>
-                                <span>Mapel: {wData.mapelCompleted.toLocaleString('id-ID')}/{wData.mapelTarget.toLocaleString('id-ID')}</span>
-                                <span>({wData.persenMapel}%)</span>
-                              </div>
+                          <div className="relative inline-flex flex-col items-center gap-1">
+                            <button
+                              onClick={() => setDetailModalItem({
+                                id: 'TOTAL',
+                                name: `TOTAL KESELURUHAN — ${wHeader.dateLabel}`,
+                                parentName: '',
+                                silabusCompleted: wData.mapelCompleted,
+                                silabusTotal: wData.mapelTarget,
+                                persenSilabus: wData.persenMapel,
+                                hadir: wData.hadir,
+                                totalAbsensi: wData.totalAbsensi,
+                                persenKehadiran: wData.persenKehadiran,
+                                status: wData.persenMapel >= 90 ? 'Optimal' : wData.persenMapel >= 70 ? 'Sesuai Jalur' : 'Berisiko',
+                                details: wData.details || []
+                              })}
+                              title={`Detail Pengerjaan & Kehadiran Total ${wHeader.dateLabel}`}
+                              className="absolute -top-1 -right-1.5 p-0.5 text-slate-300 hover:text-brand hover:bg-white rounded-lg transition-all cursor-pointer"
+                            >
+                              <Info className="w-3 h-3" />
+                            </button>
 
-                              <button
-                                onClick={() => setDetailModalItem({
-                                  id: 'TOTAL',
-                                  name: `TOTAL KESELURUHAN — ${wHeader.dateLabel}`,
-                                  parentName: '',
-                                  silabusCompleted: wData.mapelCompleted,
-                                  silabusTotal: wData.mapelTarget,
-                                  persenSilabus: wData.persenMapel,
-                                  hadir: wData.hadir,
-                                  totalAbsensi: wData.totalAbsensi,
-                                  persenKehadiran: wData.persenKehadiran,
-                                  status: wData.persenMapel >= 90 ? 'Optimal' : wData.persenMapel >= 70 ? 'Sesuai Jalur' : 'Berisiko',
-                                  details: wData.details || []
-                                })}
-                                title={`Detail Pengerjaan & Kehadiran Total ${wHeader.dateLabel}`}
-                                className="p-1 text-slate-400 hover:text-brand hover:bg-white rounded-lg transition-all shrink-0 cursor-pointer"
-                              >
-                                <Info className="w-3.5 h-3.5" />
-                              </button>
+                            {/* Persentase Besar */}
+                            <div className={`text-lg font-black leading-none ${getMapelPercentTextClass(wData.persenMapel, isFuture)}`}>
+                              {wData.persenMapel}%
+                            </div>
+
+                            {/* Mapel Badge */}
+                            <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold border shadow-2xs ${getMapelBadgeClass(wData.persenMapel, isFuture)}`}>
+                              Mapel : {wData.mapelCompleted.toLocaleString('id-ID')}/{wData.mapelTarget.toLocaleString('id-ID')}
                             </div>
 
                             {/* Kehadiran Week Text */}
                             <div className="text-[10px] font-bold text-slate-600">
-                              Hadir: <span className={getKehadiranTextClass(wData.persenKehadiran, isFuture)}>{wData.persenKehadiran}%</span>
+                              Hadir : <span className={getKehadiranTextClass(wData.persenKehadiran, isFuture)}>{wData.persenKehadiran}%</span>
                             </div>
                           </div>
                         ) : (
@@ -790,31 +801,33 @@ export default function Ringkasan() {
                       return (
                         <td key={wIdx} className="px-3 py-3.5 text-center border-l border-slate-100">
                           {wData ? (
-                            <div className="space-y-1">
-                              {/* Mapel Week Badge + (!) Detail Button */}
-                              <div className="flex items-center justify-center gap-1">
-                                <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border ${getMapelBadgeClass(wData.persenMapel, isFuture)}`}>
-                                  <span>Mapel: {wData.mapelCompleted}/{wData.mapelTarget ?? (item.jumlahKelas ? item.jumlahKelas * 5 : 0)}</span>
-                                  <span>({wData.persenMapel}%)</span>
-                                </div>
+                            <div className="relative inline-flex flex-col items-center gap-1">
+                              {/* (!) Info button for weekly detail */}
+                              <button
+                                onClick={() => setDetailModalItem({
+                                  ...item,
+                                  name: `${item.name} — ${wHeader.dateLabel}`,
+                                  details: wData.details || []
+                                })}
+                                title={`Detail Pengerjaan & Kehadiran ${wHeader.dateLabel}`}
+                                className="absolute -top-1 -right-1.5 p-0.5 text-slate-300 hover:text-brand hover:bg-blue-50 rounded-lg transition-all"
+                              >
+                                <Info className="w-3 h-3" />
+                              </button>
 
-                                {/* (!) Info button for weekly detail */}
-                                <button
-                                  onClick={() => setDetailModalItem({
-                                    ...item,
-                                    name: `${item.name} — ${wHeader.dateLabel}`,
-                                    details: wData.details || []
-                                  })}
-                                  title={`Detail Pengerjaan & Kehadiran ${wHeader.dateLabel}`}
-                                  className="p-1 text-slate-400 hover:text-brand hover:bg-blue-50 rounded-lg transition-all shrink-0"
-                                >
-                                  <Info className="w-3.5 h-3.5" />
-                                </button>
+                              {/* Persentase Besar */}
+                              <div className={`text-lg font-black leading-none ${getMapelPercentTextClass(wData.persenMapel, isFuture)}`}>
+                                {wData.persenMapel}%
+                              </div>
+
+                              {/* Mapel Badge */}
+                              <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${getMapelBadgeClass(wData.persenMapel, isFuture)}`}>
+                                Mapel : {wData.mapelCompleted}/{wData.mapelTarget ?? (item.jumlahKelas ? item.jumlahKelas * 5 : 0)}
                               </div>
 
                               {/* Kehadiran Week Text */}
                               <div className="text-[10px] font-semibold text-slate-500">
-                                Hadir: <span className={getKehadiranTextClass(wData.persenKehadiran, isFuture)}>{wData.persenKehadiran}%</span>
+                                Hadir : <span className={getKehadiranTextClass(wData.persenKehadiran, isFuture)}>{wData.persenKehadiran}%</span>
                               </div>
                             </div>
                           ) : (

@@ -739,44 +739,36 @@ export default function LembagaMuadalahPage() {
           </div>
         </div>
 
-        {/* ── KARTU RINGKASAN SANTRI PER WILAYAH (Hanya di Sub-Tab Jumlah Santri) ── */}
+        {/* ── KARTU RINGKASAN SANTRI PER WILAYAH (Hanya di Sub-Tab Jumlah Santri, 1 baris scroll) ── */}
         {activeSubTab === 'jumlah_santri' && wilayahSantriSummary.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          <div className="flex gap-2.5 overflow-x-auto pb-1.5 -mx-1 px-1">
             {wilayahSantriSummary.map(w => (
               <div
                 key={w.id}
-                className="bg-white rounded-2xl border border-slate-200/80 p-3.5 shadow-xs hover:shadow-sm hover:border-indigo-200 transition-all"
+                className="shrink-0 w-[172px] bg-white rounded-xl border border-slate-200/80 shadow-xs hover:shadow-sm hover:border-indigo-200 transition-all overflow-hidden"
+                title={w.name}
               >
-                <div className="flex items-center justify-between gap-2 mb-2.5">
-                  <h4 className="flex items-center gap-1 text-xs font-bold text-slate-800 truncate" title={w.name}>
-                    <MapPin className="w-3 h-3 text-indigo-500 shrink-0" />
-                    <span className="truncate">{w.name}</span>
-                  </h4>
-                  <span className="shrink-0 text-[10px] font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full">
-                    {w.totalAll}
-                  </span>
-                </div>
+                <h4 className="text-center text-[11px] font-extrabold text-slate-800 uppercase tracking-wide border-b border-slate-100 py-1.5 truncate px-2">
+                  {w.name}
+                </h4>
 
-                <div className="grid grid-cols-2 gap-2 mb-2.5">
-                  <div className="bg-sky-50 rounded-xl px-2.5 py-2 text-center">
-                    <p className="text-[9px] font-bold text-sky-700 uppercase tracking-wide">Wustha</p>
-                    <p className="text-base font-extrabold text-sky-900">{w.wustha}</p>
+                <div className="flex items-stretch gap-1 p-1.5">
+                  <div className="flex-1 bg-sky-50 border border-sky-200 rounded-lg text-center py-1.5">
+                    <p className="text-[8px] font-bold text-sky-700 uppercase tracking-wide leading-none">Wustha</p>
+                    <p className="text-xs font-extrabold text-sky-900 mt-1">{w.wustha}</p>
                   </div>
-                  <div className="bg-emerald-50 rounded-xl px-2.5 py-2 text-center">
-                    <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-wide">Ulya</p>
-                    <p className="text-base font-extrabold text-emerald-900">{w.ulya}</p>
+                  <div className="flex-1 bg-emerald-50 border border-emerald-200 rounded-lg text-center py-1.5">
+                    <p className="text-[8px] font-bold text-emerald-700 uppercase tracking-wide leading-none">Ulya</p>
+                    <p className="text-xs font-extrabold text-emerald-900 mt-1">{w.ulya}</p>
+                  </div>
+                  <div className="flex-1 bg-indigo-600 rounded-lg flex items-center justify-center px-0.5">
+                    <p className="text-sm font-extrabold text-white leading-none">{w.totalAll}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[10px] font-semibold text-slate-500 border-t border-slate-100 pt-2">
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                    L: <span className="text-slate-800 font-extrabold">{w.totalL}</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                    P: <span className="text-slate-800 font-extrabold">{w.totalP}</span>
-                  </span>
+                <div className="flex items-center justify-center gap-3 text-[10px] font-extrabold border-t border-slate-100 py-1.5">
+                  <span className="text-blue-600">L = {w.totalL}</span>
+                  <span className="text-amber-600">P = {w.totalP}</span>
                 </div>
               </div>
             ))}

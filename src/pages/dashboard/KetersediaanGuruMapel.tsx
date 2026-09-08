@@ -32,6 +32,7 @@ interface KelasDetail {
   tingkat: string | null;
   subjectCoverage: SubjectCoverage[];
   missingCount: number;
+  jumlahSiswa: number;
   status: 'lengkap' | 'sebagian' | 'kosong';
 }
 
@@ -120,18 +121,21 @@ export default function KetersediaanGuruMapel() {
   // Wilayah/Cabang/Status/Mapel/Cari yang sama dengan daftar detail di bawah (`filtered`)
   const wilayahSummaries = useMemo(() => {
     const map = new Map<string, {
-      name: string; totalKelas: number; totalKebutuhan: number; totalGuru: number; totalKurang: number;
+      name: string; cabangIds: Set<string>; totalKelas: number; totalSiswa: number;
+      totalKebutuhan: number; totalGuru: number; totalKurang: number;
       missingDetail: MissingDetailItem[];
     }>();
 
     filtered.forEach(cabang => {
       const key = cabang.wilayahName || 'Tanpa Wilayah';
       if (!map.has(key)) {
-        map.set(key, { name: key, totalKelas: 0, totalKebutuhan: 0, totalGuru: 0, totalKurang: 0, missingDetail: [] });
+        map.set(key, { name: key, cabangIds: new Set(), totalKelas: 0, totalSiswa: 0, totalKebutuhan: 0, totalGuru: 0, totalKurang: 0, missingDetail: [] });
       }
       const entry = map.get(key)!;
+      entry.cabangIds.add(cabang.cabangId);
       cabang.kelas.forEach(kelas => {
         entry.totalKelas += 1;
+        entry.totalSiswa += kelas.jumlahSiswa || 0;
         entry.totalKebutuhan += kelas.subjectCoverage.length;
         entry.totalGuru += kelas.subjectCoverage.filter(s => s.hasGuru).length;
         const missingMapel = kelas.subjectCoverage.filter(s => !s.hasGuru).map(s => MAPEL_LABELS[s.mapel] || s.mapel);
@@ -143,9 +147,21 @@ export default function KetersediaanGuruMapel() {
     });
 
     return Array.from(map.values())
-      .map(e => ({ ...e, persentase: e.totalKebutuhan > 0 ? Math.round((e.totalGuru / e.totalKebutuhan) * 100) : 0 }))
+      .map(({ cabangIds, ...e }) => ({ ...e, totalCabang: cabangIds.size, persentase: e.totalKebutuhan > 0 ? Math.round((e.totalGuru / e.totalKebutuhan) * 100) : 0 }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [filtered]);
+
+  // Baris TOTAL di atas rincian per-wilayah
+  const wilayahGrandTotal = useMemo(() => {
+    return wilayahSummaries.reduce((acc, w) => ({
+      totalCabang: acc.totalCabang + w.totalCabang,
+      totalKelas: acc.totalKelas + w.totalKelas,
+      totalSiswa: acc.totalSiswa + w.totalSiswa,
+      totalKebutuhan: acc.totalKebutuhan + w.totalKebutuhan,
+      totalGuru: acc.totalGuru + w.totalGuru,
+      totalKurang: acc.totalKurang + w.totalKurang,
+    }), { totalCabang: 0, totalKelas: 0, totalSiswa: 0, totalKebutuhan: 0, totalGuru: 0, totalKurang: 0 });
+  }, [wilayahSummaries]);
 
   // Ringkasan per Cabang, dengan kolom & metrik yang sama
   const cabangSummaries = useMemo(() => {
@@ -378,12 +394,14 @@ export default function KetersediaanGuruMapel() {
       <div className="mb-5">
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ringkasan Kelengkapan per Wilayah</h3>
         <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
-          <div className="max-h-[280px] overflow-y-auto">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
-              <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
+              <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 <tr>
                   <th className="px-5 py-3 bg-slate-50">Nama Wilayah</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Jumlah Cabang</th>
                   <th className="px-5 py-3 text-center bg-slate-50">Jumlah Rombel</th>
+                  <th className="px-5 py-3 text-center bg-slate-50">Jumlah Siswa</th>
                   <th className="px-5 py-3 text-center bg-slate-50">Total Formasi Guru Dibutuhkan</th>
                   <th className="px-5 py-3 text-center bg-slate-50">Formasi Terisi</th>
                   <th className="px-5 py-3 text-center bg-slate-50">Formasi Kosong</th>
@@ -393,34 +411,55 @@ export default function KetersediaanGuruMapel() {
               <tbody className="divide-y divide-slate-100 bg-white">
                 {wilayahSummaries.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">Tidak ada data yang cocok dengan filter.</td>
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-400 italic">Tidak ada data yang cocok dengan filter.</td>
                   </tr>
                 ) : (
-                  wilayahSummaries.map(w => (
-                    <tr key={w.name} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-5 py-3 font-semibold text-slate-800">{w.name}</td>
-                      <td className="px-5 py-3 text-center text-slate-700">{w.totalKelas}</td>
-                      <td className="px-5 py-3 text-center text-slate-700">{w.totalKebutuhan}</td>
-                      <td className="px-5 py-3 text-center text-slate-700">{w.totalGuru}</td>
+                  <>
+                    <tr className="bg-slate-100/80 font-bold text-slate-800 border-b-2 border-slate-200">
+                      <td className="px-5 py-3">TOTAL ({wilayahSummaries.length} Wilayah)</td>
+                      <td className="px-5 py-3 text-center">{wilayahGrandTotal.totalCabang}</td>
+                      <td className="px-5 py-3 text-center">{wilayahGrandTotal.totalKelas}</td>
+                      <td className="px-5 py-3 text-center">{wilayahGrandTotal.totalSiswa}</td>
+                      <td className="px-5 py-3 text-center">{wilayahGrandTotal.totalKebutuhan}</td>
+                      <td className="px-5 py-3 text-center">{wilayahGrandTotal.totalGuru}</td>
                       <td className="px-5 py-3 text-center">
-                        <div className="inline-flex items-center gap-1.5">
-                          <span className={w.totalKurang > 0 ? 'text-rose-600 font-bold' : 'text-emerald-600 font-semibold'}>{w.totalKurang}</span>
-                          {w.totalKurang > 0 && (
-                            <button
-                              onClick={() => setDetailModalRow({ label: w.name, items: w.missingDetail })}
-                              title="Lihat mapel & kelas dengan formasi kosong"
-                              className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors"
-                            >
-                              <AlertTriangle className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
+                        <span className={wilayahGrandTotal.totalKurang > 0 ? 'text-rose-600' : 'text-emerald-600'}>{wilayahGrandTotal.totalKurang}</span>
                       </td>
                       <td className="px-5 py-3 text-center">
-                        <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full ${persentaseBadgeClass(w.persentase)}`}>{w.persentase}%</span>
+                        {(() => {
+                          const pct = wilayahGrandTotal.totalKebutuhan > 0 ? Math.round((wilayahGrandTotal.totalGuru / wilayahGrandTotal.totalKebutuhan) * 100) : 0;
+                          return <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full ${persentaseBadgeClass(pct)}`}>{pct}%</span>;
+                        })()}
                       </td>
                     </tr>
-                  ))
+                    {wilayahSummaries.map(w => (
+                      <tr key={w.name} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-5 py-3 font-semibold text-slate-800">{w.name}</td>
+                        <td className="px-5 py-3 text-center text-slate-700">{w.totalCabang}</td>
+                        <td className="px-5 py-3 text-center text-slate-700">{w.totalKelas}</td>
+                        <td className="px-5 py-3 text-center text-slate-700">{w.totalSiswa}</td>
+                        <td className="px-5 py-3 text-center text-slate-700">{w.totalKebutuhan}</td>
+                        <td className="px-5 py-3 text-center text-slate-700">{w.totalGuru}</td>
+                        <td className="px-5 py-3 text-center">
+                          <div className="inline-flex items-center gap-1.5">
+                            <span className={w.totalKurang > 0 ? 'text-rose-600 font-bold' : 'text-emerald-600 font-semibold'}>{w.totalKurang}</span>
+                            {w.totalKurang > 0 && (
+                              <button
+                                onClick={() => setDetailModalRow({ label: w.name, items: w.missingDetail })}
+                                title="Lihat mapel & kelas dengan formasi kosong"
+                                className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-700 border border-amber-300 transition-colors"
+                              >
+                                <AlertTriangle className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3 text-center">
+                          <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full ${persentaseBadgeClass(w.persentase)}`}>{w.persentase}%</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </>
                 )}
               </tbody>
             </table>

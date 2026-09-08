@@ -591,9 +591,6 @@ export default function LaporanPembelajaran() {
                       <th className="py-2.5 px-3 text-center bg-[#6B21A8] text-white font-extrabold tracking-wide border-r border-purple-600 shadow-2xs">
                         PELAKSANAAN PEMBELAJARAN
                       </th>
-                      <th colSpan={2} className="py-2.5 px-3 text-center bg-[#0073B7] text-white font-extrabold tracking-wide border-r border-sky-600 shadow-2xs">
-                        PROGRES SILABUS
-                      </th>
                       <th colSpan={2} className="py-2.5 px-3 text-center bg-[#10B981] text-white font-extrabold tracking-wide border-r border-emerald-600 shadow-2xs">
                         KEHADIRAN SISWA
                       </th>
@@ -603,8 +600,6 @@ export default function LaporanPembelajaran() {
                     </tr>
                     <tr className="border-b border-slate-200">
                       <th className="py-2 px-3 text-center bg-purple-50 text-purple-950 font-bold border-r border-purple-300 text-[11px]">% PELAKSANAAN</th>
-                      <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TARGET & COMPLETED</th>
-                      <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-300 text-[11px]">% SILABUS</th>
                       <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">HADIR & TOTAL ABSENSI</th>
                       <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-300 text-[11px]">% KEHADIRAN</th>
                     </tr>
@@ -623,12 +618,6 @@ export default function LaporanPembelajaran() {
                       </td>
                       <td className="py-2 px-3 text-center bg-purple-50/90 border-r border-purple-300">
                         {renderProgressCell(wilayahTotals.pelaksanaanCompleted, wilayahTotals.pelaksanaanTotal, false, undefined, undefined, true)}
-                      </td>
-                      <td className="py-2 px-3 text-center bg-blue-50 border-r border-sky-200 font-bold">
-                        {wilayahTotals.silabusCompleted.toLocaleString('id-ID')} / {wilayahTotals.silabusTotal.toLocaleString('id-ID')}
-                      </td>
-                      <td className="py-2 px-3 text-center bg-blue-50/90 border-r border-sky-300">
-                        {renderProgressCell(wilayahTotals.silabusCompleted, wilayahTotals.silabusTotal, true)}
                       </td>
                       <td className="py-2 px-3 text-center bg-emerald-50 border-r border-emerald-200 font-bold">
                         {wilayahTotals.hadir.toLocaleString('id-ID')} / {wilayahTotals.totalAbsensi.toLocaleString('id-ID')}
@@ -656,12 +645,6 @@ export default function LaporanPembelajaran() {
                           </td>
                           <td className="py-2 px-3 text-center bg-purple-50/50 border-r border-purple-200">
                             {renderProgressCell(w.pelaksanaanCompleted, w.pelaksanaanTotal, false, undefined, undefined, true)}
-                          </td>
-                          <td className="py-2 px-3 text-center bg-sky-50/30 border-r border-sky-100 font-semibold text-slate-700">
-                            {w.silabusCompleted.toLocaleString('id-ID')} / {w.silabusTotal.toLocaleString('id-ID')}
-                          </td>
-                          <td className="py-2 px-3 text-center bg-sky-50/50 border-r border-sky-200">
-                            {renderProgressCell(w.silabusCompleted, w.silabusTotal)}
                           </td>
                           <td className="py-2 px-3 text-center bg-emerald-50/30 border-r border-emerald-100 font-semibold text-slate-700">
                             {w.hadir.toLocaleString('id-ID')} / {w.totalAbsensi.toLocaleString('id-ID')}
@@ -715,9 +698,6 @@ export default function LaporanPembelajaran() {
                     <th className="py-2.5 px-3 text-center bg-[#6B21A8] text-white font-extrabold tracking-wide border-r border-purple-600 shadow-2xs">
                       PELAKSANAAN PEMBELAJARAN
                     </th>
-                    <th colSpan={2} className="py-2.5 px-3 text-center bg-[#0073B7] text-white font-extrabold tracking-wide border-r border-sky-600 shadow-2xs">
-                      PROGRES SILABUS
-                    </th>
                     <th colSpan={2} className="py-2.5 px-3 text-center bg-[#10B981] text-white font-extrabold tracking-wide border-r border-emerald-600 shadow-2xs">
                       KEHADIRAN SISWA
                     </th>
@@ -727,8 +707,6 @@ export default function LaporanPembelajaran() {
                   </tr>
                   <tr className="border-b border-slate-200">
                     <th className="py-2 px-3 text-center bg-purple-50 text-purple-950 font-bold border-r border-purple-300 text-[11px]">% PELAKSANAAN</th>
-                    <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TARGET & COMPLETED</th>
-                    <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-300 text-[11px]">% SILABUS</th>
                     <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">HADIR & TOTAL ABSENSI</th>
                     <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-300 text-[11px]">% KEHADIRAN</th>
                   </tr>
@@ -745,12 +723,6 @@ export default function LaporanPembelajaran() {
                     <td className="py-2.5 px-3 text-center bg-[#F3E8FF] border-r border-purple-300">
                       {renderProgressCell(filteredTotals.pelaksanaanCompleted, filteredTotals.pelaksanaanTotal, false, undefined, undefined, true)}
                     </td>
-                    <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200 font-bold">
-                      {filteredTotals.silabusCompleted.toLocaleString('id-ID')} / {filteredTotals.silabusTotal.toLocaleString('id-ID')}
-                    </td>
-                    <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-300">
-                      {renderProgressCell(filteredTotals.silabusCompleted, filteredTotals.silabusTotal, true)}
-                    </td>
                     <td className="py-2.5 px-3 text-center bg-[#D1FAE5] border-r border-emerald-200 font-bold">
                       {filteredTotals.hadir.toLocaleString('id-ID')} / {filteredTotals.totalAbsensi.toLocaleString('id-ID')}
                     </td>
@@ -764,7 +736,7 @@ export default function LaporanPembelajaran() {
 
                   {filteredCabangList.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="py-8 text-center text-slate-400 text-xs font-medium">
+                      <td colSpan={8} className="py-8 text-center text-slate-400 text-xs font-medium">
                         Tidak ada cabang yang cocok dengan pencarian "{searchQuery}".
                       </td>
                     </tr>
@@ -783,12 +755,6 @@ export default function LaporanPembelajaran() {
                         </td>
                         <td className="py-2 px-3 text-center bg-purple-50/50 border-r border-purple-200">
                           {renderProgressCell(row.pelaksanaanCompleted || 0, row.pelaksanaanTotal || 0, false, undefined, undefined, true)}
-                        </td>
-                        <td className="py-2 px-3 text-center bg-sky-50/30 border-r border-sky-100 font-semibold text-slate-700">
-                          {row.silabusCompleted.toLocaleString('id-ID')} / {row.silabusTotal.toLocaleString('id-ID')}
-                        </td>
-                        <td className="py-2 px-3 text-center bg-sky-50/50 border-r border-sky-200">
-                          {renderProgressCell(row.silabusCompleted, row.silabusTotal)}
                         </td>
                         <td className="py-2 px-3 text-center bg-emerald-50/30 border-r border-emerald-100 font-semibold text-slate-700">
                           {row.hadir.toLocaleString('id-ID')} / {row.totalAbsensi.toLocaleString('id-ID')}

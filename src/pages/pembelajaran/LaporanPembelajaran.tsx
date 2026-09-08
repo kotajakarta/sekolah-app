@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import {
   Loader2, Search, AlertCircle, Info, Building2, BookOpen, UserCheck,
-  CheckCircle2, Sparkles, Filter, FileBarChart, TrendingUp, BarChart3
+  CheckCircle2, Sparkles, Filter, FileBarChart, TrendingUp, BarChart3, RefreshCw
 } from 'lucide-react';
 
 interface Mapel {
@@ -46,6 +46,7 @@ export default function LaporanPembelajaran() {
   const { user } = useAuth();
   const isGlobal = user?.scope === 'GLOBAL';
   const isWilayah = user?.scope === 'WILAYAH';
+  const queryClient = useQueryClient();
 
   const currentMonthValue = () => {
     const d = new Date();
@@ -126,6 +127,36 @@ export default function LaporanPembelajaran() {
     },
     enabled: isFilterReady
   });
+
+  // Laporan (saat tanpa filter mapel) kini dibaca dari cache rekap_pembelajaran, sama seperti
+  // tab Ringkasan -- tombol ini memicu hitung ulang cache untuk periode yang sedang dilihat
+  // sebelum memuat ulang, supaya "Segarkan Laporan" benar-benar mengambil data terbaru.
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiClient.post('/pembelajaran/rekap/sync', {
+        mode,
+        periodeKey: mode === 'weekly' ? weekStart : mode === 'monthly' ? month : undefined,
+        tahunAjaran: mode === 'semester' ? tahunAjaran : undefined,
+        semester: mode === 'semester' ? semester : undefined,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['laporan-pembelajaran'] });
+      refetch();
+    },
+  });
+
+  const handleSegarkan = () => {
+    // Sinkronisasi ulang cache hanya untuk admin Pusat (GLOBAL) -- selaras dengan endpoint
+    // /pembelajaran/rekap/sync yang dibatasi RequireScope('GLOBAL'). Role lain (WILAYAH) cukup
+    // memuat ulang data cache yang ada.
+    if (selectedMapel || !isGlobal) {
+      refetch();
+    } else {
+      syncMutation.mutate();
+    }
+  };
 
   // Rekap per Wilayah summary list
   const wilayahSummaryList = useMemo(() => {
@@ -224,13 +255,13 @@ export default function LaporanPembelajaran() {
       totalSiswa,
       silabusCompleted,
       silabusTotal,
-      persenSilabus: silabusTotal > 0 ? Math.round((silabusCompleted / silabusTotal) * 100) : 0,
+      persenSilabus: silabusTotal > 0 ? Math.min(100, Math.round((silabusCompleted / silabusTotal) * 100)) : 0,
       hadir,
       totalAbsensi,
       persenKehadiran,
       pelaksanaanCompleted,
       pelaksanaanTotal,
-      persenPelaksanaan: pelaksanaanTotal > 0 ? Math.round((pelaksanaanCompleted / pelaksanaanTotal) * 100) : 0
+      persenPelaksanaan: pelaksanaanTotal > 0 ? Math.min(100, Math.round((pelaksanaanCompleted / pelaksanaanTotal) * 100)) : 0
     };
   }, [wilayahSummaryList]);
 
@@ -278,13 +309,13 @@ export default function LaporanPembelajaran() {
       totalSiswa,
       silabusCompleted,
       silabusTotal,
-      persenSilabus: silabusTotal > 0 ? Math.round((silabusCompleted / silabusTotal) * 100) : 0,
+      persenSilabus: silabusTotal > 0 ? Math.min(100, Math.round((silabusCompleted / silabusTotal) * 100)) : 0,
       hadir,
       totalAbsensi,
       persenKehadiran: totalAbsensi > 0 ? Math.round((hadir / totalAbsensi) * 100) : 0,
       pelaksanaanCompleted,
       pelaksanaanTotal,
-      persenPelaksanaan: pelaksanaanTotal > 0 ? Math.round((pelaksanaanCompleted / pelaksanaanTotal) * 100) : 0
+      persenPelaksanaan: pelaksanaanTotal > 0 ? Math.min(100, Math.round((pelaksanaanCompleted / pelaksanaanTotal) * 100)) : 0
     };
   }, [filteredCabangList]);
 
@@ -320,7 +351,7 @@ export default function LaporanPembelajaran() {
     if (bigPercent) {
       return (
         <div className="flex flex-col items-center justify-center py-0.5">
-          <div className={`text-lg font-black leading-none ${textColor}`}>{pct}%</div>
+          <div className={`text-lg font-black leading-none ${textColor}`}>{clampedPct}%</div>
           <div className={`mt-1.5 inline-flex px-2 py-0.5 text-[10px] font-extrabold rounded border shadow-2xs ${badgeColor}`}>
             {completed.toLocaleString('id-ID')}/{total.toLocaleString('id-ID')}
           </div>
@@ -491,11 +522,13 @@ export default function LaporanPembelajaran() {
           {isFilterReady && (
             <div className="w-full md:w-auto">
               <button
-                onClick={() => refetch()}
-                className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all cursor-pointer"
+                onClick={handleSegarkan}
+                disabled={syncMutation.isPending}
+                title={!selectedMapel && isGlobal ? 'Menghitung ulang data periode ini lalu memuat ulang laporan' : 'Memuat ulang laporan'}
+                className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all cursor-pointer disabled:opacity-50"
               >
-                <Search className="w-4 h-4" />
-                Segarkan Laporan
+                {syncMutation.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                {syncMutation.isPending ? 'Menyinkronkan...' : 'Segarkan Laporan'}
               </button>
             </div>
           )}

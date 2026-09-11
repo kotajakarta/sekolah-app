@@ -72,8 +72,9 @@ export default function ManajemenKelas() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
-  const isAdmin = user?.scope === 'GLOBAL';
-  const isWilayahOrAdmin = user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH';
+  const isPengawas = user?.divisi === 'PENGAWAS';
+  const isAdmin = user?.scope === 'GLOBAL' && !isPengawas;
+  const isWilayahOrAdmin = (user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH') && !isPengawas;
   const { t } = useTranslation();
 
   const [selectedKelasForDetail, setSelectedKelasForDetail] = useState<Kelas | null>(null);

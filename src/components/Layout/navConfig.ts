@@ -91,7 +91,48 @@ export function useNavEntries(): NavEntry[] {
     }
 
     // =========================================================================
-    // ROLE: GURU (Guru Pengampu Mata Pelajaran)
+    // DIVISI: PENGAWAS (Read-Only Monitoring & Pengawasan Akademik)
+    // =========================================================================
+    if (user?.divisi === 'PENGAWAS') {
+      const pengawasKelembagaan = [
+        { to: '/dashboard/core/cabang', label: t('sidebar.cabang') || 'Data Cabang' },
+        { to: '/dashboard/formal/muadalah', label: t('sidebar.lembaga_muadalah') || 'Lembaga Muadalah' },
+        { to: '/dashboard/formal/mapel', label: t('sidebar.mapel') || 'Mata Pelajaran' },
+      ];
+      const pengawasSantri = [
+        { to: '/dashboard/core/siswa', label: t('sidebar.data_santri') || 'Data Semua Santri' },
+        { to: '/dashboard/formal/siswa', label: t('sidebar.santri_muadalah') || 'Santri Muadalah' },
+        { to: '/dashboard/absensi/siswa', label: t('sidebar.absensi_siswa') || 'Absensi Siswa' },
+      ];
+      const pengawasUstadz = [
+        { to: '/dashboard/core/guru', label: t('sidebar.data_guru') || 'Data Guru' },
+        { to: '/dashboard/formal/penugasan-guru', label: t('sidebar.penugasan_guru') || 'Penugasan Guru' },
+        { to: '/dashboard/absensi/guru', label: t('sidebar.absensi_guru') || 'Absensi Guru' },
+      ];
+      const pengawasMonitoring = [
+        { to: '/dashboard/laporan/ketersediaan-guru', label: 'Rekap Ketersediaan Guru Mapel' },
+        { to: '/dashboard/laporan/kelengkapan-data', label: 'Rekap Kelengkapan Data Santri' },
+        { to: '/dashboard/laporan/kelengkapan-guru', label: 'Rekap Kelengkapan Data Guru' },
+        { to: '/dashboard/laporan/absensi', label: 'Rekapitulasi Absensi' },
+      ];
+      const pengawasBap = [
+        { to: '/dashboard/kegiatan/dashboard', label: 'Dashboard Infografik BAP' },
+        { to: '/dashboard/kegiatan', label: t('sidebar.bap_list') || 'Daftar BAP Laporan' },
+      ];
+
+      return [
+        { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard', icon: Home, to: '/dashboard' },
+        { type: 'group', key: 'kelembagaan', label: t('sidebar.kelembagaan') || 'Kelembagaan', icon: School, items: pengawasKelembagaan },
+        { type: 'group', key: 'santri', label: t('sidebar.santri') || 'Santri', icon: User, items: pengawasSantri },
+        { type: 'group', key: 'ustadz', label: t('sidebar.ustadz') || 'Ustadz / Guru', icon: Users, items: pengawasUstadz },
+        { type: 'link', key: 'rombel', label: t('sidebar.rombel') || 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas' },
+        { type: 'link', key: 'pembelajaran', label: 'Kontrol Pembelajaran', icon: BookOpen, to: '/dashboard/pembelajaran' },
+        { type: 'group', key: 'monitoring', label: 'Monitoring & Evaluasi', icon: Activity, items: pengawasMonitoring },
+        { type: 'group', key: 'bap', label: t('sidebar.bap') || 'Berita Acara (BAP)', icon: FileText, items: pengawasBap },
+      ] as NavEntry[];
+    }
+
+
     // =========================================================================
     if (user?.scope === 'GURU') {
       const guruEntries: NavEntry[] = [

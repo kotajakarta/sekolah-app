@@ -5,7 +5,7 @@ export interface AuthUser {
   username?: string;
   operatorName?: string;
   scope: 'GLOBAL' | 'WILAYAH' | 'CABANG' | 'WALI_KELAS' | 'GURU' | 'WALI' | 'AUDITOR';
-  divisi: 'ALL' | 'FORMAL' | 'PESANTREN';
+  divisi: 'ALL' | 'FORMAL' | 'PESANTREN' | 'PENGAWAS';
   staffId?: string;
   wilayahId?: string;
   cabangId?: string;

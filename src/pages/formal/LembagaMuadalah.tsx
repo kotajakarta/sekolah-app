@@ -11,6 +11,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 import { useToast } from '../../contexts/ToastContext';
 import { wilayahService, findMatchingWilayah, normalizeWilayahCode, WilayahItem } from '../../services/wilayah.service';
 import { useGetWilayah } from '../../features/core_data/hooks/useMasterData';
+import { getFileUrl } from '../../utils/photo';
 
 interface SantriBreakdownGender {
   l: number;
@@ -89,9 +90,10 @@ export default function LembagaMuadalahPage() {
   const { user } = useAuth();
   const { showToast } = useToast();
 
-  // RBAC Access Control Flags
-  const isAdmin = user?.scope === 'GLOBAL';
-  const isWilayahOrAdmin = user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH';
+  // RBAC Access Control Flags — PENGAWAS is always read-only regardless of scope
+  const isPengawas = user?.divisi === 'PENGAWAS';
+  const isAdmin = user?.scope === 'GLOBAL' && !isPengawas;
+  const isWilayahOrAdmin = (user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH') && !isPengawas;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMuadalah, setEditingMuadalah] = useState<LembagaMuadalah | null>(null);
@@ -208,8 +210,7 @@ export default function LembagaMuadalahPage() {
 
   const getFullFileUrl = (relativeUrl?: string) => {
     if (!relativeUrl) return '';
-    const baseURL = apiClient.defaults.baseURL || '/api/v1';
-    return `${baseURL}${relativeUrl}`;
+    return getFileUrl(relativeUrl);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldName: keyof typeof formData) => {
@@ -1424,7 +1425,17 @@ export default function LembagaMuadalahPage() {
                         <input type="file" accept="application/pdf,image/*" onChange={(e) => handleFileUpload(e, 'skSpm')} className="hidden" />
                       </label>
                       {uploadingField === 'skSpm' && <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />}
-                      {formData.skSpm && <CheckCircle className="w-4 h-4 text-emerald-600" />}
+                      {formData.skSpm && (
+                        <a 
+                          href={getFullFileUrl(formData.skSpm)} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200 transition-colors"
+                          title="Lihat file yang diunggah"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Lihat File
+                        </a>
+                      )}
                     </div>
                   </div>
 
@@ -1438,7 +1449,17 @@ export default function LembagaMuadalahPage() {
                         <input type="file" accept="application/pdf,image/*" onChange={(e) => handleFileUpload(e, 'skStruktur')} className="hidden" />
                       </label>
                       {uploadingField === 'skStruktur' && <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />}
-                      {formData.skStruktur && <CheckCircle className="w-4 h-4 text-emerald-600" />}
+                      {formData.skStruktur && (
+                        <a 
+                          href={getFullFileUrl(formData.skStruktur)} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200 transition-colors"
+                          title="Lihat file yang diunggah"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Lihat File
+                        </a>
+                      )}
                     </div>
                   </div>
 
@@ -1452,7 +1473,17 @@ export default function LembagaMuadalahPage() {
                         <input type="file" accept="application/pdf,image/*" onChange={(e) => handleFileUpload(e, 'skDewanMasyayikh')} className="hidden" />
                       </label>
                       {uploadingField === 'skDewanMasyayikh' && <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />}
-                      {formData.skDewanMasyayikh && <CheckCircle className="w-4 h-4 text-emerald-600" />}
+                      {formData.skDewanMasyayikh && (
+                        <a 
+                          href={getFullFileUrl(formData.skDewanMasyayikh)} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200 transition-colors"
+                          title="Lihat file yang diunggah"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Lihat File
+                        </a>
+                      )}
                     </div>
                   </div>
 
@@ -1466,7 +1497,17 @@ export default function LembagaMuadalahPage() {
                         <input type="file" accept="application/pdf,image/*" onChange={(e) => handleFileUpload(e, 'skPengangkatanKepalaSpm')} className="hidden" />
                       </label>
                       {uploadingField === 'skPengangkatanKepalaSpm' && <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />}
-                      {formData.skPengangkatanKepalaSpm && <CheckCircle className="w-4 h-4 text-emerald-600" />}
+                      {formData.skPengangkatanKepalaSpm && (
+                        <a 
+                          href={getFullFileUrl(formData.skPengangkatanKepalaSpm)} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200 transition-colors"
+                          title="Lihat file yang diunggah"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Lihat File
+                        </a>
+                      )}
                     </div>
                   </div>
 
@@ -1481,9 +1522,15 @@ export default function LembagaMuadalahPage() {
                       </label>
                       {uploadingField === 'ttdKetua' && <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />}
                       {formData.ttdKetua && (
-                        <span className="text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1 font-bold">
-                          <CheckCircle className="w-3.5 h-3.5" /> File PNG Siap
-                        </span>
+                        <a 
+                          href={getFullFileUrl(formData.ttdKetua)} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-full border border-emerald-200 flex items-center gap-1 font-bold transition-colors"
+                          title="Lihat gambar tanda tangan"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> File PNG Siap (Lihat)
+                        </a>
                       )}
                     </div>
                   </div>

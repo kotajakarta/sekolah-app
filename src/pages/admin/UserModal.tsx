@@ -263,12 +263,19 @@ export default function UserModal({ isOpen, onClose, userToEdit }: UserModalProp
                   value={formData.divisi}
                   onChange={(e) => setFormData({ ...formData, divisi: e.target.value })}
                 >
-                  <option value="ALL">ALL</option>
+                  <option value="ALL">ALL (Semua Divisi)</option>
                   <option value="FORMAL">FORMAL</option>
                   <option value="PESANTREN">PESANTREN</option>
+                  <option value="PENGAWAS">PENGAWAS (Monitoring & Pengawasan — Read Only)</option>
                 </select>
+                {formData.divisi === 'PENGAWAS' && (
+                  <p className="mt-1 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                    ⚠️ Akun ini akan memiliki akses <strong>Read-Only</strong> untuk memantau data di lingkup wilayah/cabang yang dipilih. Tidak dapat membuat, mengubah, atau menghapus data.
+                  </p>
+                )}
               </div>
             )}
+
           </div>
 
           {formData.scope === 'WALI' && (

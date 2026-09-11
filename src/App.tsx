@@ -160,7 +160,7 @@ const ScopeRoute = ({
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (allowedDivisi && user.divisi && !allowedDivisi.includes(user.divisi) && user.divisi !== 'ALL') {
+  if (allowedDivisi && user.divisi && !allowedDivisi.includes(user.divisi) && user.divisi !== 'ALL' && user.divisi !== 'PENGAWAS') {
     return <Navigate to="/dashboard" replace />;
   }
 

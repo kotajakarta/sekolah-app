@@ -250,6 +250,7 @@ export default function UsersWilayah() {
                 <option value="ALL">ALL (Semua Divisi)</option>
                 <option value="FORMAL">FORMAL</option>
                 <option value="PESANTREN">PESANTREN</option>
+                <option value="PENGAWAS">PENGAWAS (Read Only)</option>
               </select>
             </div>
 
@@ -346,7 +347,17 @@ export default function UsersWilayah() {
                           {item.scope}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{item.divisi}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={`px-2 py-0.5 rounded text-xs uppercase font-bold tracking-wider ${
+                          item.divisi === 'ALL' ? 'bg-slate-100 text-slate-700 border border-slate-200' :
+                          item.divisi === 'FORMAL' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                          item.divisi === 'PESANTREN' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                          item.divisi === 'PENGAWAS' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                          'bg-slate-50 text-slate-500 border border-slate-100'
+                        }`}>
+                          {item.divisi === 'PENGAWAS' ? '👁 PENGAWAS' : item.divisi}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                         {item.scope === 'WALI' ? (
                           <span

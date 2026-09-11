@@ -565,7 +565,7 @@ export default function DataSiswa() {
             <FileSpreadsheet className="w-4 h-4 mr-2" />
             Export XLSX EMIS
           </button>
-          {user?.scope !== 'AUDITOR' && (
+          {user?.scope !== 'AUDITOR' && user?.divisi !== 'PENGAWAS' && (
             <>
               {isAdmin && students && students.length > 0 && (
                 <button

@@ -732,7 +732,7 @@ const normalizeDaimiKey = (str?: string | null): string => {
           </p>
         </div>
 
-        {user?.scope !== 'AUDITOR' && (
+        {user?.scope !== 'AUDITOR' && user?.divisi !== 'PENGAWAS' && (
           <div className="flex items-center gap-2">
             {user?.scope === 'WILAYAH' && (
               <button

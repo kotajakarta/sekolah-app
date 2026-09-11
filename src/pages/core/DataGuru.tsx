@@ -192,7 +192,7 @@ export default function DataGuru() {
           <h1 className="text-3xl font-display font-bold text-slate-800 tracking-tight">{t('guru.title')}</h1>
           <p className="text-sm text-slate-500 mt-1.5">{t('guru.subtitle')}</p>
         </div>
-        {user?.scope !== 'AUDITOR' && (
+        {user?.scope !== 'AUDITOR' && user?.divisi !== 'PENGAWAS' && (
           <div className="flex items-center gap-3">
             {isAdmin && guru && guru.length > 0 && (
               <button 
@@ -403,7 +403,7 @@ export default function DataGuru() {
                                     {item.user.scope === 'WALI_KELAS' ? 'Wali Kelas' : 'Guru Mapel'}
                                   </span>
                                 </div>
-                                {user?.scope !== 'AUDITOR' && (
+                                {user?.scope !== 'AUDITOR' && user?.divisi !== 'PENGAWAS' && (
                                   <div className="flex items-center gap-1 ml-auto">
                                     <button
                                       type="button"
@@ -439,7 +439,7 @@ export default function DataGuru() {
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
                                   Belum Ada Akun
                                 </span>
-                                {user?.scope !== 'AUDITOR' && (
+                                {user?.scope !== 'AUDITOR' && user?.divisi !== 'PENGAWAS' && (
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -458,7 +458,7 @@ export default function DataGuru() {
                           </td>
 
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            {user?.scope !== 'AUDITOR' ? (
+                            {user?.scope !== 'AUDITOR' && user?.divisi !== 'PENGAWAS' ? (
                               <>
                                 <button
                                   onClick={() => handleEdit(item)}

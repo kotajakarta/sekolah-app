@@ -9,6 +9,7 @@ import {
 import * as XLSX from 'xlsx';
 
 import Pagination from '../../components/Pagination';
+import { useAuth } from '../../hooks/useAuth';
 
 const MAPEL_LABELS: Record<string, string> = {
   'matematika': 'Matematika',
@@ -57,6 +58,7 @@ const statusConfig = {
 };
 
 export default function KetersediaanGuruMapel() {
+  const { user } = useAuth();
   const [searchCabang, setSearchCabang] = useState('');
   const [filterWilayah, setFilterWilayah] = useState('');
   const [filterCabang, setFilterCabang] = useState('');
@@ -69,7 +71,7 @@ export default function KetersediaanGuruMapel() {
   const limit = 10;
 
   const { data = [], isLoading, isError } = useQuery<CabangData[]>({
-    queryKey: ['ketersediaan-guru-detail'],
+    queryKey: ['ketersediaan-guru-detail', user?.id, user?.wilayahId, user?.scope],
     queryFn: async () => {
       const res = await apiClient.get('/dashboard/ketersediaan-guru');
       return res.data;
@@ -286,13 +288,15 @@ export default function KetersediaanGuruMapel() {
               <Download className="w-4 h-4" />
               Export to XLSX
             </button>
-            <Link
-              to="/formal/penugasan-guru"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
-            >
-              <BookOpen className="w-4 h-4" />
-              Atur Penugasan Guru
-            </Link>
+            {user?.divisi !== 'PENGAWAS' && (
+              <Link
+                to="/formal/penugasan-guru"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+              >
+                <BookOpen className="w-4 h-4" />
+                Atur Penugasan Guru
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -331,17 +335,19 @@ export default function KetersediaanGuruMapel() {
               />
             </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Wilayah</label>
-            <select
-              value={filterWilayah}
-              onChange={e => { setFilterWilayah(e.target.value); setFilterCabang(''); }}
-              className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="">Semua Wilayah</option>
-              {wilayahOptions.map(w => <option key={w} value={w}>{w}</option>)}
-            </select>
-          </div>
+          {user?.scope !== 'WILAYAH' && (
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Wilayah</label>
+              <select
+                value={filterWilayah}
+                onChange={e => { setFilterWilayah(e.target.value); setFilterCabang(''); }}
+                className="w-full px-3 py-1.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              >
+                <option value="">Semua Wilayah</option>
+                {wilayahOptions.map(w => <option key={w} value={w}>{w}</option>)}
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Cabang</label>
             <select

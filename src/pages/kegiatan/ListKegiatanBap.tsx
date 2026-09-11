@@ -181,6 +181,9 @@ function FileViewer({ doc, onClose }: FileViewerProps) {
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function ListKegiatanBap() {
   const { user } = useAuth();
+  const isPengawas = user?.divisi === 'PENGAWAS';
+  const isGlobal = user?.scope === 'GLOBAL' && !isPengawas;
+  const isCabang = user?.scope === 'CABANG' && !isPengawas;
   const navigate = useNavigate();
   const { showToast } = useToast();
   const queryClient = useQueryClient();
@@ -237,7 +240,7 @@ export default function ListKegiatanBap() {
 
   // Fetch all BAPs
   const { data: BAPs = [], isLoading, isError } = useQuery<Kegiatan[]>({
-    queryKey: ['kegiatan'],
+    queryKey: ['kegiatan', user?.id, user?.wilayahId, user?.scope],
     queryFn: async () => {
       const res = await apiClient.get('/kegiatan');
       return res.data;
@@ -450,7 +453,7 @@ export default function ListKegiatanBap() {
           </p>
         </div>
         
-        {user?.scope === 'CABANG' && (
+        {isCabang && (
           <button
             onClick={() => navigate('/dashboard/kegiatan/buat')}
             className="inline-flex items-center justify-center px-4 py-2.5 shadow-sm text-xs sm:text-sm font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-all cursor-pointer shrink-0"
@@ -755,7 +758,7 @@ export default function ListKegiatanBap() {
             >
               Reset Filter
             </button>
-          ) : user?.scope === 'CABANG' ? (
+          ) : isCabang ? (
             <button
               onClick={() => navigate('/dashboard/kegiatan/buat')}
               className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors cursor-pointer"
@@ -1110,7 +1113,7 @@ export default function ListKegiatanBap() {
                                   )}
                                 </div>
 
-                                {user?.scope === 'GLOBAL' && (
+                                {isGlobal && (
                                   <div className="flex items-center gap-2 shrink-0">
                                     {bap.isConfirmed ? (
                                       <button

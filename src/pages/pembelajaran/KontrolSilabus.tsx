@@ -167,7 +167,8 @@ export const PEMBELAJARAN_DEPENDENT_KEYS = [['pembelajaran-ringkasan'], ['lapora
 export default function KontrolSilabus() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const isGlobal = user?.scope === 'GLOBAL';
+  const isReadOnly = user?.scope === 'AUDITOR' || user?.divisi === 'PENGAWAS';
+  const isGlobal = user?.scope === 'GLOBAL' && !isReadOnly;
   const isWilayah = user?.scope === 'WILAYAH';
   const isCabang = user?.scope === 'CABANG';
 
@@ -232,7 +233,7 @@ export default function KontrolSilabus() {
   });
 
   const { data: branches = [] } = useQuery({
-    queryKey: ['master-data', 'cabang'],
+    queryKey: ['master-data', 'cabang', user?.id, user?.wilayahId],
     queryFn: async () => (await apiClient.get('/master-data/cabang')).data,
     enabled: isGlobal || isWilayah
   });
@@ -724,28 +725,30 @@ export default function KontrolSilabus() {
             {/* Stepper Buttons, Quick Actions & Datepicker */}
             <div className="flex flex-wrap items-center gap-2 text-xs">
               {/* Quick Action Buttons */}
-              <div className="flex items-center gap-1.5 mr-2">
-                <button
-                  type="button"
-                  onClick={() => markDailyAll('COMPLETED')}
-                  disabled={isFutureDate(selectedDate)}
-                  className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold border border-emerald-200 rounded-xl transition-all flex items-center gap-1 disabled:opacity-40"
-                  title="Tandai seluruh mapel di semua kelas Dikerjakan"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Dikerjakan Semua</span>
-                </button>
+              {!isReadOnly && (
+                <div className="flex items-center gap-1.5 mr-2">
+                  <button
+                    type="button"
+                    onClick={() => markDailyAll('COMPLETED')}
+                    disabled={isFutureDate(selectedDate)}
+                    className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold border border-emerald-200 rounded-xl transition-all flex items-center gap-1 disabled:opacity-40"
+                    title="Tandai seluruh mapel di semua kelas Dikerjakan"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Dikerjakan Semua</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => markDailyAll('LIBUR')}
-                  disabled={isFutureDate(selectedDate)}
-                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 rounded-xl transition-all flex items-center gap-1 disabled:opacity-40"
-                  title="Tandai seluruh mapel di semua kelas Libur"
-                >
-                  <span>Libur Semua</span>
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => markDailyAll('LIBUR')}
+                    disabled={isFutureDate(selectedDate)}
+                    className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 rounded-xl transition-all flex items-center gap-1 disabled:opacity-40"
+                    title="Tandai seluruh mapel di semua kelas Libur"
+                  >
+                    <span>Libur Semua</span>
+                  </button>
+                </div>
+              )}
 
               <button
                 onClick={() => setSelectedDate(shiftSaturday(selectedDate, -1))}
@@ -773,17 +776,19 @@ export default function KontrolSilabus() {
               </button>
 
               {/* Save All Button */}
-              <button
-                onClick={() => dailySaveMutation.mutate()}
-                disabled={dailySaveMutation.isPending || isFutureDate(selectedDate)}
-                className="px-4 py-1.5 bg-brand hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50 ml-auto sm:ml-2 text-xs"
-              >
-                {dailySaveMutation.isPending ? (
-                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Menyimpan...</>
-                ) : (
-                  <><Save className="w-3.5 h-3.5" /> Simpan Semua Data</>
-                )}
-              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={() => dailySaveMutation.mutate()}
+                  disabled={dailySaveMutation.isPending || isFutureDate(selectedDate)}
+                  className="px-4 py-1.5 bg-brand hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50 ml-auto sm:ml-2 text-xs"
+                >
+                  {dailySaveMutation.isPending ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Menyimpan...</>
+                  ) : (
+                    <><Save className="w-3.5 h-3.5" /> Simpan Semua Data</>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 
@@ -863,9 +868,9 @@ export default function KontrolSilabus() {
                                         <button
                                           key={opt.key}
                                           type="button"
-                                          disabled={isFuture}
-                                          onClick={() => handleDailyStatusChange(cls.kelasId, m.mataPelajaranId, opt.key)}
-                                          className={`px-2.5 py-1 rounded-full border text-[11px] font-bold transition-all disabled:opacity-40 ${
+                                          disabled={isReadOnly || isFuture}
+                                          onClick={() => !isReadOnly && handleDailyStatusChange(cls.kelasId, m.mataPelajaranId, opt.key)}
+                                          className={`px-2.5 py-1 rounded-full border text-[11px] font-bold transition-all ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} disabled:opacity-40 ${
                                             active ? opt.activeBg : opt.hoverBg
                                           }`}
                                         >
@@ -883,9 +888,9 @@ export default function KontrolSilabus() {
                                     <select
                                       value={currentForm.silabusId || ''}
                                       onChange={e => handleDailySilabusChange(cls.kelasId, m.mataPelajaranId, e.target.value)}
-                                      disabled={isFieldDisabled}
+                                      disabled={isReadOnly || isFieldDisabled}
                                       className={`mt-1 w-full px-2.5 py-1.5 rounded-xl border text-[11px] transition-all focus:outline-none ${
-                                        isFieldDisabled
+                                        isReadOnly || isFieldDisabled
                                           ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
                                           : 'bg-slate-50 border-slate-200 text-slate-800 font-semibold focus:ring-1 focus:ring-brand'
                                       }`}
@@ -910,9 +915,9 @@ export default function KontrolSilabus() {
                                   <select
                                     value={currentForm.guruId || ''}
                                     onChange={e => handleDailyGuruChange(cls.kelasId, m.mataPelajaranId, e.target.value)}
-                                    disabled={isFieldDisabled}
+                                    disabled={isReadOnly || isFieldDisabled}
                                     className={`w-full px-2.5 py-1.5 rounded-xl border text-xs transition-all focus:outline-none ${
-                                      isFieldDisabled
+                                      isReadOnly || isFieldDisabled
                                         ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60'
                                         : 'bg-slate-50 border-slate-200 text-slate-700 font-semibold focus:ring-1 focus:ring-brand'
                                     }`}
@@ -971,7 +976,7 @@ export default function KontrolSilabus() {
                                           </button>
 
                                           {/* Quick Reset / Delete Attendance Button */}
-                                          {m.absensiSummary && m.absensiSummary.total > 0 && !isFuture && (
+                                          {!isReadOnly && m.absensiSummary && m.absensiSummary.total > 0 && !isFuture && (
                                             <button
                                               type="button"
                                               onClick={() => handleResetDailyAbsensi(cls.kelasId, currentForm.silabusId || m.silabusId || '', m.mataPelajaranId, m.mataPelajaranName, cls.kelasName)}
@@ -1003,22 +1008,24 @@ export default function KontrolSilabus() {
               ))}
 
               {/* Bottom Sticky Action Bar */}
-              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-lg flex items-center justify-between">
-                <div className="text-xs text-slate-600 font-medium hidden sm:block">
-                  Simpan seluruh perubahan status pelaksanaan &amp; pengajar untuk tanggal <strong>{formatTanggal(selectedDate)}</strong>.
+              {!isReadOnly && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-lg flex items-center justify-between">
+                  <div className="text-xs text-slate-600 font-medium hidden sm:block">
+                    Simpan seluruh perubahan status pelaksanaan &amp; pengajar untuk tanggal <strong>{formatTanggal(selectedDate)}</strong>.
+                  </div>
+                  <button
+                    onClick={() => dailySaveMutation.mutate()}
+                    disabled={dailySaveMutation.isPending || isFutureDate(selectedDate)}
+                    className="w-full sm:w-auto px-6 py-2.5 bg-brand hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {dailySaveMutation.isPending ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan Seluruh Kelas...</>
+                    ) : (
+                      <><Save className="w-4 h-4" /> Simpan Semua Data Tanggal Ini</>
+                    )}
+                  </button>
                 </div>
-                <button
-                  onClick={() => dailySaveMutation.mutate()}
-                  disabled={dailySaveMutation.isPending || isFutureDate(selectedDate)}
-                  className="w-full sm:w-auto px-6 py-2.5 bg-brand hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {dailySaveMutation.isPending ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan Seluruh Kelas...</>
-                  ) : (
-                    <><Save className="w-4 h-4" /> Simpan Semua Data Tanggal Ini</>
-                  )}
-                </button>
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -1165,7 +1172,7 @@ export default function KontrolSilabus() {
                             <select
                               value={assigned?.silabusId || ''}
                               onChange={e => handleAssign(date, e.target.value)}
-                              disabled={future && !assigned}
+                              disabled={isReadOnly || (future && !assigned)}
                               className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50"
                             >
                               <option value="">-- Pilih Materi --</option>
@@ -1191,7 +1198,7 @@ export default function KontrolSilabus() {
                           <select
                             value={assigned?.guruId || ''}
                             onChange={e => handleGuruChange(date, e.target.value)}
-                            disabled={!assigned || !assigned.silabusId || future}
+                            disabled={isReadOnly || !assigned || !assigned.silabusId || future}
                             className="w-full px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50"
                           >
                             <option value="">-- Pengajar --</option>
@@ -1208,10 +1215,11 @@ export default function KontrolSilabus() {
                           {STATUS_OPTIONS.map(opt => {
                             const isLiburOption = opt.key === 'LIBUR';
                             const active = assigned ? assigned.status === opt.key : (isLiburOption && !!bareLibur);
-                            const disabled = assigned
+                            const disabled = isReadOnly || (assigned
                               ? future
-                              : (!isLiburOption || liburPending || (future && !bareLibur));
+                              : (!isLiburOption || liburPending || (future && !bareLibur)));
                             const handleClick = () => {
+                              if (isReadOnly) return;
                               if (assigned) {
                                 handleStatusChange(date, opt.key);
                                 return;
@@ -1226,7 +1234,7 @@ export default function KontrolSilabus() {
                                 type="button"
                                 disabled={disabled}
                                 onClick={handleClick}
-                                className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all text-center disabled:opacity-40 ${active ? opt.activeBg : opt.hoverBg}`}
+                                className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all text-center ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} disabled:opacity-40 ${active ? opt.activeBg : opt.hoverBg}`}
                               >
                                 {opt.label}
                               </button>
@@ -1239,19 +1247,21 @@ export default function KontrolSilabus() {
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200 rounded-2xl p-3 flex justify-end shadow-sm">
-                <button
-                  onClick={() => saveMutation.mutate()}
-                  disabled={saveMutation.isPending}
-                  className="inline-flex items-center justify-center px-5 py-2.5 text-xs font-bold rounded-xl text-white bg-brand hover:bg-blue-700 transition-colors disabled:opacity-50 w-full sm:w-auto shadow-sm"
-                >
-                  {saveMutation.isPending ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Menyimpan...</>
-                  ) : (
-                    <><Save className="w-4 h-4 mr-2" /> Simpan Progres Silabus</>
-                  )}
-                </button>
-              </div>
+              {!isReadOnly && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-3 flex justify-end shadow-sm">
+                  <button
+                    onClick={() => saveMutation.mutate()}
+                    disabled={saveMutation.isPending}
+                    className="inline-flex items-center justify-center px-5 py-2.5 text-xs font-bold rounded-xl text-white bg-brand hover:bg-blue-700 transition-colors disabled:opacity-50 w-full sm:w-auto shadow-sm"
+                  >
+                    {saveMutation.isPending ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Menyimpan...</>
+                    ) : (
+                      <><Save className="w-4 h-4 mr-2" /> Simpan Progres Silabus</>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

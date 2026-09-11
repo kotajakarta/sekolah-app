@@ -44,7 +44,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { user } = useAuth();
-  const canManage = user?.scope === 'GLOBAL' || user?.scope === 'CABANG';
+  const canManage = (user?.scope === 'GLOBAL' || user?.scope === 'CABANG') && user?.divisi !== 'PENGAWAS';
 
   const [subTab, setSubTab] = useState<'daftar' | 'jenis'>('daftar');
 

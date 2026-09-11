@@ -26,7 +26,8 @@ interface KehadiranGuruRow {
 export default function AbsensiGuru() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const isGlobal = user?.scope === 'GLOBAL';
+  const isReadOnly = user?.scope === 'AUDITOR' || user?.divisi === 'PENGAWAS';
+  const isGlobal = user?.scope === 'GLOBAL' && !isReadOnly;
   const isWilayah = user?.scope === 'WILAYAH';
   const isCabang = user?.scope === 'CABANG';
 
@@ -87,7 +88,7 @@ export default function AbsensiGuru() {
 
   // 3. Get Cabang list
   const { data: branches = [] } = useQuery({
-    queryKey: ['master-data', 'cabang'],
+    queryKey: ['master-data', 'cabang', user?.id, user?.wilayahId],
     queryFn: async () => {
       const res = await apiClient.get('/master-data/cabang');
       return res.data;
@@ -305,39 +306,41 @@ export default function AbsensiGuru() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleSetAllStatus('HADIR')}
-                className="px-3 py-1.5 text-xs font-semibold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
-              >
-                {t('absensi_guru.set_all_hadir')}
-              </button>
+            {!isReadOnly && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSetAllStatus('HADIR')}
+                  className="px-3 py-1.5 text-xs font-semibold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                >
+                  {t('absensi_guru.set_all_hadir')}
+                </button>
 
-              <button
-                type="button"
-                onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending || rows.length === 0}
-                className="px-4 py-1.5 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5 disabled:opacity-50 transition-colors cursor-pointer"
-              >
-                {saveMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    {t('common.saving')}
-                  </>
-                ) : isSavedSuccessfully ? (
-                  <>
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    {t('absensi_guru.saved')}
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-3.5 h-3.5" />
-                    {t('absensi_guru.save_btn')}
-                  </>
-                )}
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending || rows.length === 0}
+                  className="px-4 py-1.5 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-1.5 disabled:opacity-50 transition-colors cursor-pointer"
+                >
+                  {saveMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      {t('common.saving')}
+                    </>
+                  ) : isSavedSuccessfully ? (
+                    <>
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      {t('absensi_guru.saved')}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      {t('absensi_guru.save_btn')}
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Table Container */}
@@ -383,8 +386,9 @@ export default function AbsensiGuru() {
                           <div className="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200 gap-0.5">
                             <button
                               type="button"
-                              onClick={() => handleStatusChange(r.guruId, 'HADIR')}
-                              className={`px-2.5 py-1 text-[11px] font-bold rounded cursor-pointer transition-all ${
+                              disabled={isReadOnly}
+                              onClick={() => !isReadOnly && handleStatusChange(r.guruId, 'HADIR')}
+                              className={`px-2.5 py-1 text-[11px] font-bold rounded transition-all ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} ${
                                 r.status === 'HADIR'
                                   ? 'bg-emerald-600 text-white shadow-sm'
                                   : 'text-slate-600 hover:bg-slate-200/60'
@@ -394,8 +398,9 @@ export default function AbsensiGuru() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleStatusChange(r.guruId, 'SAKIT')}
-                              className={`px-2.5 py-1 text-[11px] font-bold rounded cursor-pointer transition-all ${
+                              disabled={isReadOnly}
+                              onClick={() => !isReadOnly && handleStatusChange(r.guruId, 'SAKIT')}
+                              className={`px-2.5 py-1 text-[11px] font-bold rounded transition-all ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} ${
                                 r.status === 'SAKIT'
                                   ? 'bg-blue-600 text-white shadow-sm'
                                   : 'text-slate-600 hover:bg-slate-200/60'
@@ -405,8 +410,9 @@ export default function AbsensiGuru() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleStatusChange(r.guruId, 'IZIN')}
-                              className={`px-2.5 py-1 text-[11px] font-bold rounded cursor-pointer transition-all ${
+                              disabled={isReadOnly}
+                              onClick={() => !isReadOnly && handleStatusChange(r.guruId, 'IZIN')}
+                              className={`px-2.5 py-1 text-[11px] font-bold rounded transition-all ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} ${
                                 r.status === 'IZIN'
                                   ? 'bg-amber-500 text-white shadow-sm'
                                   : 'text-slate-600 hover:bg-slate-200/60'
@@ -416,8 +422,9 @@ export default function AbsensiGuru() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleStatusChange(r.guruId, 'ALPA')}
-                              className={`px-2.5 py-1 text-[11px] font-bold rounded cursor-pointer transition-all ${
+                              disabled={isReadOnly}
+                              onClick={() => !isReadOnly && handleStatusChange(r.guruId, 'ALPA')}
+                              className={`px-2.5 py-1 text-[11px] font-bold rounded transition-all ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} ${
                                 r.status === 'ALPA'
                                   ? 'bg-rose-600 text-white shadow-sm'
                                   : 'text-slate-600 hover:bg-slate-200/60'
@@ -430,10 +437,12 @@ export default function AbsensiGuru() {
                         <td className="px-4 py-3">
                           <input
                             type="text"
-                            placeholder={t('absensi_guru.catatan_ph')}
+                            placeholder={isReadOnly ? '-' : t('absensi_guru.catatan_ph')}
                             value={r.catatan}
-                            onChange={e => handleCatatanChange(r.guruId, e.target.value)}
-                            className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-slate-50/40 focus:bg-white transition-colors"
+                            disabled={isReadOnly}
+                            readOnly={isReadOnly}
+                            onChange={e => !isReadOnly && handleCatatanChange(r.guruId, e.target.value)}
+                            className="w-full px-2.5 py-1 text-xs border border-slate-200 rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none bg-slate-50/40 focus:bg-white transition-colors disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed"
                           />
                         </td>
                       </tr>

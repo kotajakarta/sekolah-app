@@ -15,7 +15,7 @@ export default function JenisGrupDaimiManager() {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { user } = useAuth();
-  const canManage = user?.scope === 'GLOBAL';
+  const canManage = user?.scope === 'GLOBAL' && user?.divisi !== 'PENGAWAS';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<JenisGrupDaimi | null>(null);

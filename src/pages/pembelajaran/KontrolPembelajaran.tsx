@@ -22,21 +22,23 @@ export default function KontrolPembelajaran() {
     queryFn: async () => (await apiClient.get('/pengaturan/akademik')).data
   });
 
+  const isPengawas = user?.divisi === 'PENGAWAS';
+
   const tabs = useMemo(() => {
     const list: { key: TabKey; label: string; icon: any }[] = [];
     list.push({ key: 'ringkasan', label: 'Dashboard', icon: LayoutDashboard });
-    if (user?.scope === 'GLOBAL') {
+    if (user?.scope === 'GLOBAL' && !isPengawas) {
       list.push({ key: 'silabus', label: 'Kelola Silabus', icon: BookMarked });
     }
     list.push({ key: 'kontrol-silabus', label: 'Kontrol Silabus', icon: ClipboardCheck });
     if (user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH') {
       list.push({ key: 'laporan', label: 'Laporan Pembelajaran', icon: FileBarChart });
     }
-    if (user?.scope === 'GLOBAL') {
+    if (user?.scope === 'GLOBAL' && !isPengawas) {
       list.push({ key: 'pengaturan', label: 'Pengaturan', icon: Settings });
     }
     return list;
-  }, [user?.scope]);
+  }, [user?.scope, isPengawas]);
 
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
     const searchParams = new URLSearchParams(location.search);

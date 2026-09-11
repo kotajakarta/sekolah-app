@@ -97,12 +97,10 @@ export function useNavEntries(): NavEntry[] {
       const pengawasKelembagaan = [
         { to: '/dashboard/core/cabang', label: t('sidebar.cabang') || 'Data Cabang' },
         { to: '/dashboard/formal/muadalah', label: t('sidebar.lembaga_muadalah') || 'Lembaga Muadalah' },
-        { to: '/dashboard/formal/mapel', label: t('sidebar.mapel') || 'Mata Pelajaran' },
       ];
       const pengawasSantri = [
         { to: '/dashboard/core/siswa', label: t('sidebar.data_santri') || 'Data Semua Santri' },
         { to: '/dashboard/formal/siswa', label: t('sidebar.santri_muadalah') || 'Santri Muadalah' },
-        { to: '/dashboard/absensi/siswa', label: t('sidebar.absensi_siswa') || 'Absensi Siswa' },
       ];
       const pengawasUstadz = [
         { to: '/dashboard/core/guru', label: t('sidebar.data_guru') || 'Data Guru' },
@@ -110,7 +108,7 @@ export function useNavEntries(): NavEntry[] {
         { to: '/dashboard/absensi/guru', label: t('sidebar.absensi_guru') || 'Absensi Guru' },
       ];
       const pengawasMonitoring = [
-        { to: '/dashboard/laporan/ketersediaan-guru', label: 'Rekap Ketersediaan Guru Mapel' },
+        { to: '/dashboard/dashboard/ketersediaan-guru', label: 'Rekap Ketersediaan Guru Mapel' },
         { to: '/dashboard/laporan/kelengkapan-data', label: 'Rekap Kelengkapan Data Santri' },
         { to: '/dashboard/laporan/kelengkapan-guru', label: 'Rekap Kelengkapan Data Guru' },
         { to: '/dashboard/laporan/absensi', label: 'Rekapitulasi Absensi' },

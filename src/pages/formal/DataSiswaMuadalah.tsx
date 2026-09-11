@@ -17,6 +17,7 @@ export default function DataSiswaMuadalah() {
   const { showToast } = useToast();
   const queryClient = useQueryClient();
   const [studentToEdit, setStudentToEdit] = useState<any>(null);
+  const isReadOnly = user?.scope === 'AUDITOR' || user?.divisi === 'PENGAWAS';
   
   const isLockedScope = user?.scope === 'CABANG' || user?.scope === 'WALI_KELAS' || user?.scope === 'GURU';
   const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
@@ -33,7 +34,7 @@ export default function DataSiswaMuadalah() {
   }, [advancedFilters]);
 
   const { data: students, isLoading } = useQuery({
-    queryKey: ['siswa-formal'],
+    queryKey: ['siswa-formal', user?.id, user?.wilayahId, user?.scope],
     queryFn: async () => {
       const { data } = await apiClient.get('/formal/siswa');
       return data;
@@ -81,6 +82,7 @@ export default function DataSiswaMuadalah() {
   };
 
   const filteredStudents = (Array.isArray(students) ? students : []).filter((s: any) => {
+    if (user?.scope === 'WILAYAH' && user?.wilayahId && s.wilayahId !== user.wilayahId) return false;
     if (advancedFilters.wilayahId && s.wilayahId !== advancedFilters.wilayahId) return false;
     if (advancedFilters.cabangId && s.cabangId !== advancedFilters.cabangId) return false;
     if (advancedFilters.kelasId && s.siswaFormal?.kelasId !== advancedFilters.kelasId) return false;
@@ -143,12 +145,13 @@ export default function DataSiswaMuadalah() {
                       {student.siswaFormal?.kelas?.lembagaMuadalah?.name || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <div className="flex items-center justify-center" title={!canVerval ? 'Lengkapi data wajib: NISN, NIK, Nama, Tempat/Tanggal Lahir, Ibu Kandung, Jenis Kelamin, Tingkat' : ''}>
+                      <div className="flex items-center justify-center" title={isReadOnly ? 'Hanya dapat melihat status verval (Read Only)' : !canVerval ? 'Lengkapi data wajib: NISN, NIK, Nama, Tempat/Tanggal Lahir, Ibu Kandung, Jenis Kelamin, Tingkat' : ''}>
                         <input
                           type="checkbox"
                           checked={student.siswaFormal?.isVerval || false}
-                          onChange={(e) => handleToggleVerval(student, e.target.checked)}
-                          className="h-4.5 w-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          onChange={(e) => !isReadOnly && handleToggleVerval(student, e.target.checked)}
+                          disabled={!canVerval || isReadOnly}
+                          className={`h-4.5 w-4.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 ${isReadOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
                         />
                       </div>
                     </td>
@@ -156,13 +159,17 @@ export default function DataSiswaMuadalah() {
                       {student.cabang?.name || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => setStudentToEdit(student)}
-                        className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-xs font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors mr-2"
-                      >
-                        <Edit2 className="h-3.5 w-3.5 mr-1" />
-                        {t('formal.edit_academic') || 'Edit Akademik'}
-                      </button>
+                      {!isReadOnly ? (
+                        <button
+                          onClick={() => setStudentToEdit(student)}
+                          className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-xs font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors mr-2 cursor-pointer"
+                        >
+                          <Edit2 className="h-3.5 w-3.5 mr-1" />
+                          {t('formal.edit_academic') || 'Edit Akademik'}
+                        </button>
+                      ) : (
+                        <span className="text-slate-400 text-xs">-</span>
+                      )}
                     </td>
                   </tr>
                 )})}

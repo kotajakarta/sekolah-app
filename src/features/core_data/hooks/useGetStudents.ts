@@ -129,9 +129,12 @@ export interface Student {
   isActive?: boolean;
 }
 
+import { useAuth } from '../../../hooks/useAuth';
+
 export const useGetStudents = () => {
+  const { user } = useAuth();
   return useQuery<Student[]>({
-    queryKey: ['students'],
+    queryKey: ['students', user?.id, user?.wilayahId, user?.scope],
     queryFn: async () => {
       const response = await apiClient.get<Student[]>('/students');
       return response.data;

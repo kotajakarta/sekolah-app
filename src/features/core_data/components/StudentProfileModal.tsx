@@ -31,7 +31,7 @@ interface StudentProfileModalProps {
 export default function StudentProfileModal({ student, onClose, onEdit }: StudentProfileModalProps) {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const isAuditor = user?.scope === 'AUDITOR';
+  const isAuditor = user?.scope === 'AUDITOR' || user?.divisi === 'PENGAWAS';
   const [isClassHistoryOpen, setIsClassHistoryOpen] = useState(false);
   const { data: riwayatKelas } = useGetRiwayatKelas(student.id);
   const riwayatKelasTerbaru = sortRiwayatTerbaru(riwayatKelas ?? []);

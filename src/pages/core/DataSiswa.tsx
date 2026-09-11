@@ -149,6 +149,9 @@ export default function DataSiswa() {
   }, [students, location.search, navigate]);
 
   const filteredStudents = (Array.isArray(students) ? students : []).filter((s: Student) => {
+    // RBAC Scope Wilayah guard
+    if (user?.scope === 'WILAYAH' && user?.wilayahId && s.wilayahId !== user.wilayahId) return false;
+
     // RBAC Divisi scoping
     if (user?.divisi === 'FORMAL' && !s.siswaFormal) return false;
     if (user?.divisi === 'PESANTREN' && !s.dataDaimi && !s.grupDaimi) return false;
@@ -858,7 +861,7 @@ export default function DataSiswa() {
                               >
                                 <User className="h-3.5 w-3.5" />
                               </button>
-                              {user?.scope !== ('AUDITOR' as any) && (
+                              {user?.scope !== 'AUDITOR' && user?.divisi !== 'PENGAWAS' && (
                                 <>
                                   <button
                                     onClick={() => handleEdit(student)}
@@ -935,10 +938,10 @@ export default function DataSiswa() {
         <StudentProfileModal
           student={studentToView}
           onClose={() => setStudentToView(null)}
-          onEdit={() => {
+          onEdit={user?.scope !== 'AUDITOR' && user?.divisi !== 'PENGAWAS' ? () => {
             handleEdit(studentToView);
             setStudentToView(null);
-          }}
+          } : undefined}
         />
       )}
 

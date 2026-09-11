@@ -201,7 +201,7 @@ export default function LembagaMuadalahPage() {
   }, [alamatKecId]);
 
   const { data: list = [], isLoading } = useQuery<LembagaMuadalah[]>({
-    queryKey: ['lembaga-muadalah'],
+    queryKey: ['lembaga-muadalah', user?.id, user?.wilayahId],
     queryFn: async () => {
       const res = await apiClient.get('/formal/muadalah');
       return res.data;
@@ -442,6 +442,15 @@ export default function LembagaMuadalahPage() {
 
   // Filter Logic
   const filteredList = list.filter(item => {
+    // RBAC: If user is WILAYAH, enforce item belongs to user's wilayah or has classes in user's wilayah
+    if (user?.scope === 'WILAYAH' && user?.wilayahId) {
+      const matchItemWilayah = item.wilayahId === user.wilayahId;
+      const matchKelasWilayah = item.kelas?.some((k: any) => k.cabang?.wilayah?.id === user.wilayahId || (k.cabang as any)?.wilayahId === user.wilayahId);
+      if (!matchItemWilayah && !matchKelasWilayah) {
+        return false;
+      }
+    }
+
     const matchName = !filterName || 
       item.name.toLowerCase().includes(filterName.toLowerCase()) ||
       item.code.toLowerCase().includes(filterName.toLowerCase()) ||
@@ -727,21 +736,23 @@ export default function LembagaMuadalahPage() {
               <option value="ULA">ULA</option>
             </select>
 
-            <select
-              value={filterWilayah}
-              onChange={e => { setFilterWilayah(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-1.5 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-            >
-              <option value="">-- Semua Wilayah --</option>
-              {wilayahList.map(w => (
-                <option key={w.id} value={w.id}>{w.name}</option>
-              ))}
-            </select>
+            {user?.scope !== 'WILAYAH' && (
+              <select
+                value={filterWilayah}
+                onChange={e => { setFilterWilayah(e.target.value); setCurrentPage(1); }}
+                className="px-3 py-1.5 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+              >
+                <option value="">-- Semua Wilayah --</option>
+                {wilayahList.map(w => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
         {/* ── KARTU RINGKASAN SANTRI PER WILAYAH (Hanya di Sub-Tab Jumlah Santri, 1 baris scroll) ── */}
-        {activeSubTab === 'jumlah_santri' && wilayahSantriSummary.length > 0 && (
+        {activeSubTab === 'jumlah_santri' && user?.scope !== 'WILAYAH' && wilayahSantriSummary.length > 0 && (
           <div className="flex gap-2.5 overflow-x-auto pb-1.5 -mx-1 px-1">
             {wilayahSantriSummary.map(w => (
               <div

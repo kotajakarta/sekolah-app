@@ -34,7 +34,8 @@ export default function DataCabang() {
   const itemsPerPage = 10;
 
   const { user } = useAuth();
-  const isAdmin = user?.scope === 'GLOBAL';
+  const isPengawas = user?.divisi === 'PENGAWAS';
+  const isAdmin = user?.scope === 'GLOBAL' && !isPengawas;
   const { data: cabang, isLoading, isError } = useGetCabang(isAdmin);
   const { data: wilayahList = [] } = useGetWilayah();
   const { t } = useTranslation();
@@ -299,8 +300,12 @@ const normalizeDaimiKey = (str?: string | null): string => {
       );
     }
 
-    // Filter Wilayah
-    if (filterWilayah !== 'ALL') {
+    // RBAC: Strict filter by Wilayah or Cabang for non-global users
+    if (user?.scope === 'WILAYAH' && user?.wilayahId) {
+      result = result.filter(c => c.wilayahId === user.wilayahId || c.wilayah?.id === user.wilayahId);
+    } else if (user?.scope === 'CABANG' && user?.cabangId) {
+      result = result.filter(c => c.id === user.cabangId);
+    } else if (filterWilayah !== 'ALL') {
       result = result.filter(c => c.wilayah?.id === filterWilayah);
     }
 
@@ -961,20 +966,22 @@ const normalizeDaimiKey = (str?: string | null): string => {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-                  {/* Filter Wilayah */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-500 mb-1">Filter Wilayah</label>
-                    <select
-                      value={filterWilayah}
-                      onChange={(e) => setFilterWilayah(e.target.value)}
-                      className="w-full px-3 py-1.5 font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
-                    >
-                      <option value="ALL">Semua Wilayah</option>
-                      {wilayahList.map((w) => (
-                        <option key={w.id} value={w.id}>{w.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {/* Filter Wilayah (Hanya untuk pengguna Pusat/Global) */}
+                  {user?.scope !== 'WILAYAH' && user?.scope !== 'CABANG' && (
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-500 mb-1">Filter Wilayah</label>
+                      <select
+                        value={filterWilayah}
+                        onChange={(e) => setFilterWilayah(e.target.value)}
+                        className="w-full px-3 py-1.5 font-medium text-slate-800 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
+                      >
+                        <option value="ALL">Semua Wilayah</option>
+                        {wilayahList.map((w) => (
+                          <option key={w.id} value={w.id}>{w.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* Filter Jenis Grup Daimi */}
                   <div>
@@ -1011,8 +1018,8 @@ const normalizeDaimiKey = (str?: string | null): string => {
               </div>
             )}
 
-            {/* ── REKAPITULASI PER WILAYAH TABLE (SubTab: Jumlah & Target Siswa / Kelas X Daimi, Hanya saat Semua Wilayah) ── */}
-            {(activeSubTab === 'jumlah_siswa' || activeSubTab === 'kelas_x_daimi') && filterWilayah === 'ALL' && wilayahSummaryList.length > 0 && (
+            {/* ── REKAPITULASI PER WILAYAH TABLE (SubTab: Jumlah & Target Siswa / Kelas X Daimi, Hanya untuk Pusat saat Semua Wilayah) ── */}
+            {(activeSubTab === 'jumlah_siswa' || activeSubTab === 'kelas_x_daimi') && filterWilayah === 'ALL' && user?.scope !== 'WILAYAH' && user?.scope !== 'CABANG' && wilayahSummaryList.length > 0 && (
               <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mb-6">
                 <div className="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
                   <div className="flex items-center gap-2">

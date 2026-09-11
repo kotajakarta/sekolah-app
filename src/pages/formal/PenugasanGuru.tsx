@@ -60,10 +60,13 @@ export default function PenugasanGuru() {
   const [summaryWilayah, setSummaryWilayah] = useState('');
   const [summaryCabang, setSummaryCabang] = useState('');
 
+  // RBAC read-only check
+  const isReadOnly = user?.scope === 'AUDITOR' || user?.divisi === 'PENGAWAS';
+
   // Single bundled request replaces what used to be 6 separate round trips
   // (guru-mapel-kelas, guru, wilayah, cabang, kelas, mapel).
   const { data: bundle, isLoading: loadingBundle } = useQuery<GuruMapelKelasBundle>({
-    queryKey: ['guru-mapel-kelas-bundle'],
+    queryKey: ['guru-mapel-kelas-bundle', user?.id, user?.wilayahId, user?.scope],
     queryFn: async () => {
       const res = await apiClient.get('/formal/guru-mapel-kelas/bundle');
       return res.data;
@@ -348,13 +351,15 @@ export default function PenugasanGuru() {
             <BarChart3 className="w-4 h-4 text-blue-600" />
             {t('penugasan.ringkasan_btn')}
           </button>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold rounded-lg flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md active:scale-[0.98]"
-          >
-            <Plus className="w-4 h-4" strokeWidth={2.5} />
-            {t('penugasan.tambah_btn')}
-          </button>
+          {!isReadOnly && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-semibold rounded-lg flex items-center gap-1.5 transition-all shadow-sm hover:shadow-md active:scale-[0.98]"
+            >
+              <Plus className="w-4 h-4" strokeWidth={2.5} />
+              {t('penugasan.tambah_btn')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -522,7 +527,9 @@ export default function PenugasanGuru() {
                   <th className="px-6 py-3.5 w-2/5">{t('penugasan.penugasan') || 'Penugasan (Mapel & Kelas)'}</th>
                   <th className="px-6 py-3.5">{t('penugasan.cabang') || 'Cabang'}</th>
                   <th className="px-6 py-3.5">{t('penugasan.wilayah') || 'Wilayah'}</th>
-                  <th className="px-6 py-3.5 text-center w-28">{t('common.action') || 'Aksi'}</th>
+                  {!isReadOnly && (
+                    <th className="px-6 py-3.5 text-center w-28">{t('common.action') || 'Aksi'}</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm font-sans">
@@ -551,13 +558,15 @@ export default function PenugasanGuru() {
                               <span>
                                 {asg.mataPelajaran?.name || 'Mapel'} &bull; <span className="text-indigo-700 font-bold">{asg.kelasName || 'Kelas'}</span>
                               </span>
-                              <button
-                                onClick={() => handleOpenDelete(asg.id)}
-                                className="ml-1 p-0.5 text-indigo-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors"
-                                title="Hapus penugasan mapel ini"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
+                              {!isReadOnly && (
+                                <button
+                                  onClick={() => handleOpenDelete(asg.id)}
+                                  className="ml-1 p-0.5 text-indigo-400 hover:text-rose-600 hover:bg-rose-100 rounded transition-colors"
+                                  title="Hapus penugasan mapel ini"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </span>
                           ))}
                         </div>
@@ -574,24 +583,26 @@ export default function PenugasanGuru() {
                       </td>
 
                       {/* Aksi */}
-                      <td className="px-6 py-4 text-center align-top whitespace-nowrap">
-                        <button
-                          onClick={() => {
-                            setFormData({ staffId: group.staffId, mataPelajaranId: '', kelasId: '' });
-                            setIsModalOpen(true);
-                          }}
-                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors inline-flex items-center gap-1"
-                          title="Tambah penugasan baru untuk guru ini"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          Tambah
-                        </button>
-                      </td>
+                      {!isReadOnly && (
+                        <td className="px-6 py-4 text-center align-top whitespace-nowrap">
+                          <button
+                            onClick={() => {
+                              setFormData({ staffId: group.staffId, mataPelajaranId: '', kelasId: '' });
+                              setIsModalOpen(true);
+                            }}
+                            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors inline-flex items-center gap-1"
+                            title="Tambah penugasan baru untuk guru ini"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Tambah
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={isReadOnly ? 4 : 5} className="px-6 py-12 text-center text-slate-400">
                       <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                       {t('penugasan.empty_state') || 'Belum ada data penugasan guru yang sesuai filter.'}
                     </td>

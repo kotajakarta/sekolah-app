@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { Loader2, Save, AlertCircle, CheckCircle, X, Search, Trash2 } from 'lucide-react';
 import { normalizeTurkish } from '../../utils/text';
+import { useAuth } from '../../hooks/useAuth';
 
 interface AbsensiSilabusRow {
   studentId: string;
@@ -39,6 +40,8 @@ interface Props {
 }
 
 export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tanggal: propTanggal, onClose, onSaved }: Props) {
+  const { user } = useAuth();
+  const isReadOnly = user?.scope === 'AUDITOR' || user?.divisi === 'PENGAWAS';
   const queryClient = useQueryClient();
   const [rows, setRows] = useState<AbsensiSilabusRow[]>([]);
   const [tanggal, setTanggal] = useState(propTanggal || todayStr());
@@ -187,18 +190,20 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mr-1">Tandai Cepat:</span>
-                <button onClick={() => markAll('HADIR')} className="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold rounded-full transition-all">Hadir (Semua)</button>
-                <button onClick={() => markAll('IZIN')} className="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[11px] font-bold rounded-full transition-all">Izin (Semua)</button>
-                <button onClick={() => markAll('SAKIT')} className="px-3 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-[11px] font-bold rounded-full transition-all">Sakit (Semua)</button>
-                <button onClick={() => markAll('ALPA')} className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold rounded-full transition-all">Alpa (Semua)</button>
-                {searchQuery && (
-                  <span className="ml-auto text-[11px] text-gray-500 font-medium">
-                    Tampil {filteredRows.length} dari {rows.length} santri
-                  </span>
-                )}
-              </div>
+              {!isReadOnly && (
+                <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mr-1">Tandai Cepat:</span>
+                  <button onClick={() => markAll('HADIR')} className="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-bold rounded-full transition-all">Hadir (Semua)</button>
+                  <button onClick={() => markAll('IZIN')} className="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[11px] font-bold rounded-full transition-all">Izin (Semua)</button>
+                  <button onClick={() => markAll('SAKIT')} className="px-3 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-[11px] font-bold rounded-full transition-all">Sakit (Semua)</button>
+                  <button onClick={() => markAll('ALPA')} className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold rounded-full transition-all">Alpa (Semua)</button>
+                  {searchQuery && (
+                    <span className="ml-auto text-[11px] text-gray-500 font-medium">
+                      Tampil {filteredRows.length} dari {rows.length} santri
+                    </span>
+                  )}
+                </div>
+              )}
 
               {filteredRows.length === 0 ? (
                 <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-sm text-gray-400">
@@ -222,8 +227,9 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
                               <button
                                 key={opt.key}
                                 type="button"
-                                onClick={() => handleStatusChange(row.studentId, opt.key)}
-                                className={`py-1 text-[11px] font-semibold rounded-md border transition-all text-center ${active ? opt.activeBg : opt.hoverBg}`}
+                                disabled={isReadOnly}
+                                onClick={() => !isReadOnly && handleStatusChange(row.studentId, opt.key)}
+                                className={`py-1 text-[11px] font-semibold rounded-md border transition-all text-center ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} ${active ? opt.activeBg : opt.hoverBg}`}
                               >
                                 {opt.label}
                               </button>
@@ -232,10 +238,12 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
                         </div>
                         <input
                           type="text"
-                          placeholder="Catatan (opsional)"
+                          placeholder={isReadOnly ? '-' : 'Catatan (opsional)'}
                           value={row.catatan}
-                          onChange={e => handleCatatanChange(row.studentId, e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                          disabled={isReadOnly}
+                          readOnly={isReadOnly}
+                          onChange={e => !isReadOnly && handleCatatanChange(row.studentId, e.target.value)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15 disabled:bg-slate-50 disabled:text-slate-500"
                         />
                       </div>
                     ))}
@@ -267,8 +275,9 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
                                     <button
                                       key={opt.key}
                                       type="button"
-                                      onClick={() => handleStatusChange(row.studentId, opt.key)}
-                                      className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all shrink-0 w-14 text-center ${active ? opt.activeBg : opt.hoverBg}`}
+                                      disabled={isReadOnly}
+                                      onClick={() => !isReadOnly && handleStatusChange(row.studentId, opt.key)}
+                                      className={`px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-all shrink-0 w-14 text-center ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} ${active ? opt.activeBg : opt.hoverBg}`}
                                     >
                                       {opt.label}
                                     </button>
@@ -279,10 +288,12 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
                             <td className="px-3 py-2">
                               <input
                                 type="text"
-                                placeholder="Catatan (opsional)"
+                                placeholder={isReadOnly ? '-' : 'Catatan (opsional)'}
                                 value={row.catatan}
-                                onChange={e => handleCatatanChange(row.studentId, e.target.value)}
-                                className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15"
+                                disabled={isReadOnly}
+                                readOnly={isReadOnly}
+                                onChange={e => !isReadOnly && handleCatatanChange(row.studentId, e.target.value)}
+                                className="w-full px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-800/15 disabled:bg-slate-50 disabled:text-slate-500"
                               />
                             </td>
                           </tr>
@@ -298,23 +309,25 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
 
         {data && rows.length > 0 && (
           <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between gap-2 shrink-0 bg-slate-50/50">
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm('Apakah Anda yakin ingin menghapus / mereset seluruh data absensi ini?')) {
-                  deleteMutation.mutate();
-                }
-              }}
-              disabled={deleteMutation.isPending || saveMutation.isPending}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors disabled:opacity-50"
-              title="Hapus / Reset data absensi pada tanggal ini"
-            >
-              {deleteMutation.isPending ? (
-                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Menghapus...</>
-              ) : (
-                <><Trash2 className="w-3.5 h-3.5" /> Reset Absensi</>
-              )}
-            </button>
+            {!isReadOnly ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Apakah Anda yakin ingin menghapus / mereset seluruh data absensi ini?')) {
+                    deleteMutation.mutate();
+                  }
+                }}
+                disabled={deleteMutation.isPending || saveMutation.isPending}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors disabled:opacity-50"
+                title="Hapus / Reset data absensi pada tanggal ini"
+              >
+                {deleteMutation.isPending ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Menghapus...</>
+                ) : (
+                  <><Trash2 className="w-3.5 h-3.5" /> Reset Absensi</>
+                )}
+              </button>
+            ) : <div />}
 
             <div className="flex items-center gap-2">
               <button
@@ -323,17 +336,19 @@ export default function AbsensiSilabusModal({ kelasId, kelasName, silabusId, tan
               >
                 Tutup
               </button>
-              <button
-                onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending || deleteMutation.isPending}
-                className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-xl text-white bg-brand hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-xs"
-              >
-                {saveMutation.isPending ? (
-                  <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Menyimpan...</>
-                ) : (
-                  <><Save className="w-3.5 h-3.5 mr-1.5" /> Simpan Absensi</>
-                )}
-              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending || deleteMutation.isPending}
+                  className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold rounded-xl text-white bg-brand hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-xs"
+                >
+                  {saveMutation.isPending ? (
+                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Menyimpan...</>
+                  ) : (
+                    <><Save className="w-3.5 h-3.5 mr-1.5" /> Simpan Absensi</>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         )}

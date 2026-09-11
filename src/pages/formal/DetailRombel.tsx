@@ -4,6 +4,7 @@ import apiClient from '../../lib/apiClient';
 import { useGetStudents, Student } from '../../features/core_data/hooks/useGetStudents';
 import { ArrowLeft, Edit3, Trash2, UserPlus, UserMinus, Loader2, Printer, X, Search } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../hooks/useAuth';
 
 interface Cabang {
   id: string;
@@ -58,6 +59,8 @@ interface DetailRombelProps {
 }
 
 export default function DetailRombel({ kelas, onClose, onEdit, onDelete, isAdmin }: DetailRombelProps) {
+  const { user } = useAuth();
+  const isReadOnly = user?.scope === 'AUDITOR' || user?.divisi === 'PENGAWAS';
   const queryClient = useQueryClient();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,40 +105,53 @@ export default function DetailRombel({ kelas, onClose, onEdit, onDelete, isAdmin
     return fullName.includes(query) || nisn.includes(query);
   });
 
+  // Add students mutation
   const addStudentsMutation = useMutation({
     mutationFn: async (studentIds: string[]) => {
-      await Promise.all(
-        studentIds.map(studentId =>
-          apiClient.post(`/formal/kelas/${kelas.id}/students`, { studentId })
-        )
-      );
+      await apiClient.post(`/formal/kelas/${kelas.id}/students`, { studentIds });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kelas', kelas.id, 'students'] });
+      queryClient.invalidateQueries({ queryKey: ['kelas'] });
       queryClient.invalidateQueries({ queryKey: ['students'] });
-      setSelectedStudentIds([]);
-      setSearchQuery('');
       setIsAddModalOpen(false);
-      refetchStudents();
+      setSelectedStudentIds([]);
+      showToast('success', 'Santri berhasil dimasukkan ke dalam rombel');
     },
     onError: (err: any) => {
-      showToast('error', err.response?.data?.message || 'Gagal menambahkan beberapa santri');
+      showToast('error', err.response?.data?.message || 'Gagal menambahkan santri');
     }
   });
 
+  // Remove student mutation
   const removeStudentMutation = useMutation({
     mutationFn: async (studentId: string) => {
-      return apiClient.delete(`/formal/kelas/${kelas.id}/students/${studentId}`);
+      await apiClient.delete(`/formal/kelas/${kelas.id}/students/${studentId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kelas', kelas.id, 'students'] });
+      queryClient.invalidateQueries({ queryKey: ['kelas'] });
       queryClient.invalidateQueries({ queryKey: ['students'] });
-      refetchStudents();
+      showToast('success', 'Santri berhasil dikeluarkan dari rombel');
     },
     onError: (err: any) => {
       showToast('error', err.response?.data?.message || 'Gagal mengeluarkan santri');
     }
   });
+
+  const handleToggleSelectCandidate = (id: string) => {
+    setSelectedStudentIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllCandidates = () => {
+    if (selectedStudentIds.length === filteredCandidates.length) {
+      setSelectedStudentIds([]);
+    } else {
+      setSelectedStudentIds(filteredCandidates.map(c => c.id));
+    }
+  };
 
   const kapasitas = kelasDetail?.kapasitas || 80;
   const currentCount = studentsInKelas.length;
@@ -161,15 +177,17 @@ export default function DetailRombel({ kelas, onClose, onEdit, onDelete, isAdmin
             Cetak Daftar
           </button>
           
-          <button
-            onClick={() => onEdit(kelasDetail!)}
-            className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors"
-          >
-            <Edit3 className="w-4 h-4 mr-2" />
-            EDIT ROMBEL
-          </button>
+          {!isReadOnly && (
+            <button
+              onClick={() => onEdit(kelasDetail!)}
+              className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors"
+            >
+              <Edit3 className="w-4 h-4 mr-2" />
+              EDIT ROMBEL
+            </button>
+          )}
 
-          {isAdmin && (
+          {!isReadOnly && isAdmin && (
             <button
               onClick={() => onDelete(kelas.id)}
               className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg text-white bg-rose-600 hover:bg-rose-700 shadow-sm transition-colors"
@@ -217,18 +235,20 @@ export default function DetailRombel({ kelas, onClose, onEdit, onDelete, isAdmin
             </h3>
           </div>
           {/* Tambah Button */}
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedStudentIds([]);
-              setSearchQuery('');
-              setIsAddModalOpen(true);
-            }}
-            className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors print:hidden"
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Tambah
-          </button>
+          {!isReadOnly && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedStudentIds([]);
+                setSearchQuery('');
+                setIsAddModalOpen(true);
+              }}
+              className="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-colors print:hidden"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Tambah
+            </button>
+          )}
         </div>
 
         {/* Students Table */}
@@ -246,7 +266,9 @@ export default function DetailRombel({ kelas, onClose, onEdit, onDelete, isAdmin
                   <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">NAMA SANTRI</th>
                   <th className="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">NISN</th>
                   <th className="px-6 py-3.5 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-36">NOMOR ABSEN</th>
-                  <th className="px-6 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest w-28 print:hidden">AKSI</th>
+                  {!isReadOnly && (
+                    <th className="px-6 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest w-28 print:hidden">AKSI</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
@@ -264,26 +286,28 @@ export default function DetailRombel({ kelas, onClose, onEdit, onDelete, isAdmin
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-semibold text-slate-800">
                       {idx + 1}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium print:hidden">
-                      <button
-                        onClick={() => {
-                          if (confirm(`Apakah Anda yakin ingin mengeluarkan ${student.biodata?.fullName} dari rombel ini?`)) {
-                            removeStudentMutation.mutate(student.id);
-                          }
-                        }}
-                        disabled={removeStudentMutation.isPending}
-                        className="inline-flex items-center px-2 py-1.5 border border-rose-200 rounded text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors"
-                      >
-                        <UserMinus className="w-3.5 h-3.5 mr-1" />
-                        Keluarkan
-                      </button>
-                    </td>
+                    {!isReadOnly && (
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium print:hidden">
+                        <button
+                          onClick={() => {
+                            if (confirm(`Apakah Anda yakin ingin mengeluarkan ${student.biodata?.fullName} dari rombel ini?`)) {
+                              removeStudentMutation.mutate(student.id);
+                            }
+                          }}
+                          disabled={removeStudentMutation.isPending}
+                          className="inline-flex items-center px-2 py-1.5 border border-rose-200 rounded text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors"
+                        >
+                          <UserMinus className="w-3.5 h-3.5 mr-1" />
+                          Keluarkan
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {studentsInKelas.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-slate-400 text-sm">
-                      Belum ada santri di rombel ini. Gunakan tombol Tambah di atas untuk menambahkan santri.
+                    <td colSpan={isReadOnly ? 4 : 5} className="px-6 py-8 text-center text-slate-400 text-sm">
+                      Belum ada santri di rombel ini.
                     </td>
                   </tr>
                 )}

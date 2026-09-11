@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
+import { useAuth } from '../../../hooks/useAuth';
 
 export interface Staff {
   id: string;
@@ -143,8 +144,9 @@ export interface Cabang {
 }
 
 export const useGetGuru = () => {
+  const { user } = useAuth();
   return useQuery<Staff[]>({
-    queryKey: ['master-data', 'guru'],
+    queryKey: ['master-data', 'guru', user?.id, user?.wilayahId, user?.scope],
     queryFn: async () => {
       const response = await apiClient.get<Staff[]>('/master-data/guru');
       return response.data;
@@ -169,8 +171,9 @@ export const useDeleteGuru = () => {
 };
 
 export const useGetCabang = (includeInactive = false) => {
+  const { user } = useAuth();
   return useQuery<Cabang[]>({
-    queryKey: ['master-data', 'cabang', { includeInactive }],
+    queryKey: ['master-data', 'cabang', user?.id, user?.wilayahId, user?.scope, { includeInactive }],
     queryFn: async () => {
       const response = await apiClient.get<Cabang[]>('/master-data/cabang', { params: includeInactive ? { includeInactive: 'true' } : undefined });
       return response.data;
@@ -220,8 +223,9 @@ export const useImportTargetKuota = () => {
 };
 
 export const useGetWilayah = (includeInactive = false) => {
+  const { user } = useAuth();
   return useQuery<Wilayah[]>({
-    queryKey: ['master-data', 'wilayah', { includeInactive }],
+    queryKey: ['master-data', 'wilayah', user?.id, user?.wilayahId, user?.scope, { includeInactive }],
     queryFn: async () => {
       const response = await apiClient.get<Wilayah[]>('/master-data/wilayah', { params: includeInactive ? { includeInactive: 'true' } : undefined });
       return response.data;

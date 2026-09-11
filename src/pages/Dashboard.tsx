@@ -134,7 +134,7 @@ export default function Dashboard() {
   });
 
   const { data: branches = [] } = useQuery({
-    queryKey: ['master-data', 'cabang'],
+    queryKey: ['master-data', 'cabang', user?.id, user?.wilayahId, user?.scope],
     queryFn: async () => {
       const res = await apiClient.get('/master-data/cabang');
       return res.data;
@@ -276,7 +276,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            {user?.scope === 'GLOBAL' && (
+            {user?.scope === 'GLOBAL' && user?.divisi !== 'PENGAWAS' && (
               <button
                 type="button"
                 onClick={() => syncMutation.mutate()}

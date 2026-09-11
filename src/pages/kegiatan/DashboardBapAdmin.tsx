@@ -223,10 +223,11 @@ export default function DashboardBapAdmin() {
 
   const { summary, charts, templatesOptions = [], userScope = user?.scope, userWilayahName, userCabangName } = data;
 
-  const isCabangScope = userScope === 'CABANG';
+  const isPengawas = user?.divisi === 'PENGAWAS';
+  const isCabangScope = userScope === 'CABANG' && !isPengawas;
   const isWilayahScope = userScope === 'WILAYAH';
-  const isAuditorScope = userScope === 'AUDITOR';
-  const isGlobalScope = userScope === 'GLOBAL' || (!isCabangScope && !isWilayahScope && !isAuditorScope);
+  const isAuditorScope = userScope === 'AUDITOR' || isPengawas;
+  const isGlobalScope = !isPengawas && (userScope === 'GLOBAL' || (!isCabangScope && !isWilayahScope && !isAuditorScope));
 
   // Selected template item object
   const activeTemplateObj = templatesOptions.find(t => t.id === selectedTemplateFilter);

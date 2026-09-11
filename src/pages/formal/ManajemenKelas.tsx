@@ -119,7 +119,7 @@ export default function ManajemenKelas() {
   const [filterStatus, setFilterStatus] = useState('');
 
   const { data: kelasList, isLoading } = useQuery<Kelas[]>({
-    queryKey: ['kelas'],
+    queryKey: ['kelas', user?.id, user?.wilayahId, user?.scope],
     queryFn: async () => {
       const res = await apiClient.get('/formal/kelas');
       return res.data;
@@ -329,6 +329,10 @@ export default function ManajemenKelas() {
   };
 
   const filteredKelasList = (kelasList || []).filter((kelas) => {
+    if (user?.scope === 'WILAYAH' && user?.wilayahId) {
+      const wId = kelas.cabang?.wilayahId || kelas.cabang?.wilayah?.id;
+      if (wId !== user.wilayahId) return false;
+    }
     if (filterMuadalah && kelas.lembagaMuadalahId !== filterMuadalah) {
       return false;
     }

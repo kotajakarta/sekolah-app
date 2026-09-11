@@ -507,13 +507,13 @@ export default function Ringkasan() {
             </select>
           )}
 
-          {/* Manual Sync Button (GLOBAL admin only) */}
-          {user?.scope === 'GLOBAL' && (
+          {/* Manual Sync Button (GLOBAL, WILAYAH, CABANG, excluding PENGAWAS) */}
+          {['GLOBAL', 'WILAYAH', 'CABANG'].includes(user?.scope || '') && user?.divisi !== 'PENGAWAS' && (
             <button
               type="button"
               onClick={() => syncMutation.mutate()}
               disabled={syncMutation.isPending}
-              title="Hitung ulang data ringkasan periode yang sedang dilihat"
+              title={user?.scope === 'GLOBAL' ? 'Hitung ulang data ringkasan nasional' : user?.scope === 'WILAYAH' ? 'Hitung ulang data ringkasan wilayah' : 'Hitung ulang data ringkasan cabang'}
               className="inline-flex items-center px-3 py-1.5 bg-brand text-white rounded-xl text-xs font-bold shadow-sm hover:bg-brand/90 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${syncMutation.isPending ? 'animate-spin' : ''}`} />

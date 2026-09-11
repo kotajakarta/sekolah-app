@@ -10,7 +10,7 @@ import StudentModal from '../../features/core_data/components/StudentModal';
 import StudentProfileModal from '../../features/core_data/components/StudentProfileModal';
 import KelengkapanSiswaModal from '../../features/core_data/components/KelengkapanSiswaModal';
 import CustomFilterExportModal from '../../features/core_data/components/CustomFilterExportModal';
-import SiswaDashboardTab from '../../features/core_data/components/SiswaDashboardTab';
+import SiswaDashboardTab, { getTingkatKey } from '../../features/core_data/components/SiswaDashboardTab';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
@@ -100,8 +100,8 @@ export default function DataSiswa() {
   const availableTingkats = useMemo(() => {
     const set = new Set<string>();
     (students || []).forEach((s: any) => {
-      const tingkat = s.siswaFormal?.kelas?.tingkat || s.siswaFormal?.tingkat;
-      if (tingkat) set.add(String(tingkat));
+      const tKey = getTingkatKey(s.siswaFormal);
+      if (tKey) set.add(tKey);
     });
     const order = ['Non Muadalah', '7', '8', '9', '10', '11', '12'];
     return order.filter(t => set.has(t));
@@ -166,8 +166,13 @@ export default function DataSiswa() {
       if (!d || d.trim().toLowerCase() !== advancedFilters.jenisDaimi.trim().toLowerCase()) return false;
     }
     if (advancedFilters.tingkat) {
-      const studentTingkat = s.siswaFormal?.kelas?.tingkat || s.siswaFormal?.tingkat;
-      if (studentTingkat !== advancedFilters.tingkat) return false;
+      const tKey = getTingkatKey(s.siswaFormal);
+      if (advancedFilters.tingkat === 'Non Muadalah') {
+        if (tKey !== 'Non Muadalah') return false;
+      } else {
+        const studentTingkat = s.siswaFormal?.kelas?.tingkat || s.siswaFormal?.tingkat;
+        if (tKey !== advancedFilters.tingkat && studentTingkat !== advancedFilters.tingkat) return false;
+      }
     }
 
     // Search query

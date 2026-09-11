@@ -65,16 +65,17 @@ const getGenderKey = (jk?: string | null) => {
   return 'TIDAK_DIKETAHUI';
 };
 
-const getTingkatKey = (sf?: any) => {
+export const getTingkatKey = (sf?: any) => {
   if (!sf || !sf.kelas) return 'Non Muadalah';
-  const t = (sf.kelas.tingkat || sf.kelas.name || '').toUpperCase().trim();
+  const t = (sf.kelas.tingkat || sf.tingkat || sf.kelas.name || '').toUpperCase().trim();
+  if (t === 'NON MUADALAH' || t === 'NON-MUADALAH' || t === 'NON_MUADALAH' || t === 'NON') return 'Non Muadalah';
   if (t.includes('12') || t.includes('XII')) return '12';
   if (t.includes('11') || t.includes('XI')) return '11';
   if (t.includes('10') || t.includes('X')) return '10';
   if (t.includes('9') || t.includes('IX')) return '9';
   if (t.includes('8') || t.includes('VIII')) return '8';
   if (t.includes('7') || t.includes('VII')) return '7';
-  return sf.kelas.tingkat || 'Lainnya';
+  return sf.kelas.tingkat || 'Non Muadalah';
 };
 
 const getDaimiKey = (s: Student, masterTypes: { id: string; name: string }[]) => {
@@ -109,6 +110,16 @@ export default function SiswaDashboardTab({
     }
   });
 
+  const availableTingkats = useMemo(() => {
+    const set = new Set<string>();
+    (students || []).forEach((s: any) => {
+      const tKey = getTingkatKey(s.siswaFormal);
+      if (tKey) set.add(tKey);
+    });
+    const order = ['Non Muadalah', '7', '8', '9', '10', '11', '12'];
+    return order.filter(t => set.has(t));
+  }, [students]);
+
   // Filter students dynamically based on selected filters
   const filteredStudents = useMemo(() => {
     return (Array.isArray(students) ? students : []).filter((s: Student) => {
@@ -120,7 +131,15 @@ export default function SiswaDashboardTab({
         const daimiVal = s.dataDaimi?.grup?.jenis || s.grupDaimi;
         if (!daimiVal || daimiVal.trim().toLowerCase() !== filters.jenisDaimi.trim().toLowerCase()) return false;
       }
-      if (filters.tingkat && s.siswaFormal?.kelas?.tingkat !== filters.tingkat) return false;
+      if (filters.tingkat) {
+        const tKey = getTingkatKey(s.siswaFormal);
+        if (filters.tingkat === 'Non Muadalah') {
+          if (tKey !== 'Non Muadalah') return false;
+        } else {
+          const rawTingkat = s.siswaFormal?.kelas?.tingkat || s.siswaFormal?.tingkat;
+          if (tKey !== filters.tingkat && rawTingkat !== filters.tingkat) return false;
+        }
+      }
       return true;
     });
   }, [students, filters]);
@@ -313,6 +332,7 @@ export default function SiswaDashboardTab({
         userCabangId={userCabangId}
         showDaimiFilter={true}
         showTingkatFilter={true}
+        availableTingkats={availableTingkats}
       />
 
       {/* Metric Cards Grid */}
@@ -332,8 +352,11 @@ export default function SiswaDashboardTab({
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-indigo-800/40 flex items-center justify-between text-xs text-indigo-200">
-            <span>Aktif: <strong className="text-emerald-400">{stats.aktif}</strong></span>
-            <span>Non-Aktif: <strong className="text-slate-400">{stats.nonAktif}</strong></span>
+            <span className="flex items-center gap-1.5" title="Semua data di halaman ini merupakan santri aktif yang terdaftar di cabang">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+              Santri Aktif Terdaftar
+            </span>
+            <span className="font-semibold text-emerald-300">100% Aktif</span>
           </div>
         </div>
 
@@ -652,38 +675,38 @@ export default function SiswaDashboardTab({
           </div>
         </div>
 
-        {/* CHART 4: Status Pool Santri - 4 cols */}
+        {/* CHART 4: Distribusi Program Santri - 4 cols */}
         <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-indigo-600" />
-                  Status Pool Santri
+                  Distribusi Program Santri
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Status alokasi santri di cabang, pool, atau mutasi
+                  Sebaran santri aktif berdasarkan jalur muadalah & daimi
                 </p>
               </div>
             </div>
 
             <div className="space-y-3">
               {[
-                { title: 'Aktif di Cabang', key: 'AKTIF_CABANG', count: stats.poolMap['AKTIF_CABANG'] || 0, badge: 'bg-green-100 text-green-800 border-green-200', iconBg: 'bg-green-50 text-green-600' },
-                { title: 'Tersedia di Pool', key: 'TERSEDIA', count: stats.poolMap['TERSEDIA'] || 0, badge: 'bg-blue-100 text-blue-800 border-blue-200', iconBg: 'bg-blue-50 text-blue-600' },
-                { title: 'Status Mutasi / Lepas', key: 'MUTASI', count: stats.poolMap['MUTASI'] || 0, badge: 'bg-amber-100 text-amber-800 border-amber-200', iconBg: 'bg-amber-50 text-amber-600' },
-                { title: 'Lainnya / Residu', key: 'LAINNYA', count: stats.poolMap['LAINNYA'] || 0, badge: 'bg-slate-100 text-slate-800 border-slate-200', iconBg: 'bg-slate-50 text-slate-600' }
-              ].map((p) => {
+                { title: 'Siswa Muadalah (Formal)', subtitle: 'Terdaftar di Lembaga Muadalah', count: stats.formalCount, badge: 'bg-emerald-100 text-emerald-800 border-emerald-200', iconBg: 'bg-emerald-50 text-emerald-600' },
+                { title: 'Pesantren / Non-Muadalah', subtitle: 'Hanya mengikuti program pesantren', count: stats.nonFormalCount, badge: 'bg-blue-100 text-blue-800 border-blue-200', iconBg: 'bg-blue-50 text-blue-600' },
+                { title: 'Santri Program Daimi', subtitle: 'Terdaftar di grup pesantren daimi', count: stats.daimiCount, badge: 'bg-indigo-100 text-indigo-800 border-indigo-200', iconBg: 'bg-indigo-50 text-indigo-600' },
+                { title: 'Belum Ada Rombel / Kelas', subtitle: 'Santri aktif belum terplot ke rombel', count: stats.tingkatMap['Non Muadalah'] || 0, badge: 'bg-amber-100 text-amber-800 border-amber-200', iconBg: 'bg-amber-50 text-amber-600' }
+              ].map((p, idx) => {
                 const percent = stats.total > 0 ? Math.round((p.count / stats.total) * 100) : 0;
                 return (
-                  <div key={p.key} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/40">
+                  <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/40">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${p.iconBg}`}>
                         <Building2 className="w-4 h-4" />
                       </div>
                       <div>
                         <span className="text-xs font-bold text-slate-800 block">{p.title}</span>
-                        <span className="text-[10px] text-slate-500">{p.key.replace('_', ' ')}</span>
+                        <span className="text-[10px] text-slate-500">{p.subtitle}</span>
                       </div>
                     </div>
                     <div className="text-right">
@@ -699,8 +722,8 @@ export default function SiswaDashboardTab({
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500 flex justify-between">
-            <span>Santri Aktif Cabang:</span>
-            <strong className="text-emerald-600">{stats.poolMap['AKTIF_CABANG'] || 0} Santri</strong>
+            <span>Total Santri Aktif:</span>
+            <strong className="text-emerald-600">{stats.total} Santri</strong>
           </div>
         </div>
 

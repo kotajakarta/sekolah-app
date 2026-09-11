@@ -276,12 +276,12 @@ export default function Dashboard() {
               </div>
             )}
 
-            {user?.scope === 'GLOBAL' && user?.divisi !== 'PENGAWAS' && (
+            {['GLOBAL', 'WILAYAH', 'CABANG'].includes(user?.scope || '') && user?.divisi !== 'PENGAWAS' && (
               <button
                 type="button"
                 onClick={() => syncMutation.mutate()}
                 disabled={syncMutation.isPending}
-                title="Hitung ulang data dashboard nasional"
+                title={user?.scope === 'GLOBAL' ? 'Hitung ulang data dashboard nasional' : user?.scope === 'WILAYAH' ? 'Hitung ulang data dashboard wilayah' : 'Hitung ulang data dashboard cabang'}
                 className="inline-flex items-center px-2.5 py-0.5 bg-brand text-white rounded-lg text-[11px] font-bold shadow-sm hover:bg-brand/90 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-3 h-3 mr-1 ${syncMutation.isPending ? 'animate-spin' : ''}`} />

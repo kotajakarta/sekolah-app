@@ -511,11 +511,21 @@ export default function Dashboard() {
                 <Activity className="w-4 h-4 text-indigo-600" />
                 Distribusi Grup Daimi (Pesantren)
               </h3>
-              <p className="text-[10px] text-slate-400 mt-0.5">Jumlah santri per kelompok daimi</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Sebaran santri per jenis grup daimi</p>
             </div>
-            <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100">
-              {(statsData.chartGrupDaimi || []).filter(i => i.value > 0).length} Jenis
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-100">
+                {(statsData.chartGrupDaimi || []).filter(i => i.name !== 'No. Grup' && i.value > 0).length} Jenis Terisi
+              </span>
+              <Link
+                to="/dashboard/formal/kelas?tab=grup-daimi"
+                className="text-[10px] font-medium text-slate-400 hover:text-indigo-600 flex items-center gap-0.5 transition-colors"
+                title="Kelola Grup & Jenis Grup Daimi"
+              >
+                Kelola
+                <ChevronRight className="w-3 h-3" />
+              </Link>
+            </div>
           </div>
 
           <div className="pt-1">
@@ -531,7 +541,7 @@ export default function Dashboard() {
                     const heightPercent = Math.max(Math.round((item.value / maxVal) * 100), 10);
                     const isNoGrup = item.name === 'No. Grup';
                     return (
-                      <div key={i} className="group relative flex-1 flex flex-col items-center h-full justify-end min-w-[40px] max-w-[65px]">
+                      <div key={i} className="group relative flex-1 flex flex-col items-center h-full justify-end min-w-[45px] max-w-[80px]">
                         <span className="text-[10px] font-bold text-slate-700 mb-1 group-hover:text-indigo-600 transition-colors">
                           {item.value.toLocaleString('id-ID')}
                         </span>
@@ -542,6 +552,7 @@ export default function Dashboard() {
                               ? 'bg-gradient-to-t from-slate-400 to-slate-300 group-hover:from-slate-500 group-hover:to-slate-400'
                               : 'bg-gradient-to-t from-indigo-600 via-indigo-500 to-indigo-400 group-hover:from-indigo-500 group-hover:to-indigo-300'
                           }`}
+                          title={`${item.name}: ${item.value.toLocaleString('id-ID')} santri`}
                         />
                         <span className="mt-1 text-[10px] font-semibold text-slate-600 truncate max-w-full text-center group-hover:text-indigo-600 transition-colors" title={item.name}>
                           {item.name}

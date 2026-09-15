@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import apiClient from '../../lib/apiClient';
 import { useToast } from '../../contexts/ToastContext';
@@ -99,6 +99,7 @@ interface MuadalahLembagaOption {
 export default function EmisVervalSync() {
   const { user } = useAuth();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<'komparasi' | 'fetch-emis' | 'fetch-verval' | 'upload-csv'>('komparasi');
 
@@ -353,6 +354,11 @@ export default function EmisVervalSync() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const pageSize = 15;
+
+  // State Modal Konfirmasi Hapus Hasil Komparasi
+  const [isClearModalOpen, setIsClearModalOpen] = useState<boolean>(false);
+  const [clearConfirmationText, setClearConfirmationText] = useState<string>('');
+  const [isClearing, setIsClearing] = useState<boolean>(false);
 
   // Proteksi Khusus Admin Global
   if (user?.scope !== 'GLOBAL') {
@@ -782,6 +788,43 @@ export default function EmisVervalSync() {
     }
   };
 
+  // --- Hapus & Kosongkan Hasil Komparasi & Data Tarik ---
+  const handleClearReconcileData = async () => {
+    if (clearConfirmationText.trim() !== 'Reyhan Ganteng') {
+      showToast('error', 'Teks konfirmasi salah. Harap ketik "Reyhan Ganteng".');
+      return;
+    }
+
+    setIsClearing(true);
+    try {
+      const res = await apiClient.post('/formal/emis/clear', {
+        confirmationText: clearConfirmationText.trim(),
+      });
+
+      // Kosongkan seluruh state komparasi dan santri hasil tarik
+      setReconData(null);
+      setEmisStudents([]);
+      setVervalStudents([]);
+      setEmisLog([]);
+      setVervalLog([]);
+      setEmisProgress({ current: 0, total: 0 });
+      setVervalProgress({ current: 0, total: 0 });
+
+      // Invalidate queries agar halaman terkait langsung terupdate
+      queryClient.invalidateQueries({ queryKey: ['formal-emis-latest-cabang-tab'] });
+      queryClient.invalidateQueries({ queryKey: ['reconcile-history'] });
+
+      showToast('success', res.data?.message || 'Hasil komparasi dan data tarik berhasil dikosongkan.');
+      setIsClearModalOpen(false);
+      setClearConfirmationText('');
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Gagal menghapus hasil komparasi';
+      showToast('error', msg);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   // Filtered Students List
   const filteredStudents = useMemo(() => {
     if (!reconData?.students) return [];
@@ -905,7 +948,7 @@ export default function EmisVervalSync() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={handleOpenHistory}
               disabled={reconLoading || historyLoading}
@@ -914,6 +957,19 @@ export default function EmisVervalSync() {
             >
               <History className="w-4 h-4 mr-2 text-slate-600" />
               Riwayat Audit DB
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setClearConfirmationText('');
+                setIsClearModalOpen(true);
+              }}
+              disabled={reconLoading || isClearing}
+              className="inline-flex items-center px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 hover:border-rose-300 rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+              title="Hapus dan kosongkan hasil komparasi & data tarik"
+            >
+              <Trash2 className="w-4 h-4 mr-1.5 text-rose-600" />
+              Hapus Hasil Komparasi
             </button>
             <button
               onClick={handleRunReconcile}
@@ -928,8 +984,8 @@ export default function EmisVervalSync() {
 
         {/* Banner Snapshot Database */}
         {reconData?.batchId && (
-          <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
-            <div className="flex items-center gap-2 text-emerald-800 text-xs">
+          <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-emerald-800 text-xs flex-wrap">
               <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="font-semibold">Hasil Audit Tersimpan di Database:</span>
               <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-mono font-medium">
@@ -941,12 +997,25 @@ export default function EmisVervalSync() {
                 </span>
               )}
             </div>
-            <button
-              onClick={handleOpenHistory}
-              className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline flex items-center gap-1 cursor-pointer"
-            >
-              Buka Riwayat Sesi Lain
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleOpenHistory}
+                className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline flex items-center gap-1 cursor-pointer"
+              >
+                Buka Riwayat Sesi Lain
+              </button>
+              <span className="text-slate-300">|</span>
+              <button
+                onClick={() => {
+                  setClearConfirmationText('');
+                  setIsClearModalOpen(true);
+                }}
+                className="text-xs font-semibold text-rose-600 hover:text-rose-800 underline flex items-center gap-1 cursor-pointer"
+              >
+                <Trash2 className="w-3 h-3 text-rose-500" />
+                Hapus Data Ini
+              </button>
+            </div>
           </div>
         )}
 
@@ -2122,6 +2191,111 @@ export default function EmisVervalSync() {
                 className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
               >
                 Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus Hasil Komparasi */}
+      {isClearModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <Trash2 className="w-6 h-6 text-rose-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-slate-800">
+                  Hapus Hasil Komparasi
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Tindakan ini akan mengosongkan seluruh data komparasi & riwayat audit.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsClearModalOpen(false);
+                  setClearConfirmationText('');
+                }}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 space-y-1.5 leading-relaxed">
+                <div className="font-bold flex items-center gap-1.5 text-rose-900">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  PERINGATAN PENGHAPUSAN DATA
+                </div>
+                <div>
+                  Seluruh hasil pemadanan audit di database dan antrean data santri hasil penarikan (EMIS & Verval) akan <strong>dikosongkan secara permanen</strong>.
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Ketik <span className="font-mono px-1.5 py-0.5 bg-rose-100 text-rose-800 rounded font-bold">Reyhan Ganteng</span> untuk konfirmasi:
+                </label>
+                <input
+                  type="text"
+                  value={clearConfirmationText}
+                  onChange={(e) => setClearConfirmationText(e.target.value)}
+                  placeholder='Ketik "Reyhan Ganteng"'
+                  className={`w-full px-3.5 py-2.5 text-sm rounded-xl border transition-all outline-none ${
+                    clearConfirmationText.trim() === 'Reyhan Ganteng'
+                      ? 'border-emerald-500 bg-emerald-50/50 text-emerald-900 ring-2 ring-emerald-500/20'
+                      : 'border-slate-300 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20'
+                  }`}
+                  autoFocus
+                />
+                {clearConfirmationText.trim() === 'Reyhan Ganteng' ? (
+                  <p className="text-[11px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Konfirmasi valid. Tombol hapus telah aktif.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Pastikan huruf besar dan kecil sama persis: <strong>Reyhan Ganteng</strong>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsClearModalOpen(false);
+                  setClearConfirmationText('');
+                }}
+                disabled={isClearing}
+                className="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleClearReconcileData}
+                disabled={clearConfirmationText.trim() !== 'Reyhan Ganteng' || isClearing}
+                className="inline-flex items-center px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl shadow-sm transition-colors cursor-pointer"
+              >
+                {isClearing ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    Menghapus...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                    Hapus Hasil Komparasi
+                  </>
+                )}
               </button>
             </div>
           </div>

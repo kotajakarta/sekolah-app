@@ -20,6 +20,7 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
   // Form states for manual fields
   const [nameGlodemy, setNameGlodemy] = useState('');
   const [nameResmi, setNameResmi] = useState('');
+  const [nomorWaCabang, setNomorWaCabang] = useState('');
   const [kapasitasSantri, setKapasitasSantri] = useState<number | ''>('');
   const [totalSantriManual, setTotalSantriManual] = useState<number | ''>('');
 
@@ -98,6 +99,7 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
         setProfile(data);
         setNameGlodemy(data.nameGlodemy || data.name || '');
         setNameResmi(data.nameResmi || '');
+        setNomorWaCabang(data.nomorWaCabang || '');
         setKapasitasSantri(data.kapasitasSantri ?? '');
         setTotalSantriManual(data.totalSantriManual ?? '');
 
@@ -176,6 +178,7 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
     saveMutation.mutate({
       nameGlodemy,
       nameResmi,
+      nomorWaCabang: nomorWaCabang || null,
       kapasitasSantri: kapasitasSantri === '' ? 0 : Number(kapasitasSantri),
       totalSantriManual: totalSantriManual === '' ? 0 : Number(totalSantriManual),
       ketuaCabangId: ketuaCabangId || null,
@@ -270,6 +273,19 @@ export const ProfileCabangModal: React.FC<ProfileCabangModalProps> = ({ cabangId
                       onChange={(e) => setNameResmi(e.target.value)}
                       className="mt-1.5 block w-full rounded-lg border border-slate-350 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       placeholder="Masukkan nama resmi"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                      Nomor WhatsApp / Telp Cabang
+                    </label>
+                    <input
+                      type="text"
+                      value={nomorWaCabang}
+                      onChange={(e) => setNomorWaCabang(e.target.value)}
+                      className="mt-1.5 block w-full rounded-lg border border-slate-350 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Contoh: 081234567890"
                     />
                   </div>
                   <div>

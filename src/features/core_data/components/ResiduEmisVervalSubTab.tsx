@@ -3,11 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import {
   AlertTriangle, CheckCircle2, XCircle, Search, RefreshCw,
   Layers, Download, ShieldAlert, Sparkles, Users, Eye, X,
-  Building2, School
+  Building2, School, Filter, ArrowRight
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import apiClient from '../../../lib/apiClient';
 import Pagination from '../../../components/Pagination';
+import AdvancedFilterBar, { FilterState } from '../../../components/AdvancedFilterBar';
+import { useGetWilayah } from '../hooks/useMasterData';
 
 export interface ReconciledStudentItem {
   id: string;
@@ -75,9 +77,33 @@ export default function ResiduEmisVervalSubTab({
   const [selectedStudent, setSelectedStudent] = useState<ReconciledStudentItem | null>(null);
   const itemsPerPage = 10;
 
+  const { data: wilayahList = [] } = useGetWilayah();
+
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
+    wilayahId: userScope === 'WILAYAH' || userScope === 'CABANG' ? userWilayahId || '' : (selectedWilayahId || ''),
+    cabangId: userScope === 'CABANG' ? userCabangId || '' : (selectedCabangId || ''),
+    kelasId: '',
+    lembagaMuadalahId: '',
+    jenisDaimi: '',
+    tingkat: ''
+  });
+
+  // Sync when incoming props change
+  React.useEffect(() => {
+    if (selectedCabangId !== undefined) {
+      setAdvancedFilters(prev => ({ ...prev, cabangId: selectedCabangId }));
+    }
+  }, [selectedCabangId]);
+
+  React.useEffect(() => {
+    if (selectedWilayahId !== undefined) {
+      setAdvancedFilters(prev => ({ ...prev, wilayahId: selectedWilayahId }));
+    }
+  }, [selectedWilayahId]);
+
   // Tentukan parameter cabang & wilayah yang dikirim ke backend
-  const effectiveCabangId = userScope === 'CABANG' ? userCabangId : (selectedCabangId || undefined);
-  const effectiveWilayahId = userScope === 'WILAYAH' ? userWilayahId : (selectedWilayahId || undefined);
+  const effectiveCabangId = userScope === 'CABANG' ? userCabangId : (advancedFilters.cabangId || undefined);
+  const effectiveWilayahId = userScope === 'WILAYAH' ? userWilayahId : (advancedFilters.wilayahId || undefined);
 
   const {
     data: reconcileData,
@@ -99,11 +125,82 @@ export default function ResiduEmisVervalSubTab({
     staleTime: 1000 * 60 * 5, // 5 menit
   });
 
+  // Rekapitulasi per Wilayah, diagregasi dari cabangBreakdown
+  const wilayahBreakdown = useMemo(() => {
+    if (!reconcileData?.cabangBreakdown) return [];
+    const map = new Map<string, {
+      wilayahName: string;
+      totalCabang: number;
+      totalSantri: number;
+      terdaftarEmis: number;
+      belumEmis: number;
+      vervalOk: number;
+      residuVerval: number;
+      butuhTindakan: number;
+    }>();
+    reconcileData.cabangBreakdown.forEach((c) => {
+      const key = c.wilayahName || '-';
+      if (!map.has(key)) {
+        map.set(key, {
+          wilayahName: key,
+          totalCabang: 0,
+          totalSantri: 0,
+          terdaftarEmis: 0,
+          belumEmis: 0,
+          vervalOk: 0,
+          residuVerval: 0,
+          butuhTindakan: 0,
+        });
+      }
+      const w = map.get(key)!;
+      w.totalCabang++;
+      w.totalSantri += c.totalSantri;
+      w.terdaftarEmis += c.terdaftarEmis;
+      w.belumEmis += c.belumEmis;
+      w.vervalOk += c.vervalOk;
+      w.residuVerval += c.residuVerval;
+      w.butuhTindakan += c.butuhTindakan;
+    });
+    return Array.from(map.values()).sort((a, b) => a.wilayahName.localeCompare(b.wilayahName, 'id'));
+  }, [reconcileData]);
+
+  // Rekapitulasi per Cabang yang disesuaikan dengan scope pengguna atau wilayah terpilih
+  const filteredCabangBreakdown = useMemo(() => {
+    if (!reconcileData?.cabangBreakdown) return [];
+    let list = [...reconcileData.cabangBreakdown];
+    if (userScope === 'WILAYAH' && userWilayahId) {
+      const matchedWil = wilayahList.find((w: any) => w.id === userWilayahId);
+      if (matchedWil) {
+        list = list.filter((c: any) => c.wilayahName === matchedWil.name);
+      }
+    } else if (advancedFilters.wilayahId) {
+      const matchedWil = wilayahList.find((w: any) => w.id === advancedFilters.wilayahId);
+      if (matchedWil) {
+        list = list.filter((c: any) => c.wilayahName === matchedWil.name);
+      }
+    }
+    return list;
+  }, [reconcileData, userScope, userWilayahId, advancedFilters.wilayahId, wilayahList]);
+
   const rawStudents = useMemo(() => reconcileData?.students || [], [reconcileData]);
 
-  // Filter santri berdasarkan search query dan tab status filter
+  // Filter santri berdasarkan search query, advanced filters, dan tab status filter
   const filteredStudents = useMemo(() => {
     return rawStudents.filter((s) => {
+      // Advanced Filters
+      if (advancedFilters.tingkat && s.tingkat !== advancedFilters.tingkat) {
+        return false;
+      }
+      if (advancedFilters.cabangId && s.cabangId && s.cabangId !== advancedFilters.cabangId) {
+        return false;
+      }
+      if (advancedFilters.kelasId && s.kelasName && !s.kelasName.toLowerCase().includes(advancedFilters.kelasId.toLowerCase())) {
+        return false;
+      }
+      if (advancedFilters.lembagaMuadalahId && s.lembagaMuadalahName && !s.lembagaMuadalahName.toLowerCase().includes(advancedFilters.lembagaMuadalahId.toLowerCase())) {
+        return false;
+      }
+
       // Search query (nama, NIK, NISN, rombel, cabang)
       const q = searchQuery.toLowerCase().trim();
       if (q) {
@@ -128,7 +225,7 @@ export default function ResiduEmisVervalSubTab({
 
       return true;
     });
-  }, [rawStudents, searchQuery, statusFilter]);
+  }, [rawStudents, searchQuery, statusFilter, advancedFilters]);
 
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
   const validCurrentPage = totalPages > 0 ? Math.min(Math.max(1, currentPage), totalPages) : 1;
@@ -235,6 +332,19 @@ export default function ResiduEmisVervalSubTab({
           </div>
         </div>
       </div>
+
+      {/* Advanced Filter Bar */}
+      <AdvancedFilterBar
+        onFilterChange={(newFilters) => {
+          setAdvancedFilters(newFilters);
+          setCurrentPage(1);
+        }}
+        userScope={userScope || ''}
+        userWilayahId={userWilayahId}
+        userCabangId={userCabangId}
+        showDaimiFilter={false}
+        showTingkatFilter={true}
+      />
 
       {isLoading ? (
         <div className="bg-white p-16 rounded-3xl border border-slate-200/60 shadow-sm text-center flex flex-col items-center justify-center">
@@ -375,6 +485,229 @@ export default function ResiduEmisVervalSubTab({
               <p className="text-xs text-purple-800 mt-0.5 font-bold">Total Tugas Cabang</p>
             </div>
           </div>
+
+          {/* Active Filter Chips / Indicators */}
+          {(advancedFilters.wilayahId || advancedFilters.cabangId || advancedFilters.tingkat) && (
+            <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-indigo-50/80 border border-indigo-200 rounded-2xl text-xs text-indigo-900">
+              <span className="font-bold flex items-center gap-1">
+                <Filter className="w-3.5 h-3.5 text-indigo-600" /> Filter Aktif:
+              </span>
+              {advancedFilters.wilayahId && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-indigo-200 rounded-lg font-semibold text-indigo-800 shadow-2xs">
+                  Wilayah: {wilayahList.find((w: any) => w.id === advancedFilters.wilayahId)?.name || advancedFilters.wilayahId}
+                  <button
+                    onClick={() => {
+                      setAdvancedFilters(prev => ({ ...prev, wilayahId: '', cabangId: '' }));
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-rose-600 cursor-pointer ml-0.5"
+                    title="Hapus filter wilayah"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {advancedFilters.cabangId && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-indigo-200 rounded-lg font-semibold text-indigo-800 shadow-2xs">
+                  Cabang: {reconcileData.cabangBreakdown?.find((c: any) => c.cabangId === advancedFilters.cabangId)?.cabangName || advancedFilters.cabangId}
+                  <button
+                    onClick={() => {
+                      setAdvancedFilters(prev => ({ ...prev, cabangId: '' }));
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-rose-600 cursor-pointer ml-0.5"
+                    title="Hapus filter cabang"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {advancedFilters.tingkat && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-indigo-200 rounded-lg font-semibold text-indigo-800 shadow-2xs">
+                  Tingkat {advancedFilters.tingkat}
+                  <button
+                    onClick={() => {
+                      setAdvancedFilters(prev => ({ ...prev, tingkat: '' }));
+                      setCurrentPage(1);
+                    }}
+                    className="hover:text-rose-600 cursor-pointer ml-0.5"
+                    title="Hapus filter tingkat"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              <button
+                onClick={() => {
+                  setAdvancedFilters({
+                    wilayahId: userScope === 'WILAYAH' || userScope === 'CABANG' ? userWilayahId || '' : '',
+                    cabangId: userScope === 'CABANG' ? userCabangId || '' : '',
+                    kelasId: '',
+                    lembagaMuadalahId: '',
+                    jenisDaimi: '',
+                    tingkat: '',
+                  });
+                  setCurrentPage(1);
+                }}
+                className="text-xs text-rose-600 hover:text-rose-800 font-bold ml-auto cursor-pointer underline"
+              >
+                Reset Semua Filter
+              </button>
+            </div>
+          )}
+
+          {/* Rekapitulasi per Wilayah (Khusus Admin / GLOBAL) */}
+          {(userScope === 'GLOBAL' || !userScope) && wilayahBreakdown.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-indigo-600" />
+                  <h3 className="font-bold text-slate-800 text-sm">Rekapitulasi Santri Butuh Tindak Lanjut per Wilayah</h3>
+                </div>
+                <span className="text-xs text-slate-500 font-medium">
+                  Menampilkan {wilayahBreakdown.length} Wilayah
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-600">
+                  <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-2.5">Nama Wilayah</th>
+                      <th className="px-4 py-2.5 text-center">Jml Cabang</th>
+                      <th className="px-4 py-2.5 text-center">Total Santri Muadalah</th>
+                      <th className="px-4 py-2.5 text-center text-emerald-700">Masuk EMIS</th>
+                      <th className="px-4 py-2.5 text-center text-rose-700">Belum EMIS</th>
+                      <th className="px-4 py-2.5 text-center text-blue-700">Verval Valid</th>
+                      <th className="px-4 py-2.5 text-center text-amber-700">Residu Verval</th>
+                      <th className="px-4 py-2.5 text-center text-rose-800 font-bold">Butuh Tindakan</th>
+                      <th className="px-4 py-2.5 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {wilayahBreakdown.map((w) => (
+                      <tr key={w.wilayahName} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-2.5 font-medium text-slate-800">{w.wilayahName}</td>
+                        <td className="px-4 py-2.5 text-center">{w.totalCabang}</td>
+                        <td className="px-4 py-2.5 text-center font-medium">{w.totalSantri}</td>
+                        <td className="px-4 py-2.5 text-center text-emerald-600 font-medium">{w.terdaftarEmis}</td>
+                        <td className="px-4 py-2.5 text-center text-rose-600 font-medium">{w.belumEmis}</td>
+                        <td className="px-4 py-2.5 text-center text-blue-600 font-medium">{w.vervalOk}</td>
+                        <td className="px-4 py-2.5 text-center text-amber-600 font-medium">{w.residuVerval}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          {w.butuhTindakan > 0 ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+                              {w.butuhTindakan} Santri
+                            </span>
+                          ) : (
+                            <span className="text-emerald-600 text-xs font-semibold">✓ Lengkap</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const matched = wilayahList.find((item: any) => item.name.toLowerCase() === w.wilayahName.toLowerCase());
+                              setAdvancedFilters(prev => ({
+                                ...prev,
+                                wilayahId: matched?.id || prev.wilayahId,
+                                cabangId: '',
+                              }));
+                              setCurrentPage(1);
+                            }}
+                            className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-semibold cursor-pointer"
+                          >
+                            <span>Filter</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Rekapitulasi per Cabang (Untuk Role Admin & Role Wilayah) */}
+          {(userScope === 'GLOBAL' || userScope === 'WILAYAH' || !userScope) && filteredCabangBreakdown.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <School className="w-4 h-4 text-indigo-600" />
+                  <h3 className="font-bold text-slate-800 text-sm">
+                    Rekapitulasi Santri Butuh Tindak Lanjut per Cabang
+                    {advancedFilters.wilayahId && (
+                      <span className="ml-2 font-normal text-xs text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-200">
+                        {wilayahList.find(w => w.id === advancedFilters.wilayahId)?.name || 'Wilayah Terpilih'}
+                      </span>
+                    )}
+                  </h3>
+                </div>
+                <span className="text-xs text-slate-500 font-medium">
+                  Menampilkan {filteredCabangBreakdown.length} Cabang
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-600">
+                  <thead className="bg-slate-100 text-slate-700 font-semibold border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-2.5">Nama Cabang</th>
+                      <th className="px-4 py-2.5">Wilayah</th>
+                      <th className="px-4 py-2.5 text-center">Total Santri Muadalah</th>
+                      <th className="px-4 py-2.5 text-center text-emerald-700">Masuk EMIS</th>
+                      <th className="px-4 py-2.5 text-center text-rose-700">Belum EMIS</th>
+                      <th className="px-4 py-2.5 text-center text-blue-700">Verval Valid</th>
+                      <th className="px-4 py-2.5 text-center text-amber-700">Residu Verval</th>
+                      <th className="px-4 py-2.5 text-center text-rose-800 font-bold">Butuh Tindakan</th>
+                      <th className="px-4 py-2.5 text-right">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredCabangBreakdown.map((c) => (
+                      <tr key={c.cabangId} className={`hover:bg-slate-50 transition-colors ${advancedFilters.cabangId === c.cabangId ? 'bg-indigo-50/50' : ''}`}>
+                        <td className="px-4 py-2.5 font-medium text-slate-800">{c.cabangName}</td>
+                        <td className="px-4 py-2.5 text-slate-500">{c.wilayahName}</td>
+                        <td className="px-4 py-2.5 text-center font-medium">{c.totalSantri}</td>
+                        <td className="px-4 py-2.5 text-center text-emerald-600 font-medium">{c.terdaftarEmis}</td>
+                        <td className="px-4 py-2.5 text-center text-rose-600 font-medium">{c.belumEmis}</td>
+                        <td className="px-4 py-2.5 text-center text-blue-600 font-medium">{c.vervalOk}</td>
+                        <td className="px-4 py-2.5 text-center text-amber-600 font-medium">{c.residuVerval}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          {c.butuhTindakan > 0 ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+                              {c.butuhTindakan} Santri
+                            </span>
+                          ) : (
+                            <span className="text-emerald-600 text-xs font-semibold">✓ Lengkap</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAdvancedFilters(prev => ({
+                                ...prev,
+                                cabangId: c.cabangId || '',
+                              }));
+                              setCurrentPage(1);
+                            }}
+                            className={`inline-flex items-center gap-1 text-xs font-semibold cursor-pointer ${
+                              advancedFilters.cabangId === c.cabangId
+                                ? 'text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200'
+                                : 'text-indigo-600 hover:text-indigo-800'
+                            }`}
+                          >
+                            <span>{advancedFilters.cabangId === c.cabangId ? '✓ Terpilih' : 'Filter Cabang'}</span>
+                            {advancedFilters.cabangId !== c.cabangId && <ArrowRight className="w-3 h-3" />}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Action & Filter Bar */}
           <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

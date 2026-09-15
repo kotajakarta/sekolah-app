@@ -1111,7 +1111,7 @@ export default function EmisVervalSync() {
                     Menampilkan {wilayahBreakdown.length} Wilayah
                   </span>
                 </div>
-                <div className="overflow-x-auto max-h-64 overflow-y-auto">
+                <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs text-slate-600">
                     <thead className="bg-slate-100 text-slate-700 font-semibold sticky top-0">
                       <tr>

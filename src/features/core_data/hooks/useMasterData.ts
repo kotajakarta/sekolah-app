@@ -74,6 +74,7 @@ export interface Cabang {
   wilayahId: string;
   nameGlodemy?: string;
   nameResmi?: string;
+  nomorWaCabang?: string | null;
   kapasitasSantri?: number;
   totalSantriManual?: number;
   alamatJalan?: string;
@@ -141,6 +142,7 @@ export interface Cabang {
   _count?: {
     students: number;
   };
+  students?: any[];
 }
 
 export const useGetGuru = () => {

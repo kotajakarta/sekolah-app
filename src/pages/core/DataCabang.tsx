@@ -5,7 +5,7 @@ import {
   Building2, Plus, Edit2, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown,
   Users, GraduationCap, Home, Send, FileText, X, Filter, Sparkles, MapPin, Download,
   UserCheck, Shield, Award, Target, FileSpreadsheet, Upload, RotateCcw, ChevronDown, ChevronUp,
-  Copy, Check, ExternalLink
+  Copy, Check, ExternalLink, MessageCircle, Phone, Layers
 } from 'lucide-react';
 import { useGetCabang, useGetWilayah, useToggleCabangActive, Cabang } from '../../features/core_data/hooks/useMasterData';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +24,7 @@ import { useToast } from '../../contexts/ToastContext';
 import PermohonanCabangModal from '../../features/permohonan/PermohonanCabangModal';
 import PermohonanCabangTab from '../../features/permohonan/PermohonanCabangTab';
 
-type SubTab = 'identitas' | 'personel' | 'sarpras' | 'jumlah_siswa' | 'kelas_x_daimi';
+type SubTab = 'identitas' | 'personel' | 'sarpras' | 'jumlah_siswa' | 'kelas_x_daimi' | 'emis_target';
 
 export default function DataCabang() {
   const [activeTab, setActiveTab] = useState<'cabang' | 'permohonan'>('cabang');
@@ -72,6 +72,24 @@ export default function DataCabang() {
       return res.data;
     }
   });
+
+  // Fetch latest EMIS/Verval reconciliation data for EMIS & Target Siswa subtab
+  const { data: emisReconcileData } = useQuery({
+    queryKey: ['formal-emis-latest-cabang-tab'],
+    queryFn: async () => {
+      const res = await apiClient.get('/formal/emis/latest');
+      return res.data?.data || null;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const emisStudentMap = useMemo(() => {
+    const map = new Map<string, any>();
+    (emisReconcileData?.students || []).forEach((s: any) => {
+      if (s.id) map.set(s.id, s);
+    });
+    return map;
+  }, [emisReconcileData]);
 
   // Advanced Filter States
   const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState(false);
@@ -207,6 +225,110 @@ const normalizeDaimiKey = (str?: string | null): string => {
     };
   };
 
+  // Helper to calculate EMIS & Verval stats per cabang based on selected Jenis Daimi filter
+  const getEmisStatsForCabang = (item: Cabang, selectedJenis: string) => {
+    const t = item.targetKuota || {
+      targetTingkat7: 0, targetTingkat8: 0, targetTingkat9: 0,
+      targetTingkat10: 0, targetTingkat11: 0, targetTingkat12: 0
+    };
+
+    const students = item.students || [];
+    const normSelected = normalizeDaimiKey(selectedJenis);
+
+    const tingkatCounts = {
+      t7: { total: 0, emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, target: t.targetTingkat7 || 0 },
+      t8: { total: 0, emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, target: t.targetTingkat8 || 0 },
+      t9: { total: 0, emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, target: t.targetTingkat9 || 0 },
+      t10: { total: 0, emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, target: t.targetTingkat10 || 0 },
+      t11: { total: 0, emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, target: t.targetTingkat11 || 0 },
+      t12: { total: 0, emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, target: t.targetTingkat12 || 0 },
+    };
+
+    let totalSiswaMuadalah = 0;
+    let totalTerdaftarEmis = 0;
+    let totalBelumEmis = 0;
+    let totalVervalOk = 0;
+    let totalResiduVerval = 0;
+    let totalButuhTindakan = 0;
+
+    students.forEach((st: any) => {
+      if (!st.isActive) return;
+
+      if (selectedJenis !== 'ALL' && selectedJenis) {
+        const rawGrup = st.dataDaimi?.grup?.jenis || st.dataDaimi?.kelas?.grup?.jenis || st.grupDaimi || '';
+        const normG = normalizeDaimiKey(rawGrup);
+        if (normSelected === 'NO_GRUP' || normSelected.includes('TANPA')) {
+          if (normG && normG !== '-' && normG !== 'NONE' && normG !== 'BELUM ADA') return;
+        } else {
+          if (!normG.includes(normSelected)) return;
+        }
+      }
+
+      let detectedTingkat = '';
+      if (st.siswaFormal && st.siswaFormal.kelas) {
+        const rawT = String(st.siswaFormal.kelas.tingkat || st.siswaFormal.kelas.name || '').toUpperCase().trim();
+        if (rawT.includes('12') || rawT.includes('XII')) detectedTingkat = '12';
+        else if (rawT.includes('11') || rawT.includes('XI')) detectedTingkat = '11';
+        else if (rawT.includes('10') || rawT.includes('X')) detectedTingkat = '10';
+        else if (rawT.includes('9') || rawT.includes('IX')) detectedTingkat = '9';
+        else if (rawT.includes('8') || rawT.includes('VIII')) detectedTingkat = '8';
+        else if (rawT.includes('7') || rawT.includes('VII')) detectedTingkat = '7';
+      }
+
+      if (!detectedTingkat) return;
+
+      totalSiswaMuadalah++;
+      const emisInfo = emisStudentMap.get(st.id);
+      const isEmis = emisInfo?.statusEmis === 'TERDAFTAR';
+      const isBelumEmis = !emisInfo || emisInfo.statusEmis === 'BELUM_TERDAFTAR';
+      const isVervalOk = emisInfo?.statusVerval === 'VERVAL_OK';
+      const isResiduVerval = emisInfo?.statusVerval === 'RESIDU_VERVAL';
+      const needsAction = Boolean(emisInfo?.butuhTindakan || isBelumEmis || isResiduVerval);
+
+      if (isEmis) totalTerdaftarEmis++;
+      if (isBelumEmis) totalBelumEmis++;
+      if (isVervalOk) totalVervalOk++;
+      if (isResiduVerval) totalResiduVerval++;
+      if (needsAction) totalButuhTindakan++;
+
+      const key = `t${detectedTingkat}` as keyof typeof tingkatCounts;
+      if (tingkatCounts[key]) {
+        tingkatCounts[key].total++;
+        if (isEmis) tingkatCounts[key].emis++;
+        if (isBelumEmis) tingkatCounts[key].belumEmis++;
+        if (isVervalOk) tingkatCounts[key].vervalOk++;
+        if (isResiduVerval) tingkatCounts[key].residuVerval++;
+      }
+    });
+
+    const totalTarget = (t.targetTingkat7 || 0) + (t.targetTingkat8 || 0) + (t.targetTingkat9 || 0) +
+                        (t.targetTingkat10 || 0) + (t.targetTingkat11 || 0) + (t.targetTingkat12 || 0);
+
+    // Fallback jika tidak ada filter daimi dan totalSiswaMuadalah 0 tetapi ada data di cabangBreakdown
+    if (totalSiswaMuadalah === 0 && (selectedJenis === 'ALL' || !selectedJenis)) {
+      const b = (emisReconcileData?.cabangBreakdown || []).find((cb: any) => cb.cabangId === item.id || cb.cabangName === item.name);
+      if (b) {
+        totalSiswaMuadalah = b.totalSantri || 0;
+        totalTerdaftarEmis = b.terdaftarEmis || 0;
+        totalBelumEmis = b.belumEmis || 0;
+        totalVervalOk = b.vervalOk || 0;
+        totalResiduVerval = b.residuVerval || 0;
+        totalButuhTindakan = b.butuhTindakan || 0;
+      }
+    }
+
+    return {
+      tingkat: tingkatCounts,
+      totalSiswaMuadalah,
+      totalTerdaftarEmis,
+      totalBelumEmis,
+      totalVervalOk,
+      totalResiduVerval,
+      totalButuhTindakan,
+      totalTarget: totalTarget > 0 ? totalTarget : (item.kapasitasSantri || 0),
+    };
+  };
+
   // Summary KPI Stats
   const summaryStats = useMemo(() => {
     if (!cabang || !Array.isArray(cabang)) return { totalCabang: 0, totalSantri: 0, totalPersonel: 0, totalKapasitas: 0 };
@@ -296,7 +418,8 @@ const normalizeDaimiKey = (str?: string | null): string => {
         c.name.toLowerCase().includes(q) || 
         (c.nameGlodemy || '').toLowerCase().includes(q) ||
         (c.nameResmi || '').toLowerCase().includes(q) ||
-        (c.wilayah?.name || '').toLowerCase().includes(q)
+        (c.wilayah?.name || '').toLowerCase().includes(q) ||
+        (c.nomorWaCabang || '').toLowerCase().includes(q)
       );
     }
 
@@ -530,6 +653,130 @@ const normalizeDaimiKey = (str?: string | null): string => {
     };
   }, [filteredAndSortedCabang, filterJenisDaimi]);
 
+  // Aggregated totals per Wilayah for EMIS & Target Siswa subtab
+  const wilayahEmisSummaryList = useMemo(() => {
+    if (!filteredAndSortedCabang || filteredAndSortedCabang.length === 0) return [];
+
+    const map = new Map<string, {
+      wilayahId: string;
+      wilayahName: string;
+      totalCabang: number;
+      t7: { emis: number; target: number };
+      t8: { emis: number; target: number };
+      t9: { emis: number; target: number };
+      t10: { emis: number; target: number };
+      t11: { emis: number; target: number };
+      t12: { emis: number; target: number };
+      totalTerdaftarEmis: number;
+      totalBelumEmis: number;
+      totalVervalOk: number;
+      totalResiduVerval: number;
+      totalButuhTindakan: number;
+      totalSiswaMuadalah: number;
+      totalTarget: number;
+    }>();
+
+    filteredAndSortedCabang.forEach((item) => {
+      const wId = item.wilayah?.id || 'NO_WILAYAH';
+      const wName = item.wilayah?.name || 'Tanpa Wilayah';
+
+      if (!map.has(wId)) {
+        map.set(wId, {
+          wilayahId: wId,
+          wilayahName: wName,
+          totalCabang: 0,
+          t7: { emis: 0, target: 0 },
+          t8: { emis: 0, target: 0 },
+          t9: { emis: 0, target: 0 },
+          t10: { emis: 0, target: 0 },
+          t11: { emis: 0, target: 0 },
+          t12: { emis: 0, target: 0 },
+          totalTerdaftarEmis: 0,
+          totalBelumEmis: 0,
+          totalVervalOk: 0,
+          totalResiduVerval: 0,
+          totalButuhTindakan: 0,
+          totalSiswaMuadalah: 0,
+          totalTarget: 0,
+        });
+      }
+
+      const entry = map.get(wId)!;
+      entry.totalCabang += 1;
+
+      const em = getEmisStatsForCabang(item, filterJenisDaimi);
+
+      entry.t7.emis += em.tingkat.t7.emis;
+      entry.t7.target += em.tingkat.t7.target;
+
+      entry.t8.emis += em.tingkat.t8.emis;
+      entry.t8.target += em.tingkat.t8.target;
+
+      entry.t9.emis += em.tingkat.t9.emis;
+      entry.t9.target += em.tingkat.t9.target;
+
+      entry.t10.emis += em.tingkat.t10.emis;
+      entry.t10.target += em.tingkat.t10.target;
+
+      entry.t11.emis += em.tingkat.t11.emis;
+      entry.t11.target += em.tingkat.t11.target;
+
+      entry.t12.emis += em.tingkat.t12.emis;
+      entry.t12.target += em.tingkat.t12.target;
+
+      entry.totalTerdaftarEmis += em.totalTerdaftarEmis;
+      entry.totalBelumEmis += em.totalBelumEmis;
+      entry.totalVervalOk += em.totalVervalOk;
+      entry.totalResiduVerval += em.totalResiduVerval;
+      entry.totalButuhTindakan += em.totalButuhTindakan;
+      entry.totalSiswaMuadalah += em.totalSiswaMuadalah;
+      entry.totalTarget += em.totalTarget;
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.wilayahName.localeCompare(b.wilayahName));
+  }, [filteredAndSortedCabang, filterJenisDaimi, emisStudentMap, emisReconcileData]);
+
+  // Aggregated Totals for EMIS & Target Siswa subtab
+  const filteredEmisTotals = useMemo(() => {
+    let t7 = { emis: 0, target: 0 };
+    let t8 = { emis: 0, target: 0 };
+    let t9 = { emis: 0, target: 0 };
+    let t10 = { emis: 0, target: 0 };
+    let t11 = { emis: 0, target: 0 };
+    let t12 = { emis: 0, target: 0 };
+    let totalTerdaftarEmis = 0;
+    let totalBelumEmis = 0;
+    let totalVervalOk = 0;
+    let totalResiduVerval = 0;
+    let totalButuhTindakan = 0;
+    let totalSiswaMuadalah = 0;
+    let totalTarget = 0;
+
+    filteredAndSortedCabang.forEach((item) => {
+      const em = getEmisStatsForCabang(item, filterJenisDaimi);
+      t7.emis += em.tingkat.t7.emis; t7.target += em.tingkat.t7.target;
+      t8.emis += em.tingkat.t8.emis; t8.target += em.tingkat.t8.target;
+      t9.emis += em.tingkat.t9.emis; t9.target += em.tingkat.t9.target;
+      t10.emis += em.tingkat.t10.emis; t10.target += em.tingkat.t10.target;
+      t11.emis += em.tingkat.t11.emis; t11.target += em.tingkat.t11.target;
+      t12.emis += em.tingkat.t12.emis; t12.target += em.tingkat.t12.target;
+
+      totalTerdaftarEmis += em.totalTerdaftarEmis;
+      totalBelumEmis += em.totalBelumEmis;
+      totalVervalOk += em.totalVervalOk;
+      totalResiduVerval += em.totalResiduVerval;
+      totalButuhTindakan += em.totalButuhTindakan;
+      totalSiswaMuadalah += em.totalSiswaMuadalah;
+      totalTarget += em.totalTarget;
+    });
+
+    return {
+      t7, t8, t9, t10, t11, t12,
+      totalTerdaftarEmis, totalBelumEmis, totalVervalOk, totalResiduVerval, totalButuhTindakan,
+      totalSiswaMuadalah, totalTarget
+    };
+  }, [filteredAndSortedCabang, filterJenisDaimi, emisStudentMap, emisReconcileData]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterWilayah, filterJenisDaimi, sortField, sortDirection, activeSubTab]);
@@ -643,6 +890,58 @@ const normalizeDaimiKey = (str?: string | null): string => {
       return;
     }
 
+    if (activeSubTab === 'emis_target') {
+      const exportData = filteredAndSortedCabang.map((item, idx) => {
+        const em = getEmisStatsForCabang(item, filterJenisDaimi);
+        return {
+          'NO': idx + 1,
+          'WILAYAH': (item.wilayah?.name || '-').toUpperCase(),
+          'NAMA CABANG (GLODEMY)': (item.nameGlodemy || item.name || '-').toUpperCase(),
+          'NAMA CABANG (RESMI)': (item.nameResmi || item.name || '-').toUpperCase(),
+          'WUSTHA - TINGKAT 7 (EMIS/TARGET)': `${em.tingkat.t7.emis} / ${em.tingkat.t7.target}`,
+          'WUSTHA - TINGKAT 8 (EMIS/TARGET)': `${em.tingkat.t8.emis} / ${em.tingkat.t8.target}`,
+          'WUSTHA - TINGKAT 9 (EMIS/TARGET)': `${em.tingkat.t9.emis} / ${em.tingkat.t9.target}`,
+          'ULYA - TINGKAT 10 (EMIS/TARGET)': `${em.tingkat.t10.emis} / ${em.tingkat.t10.target}`,
+          'ULYA - TINGKAT 11 (EMIS/TARGET)': `${em.tingkat.t11.emis} / ${em.tingkat.t11.target}`,
+          'ULYA - TINGKAT 12 (EMIS/TARGET)': `${em.tingkat.t12.emis} / ${em.tingkat.t12.target}`,
+          'TERDAFTAR EMIS': em.totalTerdaftarEmis,
+          'BELUM EMIS': em.totalBelumEmis,
+          'VERVAL VALID': em.totalVervalOk,
+          'RESIDU VERVAL': em.totalResiduVerval,
+          'BUTUH TINDAKAN': em.totalButuhTindakan,
+          'TOTAL EMIS / TARGET': `${em.totalTerdaftarEmis} / ${em.totalTarget}`,
+        };
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      worksheet['!cols'] = [
+        { wch: 6 },  // NO
+        { wch: 20 }, // WILAYAH
+        { wch: 30 }, // NAMA CABANG (GLODEMY)
+        { wch: 30 }, // NAMA CABANG (RESMI)
+        { wch: 26 }, // T7
+        { wch: 26 }, // T8
+        { wch: 26 }, // T9
+        { wch: 26 }, // T10
+        { wch: 26 }, // T11
+        { wch: 26 }, // T12
+        { wch: 18 }, // TERDAFTAR EMIS
+        { wch: 16 }, // BELUM EMIS
+        { wch: 16 }, // VERVAL VALID
+        { wch: 16 }, // RESIDU VERVAL
+        { wch: 18 }, // BUTUH TINDAKAN
+        { wch: 24 }, // TOTAL EMIS / TARGET
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'EMIS Target Cabang');
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      XLSX.writeFile(workbook, `Data_EMIS_Target_Cabang_${dateStr}.xlsx`);
+      showToast('success', 'Data EMIS & Target Siswa berhasil di-export ke XLSX');
+      return;
+    }
+
     const exportData = filteredAndSortedCabang.map((item, idx) => {
       const alamatFull = [
         item.alamatJalan,
@@ -669,6 +968,7 @@ const normalizeDaimiKey = (str?: string | null): string => {
         'KABUPATEN / KOTA': (item.alamatKabName || '-').toUpperCase(),
         'PROVINSI': (item.alamatProvName || '-').toUpperCase(),
         'ALAMAT LENGKAP': alamatFull.toUpperCase(),
+        'NO WA / TELP CABANG': item.nomorWaCabang || '-',
         'URL GOOGLE MAPS': item.urlGoogleMaps || '-',
         'PIMPINAN CABANG': (item.pimpinanCabang || '-').toUpperCase(),
         'PJ MUADALAH': (item.pjMuadalah || '-').toUpperCase(),
@@ -698,6 +998,7 @@ const normalizeDaimiKey = (str?: string | null): string => {
       { wch: 24 }, // KABUPATEN / KOTA
       { wch: 22 }, // PROVINSI
       { wch: 50 }, // ALAMAT LENGKAP
+      { wch: 22 }, // NO WA / TELP CABANG
       { wch: 35 }, // URL GOOGLE MAPS
       { wch: 26 }, // PIMPINAN CABANG
       { wch: 26 }, // PJ MUADALAH
@@ -870,6 +1171,17 @@ const normalizeDaimiKey = (str?: string | null): string => {
                 >
                   <GraduationCap className="w-3.5 h-3.5" /> Kelas X Daimi
                 </button>
+
+                <button
+                  onClick={() => setActiveSubTab('emis_target')}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeSubTab === 'emis_target'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" /> EMIS/Verval & Target Siswa
+                </button>
               </div>
 
               {/* Action Buttons for Export & Target Excel */}
@@ -906,7 +1218,7 @@ const normalizeDaimiKey = (str?: string | null): string => {
                   />
                 </div>
 
-                {(activeSubTab === 'jumlah_siswa' || activeSubTab === 'kelas_x_daimi') && (
+                {(activeSubTab === 'jumlah_siswa' || activeSubTab === 'kelas_x_daimi' || activeSubTab === 'emis_target') && (
                   <div className="w-full sm:w-52">
                     <select
                       value={filterJenisDaimi}
@@ -1158,6 +1470,147 @@ const normalizeDaimiKey = (str?: string | null): string => {
               </div>
             )}
 
+            {/* ── REKAPITULASI PER WILAYAH TABLE (SubTab: EMIS / Verval & Target Siswa, Hanya untuk Pusat saat Semua Wilayah) ── */}
+            {activeSubTab === 'emis_target' && filterWilayah === 'ALL' && user?.scope !== 'WILAYAH' && user?.scope !== 'CABANG' && wilayahEmisSummaryList.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden mb-6">
+                <div className="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-emerald-400" />
+                    <h3 className="text-xs sm:text-sm font-extrabold tracking-wide uppercase">
+                      Rekapitulasi EMIS & Target Siswa Per Wilayah ({wilayahEmisSummaryList.length} Wilayah)
+                    </h3>
+                  </div>
+                  <span className="text-[11px] font-semibold text-slate-300">
+                    Akumulasi Realisasi EMIS & Target Siswa per Wilayah
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-50 text-slate-700 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
+                      <tr className="border-b border-slate-200">
+                        <th rowSpan={2} className="py-2.5 px-3 text-center w-12 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">No</th>
+                        <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Nama Wilayah</th>
+                        <th colSpan={3} className="py-2.5 px-3 text-center bg-[#0073B7] text-white font-extrabold tracking-wide border-r border-sky-600 shadow-2xs">
+                          WUSTHA (TINGKAT 7 - 9)
+                        </th>
+                        <th colSpan={3} className="py-2.5 px-3 text-center bg-[#7FFFD4] text-emerald-950 font-extrabold tracking-wide border-r border-emerald-300 shadow-2xs">
+                          ULYA (TINGKAT 10 - 12)
+                        </th>
+                        <th colSpan={3} className="py-2.5 px-3 text-center bg-indigo-700 text-white font-extrabold tracking-wide border-r border-indigo-800 shadow-2xs">
+                          STATUS EMIS & VERVAL
+                        </th>
+                        <th rowSpan={2} className="py-2.5 px-3 text-center bg-slate-100/90 text-slate-800 font-extrabold border-r border-slate-200 align-middle">
+                          TOTAL EMIS / TARGET
+                        </th>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TINGKAT 7</th>
+                        <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TINGKAT 8</th>
+                        <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-300 text-[11px]">TINGKAT 9</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">TINGKAT 10</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">TINGKAT 11</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-300 text-[11px]">TINGKAT 12</th>
+                        <th className="py-2 px-3 text-center bg-indigo-50 text-indigo-950 font-bold border-r border-indigo-200 text-[11px]">TERDAFTAR EMIS</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">VERVAL VALID</th>
+                        <th className="py-2 px-3 text-center bg-rose-50 text-rose-950 font-bold border-r border-rose-200 text-[11px]">BUTUH TINDAKAN</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {/* Top Summary Row for All Wilayahs */}
+                      <tr className="bg-blue-50/90 font-extrabold text-slate-900 border-b-2 border-blue-200 shadow-2xs">
+                        <td colSpan={2} className="py-2.5 px-3 text-center bg-blue-100/80 text-blue-950 font-black border-r border-blue-200 text-xs">
+                          TOTAL ({wilayahEmisSummaryList.length} WILAYAH):
+                        </td>
+                        <td className="py-2 px-2 text-center bg-blue-50 border-r border-sky-200">
+                          {renderTargetCell(filteredEmisTotals.t7.emis, filteredEmisTotals.t7.target, false)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-blue-50 border-r border-sky-200">
+                          {renderTargetCell(filteredEmisTotals.t8.emis, filteredEmisTotals.t8.target, false)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-blue-50/90 border-r border-sky-300">
+                          {renderTargetCell(filteredEmisTotals.t9.emis, filteredEmisTotals.t9.target, false)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-emerald-50 border-r border-emerald-200">
+                          {renderTargetCell(filteredEmisTotals.t10.emis, filteredEmisTotals.t10.target, false)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-emerald-50 border-r border-emerald-200">
+                          {renderTargetCell(filteredEmisTotals.t11.emis, filteredEmisTotals.t11.target, false)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-emerald-50/90 border-r border-emerald-300">
+                          {renderTargetCell(filteredEmisTotals.t12.emis, filteredEmisTotals.t12.target, false)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-indigo-50 border-r border-indigo-200">
+                          {renderCountCell(filteredEmisTotals.totalTerdaftarEmis, true)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-emerald-50 border-r border-emerald-200 text-emerald-700 font-extrabold">
+                          {renderCountCell(filteredEmisTotals.totalVervalOk, true)}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-rose-50 border-r border-rose-200">
+                          {filteredEmisTotals.totalButuhTindakan > 0 ? (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-black bg-rose-100 text-rose-700">
+                              {filteredEmisTotals.totalButuhTindakan.toLocaleString('id-ID')}
+                            </span>
+                          ) : (
+                            renderCountCell(0)
+                          )}
+                        </td>
+                        <td className="py-2 px-2 text-center bg-indigo-100/70 border-r border-indigo-200 font-extrabold">
+                          {renderTargetCell(filteredEmisTotals.totalTerdaftarEmis, filteredEmisTotals.totalTarget, true)}
+                        </td>
+                      </tr>
+
+                      {wilayahEmisSummaryList.map((w, idx) => (
+                        <tr key={w.wilayahId} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3 px-3 text-center text-slate-400 font-medium">{idx + 1}</td>
+                          <td className="py-3 px-3 font-bold text-slate-900">
+                            <div>{w.wilayahName}</div>
+                            <span className="text-[10px] font-normal text-slate-400">{w.totalCabang} Cabang Pesantren</span>
+                          </td>
+                          <td className="py-2 px-2 text-center bg-sky-50/30 border-r border-sky-100">
+                            {renderTargetCell(w.t7.emis, w.t7.target)}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-sky-50/30 border-r border-sky-100">
+                            {renderTargetCell(w.t8.emis, w.t8.target)}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-sky-50/50 border-r border-sky-200">
+                            {renderTargetCell(w.t9.emis, w.t9.target)}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-emerald-50/30 border-r border-emerald-100">
+                            {renderTargetCell(w.t10.emis, w.t10.target)}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-emerald-50/30 border-r border-emerald-100">
+                            {renderTargetCell(w.t11.emis, w.t11.target)}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-emerald-50/50 border-r border-emerald-200">
+                            {renderTargetCell(w.t12.emis, w.t12.target)}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-indigo-50/30 border-r border-indigo-100 font-bold text-slate-800">
+                            {w.totalTerdaftarEmis.toLocaleString('id-ID')}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-emerald-50/30 border-r border-emerald-100 font-bold text-emerald-600">
+                            {w.totalVervalOk.toLocaleString('id-ID')}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-rose-50/30 border-r border-rose-100">
+                            {w.totalButuhTindakan > 0 ? (
+                              <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700">
+                                {w.totalButuhTindakan.toLocaleString('id-ID')}
+                              </span>
+                            ) : (
+                              <span className="text-slate-300 font-medium">0</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-2 text-center bg-indigo-50/40 border-r border-indigo-100 font-bold">
+                            {renderTargetCell(w.totalTerdaftarEmis, w.totalTarget, true)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {/* ── TABLE CONTAINER (Dynamic per SubTab) ── */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
@@ -1173,6 +1626,7 @@ const normalizeDaimiKey = (str?: string | null): string => {
                         Wilayah <SortIcon field="wilayah" />
                       </th>
                       <th className="py-3 px-3">Alamat Lengkap</th>
+                      <th className="py-3 px-3">No. WA / Telp</th>
                       <th className="py-3 px-3">Pimpinan Cabang</th>
                       <th className="py-3 px-3">PJ Muadalah</th>
                       <th className="py-3 px-3">Status Lahan & Gedung</th>
@@ -1330,6 +1784,86 @@ const normalizeDaimiKey = (str?: string | null): string => {
                       </tr>
                     </>
                   )}
+
+                  {/* SUB-TAB 6: EMIS / VERVAL & TARGET SISWA */}
+                  {activeSubTab === 'emis_target' && (
+                    <>
+                      <tr className="border-b border-slate-200">
+                        <th rowSpan={2} className="py-2.5 px-3 text-center w-12 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">No</th>
+                        <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle cursor-pointer hover:bg-slate-200/80 transition-colors" onClick={() => toggleSort('name')}>
+                          Nama Cabang <SortIcon field="name" />
+                        </th>
+                        <th colSpan={3} className="py-2.5 px-3 text-center bg-[#0073B7] text-white font-extrabold tracking-wide border-r border-sky-600 shadow-2xs">
+                          WUSTHA (TINGKAT 7 - 9)
+                        </th>
+                        <th colSpan={3} className="py-2.5 px-3 text-center bg-[#7FFFD4] text-emerald-950 font-extrabold tracking-wide border-r border-emerald-300 shadow-2xs">
+                          ULYA (TINGKAT 10 - 12)
+                        </th>
+                        <th colSpan={3} className="py-2.5 px-3 text-center bg-indigo-700 text-white font-extrabold tracking-wide border-r border-indigo-800 shadow-2xs">
+                          STATUS EMIS & VERVAL
+                        </th>
+                        <th rowSpan={2} className="py-2.5 px-3 text-center bg-slate-100/90 text-slate-800 font-extrabold border-r border-slate-200 align-middle">
+                          TOTAL EMIS / TARGET
+                        </th>
+                        <th rowSpan={2} className="py-2.5 px-3 text-right bg-slate-100/90 text-slate-700 font-extrabold align-middle">Aksi</th>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TINGKAT 7</th>
+                        <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-200 text-[11px]">TINGKAT 8</th>
+                        <th className="py-2 px-3 text-center bg-sky-50 text-sky-900 font-bold border-r border-sky-300 text-[11px]">TINGKAT 9</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">TINGKAT 10</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">TINGKAT 11</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-300 text-[11px]">TINGKAT 12</th>
+                        <th className="py-2 px-3 text-center bg-indigo-50 text-indigo-950 font-bold border-r border-indigo-200 text-[11px]">TERDAFTAR EMIS</th>
+                        <th className="py-2 px-3 text-center bg-emerald-50 text-emerald-950 font-bold border-r border-emerald-200 text-[11px]">VERVAL VALID</th>
+                        <th className="py-2 px-3 text-center bg-rose-50 text-rose-950 font-bold border-r border-rose-200 text-[11px]">BUTUH TINDAKAN</th>
+                      </tr>
+
+                      {/* ── TOP TOTAL SUMMARY ROW ── */}
+                      <tr className="bg-[#DCEBFB] border-b-2 border-sky-300 text-xs font-bold shadow-2xs">
+                        <td colSpan={2} className="py-3 px-3 text-right font-extrabold text-slate-800 bg-[#CFE2F9] border-r border-sky-300 uppercase tracking-wider">
+                          TOTAL ({filteredAndSortedCabang.length} CABANG):
+                        </td>
+                        <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200">
+                          {renderTargetCell(filteredEmisTotals.t7.emis, filteredEmisTotals.t7.target)}
+                        </td>
+                        <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200">
+                          {renderTargetCell(filteredEmisTotals.t8.emis, filteredEmisTotals.t8.target)}
+                        </td>
+                        <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-300">
+                          {renderTargetCell(filteredEmisTotals.t9.emis, filteredEmisTotals.t9.target)}
+                        </td>
+                        <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200">
+                          {renderTargetCell(filteredEmisTotals.t10.emis, filteredEmisTotals.t10.target)}
+                        </td>
+                        <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-200">
+                          {renderTargetCell(filteredEmisTotals.t11.emis, filteredEmisTotals.t11.target)}
+                        </td>
+                        <td className="py-2.5 px-3 text-center bg-[#DCEBFB] border-r border-sky-300">
+                          {renderTargetCell(filteredEmisTotals.t12.emis, filteredEmisTotals.t12.target)}
+                        </td>
+                        <td className="py-2.5 px-3 text-center bg-indigo-50 border-r border-indigo-200 font-extrabold text-slate-900">
+                          {renderCountCell(filteredEmisTotals.totalTerdaftarEmis, true)}
+                        </td>
+                        <td className="py-2.5 px-3 text-center bg-emerald-50 border-r border-emerald-200 font-extrabold text-emerald-700">
+                          {renderCountCell(filteredEmisTotals.totalVervalOk, true)}
+                        </td>
+                        <td className="py-2.5 px-3 text-center bg-rose-50 border-r border-rose-200 font-extrabold">
+                          {filteredEmisTotals.totalButuhTindakan > 0 ? (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-black bg-rose-100 text-rose-700">
+                              {filteredEmisTotals.totalButuhTindakan.toLocaleString('id-ID')}
+                            </span>
+                          ) : (
+                            renderCountCell(0)
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-center bg-[#D4E5FA] border-r border-sky-300 font-extrabold">
+                          {renderTargetCell(filteredEmisTotals.totalTerdaftarEmis, filteredEmisTotals.totalTarget, true)}
+                        </td>
+                        <td className="py-2.5 px-3 bg-[#DCEBFB]"></td>
+                      </tr>
+                    </>
+                  )}
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
@@ -1346,13 +1880,14 @@ const normalizeDaimiKey = (str?: string | null): string => {
                       </td>
                     </tr>
                   ) : (
-                    ((activeSubTab === 'jumlah_siswa' || activeSubTab === 'kelas_x_daimi')
+                    ((activeSubTab === 'jumlah_siswa' || activeSubTab === 'kelas_x_daimi' || activeSubTab === 'emis_target')
                       ? filteredAndSortedCabang
                       : filteredAndSortedCabang.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                     ).map((item, idx) => {
-                      const rowNo = (activeSubTab === 'jumlah_siswa' || activeSubTab === 'kelas_x_daimi') ? idx + 1 : (currentPage - 1) * itemsPerPage + idx + 1;
+                      const rowNo = (activeSubTab === 'jumlah_siswa' || activeSubTab === 'kelas_x_daimi' || activeSubTab === 'emis_target') ? idx + 1 : (currentPage - 1) * itemsPerPage + idx + 1;
                       const p = item.personel || { pendidikLK: 0, pendidikPR: 0, kependidikanLK: 0, kependidikanPR: 0, totalLK: 0, totalPR: 0, guruMatematika: 0, guruIndo: 0, guruInggris: 0, guruIpa: 0, guruPkn: 0, totalGuruMapel: 0 };
                       const s = getSiswaStatsForCabang(item, filterJenisDaimi);
+                      const em = getEmisStatsForCabang(item, filterJenisDaimi);
                       const t = item.targetKuota || { targetHazirlik: 0, targetHafizlik: 0, targetIbtidai: 0, targetIhzari: 0, targetTingkat7: 0, targetTingkat8: 0, targetTingkat9: 0, targetTingkat10: 0, targetTingkat11: 0, targetTingkat12: 0 };
 
                       return (
@@ -1367,7 +1902,7 @@ const normalizeDaimiKey = (str?: string | null): string => {
                             >
                               {item.nameGlodemy || item.name}
                             </button>
-                            {(activeSubTab === 'jumlah_siswa' || activeSubTab === 'kelas_x_daimi') && item.wilayah?.name && (
+                            {(activeSubTab === 'jumlah_siswa' || activeSubTab === 'kelas_x_daimi' || activeSubTab === 'emis_target') && item.wilayah?.name && (
                               <p className="text-[10px] font-semibold text-indigo-600/80">{item.wilayah.name}</p>
                             )}
                             {item.nameResmi && item.nameResmi !== item.nameGlodemy && (
@@ -1435,6 +1970,47 @@ const normalizeDaimiKey = (str?: string | null): string => {
                                     </div>
                                   );
                                 })()}
+                              </td>
+                              <td className="py-3.5 px-3 text-slate-700 whitespace-nowrap">
+                                {item.nomorWaCabang ? (
+                                  (() => {
+                                    const raw = item.nomorWaCabang.trim();
+                                    const sanitized = raw.replace(/\D/g, '').replace(/^0/, '62');
+                                    const waUrl = `https://wa.me/${sanitized}`;
+
+                                    const handleCopyPhone = (e: React.MouseEvent) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(raw);
+                                      showToast('success', 'Nomor WA/Telp cabang berhasil disalin!');
+                                    };
+
+                                    return (
+                                      <div className="flex items-center gap-1.5">
+                                        <a
+                                          href={waUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 font-medium text-xs transition-colors border border-emerald-200/60"
+                                          title={`Buka WhatsApp (${raw})`}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                                          <span>{raw}</span>
+                                        </a>
+                                        <button
+                                          type="button"
+                                          onClick={handleCopyPhone}
+                                          title="Salin nomor kontak"
+                                          className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
+                                        >
+                                          <Copy className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    );
+                                  })()
+                                ) : (
+                                  <span className="text-slate-400 text-xs italic">-</span>
+                                )}
                               </td>
                               <td className="py-3.5 px-3 text-slate-700 font-medium">{item.pimpinanCabang || '-'}</td>
                               <td className="py-3.5 px-3 text-slate-700 font-medium">{item.pjMuadalah || '-'}</td>
@@ -1580,6 +2156,58 @@ const normalizeDaimiKey = (str?: string | null): string => {
                             </>
                           )}
 
+                          {/* ── SUB-TAB 6: EMIS / VERVAL & TARGET SISWA ── */}
+                          {activeSubTab === 'emis_target' && (
+                            <>
+                              {/* WUSTHA (TINGKAT 7 - 9) - Sky Blue Accent */}
+                              <td className="py-1.5 px-2 text-center bg-sky-50/40 border-r border-sky-100">
+                                {renderTargetCell(em.tingkat.t7.emis, em.tingkat.t7.target)}
+                              </td>
+                              <td className="py-1.5 px-2 text-center bg-sky-50/40 border-r border-sky-100">
+                                {renderTargetCell(em.tingkat.t8.emis, em.tingkat.t8.target)}
+                              </td>
+                              <td className="py-1.5 px-2 text-center bg-sky-50/60 border-r border-sky-200">
+                                {renderTargetCell(em.tingkat.t9.emis, em.tingkat.t9.target)}
+                              </td>
+
+                              {/* ULYA (TINGKAT 10 - 12) - Emerald Green Accent */}
+                              <td className="py-1.5 px-2 text-center bg-emerald-50/40 border-r border-emerald-100">
+                                {renderTargetCell(em.tingkat.t10.emis, em.tingkat.t10.target)}
+                              </td>
+                              <td className="py-1.5 px-2 text-center bg-emerald-50/40 border-r border-emerald-100">
+                                {renderTargetCell(em.tingkat.t11.emis, em.tingkat.t11.target)}
+                              </td>
+                              <td className="py-1.5 px-2 text-center bg-emerald-50/60 border-r border-emerald-200">
+                                {renderTargetCell(em.tingkat.t12.emis, em.tingkat.t12.target)}
+                              </td>
+
+                              {/* STATUS EMIS / VERVAL */}
+                              <td className="py-1.5 px-2 text-center bg-indigo-50/30 border-r border-indigo-100">
+                                <span className="font-bold text-slate-800">{em.totalTerdaftarEmis.toLocaleString('id-ID')}</span>
+                                {em.totalBelumEmis > 0 && (
+                                  <span className="text-[10px] text-amber-600 block">({em.totalBelumEmis} blm EMIS)</span>
+                                )}
+                              </td>
+                              <td className="py-1.5 px-2 text-center bg-emerald-50/30 border-r border-emerald-100 font-bold text-emerald-600">
+                                {em.totalVervalOk.toLocaleString('id-ID')}
+                              </td>
+                              <td className="py-1.5 px-2 text-center bg-rose-50/30 border-r border-rose-100">
+                                {em.totalButuhTindakan > 0 ? (
+                                  <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700">
+                                    {em.totalButuhTindakan.toLocaleString('id-ID')}
+                                  </span>
+                                ) : (
+                                  <span className="text-slate-300 font-medium">0</span>
+                                )}
+                              </td>
+
+                              {/* TOTAL EMIS / TARGET */}
+                              <td className="py-1.5 px-2 text-center bg-indigo-50/50 border-r border-indigo-100 font-bold">
+                                {renderTargetCell(em.totalTerdaftarEmis, em.totalTarget, true)}
+                              </td>
+                            </>
+                          )}
+
                           {/* ── ACTION COLUMN (Per Sub-Tab) ── */}
                           <td className="py-3.5 px-3 text-right space-x-1.5 whitespace-nowrap">
                             {activeSubTab === 'jumlah_siswa' && isAdmin && (
@@ -1628,8 +2256,8 @@ const normalizeDaimiKey = (str?: string | null): string => {
               </table>
             </div>
 
-            {/* Pagination (Hidden for jumlah_siswa & kelas_x_daimi subtabs as requested to view all) */}
-            {activeSubTab !== 'jumlah_siswa' && activeSubTab !== 'kelas_x_daimi' && (
+            {/* Pagination (Hidden for jumlah_siswa, kelas_x_daimi & emis_target subtabs as requested to view all) */}
+            {activeSubTab !== 'jumlah_siswa' && activeSubTab !== 'kelas_x_daimi' && activeSubTab !== 'emis_target' && (
               <Pagination
                 currentPage={currentPage}
                 totalPages={Math.ceil(filteredAndSortedCabang.length / itemsPerPage)}

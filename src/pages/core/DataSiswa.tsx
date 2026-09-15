@@ -80,14 +80,15 @@ export default function DataSiswa() {
     if (!targetCabangId) return true;
     if (!currentCabangProfile) return false;
     return Boolean(
-      currentCabangProfile.nameResmi &&
+      currentCabangProfile.nameResmi?.trim() &&
+      currentCabangProfile.nomorWaCabang?.trim() &&
       (currentCabangProfile.kapasitasSantri ?? 0) > 0 &&
       currentCabangProfile.alamatProvId &&
       currentCabangProfile.alamatKabId &&
       currentCabangProfile.alamatKecId &&
       currentCabangProfile.alamatKelId &&
-      currentCabangProfile.alamatJalan &&
-      currentCabangProfile.urlGoogleMaps
+      currentCabangProfile.alamatJalan?.trim() &&
+      currentCabangProfile.urlGoogleMaps?.trim()
     );
   }, [targetCabangId, currentCabangProfile]);
 
@@ -659,7 +660,7 @@ export default function DataSiswa() {
               Akses Data Santri Terkunci
             </h3>
             <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-              Untuk membuka <strong>Data Santri</strong> wajib mengisi data <strong>Profil Cabang</strong> secara lengkap (termasuk Nama Resmi, Kapasitas, Alamat Kelurahan s/d Provinsi, dan URL Google Maps).
+              Untuk membuka <strong>Data Santri</strong> wajib mengisi data <strong>Profil Cabang</strong> secara lengkap (termasuk Nama Resmi, No. WhatsApp/Telepon, Kapasitas, Alamat Kelurahan s/d Provinsi, dan URL Google Maps).
             </p>
           </div>
 
@@ -683,7 +684,7 @@ export default function DataSiswa() {
               <div className="flex items-center gap-2.5">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>
-                  <strong>Perhatian:</strong> Profil cabang ini belum lengkap di Master Data (Kapasitas/Alamat/URL Maps). Anda dapat melihat data santri karena memiliki hak akses <strong>{user?.scope === 'GLOBAL' ? 'Admin Pusat' : 'Koordinator Wilayah'}</strong>.
+                  <strong>Perhatian:</strong> Profil cabang ini belum lengkap di Master Data (Nama Resmi/No. WA/Kapasitas/Alamat/URL Maps). Anda dapat melihat data santri karena memiliki hak akses <strong>{user?.scope === 'GLOBAL' ? 'Admin Pusat' : 'Koordinator Wilayah'}</strong>.
                 </span>
               </div>
               <button

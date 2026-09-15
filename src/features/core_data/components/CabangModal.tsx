@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Building, MapPin, Shield } from 'lucide-react';
+import { X, Loader2, Building, MapPin, Shield, Phone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
@@ -22,6 +22,7 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
     wilayahId: '',
     nameGlodemy: '',
     nameResmi: '',
+    nomorWaCabang: '',
     kapasitasSantri: '',
     totalSantriManual: '',
     urlGoogleMaps: '',
@@ -100,6 +101,7 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
             wilayahId: data.wilayahId || '',
             nameGlodemy: data.nameGlodemy || '',
             nameResmi: data.nameResmi || '',
+            nomorWaCabang: data.nomorWaCabang || '',
             kapasitasSantri: data.kapasitasSantri?.toString() || '',
             totalSantriManual: data.totalSantriManual?.toString() || '',
             ketuaCabangId: data.ketuaCabangId || '',
@@ -152,7 +154,7 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
         });
       } else {
         setFormData({
-          name: '', wilayahId: '', nameGlodemy: '', nameResmi: '',
+          name: '', wilayahId: '', nameGlodemy: '', nameResmi: '', nomorWaCabang: '',
           kapasitasSantri: '', totalSantriManual: '',
           ketuaCabangId: '', ketuaMuadalahId: '', ketuaIslerId: '',
           alamatProvId: '', alamatProvName: '', alamatKabId: '', alamatKabName: '',
@@ -223,6 +225,19 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase">Nama Cabang (Resmi)</label>
                     <input type="text" value={formData.nameResmi} onChange={(e) => setFormData({ ...formData, nameResmi: e.target.value })} className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                      Nomor WhatsApp / Telp Cabang
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.nomorWaCabang}
+                      onChange={(e) => setFormData({ ...formData, nomorWaCabang: e.target.value })}
+                      placeholder="Contoh: 081234567890"
+                      className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase">Kapasitas Santri</label>

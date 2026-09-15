@@ -23,6 +23,7 @@ export default function ProfilCabang() {
   // Form states for manual fields
   const [nameGlodemy, setNameGlodemy] = useState('');
   const [nameResmi, setNameResmi] = useState('');
+  const [nomorWaCabang, setNomorWaCabang] = useState('');
   const [kapasitasSantri, setKapasitasSantri] = useState<number | ''>('');
 
   // Form states for leader fields
@@ -120,6 +121,7 @@ export default function ProfilCabang() {
         setProfile(data);
         setNameGlodemy(data.nameGlodemy || data.name || '');
         setNameResmi(data.nameResmi || '');
+        setNomorWaCabang(data.nomorWaCabang || '');
         setKapasitasSantri(data.kapasitasSantri ?? '');
 
         setKetuaCabangId(data.ketuaCabangId || '');
@@ -215,6 +217,7 @@ export default function ProfilCabang() {
     saveMutation.mutate({
       nameGlodemy,
       nameResmi,
+      nomorWaCabang: nomorWaCabang || null,
       kapasitasSantri: kapasitasSantri === '' ? 0 : Number(kapasitasSantri),
       ketuaCabangId: ketuaCabangId || null,
       ketuaMuadalahId: ketuaMuadalahId || null,
@@ -367,6 +370,20 @@ export default function ProfilCabang() {
                       onChange={(e) => setNameResmi(e.target.value)} 
                       className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
                       placeholder={t('profil_cabang.name_resmi_ph')}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 uppercase flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                      Nomor WhatsApp / Telp Cabang *
+                    </label>
+                    <input 
+                      type="text" 
+                      required
+                      value={nomorWaCabang} 
+                      onChange={(e) => setNomorWaCabang(e.target.value)} 
+                      className="mt-1.5 block w-full rounded-lg border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                      placeholder="Contoh: 081234567890"
                     />
                   </div>
                   <div>

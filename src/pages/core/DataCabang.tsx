@@ -24,6 +24,57 @@ import { useToast } from '../../contexts/ToastContext';
 import PermohonanCabangModal from '../../features/permohonan/PermohonanCabangModal';
 import PermohonanCabangTab from '../../features/permohonan/PermohonanCabangTab';
 
+// Helper to normalize cabang names for robust lookup matching
+const normalizeCabangKey = (str?: string | null): string => {
+  if (!str) return '';
+  return str
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+};
+
+// Helper to extract tingkat ('7' | '8' | '9' | '10' | '11' | '12') from tingkat / rombel / kelas fields
+const extractTingkatNumber = (tingkat?: string, rombel?: string, kelasName?: string): '7' | '8' | '9' | '10' | '11' | '12' | null => {
+  const candidates = [tingkat, rombel, kelasName];
+  for (const raw of candidates) {
+    if (!raw || raw === '-' || raw === 'NONE') continue;
+    const s = String(raw).toUpperCase().trim();
+
+    // Check roman numerals or exact patterns for 12, 11, 10 first
+    if (/\b12\b/.test(s) || s === '12' || s.includes('KELAS 12') || s.includes('TINGKAT 12') || /\bXII\b/.test(s)) return '12';
+    if (/\b11\b/.test(s) || s === '11' || s.includes('KELAS 11') || s.includes('TINGKAT 11') || /\bXI\b/.test(s)) return '11';
+    if (/\b10\b/.test(s) || s === '10' || s.includes('KELAS 10') || s.includes('TINGKAT 10') || /\bX\b/.test(s)) return '10';
+    if (/\b9\b/.test(s) || s === '9' || s.includes('KELAS 9') || s.includes('TINGKAT 9') || /\bIX\b/.test(s)) return '9';
+    if (/\b8\b/.test(s) || s === '8' || s.includes('KELAS 8') || s.includes('TINGKAT 8') || /\bVIII\b/.test(s)) return '8';
+    if (/\b7\b/.test(s) || s === '7' || s.includes('KELAS 7') || s.includes('TINGKAT 7') || /\bVII\b/.test(s)) return '7';
+
+    // Standalone digit matching
+    const numMatch = s.match(/\b([789]|1[012])\b/);
+    if (numMatch) return numMatch[1] as any;
+  }
+  return null;
+};
+
+// Helper to normalize Turkish characters and casing for daimi keys
+const normalizeDaimiKey = (str?: string | null): string => {
+  if (!str) return '';
+  return str
+    .trim()
+    .toUpperCase()
+    .replace(/İ/g, 'I')
+    .replace(/ı/g, 'I')
+    .replace(/Ü/g, 'U')
+    .replace(/ü/g, 'U')
+    .replace(/Ö/g, 'O')
+    .replace(/ö/g, 'O')
+    .replace(/Ş/g, 'S')
+    .replace(/ş/g, 'S')
+    .replace(/Ç/g, 'C')
+    .replace(/ç/g, 'C')
+    .replace(/Ğ/g, 'G')
+    .replace(/ğ/g, 'G');
+};
+
 type SubTab = 'identitas' | 'personel' | 'sarpras' | 'jumlah_siswa' | 'kelas_x_daimi' | 'emis_target';
 
 export default function DataCabang() {
@@ -83,13 +134,80 @@ export default function DataCabang() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const emisStudentMap = useMemo(() => {
-    const map = new Map<string, any>();
-    (emisReconcileData?.students || []).forEach((s: any) => {
-      if (s.id) map.set(s.id, s);
+  // Pre-aggregate EMIS stats per cabang from emisReconcileData.students
+  const emisStatsByCabang = useMemo(() => {
+    const byId = new Map<string, any>();
+    const byName = new Map<string, any>();
+
+    const createEmptyStats = () => ({
+      t7: { emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, total: 0 },
+      t8: { emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, total: 0 },
+      t9: { emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, total: 0 },
+      t10: { emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, total: 0 },
+      t11: { emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, total: 0 },
+      t12: { emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, total: 0 },
+      totalSiswaMuadalah: 0,
+      totalTerdaftarEmis: 0,
+      totalBelumEmis: 0,
+      totalVervalOk: 0,
+      totalResiduVerval: 0,
+      totalButuhTindakan: 0,
     });
-    return map;
-  }, [emisReconcileData]);
+
+    // Initialize mapping with all known cabangs
+    (cabang || []).forEach((c: Cabang) => {
+      const stats = createEmptyStats();
+      if (c.id) byId.set(c.id, stats);
+      if (c.name) byName.set(normalizeCabangKey(c.name), stats);
+      if (c.nameGlodemy) byName.set(normalizeCabangKey(c.nameGlodemy), stats);
+      if (c.nameResmi) byName.set(normalizeCabangKey(c.nameResmi), stats);
+    });
+
+    const getOrCreate = (cabangId?: string, cabangName?: string) => {
+      let stats = (cabangId && byId.get(cabangId)) || null;
+      const normName = normalizeCabangKey(cabangName);
+      if (!stats && normName && byName.has(normName)) {
+        stats = byName.get(normName)!;
+      }
+      if (!stats) {
+        stats = createEmptyStats();
+      }
+      if (cabangId && !byId.has(cabangId)) byId.set(cabangId, stats);
+      if (normName && !byName.has(normName)) byName.set(normName, stats);
+      return stats;
+    };
+
+    (emisReconcileData?.students || []).forEach((st: any) => {
+      const stats = getOrCreate(st.cabangId, st.cabangName);
+
+      const isEmis = st.statusEmis === 'TERDAFTAR' || st.statusEmis === 'DISKREPANSI' || Boolean(st.emisId);
+      const isBelumEmis = st.statusEmis === 'BELUM_TERDAFTAR';
+      const isVervalOk = st.statusVerval === 'VERVAL_OK';
+      const isResiduVerval = st.statusVerval === 'RESIDU_VERVAL';
+      const needsAction = Boolean(st.butuhTindakan || isBelumEmis || isResiduVerval);
+
+      stats.totalSiswaMuadalah++;
+      if (isEmis) stats.totalTerdaftarEmis++;
+      if (isBelumEmis) stats.totalBelumEmis++;
+      if (isVervalOk) stats.totalVervalOk++;
+      if (isResiduVerval) stats.totalResiduVerval++;
+      if (needsAction) stats.totalButuhTindakan++;
+
+      const detectedTingkat = extractTingkatNumber(st.tingkat, st.rombelEmis, st.kelasName);
+      if (detectedTingkat) {
+        const key = `t${detectedTingkat}` as 't7' | 't8' | 't9' | 't10' | 't11' | 't12';
+        if (stats[key]) {
+          stats[key].total++;
+          if (isEmis) stats[key].emis++;
+          if (isBelumEmis) stats[key].belumEmis++;
+          if (isVervalOk) stats[key].vervalOk++;
+          if (isResiduVerval) stats[key].residuVerval++;
+        }
+      }
+    });
+
+    return { byId, byName };
+  }, [emisReconcileData, cabang]);
 
   // Advanced Filter States
   const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState(false);
@@ -113,25 +231,6 @@ export default function DataCabang() {
     }
   }, [cabang, location.search, navigate]);
 
-// Helper to normalize Turkish characters and casing for daimi keys
-const normalizeDaimiKey = (str?: string | null): string => {
-  if (!str) return '';
-  return str
-    .trim()
-    .toUpperCase()
-    .replace(/İ/g, 'I')
-    .replace(/ı/g, 'I')
-    .replace(/Ü/g, 'U')
-    .replace(/ü/g, 'U')
-    .replace(/Ö/g, 'O')
-    .replace(/ö/g, 'O')
-    .replace(/Ş/g, 'S')
-    .replace(/ş/g, 'S')
-    .replace(/Ç/g, 'C')
-    .replace(/ç/g, 'C')
-    .replace(/Ğ/g, 'G')
-    .replace(/ğ/g, 'G');
-};
 
   // Helper to extract student stats per cabang based on selected Jenis Daimi filter
   const getSiswaStatsForCabang = (item: Cabang, selectedJenis: string) => {
@@ -232,81 +331,94 @@ const normalizeDaimiKey = (str?: string | null): string => {
       targetTingkat10: 0, targetTingkat11: 0, targetTingkat12: 0
     };
 
-    const students = item.students || [];
+    const normName = normalizeCabangKey(item.name || item.nameGlodemy || item.nameResmi);
+    const agg = (item.id && emisStatsByCabang.byId.get(item.id)) ||
+                emisStatsByCabang.byName.get(normName) ||
+                (item.nameGlodemy && emisStatsByCabang.byName.get(normalizeCabangKey(item.nameGlodemy))) ||
+                (item.nameResmi && emisStatsByCabang.byName.get(normalizeCabangKey(item.nameResmi))) ||
+                null;
+
     const normSelected = normalizeDaimiKey(selectedJenis);
+    const isOrtaokulFilter = selectedJenis !== 'ALL' && (normSelected.includes('ORTAOKUL') || normSelected.includes('WUSTHA'));
+    const isLiseFilter = selectedJenis !== 'ALL' && (normSelected.includes('LISE') || normSelected.includes('ULYA'));
 
     const tingkatCounts = {
-      t7: { total: 0, emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, target: t.targetTingkat7 || 0 },
-      t8: { total: 0, emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, target: t.targetTingkat8 || 0 },
-      t9: { total: 0, emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, target: t.targetTingkat9 || 0 },
-      t10: { total: 0, emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, target: t.targetTingkat10 || 0 },
-      t11: { total: 0, emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, target: t.targetTingkat11 || 0 },
-      t12: { total: 0, emis: 0, belumEmis: 0, vervalOk: 0, residuVerval: 0, target: t.targetTingkat12 || 0 },
+      t7: {
+        total: isLiseFilter ? 0 : (agg?.t7.total || 0),
+        emis: isLiseFilter ? 0 : (agg?.t7.emis || 0),
+        belumEmis: isLiseFilter ? 0 : (agg?.t7.belumEmis || 0),
+        vervalOk: isLiseFilter ? 0 : (agg?.t7.vervalOk || 0),
+        residuVerval: isLiseFilter ? 0 : (agg?.t7.residuVerval || 0),
+        target: isLiseFilter ? 0 : (t.targetTingkat7 || 0),
+      },
+      t8: {
+        total: isLiseFilter ? 0 : (agg?.t8.total || 0),
+        emis: isLiseFilter ? 0 : (agg?.t8.emis || 0),
+        belumEmis: isLiseFilter ? 0 : (agg?.t8.belumEmis || 0),
+        vervalOk: isLiseFilter ? 0 : (agg?.t8.vervalOk || 0),
+        residuVerval: isLiseFilter ? 0 : (agg?.t8.residuVerval || 0),
+        target: isLiseFilter ? 0 : (t.targetTingkat8 || 0),
+      },
+      t9: {
+        total: isLiseFilter ? 0 : (agg?.t9.total || 0),
+        emis: isLiseFilter ? 0 : (agg?.t9.emis || 0),
+        belumEmis: isLiseFilter ? 0 : (agg?.t9.belumEmis || 0),
+        vervalOk: isLiseFilter ? 0 : (agg?.t9.vervalOk || 0),
+        residuVerval: isLiseFilter ? 0 : (agg?.t9.residuVerval || 0),
+        target: isLiseFilter ? 0 : (t.targetTingkat9 || 0),
+      },
+      t10: {
+        total: isOrtaokulFilter ? 0 : (agg?.t10.total || 0),
+        emis: isOrtaokulFilter ? 0 : (agg?.t10.emis || 0),
+        belumEmis: isOrtaokulFilter ? 0 : (agg?.t10.belumEmis || 0),
+        vervalOk: isOrtaokulFilter ? 0 : (agg?.t10.vervalOk || 0),
+        residuVerval: isOrtaokulFilter ? 0 : (agg?.t10.residuVerval || 0),
+        target: isOrtaokulFilter ? 0 : (t.targetTingkat10 || 0),
+      },
+      t11: {
+        total: isOrtaokulFilter ? 0 : (agg?.t11.total || 0),
+        emis: isOrtaokulFilter ? 0 : (agg?.t11.emis || 0),
+        belumEmis: isOrtaokulFilter ? 0 : (agg?.t11.belumEmis || 0),
+        vervalOk: isOrtaokulFilter ? 0 : (agg?.t11.vervalOk || 0),
+        residuVerval: isOrtaokulFilter ? 0 : (agg?.t11.residuVerval || 0),
+        target: isOrtaokulFilter ? 0 : (t.targetTingkat11 || 0),
+      },
+      t12: {
+        total: isOrtaokulFilter ? 0 : (agg?.t12.total || 0),
+        emis: isOrtaokulFilter ? 0 : (agg?.t12.emis || 0),
+        belumEmis: isOrtaokulFilter ? 0 : (agg?.t12.belumEmis || 0),
+        vervalOk: isOrtaokulFilter ? 0 : (agg?.t12.vervalOk || 0),
+        residuVerval: isOrtaokulFilter ? 0 : (agg?.t12.residuVerval || 0),
+        target: isOrtaokulFilter ? 0 : (t.targetTingkat12 || 0),
+      },
     };
 
-    let totalSiswaMuadalah = 0;
-    let totalTerdaftarEmis = 0;
-    let totalBelumEmis = 0;
-    let totalVervalOk = 0;
-    let totalResiduVerval = 0;
-    let totalButuhTindakan = 0;
+    let totalSiswaMuadalah = agg?.totalSiswaMuadalah || 0;
+    let totalTerdaftarEmis = agg?.totalTerdaftarEmis || 0;
+    let totalBelumEmis = agg?.totalBelumEmis || 0;
+    let totalVervalOk = agg?.totalVervalOk || 0;
+    let totalResiduVerval = agg?.totalResiduVerval || 0;
+    let totalButuhTindakan = agg?.totalButuhTindakan || 0;
 
-    students.forEach((st: any) => {
-      if (!st.isActive) return;
-
-      if (selectedJenis !== 'ALL' && selectedJenis) {
-        const rawGrup = st.dataDaimi?.grup?.jenis || st.dataDaimi?.kelas?.grup?.jenis || st.grupDaimi || '';
-        const normG = normalizeDaimiKey(rawGrup);
-        if (normSelected === 'NO_GRUP' || normSelected.includes('TANPA')) {
-          if (normG && normG !== '-' && normG !== 'NONE' && normG !== 'BELUM ADA') return;
-        } else {
-          if (!normG.includes(normSelected)) return;
-        }
-      }
-
-      let detectedTingkat = '';
-      if (st.siswaFormal && st.siswaFormal.kelas) {
-        const rawT = String(st.siswaFormal.kelas.tingkat || st.siswaFormal.kelas.name || '').toUpperCase().trim();
-        if (rawT.includes('12') || rawT.includes('XII')) detectedTingkat = '12';
-        else if (rawT.includes('11') || rawT.includes('XI')) detectedTingkat = '11';
-        else if (rawT.includes('10') || rawT.includes('X')) detectedTingkat = '10';
-        else if (rawT.includes('9') || rawT.includes('IX')) detectedTingkat = '9';
-        else if (rawT.includes('8') || rawT.includes('VIII')) detectedTingkat = '8';
-        else if (rawT.includes('7') || rawT.includes('VII')) detectedTingkat = '7';
-      }
-
-      if (!detectedTingkat) return;
-
-      totalSiswaMuadalah++;
-      const emisInfo = emisStudentMap.get(st.id);
-      const isEmis = emisInfo?.statusEmis === 'TERDAFTAR';
-      const isBelumEmis = !emisInfo || emisInfo.statusEmis === 'BELUM_TERDAFTAR';
-      const isVervalOk = emisInfo?.statusVerval === 'VERVAL_OK';
-      const isResiduVerval = emisInfo?.statusVerval === 'RESIDU_VERVAL';
-      const needsAction = Boolean(emisInfo?.butuhTindakan || isBelumEmis || isResiduVerval);
-
-      if (isEmis) totalTerdaftarEmis++;
-      if (isBelumEmis) totalBelumEmis++;
-      if (isVervalOk) totalVervalOk++;
-      if (isResiduVerval) totalResiduVerval++;
-      if (needsAction) totalButuhTindakan++;
-
-      const key = `t${detectedTingkat}` as keyof typeof tingkatCounts;
-      if (tingkatCounts[key]) {
-        tingkatCounts[key].total++;
-        if (isEmis) tingkatCounts[key].emis++;
-        if (isBelumEmis) tingkatCounts[key].belumEmis++;
-        if (isVervalOk) tingkatCounts[key].vervalOk++;
-        if (isResiduVerval) tingkatCounts[key].residuVerval++;
-      }
-    });
-
-    const totalTarget = (t.targetTingkat7 || 0) + (t.targetTingkat8 || 0) + (t.targetTingkat9 || 0) +
-                        (t.targetTingkat10 || 0) + (t.targetTingkat11 || 0) + (t.targetTingkat12 || 0);
-
-    // Fallback jika tidak ada filter daimi dan totalSiswaMuadalah 0 tetapi ada data di cabangBreakdown
-    if (totalSiswaMuadalah === 0 && (selectedJenis === 'ALL' || !selectedJenis)) {
-      const b = (emisReconcileData?.cabangBreakdown || []).find((cb: any) => cb.cabangId === item.id || cb.cabangName === item.name);
+    // If filtered by Ortaokul or Lise, calculate totals based on filtered tingkat
+    if (isOrtaokulFilter) {
+      totalTerdaftarEmis = tingkatCounts.t7.emis + tingkatCounts.t8.emis + tingkatCounts.t9.emis;
+      totalBelumEmis = tingkatCounts.t7.belumEmis + tingkatCounts.t8.belumEmis + tingkatCounts.t9.belumEmis;
+      totalVervalOk = tingkatCounts.t7.vervalOk + tingkatCounts.t8.vervalOk + tingkatCounts.t9.vervalOk;
+      totalResiduVerval = tingkatCounts.t7.residuVerval + tingkatCounts.t8.residuVerval + tingkatCounts.t9.residuVerval;
+      totalSiswaMuadalah = tingkatCounts.t7.total + tingkatCounts.t8.total + tingkatCounts.t9.total;
+    } else if (isLiseFilter) {
+      totalTerdaftarEmis = tingkatCounts.t10.emis + tingkatCounts.t11.emis + tingkatCounts.t12.emis;
+      totalBelumEmis = tingkatCounts.t10.belumEmis + tingkatCounts.t11.belumEmis + tingkatCounts.t12.belumEmis;
+      totalVervalOk = tingkatCounts.t10.vervalOk + tingkatCounts.t11.vervalOk + tingkatCounts.t12.vervalOk;
+      totalResiduVerval = tingkatCounts.t10.residuVerval + tingkatCounts.t11.residuVerval + tingkatCounts.t12.residuVerval;
+      totalSiswaMuadalah = tingkatCounts.t10.total + tingkatCounts.t11.total + tingkatCounts.t12.total;
+    } else if (totalSiswaMuadalah === 0 && (selectedJenis === 'ALL' || !selectedJenis)) {
+      // Fallback to cabangBreakdown if agg was null (e.g. cabang has 0 students in reconcile detail)
+      const b = (emisReconcileData?.cabangBreakdown || []).find((cb: any) =>
+        cb.cabangId === item.id ||
+        (cb.cabangName && normalizeCabangKey(cb.cabangName) === normName)
+      );
       if (b) {
         totalSiswaMuadalah = b.totalSantri || 0;
         totalTerdaftarEmis = b.terdaftarEmis || 0;
@@ -316,6 +428,9 @@ const normalizeDaimiKey = (str?: string | null): string => {
         totalButuhTindakan = b.butuhTindakan || 0;
       }
     }
+
+    const totalTarget = (tingkatCounts.t7.target || 0) + (tingkatCounts.t8.target || 0) + (tingkatCounts.t9.target || 0) +
+                        (tingkatCounts.t10.target || 0) + (tingkatCounts.t11.target || 0) + (tingkatCounts.t12.target || 0);
 
     return {
       tingkat: tingkatCounts,
@@ -734,7 +849,7 @@ const normalizeDaimiKey = (str?: string | null): string => {
     });
 
     return Array.from(map.values()).sort((a, b) => a.wilayahName.localeCompare(b.wilayahName));
-  }, [filteredAndSortedCabang, filterJenisDaimi, emisStudentMap, emisReconcileData]);
+  }, [filteredAndSortedCabang, filterJenisDaimi, emisStatsByCabang, emisReconcileData]);
 
   // Aggregated Totals for EMIS & Target Siswa subtab
   const filteredEmisTotals = useMemo(() => {
@@ -775,7 +890,7 @@ const normalizeDaimiKey = (str?: string | null): string => {
       totalTerdaftarEmis, totalBelumEmis, totalVervalOk, totalResiduVerval, totalButuhTindakan,
       totalSiswaMuadalah, totalTarget
     };
-  }, [filteredAndSortedCabang, filterJenisDaimi, emisStudentMap, emisReconcileData]);
+  }, [filteredAndSortedCabang, filterJenisDaimi, emisStatsByCabang, emisReconcileData]);
 
   useEffect(() => {
     setCurrentPage(1);

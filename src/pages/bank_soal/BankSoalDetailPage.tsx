@@ -25,9 +25,11 @@ import {
   useBankSoalDetail,
   useDeleteQuestionItem,
   useReorderQuestions,
+  useUpdateAssignment,
 } from '../../features/bank_soal/hooks/useBankSoal';
 import { FormattedMathPreview } from '../../features/bank_soal/components/RichMathEditor';
 import { QuestionEditorModal } from '../../features/bank_soal/components/QuestionEditorModal';
+import { QuickImportModal } from '../../features/bank_soal/components/QuickImportModal';
 import { QuestionBankModal } from '../../features/bank_soal/components/QuestionBankModal';
 import { DocxExportModal } from '../../features/bank_soal/components/DocxExportModal';
 import type { QuestionItem } from '../../features/bank_soal/types';
@@ -41,6 +43,7 @@ export const BankSoalDetailPage: React.FC = () => {
 
   // Modals state
   const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
+  const [isQuickImportOpen, setIsQuickImportOpen] = useState(false);
   const [questionToEdit, setQuestionToEdit] = useState<QuestionItem | null>(null);
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -50,6 +53,7 @@ export const BankSoalDetailPage: React.FC = () => {
 
   const deleteQuestionMutation = useDeleteQuestionItem();
   const reorderMutation = useReorderQuestions();
+  const updateAssignmentMutation = useUpdateAssignment();
 
   if (isLoading) {
     return (
@@ -127,6 +131,23 @@ export const BankSoalDetailPage: React.FC = () => {
     }
   };
 
+  const handleCompleteAssignment = async () => {
+    if (!bank.assignment?.id) return;
+    if (confirm('Apakah Anda yakin naskah soal ini sudah selesai dan siap diajukan ke Cabang/Pengawas untuk diverifikasi?')) {
+      try {
+        await updateAssignmentMutation.mutateAsync({
+          id: bank.assignment.id,
+          data: { status: 'SELESAI' },
+        });
+        alert('Naskah soal berhasil diajukan ke Cabang/Pengawas!');
+        refetch();
+      } catch (err) {
+        console.error(err);
+        alert('Gagal memperbarui status penugasan');
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* ── TOP ACTION BAR (PORTAL WALSAN STYLE) ── */}
@@ -159,6 +180,42 @@ export const BankSoalDetailPage: React.FC = () => {
         </div>
       </div>
 
+      {/* ── ASSIGNMENT TARGET & SUBMIT BANNER (JIKA DITUGASKAN) ── */}
+      {bank.assignment && (
+        <div className="p-5 bg-gradient-to-r from-indigo-50/90 via-blue-50/80 to-purple-50/90 border border-indigo-200/80 rounded-3xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-indigo-600 text-white shadow-2xs">
+                Target Proyek: {bank.assignment.project?.title || 'Penugasan Naskah'}
+              </span>
+              <span
+                className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold border ${
+                  bank.assignment.status === 'SELESAI' || bank.assignment.status === 'DISETUJUI'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                }`}
+              >
+                Status: {bank.assignment.status?.replace(/_/g, ' ')}
+              </span>
+            </div>
+            <div className="text-xs text-slate-700 font-medium">
+              Target Pilihan Ganda: <strong>{mcqCount} / {bank.assignment.targetMcqCount}</strong> butir ({Math.min(100, Math.round((mcqCount / (bank.assignment.targetMcqCount || 1)) * 100))}%) • Target Esai: <strong>{essayCount} / {bank.assignment.targetEssayCount}</strong> butir ({Math.min(100, Math.round((essayCount / (bank.assignment.targetEssayCount || 1)) * 100))}%)
+            </div>
+          </div>
+
+          {isOwner && (bank.assignment.status === 'DALAM_PROSES' || bank.assignment.status === 'DITUGASKAN') && (
+            <button
+              type="button"
+              onClick={handleCompleteAssignment}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer flex items-center gap-2 shrink-0"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Ajukan Naskah Selesai</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* ── PACKAGE DETAIL BANNER CARD (PORTAL WALSAN STYLE) ── */}
       <div className="bg-white rounded-3xl border border-slate-200/80 p-6 md:p-8 shadow-xs space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -183,16 +240,28 @@ export const BankSoalDetailPage: React.FC = () => {
             </h1>
           </div>
 
-          <button
-            onClick={() => {
-              setQuestionToEdit(null);
-              setIsQuestionModalOpen(true);
-            }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-2xl shadow-md shadow-indigo-600/20 transition-all cursor-pointer shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Butir Soal</span>
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {isOwner && (
+              <button
+                onClick={() => setIsQuickImportOpen(true)}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-2xl transition cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-indigo-600" />
+                <span>Impor Teks Cepat</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                setQuestionToEdit(null);
+                setIsQuestionModalOpen(true);
+              }}
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-2xl shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Butir Soal</span>
+            </button>
+          </div>
         </div>
 
         {/* Info Grid */}
@@ -452,6 +521,13 @@ export const BankSoalDetailPage: React.FC = () => {
         }}
         bankId={bank.id}
         questionToEdit={questionToEdit}
+        nextIndex={allQuestions.length + 1}
+      />
+
+      <QuickImportModal
+        isOpen={isQuickImportOpen}
+        onClose={() => setIsQuickImportOpen(false)}
+        bankId={bank.id}
         nextIndex={allQuestions.length + 1}
       />
 

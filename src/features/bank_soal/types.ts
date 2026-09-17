@@ -151,3 +151,47 @@ export interface FormalMetadata {
   subjects: { id: string; name: string; kodeMapel: string; grupMapel: string }[];
   gradeLevels: string[];
 }
+
+export interface UpdateBankSoalProjectPayload {
+  title?: string;
+  description?: string;
+  academicYear?: string;
+  semester?: string;
+  deadline?: string | null;
+  status?: ProjectStatus;
+}
+
+export interface AddAssignmentPayload {
+  subjectId?: string | null;
+  subjectName: string;
+  gradeLevel: string;
+  targetMcqCount?: number;
+  targetEssayCount?: number;
+  timeLimit?: number | null;
+  instructions?: string | null;
+  wilayahId?: string | null;
+  cabangId?: string | null;
+  teacherId?: string | null;
+}
+
+export interface UpdateAssignmentPayload {
+  subjectId?: string | null;
+  subjectName?: string;
+  gradeLevel?: string;
+  targetMcqCount?: number;
+  targetEssayCount?: number;
+  timeLimit?: number | null;
+  instructions?: string | null;
+  wilayahId?: string | null;
+  cabangId?: string | null;
+  teacherId?: string | null;
+  status?: AssignmentStatus;
+  notes?: string | null;
+  questionBankId?: string | null;
+}
+
+export interface ReviewAssignmentPayload {
+  action: 'APPROVE' | 'REVISE';
+  notes?: string;
+}
+

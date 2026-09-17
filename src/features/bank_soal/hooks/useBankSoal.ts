@@ -264,6 +264,95 @@ export const useBankSoalAssignments = (params?: {
   });
 };
 
+export const useUpdateBankSoalProject = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiClient.put(`/bank-soal/projects/${id}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-project-detail'] });
+    },
+  });
+};
+
+export const useAddProjectAssignment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, data }: { projectId: string; data: any }) => {
+      const response = await apiClient.post(`/bank-soal/projects/${projectId}/assignments`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-project-detail'] });
+    },
+  });
+};
+
+export const useUpdateAssignment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiClient.put(`/bank-soal/assignments/${id}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-project-detail'] });
+    },
+  });
+};
+
+export const useDeleteAssignment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.delete(`/bank-soal/assignments/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-project-detail'] });
+    },
+  });
+};
+
+export const useReviewAssignment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, action, notes }: { id: string; action: 'APPROVE' | 'REVISE'; notes?: string }) => {
+      const response = await apiClient.post(`/bank-soal/assignments/${id}/review`, { action, notes });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-project-detail'] });
+    },
+  });
+};
+
+export const useCreateBatchQuestions = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ bankId, questions }: { bankId: string; questions: any[] }) => {
+      const response = await apiClient.post(`/bank-soal/${bankId}/questions/batch`, { questions });
+      return response.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-detail', variables.bankId] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-list'] });
+    },
+  });
+};
+
 export const useDelegateAssignment = () => {
   const queryClient = useQueryClient();
   return useMutation({

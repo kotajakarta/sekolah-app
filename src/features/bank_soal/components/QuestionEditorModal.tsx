@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, HelpCircle, FileText, CheckCircle, Award } from 'lucide-react';
+import { X, CheckCircle2, HelpCircle, FileText, CheckCircle, Award, Plus, ArrowRight } from 'lucide-react';
 import { RichMathEditor } from './RichMathEditor';
 import { useCreateQuestionItem, useUpdateQuestionItem } from '../hooks/useBankSoal';
 import type { QuestionItem, QuestionOption, QuestionType } from '../types';
@@ -123,10 +123,20 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
 
   if (!isOpen) return null;
 
+  const [currentNumber, setCurrentNumber] = useState(nextIndex);
+  const [successBanner, setSuccessBanner] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (questionToEdit) {
+      setCurrentNumber(questionToEdit.orderIndex + 1);
+    } else {
+      setCurrentNumber(nextIndex);
+    }
+  }, [questionToEdit, nextIndex, isOpen]);
+
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async (keepOpen: boolean) => {
     if (!contentHtml.trim()) {
       alert('Isi pertanyaan tidak boleh kosong');
       return;
@@ -147,16 +157,40 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
           questionId: questionToEdit.id,
           data: payload,
         });
+        onClose();
       } else {
         await createMutation.mutateAsync({
           bankId,
           data: payload,
         });
+
+        if (keepOpen) {
+          const savedNum = currentNumber;
+          setCurrentNumber((prev) => prev + 1);
+          setContentHtml('');
+          setAnswerKey('');
+          setWeight(1);
+          setOptions([
+            { label: 'A', contentHtml: '', isCorrect: true, orderIndex: 0 },
+            { label: 'B', contentHtml: '', isCorrect: false, orderIndex: 1 },
+            { label: 'C', contentHtml: '', isCorrect: false, orderIndex: 2 },
+            { label: 'D', contentHtml: '', isCorrect: false, orderIndex: 3 },
+            ...(type === 'MCQ_5' ? [{ label: 'E', contentHtml: '', isCorrect: false, orderIndex: 4 }] : []),
+          ]);
+          setSuccessBanner(`✓ Soal nomor ${savedNum} berhasil disimpan! Lanjutkan nomor ${savedNum + 1}.`);
+          setTimeout(() => setSuccessBanner(null), 4000);
+        } else {
+          onClose();
+        }
       }
-      onClose();
     } catch (err) {
       console.error('Gagal menyimpan butir soal:', err);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSave(false);
   };
 
   return (
@@ -170,7 +204,7 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900">
-                {questionToEdit ? `Edit Butir Soal #${questionToEdit.orderIndex + 1}` : `Tambah Butir Soal Baru #${nextIndex}`}
+                {questionToEdit ? `Edit Butir Soal #${currentNumber}` : `Tambah Butir Soal Baru #${currentNumber}`}
               </h2>
               <p className="text-xs text-slate-500">
                 Pilih format soal (Pilihan Ganda atau Esai) dan atur kunci jawaban
@@ -184,6 +218,14 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Continuous Save Success Banner */}
+        {successBanner && (
+          <div className="px-6 py-2.5 bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200">
+            <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{successBanner}</span>
+          </div>
+        )}
 
         {/* Modal Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6 flex-1">
@@ -345,22 +387,48 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
           )}
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-600/20 transition disabled:opacity-50 cursor-pointer"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{isSubmitting ? 'Menyimpan...' : questionToEdit ? 'Simpan Perubahan' : 'Tambahkan Butir Soal'}</span>
-            </button>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-slate-100">
+            <div>
+              <span className="text-xs text-slate-400 font-medium">
+                {questionToEdit ? 'Mode edit butir soal' : `Sedang menyusun butir soal #${currentNumber}`}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
+              >
+                Batal
+              </button>
+
+              {!questionToEdit && (
+                <button
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => handleSave(true)}
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-2xl text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-2xs"
+                >
+                  <Plus className="w-4 h-4 text-indigo-600" />
+                  <span>Simpan & Lanjut #{currentNumber + 1}</span>
+                </button>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-indigo-600/20 transition disabled:opacity-50 cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>
+                  {isSubmitting
+                    ? 'Menyimpan...'
+                    : questionToEdit
+                    ? 'Simpan Perubahan'
+                    : 'Simpan & Selesai'}
+                </span>
+              </button>
+            </div>
           </div>
         </form>
       </div>

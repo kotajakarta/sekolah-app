@@ -36,14 +36,21 @@ import {
   useBankSoalFilterOptions,
   useDeleteBankSoal,
   useDuplicateBankSoal,
+  useCreateBankSoal,
   useBankSoalProjects,
+  useDeleteBankSoalProject,
   useBankSoalAssignments,
+  useDeleteAssignment,
 } from '../../features/bank_soal/hooks/useBankSoal';
 import { QuestionBankModal } from '../../features/bank_soal/components/QuestionBankModal';
 import { DocxExportModal } from '../../features/bank_soal/components/DocxExportModal';
 import { CreateProjectModal } from '../../features/bank_soal/components/CreateProjectModal';
+import { EditProjectModal } from '../../features/bank_soal/components/EditProjectModal';
+import { AddAssignmentModal } from '../../features/bank_soal/components/AddAssignmentModal';
+import { EditAssignmentModal } from '../../features/bank_soal/components/EditAssignmentModal';
+import { ReviewAssignmentModal } from '../../features/bank_soal/components/ReviewAssignmentModal';
 import { DelegateModal } from '../../features/bank_soal/components/DelegateModal';
-import type { QuestionBank, BankSoalAssignment } from '../../features/bank_soal/types';
+import type { QuestionBank, BankSoalAssignment, BankSoalProject } from '../../features/bank_soal/types';
 
 export const BankSoalListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -62,11 +69,19 @@ export const BankSoalListPage: React.FC = () => {
   const [onlyMine, setOnlyMine] = useState(false);
   const [page, setPage] = useState(1);
 
+  // Filter for Tab (Projects)
+  const [projectAssignmentSearch, setProjectAssignmentSearch] = useState('');
+  const [projectStatusFilter, setProjectStatusFilter] = useState('');
+
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [bankToEdit, setBankToEdit] = useState<QuestionBank | null>(null);
   const [exportModalBank, setExportModalBank] = useState<QuestionBank | null>(null);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<BankSoalProject | null>(null);
+  const [addingAssignmentProject, setAddingAssignmentProject] = useState<BankSoalProject | null>(null);
+  const [editingAssignment, setEditingAssignment] = useState<BankSoalAssignment | null>(null);
+  const [reviewingAssignment, setReviewingAssignment] = useState<BankSoalAssignment | null>(null);
   const [delegateAssignment, setDelegateAssignment] = useState<BankSoalAssignment | null>(null);
   const [activeAssignmentContext, setActiveAssignmentContext] = useState<BankSoalAssignment | null>(null);
 
@@ -83,6 +98,9 @@ export const BankSoalListPage: React.FC = () => {
   const { data: filterOptions } = useBankSoalFilterOptions();
   const deleteMutation = useDeleteBankSoal();
   const duplicateMutation = useDuplicateBankSoal();
+  const createBankMutation = useCreateBankSoal();
+  const deleteProjectMutation = useDeleteBankSoalProject();
+  const deleteAssignmentMutation = useDeleteAssignment();
 
   // Project & Assignment Queries
   const { data: projects, isLoading: isLoadingProjects } = useBankSoalProjects();
@@ -114,12 +132,49 @@ export const BankSoalListPage: React.FC = () => {
     }
   };
 
-  const handleStartAssignment = (assignment: BankSoalAssignment) => {
+  const handleDeleteProject = async (id: string, title: string) => {
+    if (confirm(`Hapus proyek penugasan "${title}" beserta seluruh penugasannya? Tindakan ini tidak dapat dibatalkan.`)) {
+      try {
+        await deleteProjectMutation.mutateAsync(id);
+      } catch (err) {
+        console.error('Gagal menghapus proyek:', err);
+        alert('Gagal menghapus proyek penugasan');
+      }
+    }
+  };
+
+  const handleDeleteAssignment = async (id: string, subjectName: string) => {
+    if (confirm(`Hapus penugasan mata pelajaran "${subjectName}" dari proyek?`)) {
+      try {
+        await deleteAssignmentMutation.mutateAsync(id);
+      } catch (err) {
+        console.error('Gagal menghapus penugasan:', err);
+        alert('Gagal menghapus baris penugasan');
+      }
+    }
+  };
+
+  const handleStartAssignment = async (assignment: BankSoalAssignment) => {
     if (assignment.questionBankId) {
       navigate(`/dashboard/bank-soal/${assignment.questionBankId}`);
     } else {
-      setActiveAssignmentContext(assignment);
-      setIsCreateModalOpen(true);
+      try {
+        const title = `Naskah ${assignment.subjectName} ${assignment.gradeLevel} - ${assignment.project?.title || 'Ujian'}`;
+        const newBank = await createBankMutation.mutateAsync({
+          title,
+          subject: assignment.subjectName,
+          gradeLevel: assignment.gradeLevel,
+          timeLimit: assignment.timeLimit || 90,
+          assignmentId: assignment.id,
+          academicYear: assignment.project?.academicYear || undefined,
+          semester: assignment.project?.semester || undefined,
+        });
+        navigate(`/dashboard/bank-soal/${newBank.id}`);
+      } catch (err) {
+        console.error('Gagal membuat paket soal:', err);
+        setActiveAssignmentContext(assignment);
+        setIsCreateModalOpen(true);
+      }
     }
   };
 
@@ -627,153 +682,273 @@ export const BankSoalListPage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-6">
-              {projects.map((project) => (
-                <div
-                  key={project.id}
-                  className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs space-y-5"
-                >
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-slate-100 pb-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {project.status}
-                        </span>
-                        {project.academicYear && (
-                          <span className="text-xs font-bold text-slate-500">
-                            TA {project.academicYear} - {project.semester}
+              {projects.map((project) => {
+                // Filter assignments based on search and status
+                const filteredAssignments = (project.assignments || []).filter((item) => {
+                  if (projectStatusFilter && item.status !== projectStatusFilter) return false;
+                  if (projectAssignmentSearch.trim()) {
+                    const q = projectAssignmentSearch.toLowerCase();
+                    const matchSubject = item.subjectName?.toLowerCase().includes(q);
+                    const matchGrade = item.gradeLevel?.toLowerCase().includes(q);
+                    const matchCabang = item.cabang?.name?.toLowerCase().includes(q);
+                    const matchTeacher = (item.teacher?.operatorName || item.teacher?.username)?.toLowerCase().includes(q);
+                    return matchSubject || matchGrade || matchCabang || matchTeacher;
+                  }
+                  return true;
+                });
+
+                return (
+                  <div
+                    key={project.id}
+                    className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs space-y-5"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-100 pb-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {project.status}
                           </span>
+                          {project.academicYear && (
+                            <span className="text-xs font-bold text-slate-500">
+                              TA {project.academicYear} - {project.semester}
+                            </span>
+                          )}
+                        </div>
+                        <h2 className="text-lg font-bold text-slate-900">{project.title}</h2>
+                        {project.description && (
+                          <p className="text-xs text-slate-500 mt-0.5">{project.description}</p>
                         )}
                       </div>
-                      <h2 className="text-lg font-bold text-slate-900">{project.title}</h2>
-                      {project.description && (
-                        <p className="text-xs text-slate-500 mt-0.5">{project.description}</p>
-                      )}
-                    </div>
 
-                    <div className="flex items-center gap-4 text-xs">
-                      {project.deadline && (
-                        <div className="flex items-center gap-1.5 text-rose-600 font-semibold">
-                          <Clock className="w-4 h-4" />
-                          <span>Deadline: {new Date(project.deadline).toLocaleDateString('id-ID')}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <div className="font-bold text-slate-900">
-                            {project.stats?.percentage}% Selesai
+                      <div className="flex flex-wrap items-center gap-4 text-xs">
+                        {project.deadline && (
+                          <div className="flex items-center gap-1.5 text-rose-600 font-semibold">
+                            <Clock className="w-4 h-4" />
+                            <span>Deadline: {new Date(project.deadline).toLocaleDateString('id-ID')}</span>
                           </div>
-                          <div className="text-[11px] text-slate-400">
-                            {project.stats?.completed} / {project.stats?.total} Mapel
+                        )}
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <div className="font-bold text-slate-900">
+                              {project.stats?.percentage}% Selesai
+                            </div>
+                            <div className="text-[11px] text-slate-400">
+                              {project.stats?.completed} / {project.stats?.total} Mapel
+                            </div>
+                          </div>
+                          <div className="w-20 h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                              style={{ width: `${project.stats?.percentage || 0}%` }}
+                            />
                           </div>
                         </div>
-                        <div className="w-20 h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                            style={{ width: `${project.stats?.percentage || 0}%` }}
-                          />
-                        </div>
+
+                        {/* Project Actions (Global Admin) */}
+                        {isGlobal && (
+                          <div className="flex items-center gap-1.5 pl-3 border-l border-slate-200">
+                            <button
+                              type="button"
+                              onClick={() => setAddingAssignmentProject(project)}
+                              className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                              title="Tambah Penugasan Mapel Baru"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Tambah Mapel</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setEditingProject(project)}
+                              className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition cursor-pointer"
+                              title="Edit Proyek Penugasan"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteProject(project.id, project.title)}
+                              className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                              title="Hapus Proyek"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
 
-                  {/* Assignments Table inside project */}
-                  <div className="overflow-x-auto rounded-2xl border border-slate-100">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead className="bg-slate-50/80 text-slate-600 font-bold border-b border-slate-100">
-                        <tr>
-                          <th className="p-3.5">Mata Pelajaran</th>
-                          <th className="p-3.5">Tingkat</th>
-                          <th className="p-3.5 text-center">Target Soal</th>
-                          <th className="p-3.5">Wilayah</th>
-                          <th className="p-3.5">Cabang Pelaksana</th>
-                          <th className="p-3.5">Guru Pengampu</th>
-                          <th className="p-3.5 text-center">Status</th>
-                          <th className="p-3.5 text-right">Aksi</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {project.assignments.map((item) => (
-                          <tr key={item.id} className="hover:bg-slate-50/50 transition">
-                            <td className="p-3.5 font-bold text-slate-900">
-                              {item.subjectName}
-                            </td>
-                            <td className="p-3.5 font-medium text-slate-600">{item.gradeLevel}</td>
-                            <td className="p-3.5 text-center">
-                              <span className="font-bold text-slate-700">
-                                {item.targetMcqCount} PG / {item.targetEssayCount} Esai
-                              </span>
-                            </td>
-                            <td className="p-3.5 text-slate-600 font-medium">
-                              {item.wilayah?.name || (
-                                <span className="text-slate-400 italic">Belum dipilih</span>
-                              )}
-                            </td>
-                            <td className="p-3.5 text-slate-600 font-medium">
-                              {item.cabang?.name || (
-                                <span className="text-amber-600 font-bold text-[11px]">Menunggu Wilayah</span>
-                              )}
-                            </td>
-                            <td className="p-3.5 text-slate-600 font-medium">
-                              {item.teacher?.operatorName || item.teacher?.username || (
-                                <span className="text-amber-600 font-bold text-[11px]">Menunggu Cabang</span>
-                              )}
-                            </td>
-                            <td className="p-3.5 text-center">
-                              <span
-                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                                  item.status === 'SELESAI' || item.status === 'DISETUJUI'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : item.status === 'DALAM_PROSES'
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                    : item.status === 'DITUGASKAN'
-                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                                }`}
-                              >
-                                {item.status.replace(/_/g, ' ')}
-                              </span>
-                            </td>
-                            <td className="p-3.5 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                {(isGlobal || isWilayah || isCabang) && (
-                                  <button
-                                    onClick={() => setDelegateAssignment(item)}
-                                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
-                                  >
-                                    {isWilayah
-                                      ? 'Delegasikan Cabang'
-                                      : isCabang
-                                      ? 'Tugaskan Guru'
-                                      : 'Kelola Delegasi'}
-                                  </button>
-                                )}
+                    {/* Filter & Search Bar Penugasan per Proyek */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                      <div className="relative flex-1 max-w-sm">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={projectAssignmentSearch}
+                          onChange={(e) => setProjectAssignmentSearch(e.target.value)}
+                          placeholder="Cari mapel, cabang, guru pengampu..."
+                          className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
+                        />
+                      </div>
 
-                                {item.questionBankId ? (
-                                  <button
-                                    onClick={() => navigate(`/dashboard/bank-soal/${item.questionBankId}`)}
-                                    className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition cursor-pointer"
-                                  >
-                                    Lihat Naskah ({item.questionBank?._count?.questions || 0})
-                                  </button>
-                                ) : (
-                                  (item.teacherId === user?.id || isCabang) && (
-                                    <button
-                                      onClick={() => handleStartAssignment(item)}
-                                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
-                                    >
-                                      Buat Soal
-                                    </button>
-                                  )
-                                )}
-                              </div>
-                            </td>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={projectStatusFilter}
+                          onChange={(e) => setProjectStatusFilter(e.target.value)}
+                          className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                        >
+                          <option value="">Semua Status ({project.assignments?.length || 0})</option>
+                          <option value="MENUNGGU_DELEGASI_CABANG">Menunggu Wilayah</option>
+                          <option value="MENUNGGU_PENUGASAN_GURU">Menunggu Cabang</option>
+                          <option value="DITUGASKAN">Ditugaskan ke Guru</option>
+                          <option value="DALAM_PROSES">Sedang Dikerjakan</option>
+                          <option value="SELESAI">Selesai (Menunggu Review)</option>
+                          <option value="DISETUJUI">Disetujui</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Assignments Table inside project */}
+                    <div className="overflow-x-auto rounded-2xl border border-slate-100">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead className="bg-slate-50/80 text-slate-600 font-bold border-b border-slate-100">
+                          <tr>
+                            <th className="p-3.5">Mata Pelajaran</th>
+                            <th className="p-3.5">Tingkat</th>
+                            <th className="p-3.5 text-center">Target Soal</th>
+                            <th className="p-3.5">Wilayah</th>
+                            <th className="p-3.5">Cabang Pelaksana</th>
+                            <th className="p-3.5">Guru Pengampu</th>
+                            <th className="p-3.5 text-center">Status</th>
+                            <th className="p-3.5 text-right">Aksi</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {filteredAssignments.length === 0 ? (
+                            <tr>
+                              <td colSpan={8} className="p-6 text-center text-slate-400">
+                                Tidak ada penugasan yang sesuai filter.
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredAssignments.map((item) => (
+                              <tr key={item.id} className="hover:bg-slate-50/50 transition">
+                                <td className="p-3.5 font-bold text-slate-900">
+                                  {item.subjectName}
+                                </td>
+                                <td className="p-3.5 font-medium text-slate-600">{item.gradeLevel}</td>
+                                <td className="p-3.5 text-center">
+                                  <span className="font-bold text-slate-700">
+                                    {item.targetMcqCount} PG / {item.targetEssayCount} Esai
+                                  </span>
+                                </td>
+                                <td className="p-3.5 text-slate-600 font-medium">
+                                  {item.wilayah?.name || (
+                                    <span className="text-slate-400 italic">Belum dipilih</span>
+                                  )}
+                                </td>
+                                <td className="p-3.5 text-slate-600 font-medium">
+                                  {item.cabang?.name || (
+                                    <span className="text-amber-600 font-bold text-[11px]">Menunggu Wilayah</span>
+                                  )}
+                                </td>
+                                <td className="p-3.5 text-slate-600 font-medium">
+                                  {item.teacher?.operatorName || item.teacher?.username || (
+                                    <span className="text-amber-600 font-bold text-[11px]">Menunggu Cabang</span>
+                                  )}
+                                </td>
+                                <td className="p-3.5 text-center">
+                                  <span
+                                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                                      item.status === 'SELESAI' || item.status === 'DISETUJUI'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : item.status === 'DALAM_PROSES'
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                        : item.status === 'DITUGASKAN'
+                                        ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                                    }`}
+                                  >
+                                    {item.status.replace(/_/g, ' ')}
+                                  </span>
+                                </td>
+                                <td className="p-3.5 text-right">
+                                  <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                                    {/* Review & Approval Button jika Selesai */}
+                                    {item.status === 'SELESAI' && (isGlobal || isWilayah || isCabang) && (
+                                      <button
+                                        onClick={() => setReviewingAssignment(item)}
+                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                                      >
+                                        <ShieldCheck className="w-3.5 h-3.5" />
+                                        <span>Review & Setujui</span>
+                                      </button>
+                                    )}
+
+                                    {(isGlobal || isWilayah || isCabang) && (
+                                      <button
+                                        onClick={() => setDelegateAssignment(item)}
+                                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                                      >
+                                        {isWilayah
+                                          ? 'Delegasikan Cabang'
+                                          : isCabang
+                                          ? 'Tugaskan Guru'
+                                          : 'Kelola Delegasi'}
+                                      </button>
+                                    )}
+
+                                    {item.questionBankId ? (
+                                      <button
+                                        onClick={() => navigate(`/dashboard/bank-soal/${item.questionBankId}`)}
+                                        className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                                      >
+                                        Lihat Naskah ({item.questionBank?._count?.questions || 0})
+                                      </button>
+                                    ) : (
+                                      (item.teacherId === user?.id || isCabang) && (
+                                        <button
+                                          onClick={() => handleStartAssignment(item)}
+                                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                                        >
+                                          Buat Soal
+                                        </button>
+                                      )
+                                    )}
+
+                                    {/* Edit Rincian Mapel Penugasan */}
+                                    {(isGlobal || isCabang) && (
+                                      <button
+                                        onClick={() => setEditingAssignment(item)}
+                                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
+                                        title="Edit Target Mapel"
+                                      >
+                                        <Edit className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+
+                                    {/* Hapus Mapel dari Proyek */}
+                                    {isGlobal && (
+                                      <button
+                                        onClick={() => handleDeleteAssignment(item.id, item.subjectName)}
+                                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                                        title="Hapus Mapel dari Proyek"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -889,6 +1064,30 @@ export const BankSoalListPage: React.FC = () => {
       <CreateProjectModal
         isOpen={isCreateProjectOpen}
         onClose={() => setIsCreateProjectOpen(false)}
+      />
+
+      <EditProjectModal
+        isOpen={!!editingProject}
+        onClose={() => setEditingProject(null)}
+        project={editingProject}
+      />
+
+      <AddAssignmentModal
+        isOpen={!!addingAssignmentProject}
+        onClose={() => setAddingAssignmentProject(null)}
+        project={addingAssignmentProject}
+      />
+
+      <EditAssignmentModal
+        isOpen={!!editingAssignment}
+        onClose={() => setEditingAssignment(null)}
+        assignment={editingAssignment}
+      />
+
+      <ReviewAssignmentModal
+        isOpen={!!reviewingAssignment}
+        onClose={() => setReviewingAssignment(null)}
+        assignment={reviewingAssignment}
       />
 
       {delegateAssignment && (

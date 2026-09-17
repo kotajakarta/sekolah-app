@@ -167,7 +167,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({ isOpen, onClose, a
                 <option value="">-- Pilih Guru Pengampu --</option>
                 {teacherList.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.operatorName || t.username} ({t.username})
+                    {(t as any).staff?.name || t.operatorName || t.username} ({t.username})
                   </option>
                 ))}
               </select>

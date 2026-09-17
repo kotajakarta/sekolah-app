@@ -30,8 +30,6 @@ import {
   BookOpen,
   X,
   Printer,
-  Zap,
-  ScanLine,
 } from 'lucide-react';
 import { LjkPrintModal } from './LjkPrintModal';
 
@@ -128,23 +126,12 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const nativeCameraInputRef = useRef<HTMLInputElement>(null);
-  const videoContainerRef = useRef<HTMLDivElement>(null);
 
   // Upload & Scan state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanStep, setScanStep] = useState<string>('');
-
-  // Camera state
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [cameraFacingMode, setCameraFacingMode] = useState<'environment' | 'user'>('environment');
-  const [cameraOrientation, setCameraOrientation] = useState<'portrait' | 'landscape'>('portrait');
-  const [isTorchOn, setIsTorchOn] = useState(false);
-  const [torchAvailable, setTorchAvailable] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
 
   // Print LJK Builder Modal State
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -255,171 +242,6 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
     }
     return map;
   }, [activeBankDetail, scanResult]);
-
-  // Clean up camera stream on unmount
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      }
-    };
-  }, []);
-
-  // --- CAMERA FUNCTIONS ---
-  const startCamera = async (facing: 'environment' | 'user' = cameraFacingMode) => {
-    try {
-      stopCamera();
-      setCameraError(null);
-      setIsCameraOpen(true);
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: facing,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-        audio: false,
-      });
-
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-
-      // Deteksi ketersediaan lampu senter/torch di kamera perangkat
-      const track = stream.getVideoTracks()[0];
-      const caps = (track as any)?.getCapabilities?.();
-      if (caps && 'torch' in caps) {
-        setTorchAvailable(true);
-      } else {
-        setTorchAvailable(false);
-      }
-      setIsTorchOn(false);
-    } catch (err: any) {
-      console.error('Camera access error:', err);
-      setCameraError(
-        err.name === 'NotAllowedError'
-          ? 'Izin kamera ditolak. Berikan izin kamera di browser Anda.'
-          : 'Kamera tidak ditemukan atau sedang digunakan aplikasi lain.',
-      );
-    }
-  };
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    setIsCameraOpen(false);
-    setIsTorchOn(false);
-    setTorchAvailable(false);
-  };
-
-  const toggleTorch = async () => {
-    if (!streamRef.current) return;
-    const track = streamRef.current.getVideoTracks()[0];
-    if (!track) return;
-    try {
-      const nextTorch = !isTorchOn;
-      await (track as any).applyConstraints({
-        advanced: [{ torch: nextTorch }],
-      });
-      setIsTorchOn(nextTorch);
-    } catch (e) {
-      console.warn('Torch toggle failed:', e);
-    }
-  };
-
-  const toggleCameraFacing = () => {
-    const nextFacing = cameraFacingMode === 'environment' ? 'user' : 'environment';
-    setCameraFacingMode(nextFacing);
-    startCamera(nextFacing);
-  };
-
-  /**
-   * Mengambil gambar LJK secara presisi sesuai dengan apa yang terlihat pada kotak bidik di layar.
-   * Mengeliminasi sisa ruangan luar (meja, lantai, laci) akibat CSS object-fit: cover.
-   */
-  const capturePhoto = () => {
-    if (!videoRef.current) return;
-    const video = videoRef.current;
-    const container = videoContainerRef.current;
-
-    const videoWidth = video.videoWidth;
-    const videoHeight = video.videoHeight;
-    const containerWidth = container?.clientWidth || 0;
-    const containerHeight = container?.clientHeight || 0;
-
-    const canvas = document.createElement('canvas');
-
-    if (container && containerWidth > 0 && containerHeight > 0 && videoWidth > 0 && videoHeight > 0) {
-      // Hitung skala & offset penempatan CSS object-fit: cover
-      const scale = Math.max(containerWidth / videoWidth, containerHeight / videoHeight);
-      const renderedWidth = videoWidth * scale;
-      const renderedHeight = videoHeight * scale;
-
-      const offsetX = (renderedWidth - containerWidth) / 2;
-      const offsetY = (renderedHeight - containerHeight) / 2;
-
-      // Konversi balik ke piksel intrinsik sensor video
-      const sx = Math.max(0, offsetX / scale);
-      const sy = Math.max(0, offsetY / scale);
-      const sWidth = Math.min(videoWidth - sx, containerWidth / scale);
-      const sHeight = Math.min(videoHeight - sy, containerHeight / scale);
-
-      canvas.width = Math.round(sWidth);
-      canvas.height = Math.round(sHeight);
-      const ctx = canvas.getContext('2d');
-
-      if (ctx) {
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-
-        // Jika kamera depan, cerminkan horizontal agar sesuai preview
-        if (cameraFacingMode === 'user') {
-          ctx.translate(canvas.width, 0);
-          ctx.scale(-1, 1);
-        }
-
-        ctx.drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
-        saveBlobAndScan(canvas);
-      }
-    } else {
-      // Fallback standar jika container tidak terukur
-      canvas.width = videoWidth || 1280;
-      canvas.height = videoHeight || 720;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        if (cameraFacingMode === 'user') {
-          ctx.translate(canvas.width, 0);
-          ctx.scale(-1, 1);
-        }
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        saveBlobAndScan(canvas);
-      }
-    }
-  };
-
-  const saveBlobAndScan = (canvas: HTMLCanvasElement) => {
-    canvas.toBlob(
-      (blob) => {
-        if (blob) {
-          const capturedFile = new File([blob], `ljk_kamera_${Date.now()}.jpg`, {
-            type: 'image/jpeg',
-          });
-          stopCamera();
-          processSelectedFile(capturedFile);
-          showToast('info', 'Foto LJK berhasil diambil. Mulai memindai OMR...');
-          setTimeout(() => {
-            runOmrScanWithFile(capturedFile);
-          }, 300);
-        }
-      },
-      'image/jpeg',
-      0.95,
-    );
-  };
 
   // Handle file select
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -776,60 +598,52 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
       {!scanResult ? (
         <div className="bg-white rounded-3xl border border-slate-200/80 p-6 md:p-10 shadow-xs space-y-6">
           <div className="max-w-xl mx-auto space-y-6 text-center">
-            {/* Opsi Metode Input: Kamera HP Bawaan, Scanner Live, Galeri File, Cetak Format */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 w-full">
-              {/* 1. Kamera HP Bawaan (Langsung buka aplikasi kamera HP, jernih & tajam) */}
+            {/* Opsi Metode Input: Kamera HP (Utama), Galeri/File, Cetak Lembar LJK */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full">
+              {/* 1. Kamera HP Bawaan (Tombol Utama Terbesar & Paling Mudah untuk Guru) */}
               <button
                 type="button"
                 onClick={() => nativeCameraInputRef.current?.click()}
-                className="px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md hover:shadow-indigo-500/20 transition flex items-center justify-center gap-2.5 cursor-pointer"
-                title="Buka kamera bawaan HP untuk jepret LJK dengan autofokus maksimal"
+                className="px-5 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-2xl text-xs font-bold shadow-lg hover:shadow-indigo-500/25 transition flex items-center justify-center gap-3 cursor-pointer ring-2 ring-indigo-500/30 active:scale-[0.98]"
+                title="Buka kamera bawaan HP untuk jepret LJK dengan kualitas foto maksimal"
               >
-                <Camera className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                  <Camera className="w-5 h-5 text-white" />
+                </div>
                 <div className="text-left leading-tight">
-                  <div className="font-extrabold">Kamera HP (Bawaan)</div>
-                  <div className="text-[10px] text-blue-100 font-normal">Jepret langsung via HP</div>
+                  <div className="text-sm font-extrabold">Ambil Foto (Kamera HP)</div>
+                  <div className="text-[11px] text-blue-100 font-normal">Jepret langsung via kamera bawaan HP</div>
                 </div>
               </button>
 
-              {/* 2. Scanner Kamera Live */}
-              <button
-                type="button"
-                onClick={() => startCamera('environment')}
-                className="px-4 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-2xl text-xs font-bold shadow-md hover:shadow-indigo-500/20 transition flex items-center justify-center gap-2.5 cursor-pointer"
-                title="Buka kamera live di layar dengan garis panduan LJK"
-              >
-                <ScanLine className="w-4 h-4" />
-                <div className="text-left leading-tight">
-                  <div className="font-extrabold">Scanner Kamera Live</div>
-                  <div className="text-[10px] text-indigo-100 font-normal">Bidik dengan panduan LJK</div>
-                </div>
-              </button>
-
-              {/* 3. Upload dari Galeri / File */}
+              {/* 2. Upload dari Galeri / File */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2.5 cursor-pointer border border-slate-200"
-                title="Pilih foto dari galeri foto atau folder file"
+                className="px-4 py-4 bg-slate-100 hover:bg-slate-200/80 text-slate-800 rounded-2xl text-xs font-bold transition flex items-center justify-center gap-3 cursor-pointer border border-slate-200 active:scale-[0.98]"
+                title="Pilih foto LJK dari galeri foto atau folder file komputer"
               >
-                <UploadCloud className="w-4 h-4 text-slate-500" />
+                <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-xs border border-slate-200 shrink-0">
+                  <UploadCloud className="w-5 h-5 text-slate-600" />
+                </div>
                 <div className="text-left leading-tight">
-                  <div className="font-extrabold">Galeri / File</div>
-                  <div className="text-[10px] text-slate-500 font-normal">Pilih foto dari perangkat</div>
+                  <div className="text-xs font-extrabold">Pilih Foto / Galeri</div>
+                  <div className="text-[10px] text-slate-500 font-normal">Dari galeri HP atau file laptop</div>
                 </div>
               </button>
 
-              {/* 4. Cetak Lembar LJK Siswa */}
+              {/* 3. Cetak Lembar LJK Siswa */}
               <button
                 type="button"
                 onClick={() => setIsPrintModalOpen(true)}
-                className="px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-bold shadow-md hover:shadow-emerald-500/20 transition flex items-center justify-center gap-2.5 cursor-pointer"
+                className="px-4 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-bold shadow-md hover:shadow-emerald-500/20 transition flex items-center justify-center gap-3 cursor-pointer active:scale-[0.98]"
                 title="Cetak lembar jawaban kosong untuk ujian siswa"
               >
-                <Printer className="w-4 h-4" />
+                <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                  <Printer className="w-5 h-5 text-white" />
+                </div>
                 <div className="text-left leading-tight">
-                  <div className="font-extrabold">Cetak Format LJK</div>
+                  <div className="text-xs font-extrabold">Cetak Format LJK</div>
                   <div className="text-[10px] text-emerald-100 font-normal">PDF Lembar Jawab Siswa</div>
                 </div>
               </button>
@@ -1364,178 +1178,7 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
         </div>
       )}
 
-      {/* ── MODAL CAMERA VIEWFINDER LIVE ── */}
-      {isCameraOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md">
-          <div className="relative w-full max-w-xl bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh]">
-            {/* Top Bar Modal */}
-            <div className="p-3.5 sm:p-4 px-4 sm:px-6 bg-slate-950 flex items-center justify-between border-b border-slate-800 gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
-                <span className="text-xs font-bold text-white uppercase tracking-wider">
-                  Kamera LJK ({cameraFacingMode === 'environment' ? 'Belakang' : 'Depan'})
-                </span>
-              </div>
 
-              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                {/* Toggle Rasio Potret / Lanskap */}
-                <button
-                  type="button"
-                  onClick={() => setCameraOrientation((prev) => (prev === 'portrait' ? 'landscape' : 'portrait'))}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-indigo-950/80 border border-indigo-700/60 hover:bg-indigo-900 text-indigo-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                  title="Ubah Rasio Bidik Kamera"
-                >
-                  <ScanLine className="w-3.5 h-3.5" />
-                  <span>{cameraOrientation === 'portrait' ? '📱 Potret (A4)' : '💻 Lanskap'}</span>
-                </button>
-
-                {/* Senter / Flashlight */}
-                {torchAvailable && (
-                  <button
-                    type="button"
-                    onClick={toggleTorch}
-                    className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                      isTorchOn
-                        ? 'bg-amber-400 text-slate-950 font-extrabold shadow-md'
-                        : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
-                    }`}
-                    title="Lampu Senter / Flashlight"
-                  >
-                    <Zap className={`w-3.5 h-3.5 ${isTorchOn ? 'fill-current' : ''}`} />
-                    <span>{isTorchOn ? 'Senter ON' : 'Senter'}</span>
-                  </button>
-                )}
-
-                {/* Ganti Kamera Depan / Belakang */}
-                <button
-                  type="button"
-                  onClick={toggleCameraFacing}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                  title="Ganti Kamera Depan / Belakang"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Ganti</span>
-                </button>
-
-                {/* Tutup Modal */}
-                <button
-                  type="button"
-                  onClick={stopCamera}
-                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-900/50 text-slate-300 hover:text-rose-300 transition cursor-pointer"
-                  title="Tutup Kamera"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Viewfinder Video Area */}
-            <div
-              ref={videoContainerRef}
-              className={`relative w-full ${
-                cameraOrientation === 'portrait'
-                  ? 'aspect-[3/4] max-h-[62vh]'
-                  : 'aspect-[4/3] max-h-[62vh]'
-              } bg-black overflow-hidden flex items-center justify-center transition-all duration-300`}
-            >
-              {cameraError ? (
-                <div className="p-6 text-center text-rose-400 space-y-2">
-                  <AlertCircle className="w-8 h-8 mx-auto" />
-                  <p className="text-xs font-bold">{cameraError}</p>
-                  <button
-                    type="button"
-                    onClick={() => startCamera(cameraFacingMode)}
-                    className="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold"
-                  >
-                    Coba Lagi
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className={`w-full h-full object-cover ${cameraFacingMode === 'user' ? '-scale-x-100' : ''}`}
-                  />
-                  {/* Overlay Kotak Panduan LJK */}
-                  <div className="absolute inset-4 sm:inset-6 border-2 border-dashed border-indigo-400/90 rounded-2xl pointer-events-none flex flex-col justify-between p-3 sm:p-4 shadow-[0_0_50px_rgba(99,102,241,0.25)_inset]">
-                    <div className="flex justify-between text-indigo-300 font-mono text-[10px] sm:text-xs font-bold">
-                      <span className="bg-slate-950/75 px-2 py-0.5 rounded shadow">⌜ SUDUT KIRI ATAS</span>
-                      <span className="bg-slate-950/75 px-2 py-0.5 rounded shadow">SUDUT KANAN ATAS ⌝</span>
-                    </div>
-                    <div className="text-center">
-                      <span className="px-3 py-1 bg-slate-900/90 backdrop-blur-md rounded-full text-indigo-200 text-xs font-bold border border-indigo-400/50 shadow-md">
-                        Posisikan 4 sudut hitam LJK di dalam kotak ini
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-indigo-300 font-mono text-[10px] sm:text-xs font-bold">
-                      <span className="bg-slate-950/75 px-2 py-0.5 rounded shadow">⌞ SUDUT KIRI BAWAH</span>
-                      <span className="bg-slate-950/75 px-2 py-0.5 rounded shadow">SUDUT KANAN BAWAH ⌟</span>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Bottom Bar: Tombol Shutter */}
-            <div className="p-4 sm:p-5 bg-slate-950 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-800">
-              <div className="hidden sm:flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    stopCamera();
-                    nativeCameraInputRef.current?.click();
-                  }}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 font-bold underline cursor-pointer"
-                >
-                  Gunakan Kamera Bawaan HP
-                </button>
-              </div>
-
-              <div className="flex items-center justify-center gap-5 sm:gap-6">
-                <button
-                  type="button"
-                  onClick={stopCamera}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer"
-                >
-                  Batal
-                </button>
-
-                <button
-                  type="button"
-                  onClick={capturePhoto}
-                  disabled={!!cameraError}
-                  className="w-16 h-16 rounded-full bg-white hover:bg-slate-100 flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer ring-4 ring-indigo-500/50 disabled:opacity-50"
-                  title="Ambil Foto LJK"
-                >
-                  <div className="w-12 h-12 rounded-full border-2 border-slate-900 flex items-center justify-center">
-                    <Camera className="w-6 h-6 text-slate-900" />
-                  </div>
-                </button>
-
-                <div className="text-[11px] text-slate-400 text-left max-w-[130px] leading-tight">
-                  Foto diambil presisi sesuai kotak di layar
-                </div>
-              </div>
-
-              <div className="sm:hidden w-full text-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    stopCamera();
-                    nativeCameraInputRef.current?.click();
-                  }}
-                  className="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold underline cursor-pointer"
-                >
-                  Atau buka Kamera Bawaan HP
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── TABEL RIWAYAT HASIL KOREKSI LJK ── */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden space-y-4 p-6">

@@ -45,6 +45,7 @@ export interface QuestionBank {
   teacherId: string;
   cabangId?: string | null;
   isShared: boolean;
+  isOfficial?: boolean;
   createdAt: string;
   updatedAt: string;
   teacher?: {

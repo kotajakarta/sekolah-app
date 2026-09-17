@@ -808,7 +808,6 @@ export default function EmisVervalSync() {
       setEmisLog([]);
       setVervalLog([]);
       setEmisProgress({ current: 0, total: 0 });
-      setVervalProgress({ current: 0, total: 0 });
 
       // Invalidate queries agar halaman terkait langsung terupdate
       queryClient.invalidateQueries({ queryKey: ['formal-emis-latest-cabang-tab'] });

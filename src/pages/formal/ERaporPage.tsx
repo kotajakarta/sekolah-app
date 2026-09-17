@@ -5,7 +5,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useMasterData';
 import {
   BookOpen, Save, Printer, UserCheck,
-  Layers, Sparkles, Filter, Building2, MapPin, Eye, AlertTriangle, X, Upload, ShieldAlert
+  Layers, Sparkles, Filter, Building2, MapPin, Eye, AlertTriangle, X, Upload, ShieldAlert,
+  Scan
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import HafalanAlQuranModal from './HafalanAlQuranModal';
@@ -13,6 +14,7 @@ import RaporCetakModal from './RaporCetakModal';
 import Pagination from '../../components/Pagination';
 import ImportRiwayatNilaiTab from './ImportRiwayatNilaiTab';
 import RiwayatContinuityTab from './RiwayatContinuityTab';
+import { LjkScannerTab } from '../../features/formal/ljk/LjkScannerTab';
 import { calculatePredikat, PREDIKAT_SIKAP_OPTIONS, SIKAP_FIELDS } from './eRaporConstants';
 
 interface Kelas {
@@ -68,7 +70,7 @@ export const ERaporPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'nilai' | 'presensi' | 'leger' | 'cetak' | 'import-riwayat' | 'cek-riwayat'>('nilai');
+  const [activeTab, setActiveTab] = useState<'nilai' | 'presensi' | 'leger' | 'cetak' | 'import-riwayat' | 'cek-riwayat' | 'omr-ljk'>('nilai');
 
   // Master Data Wilayah & Cabang
   const { data: wilayahList = [] } = useGetWilayah();
@@ -544,6 +546,17 @@ export const ERaporPage: React.FC = () => {
           >
             <ShieldAlert className="w-4 h-4" />
             <span>6. Cek Kelengkapan Riwayat</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('omr-ljk')}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-all border-b-2 ${activeTab === 'omr-ljk'
+              ? 'border-indigo-600 text-indigo-800 bg-indigo-50/70 shadow-2xs'
+              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+              }`}
+          >
+            <Scan className="w-4 h-4 text-indigo-600" />
+            <span>7. Koreksi LJK (OMR)</span>
           </button>
         </div>
       </div>
@@ -1072,6 +1085,9 @@ export const ERaporPage: React.FC = () => {
 
       {/* TAB 6: CEK KELENGKAPAN RIWAYAT */}
       {activeTab === 'cek-riwayat' && <RiwayatContinuityTab />}
+
+      {/* TAB 7: MODUL OMR / OCR LJK READER */}
+      {activeTab === 'omr-ljk' && <LjkScannerTab />}
 
       {warningPopoverId && (() => {
         const row = cetakListData?.data.find((r: any) => r.studentId === warningPopoverId);

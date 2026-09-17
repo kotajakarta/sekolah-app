@@ -69,6 +69,7 @@ export interface TargetKuota {
 
 export interface Cabang {
   id: string;
+  kode?: string | null;
   name: string;
   isActive?: boolean;
   wilayahId: string;

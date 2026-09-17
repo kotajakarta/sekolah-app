@@ -368,6 +368,47 @@ export const useDelegateAssignment = () => {
   });
 };
 
+export const useSetOfficialBankSoal = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, isOfficial }: { id: string; isOfficial?: boolean }) => {
+      const response = await apiClient.post(`/bank-soal/${id}/set-official`, { isOfficial });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-list'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-detail'] });
+    },
+  });
+};
+
+export const useTransferBankSoalProject = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      bankId,
+      targetProjectId,
+      targetAssignmentId,
+    }: {
+      bankId: string;
+      targetProjectId: string;
+      targetAssignmentId?: string;
+    }) => {
+      const response = await apiClient.post(`/bank-soal/${bankId}/transfer-project`, {
+        targetProjectId,
+        targetAssignmentId,
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-list'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['bank-soal-project-detail'] });
+    },
+  });
+};
+
 /**
  * Utility to trigger DOCX download
  */

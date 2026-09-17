@@ -209,6 +209,17 @@ export default function CabangModal({ isOpen, onClose, cabangToEdit }: CabangMod
                 <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center gap-2">
                   <Building className="w-4 h-4 text-blue-500" /> Identitas Dasar
                 </h4>
+                {cabangToEdit?.kode && (
+                  <div className="flex items-center gap-2 p-2.5 bg-indigo-50/80 border border-indigo-200 rounded-lg text-xs text-indigo-900 font-medium">
+                    <span className="font-bold uppercase tracking-wider">Kode Cabang Sistem:</span>
+                    <span className="px-2 py-0.5 rounded bg-indigo-600 text-white font-mono font-bold text-xs">
+                      #{cabangToEdit.kode}
+                    </span>
+                    <span className="text-[11px] text-indigo-600 font-normal ml-auto">
+                      *Digenerate otomatis oleh sistem
+                    </span>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase">Nama Cabang (Glodemy) *</label>

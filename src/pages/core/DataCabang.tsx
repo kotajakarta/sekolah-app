@@ -531,6 +531,7 @@ export default function DataCabang() {
       const q = searchQuery.toLowerCase();
       result = result.filter(c => 
         c.name.toLowerCase().includes(q) || 
+        (c.kode || '').toLowerCase().includes(q) ||
         (c.nameGlodemy || '').toLowerCase().includes(q) ||
         (c.nameResmi || '').toLowerCase().includes(q) ||
         (c.wilayah?.name || '').toLowerCase().includes(q) ||
@@ -1328,7 +1329,7 @@ export default function DataCabang() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cari nama cabang atau wilayah..."
+                    placeholder="Cari cabang, kode (misal 1001), wilayah..."
                     className="w-full pl-9 pr-3 py-1.5 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"
                   />
                 </div>
@@ -2011,12 +2012,19 @@ export default function DataCabang() {
                           
                           {/* NAMA CABANG & WILAYAH (Always shown in first columns) */}
                           <td className="py-3.5 px-3 font-semibold text-slate-800">
-                            <button
-                              onClick={() => setProfileCabangId(item.id)}
-                              className="hover:text-indigo-600 text-left font-bold transition-colors cursor-pointer"
-                            >
-                              {item.nameGlodemy || item.name}
-                            </button>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <button
+                                onClick={() => setProfileCabangId(item.id)}
+                                className="hover:text-indigo-600 text-left font-bold transition-colors cursor-pointer"
+                              >
+                                {item.nameGlodemy || item.name}
+                              </button>
+                              {item.kode && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                  #{item.kode}
+                                </span>
+                              )}
+                            </div>
                             {(activeSubTab === 'jumlah_siswa' || activeSubTab === 'kelas_x_daimi' || activeSubTab === 'emis_target') && item.wilayah?.name && (
                               <p className="text-[10px] font-semibold text-indigo-600/80">{item.wilayah.name}</p>
                             )}

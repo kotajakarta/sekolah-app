@@ -29,6 +29,9 @@ import {
   BookOpen,
   FileText,
   HelpCircle,
+  Crown,
+  Eye,
+  FolderInput,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import {
@@ -41,6 +44,7 @@ import {
   useDeleteBankSoalProject,
   useBankSoalAssignments,
   useDeleteAssignment,
+  useSetOfficialBankSoal,
 } from '../../features/bank_soal/hooks/useBankSoal';
 import { QuestionBankModal } from '../../features/bank_soal/components/QuestionBankModal';
 import { DocxExportModal } from '../../features/bank_soal/components/DocxExportModal';
@@ -50,6 +54,7 @@ import { AddAssignmentModal } from '../../features/bank_soal/components/AddAssig
 import { EditAssignmentModal } from '../../features/bank_soal/components/EditAssignmentModal';
 import { ReviewAssignmentModal } from '../../features/bank_soal/components/ReviewAssignmentModal';
 import { DelegateModal } from '../../features/bank_soal/components/DelegateModal';
+import { TransferBankSoalModal } from '../../features/bank_soal/components/TransferBankSoalModal';
 import type { QuestionBank, BankSoalAssignment, BankSoalProject } from '../../features/bank_soal/types';
 
 export const BankSoalListPage: React.FC = () => {
@@ -77,6 +82,7 @@ export const BankSoalListPage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [bankToEdit, setBankToEdit] = useState<QuestionBank | null>(null);
   const [exportModalBank, setExportModalBank] = useState<QuestionBank | null>(null);
+  const [transferModalBank, setTransferModalBank] = useState<QuestionBank | null>(null);
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<BankSoalProject | null>(null);
   const [addingAssignmentProject, setAddingAssignmentProject] = useState<BankSoalProject | null>(null);
@@ -101,6 +107,7 @@ export const BankSoalListPage: React.FC = () => {
   const createBankMutation = useCreateBankSoal();
   const deleteProjectMutation = useDeleteBankSoalProject();
   const deleteAssignmentMutation = useDeleteAssignment();
+  const officialMutation = useSetOfficialBankSoal();
 
   // Project & Assignment Queries
   const { data: projects, isLoading: isLoadingProjects } = useBankSoalProjects();
@@ -109,6 +116,30 @@ export const BankSoalListPage: React.FC = () => {
   const isGlobal = user?.scope === 'GLOBAL';
   const isWilayah = user?.scope === 'WILAYAH';
   const isCabang = user?.scope === 'CABANG';
+
+  // Permission: Siapa yang berhak mengedit / menghapus bank soal
+  const canEditBank = (bank: QuestionBank) => {
+    if (isGlobal) return true;
+    if (isCabang && user?.cabangId && bank.cabangId === user.cabangId) return true;
+    if (bank.teacherId === user?.id) return true;
+    return false;
+  };
+
+  // Handler penetapan Naskah Soal Resmi Ujian
+  const handleToggleOfficial = async (bank: QuestionBank) => {
+    const nextStatus = !bank.isOfficial;
+    const confirmMsg = nextStatus
+      ? `Jadikan "${bank.title}" sebagai Soal Resmi Ujian?\n\nJika ada bank soal lain dengan Mata Pelajaran, Tingkat, Tahun Ajaran, dan Semester yang sama, status resminya akan dialihkan ke bank soal ini.`
+      : `Nonaktifkan status Soal Resmi Ujian untuk "${bank.title}"?`;
+
+    if (window.confirm(confirmMsg)) {
+      try {
+        await officialMutation.mutateAsync({ id: bank.id, isOfficial: nextStatus });
+      } catch (err: any) {
+        alert(err.response?.data?.message || err.message || 'Gagal mengubah status soal resmi ujian.');
+      }
+    }
+  };
 
   const totalBanksCount = bankData?.pagination?.totalItems ?? (bankData?.data?.length || 0);
   const totalProjectsCount = projects?.length || 0;
@@ -133,7 +164,7 @@ export const BankSoalListPage: React.FC = () => {
   };
 
   const handleDeleteProject = async (id: string, title: string) => {
-    if (confirm(`Hapus proyek penugasan "${title}" beserta seluruh penugasannya? Tindakan ini tidak dapat dibatalkan.`)) {
+    if (confirm(`Hapus proyek penugasan "${title}"?\n\nCatatan: Seluruh Bank Soal yang telah disusun oleh guru TIDAK AKAN DIHAPUS dan tetap tersimpan sebagai Bank Soal mandiri yang dapat dipindahkan ke proyek lain.`)) {
       try {
         await deleteProjectMutation.mutateAsync(id);
       } catch (err) {
@@ -507,11 +538,11 @@ export const BankSoalListPage: React.FC = () => {
             </div>
           </div>
 
-          {/* CARDS GRID (PORTAL WALSAN STYLE) */}
+          {/* TABLE LIST VIEW (PORTAL WALSAN STYLE) */}
           {isLoadingBanks ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {[1, 2, 3, 4, 5, 6].map((n) => (
-                <div key={n} className="h-56 bg-slate-100 rounded-3xl animate-pulse" />
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-8 space-y-3">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <div key={n} className="h-12 bg-slate-100 rounded-2xl animate-pulse" />
               ))}
             </div>
           ) : !bankData?.data || bankData.data.length === 0 ? (
@@ -538,117 +569,220 @@ export const BankSoalListPage: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {bankData.data.map((bank: QuestionBank) => (
-                <div
-                  key={bank.id}
-                  className="bg-white rounded-3xl border border-slate-200/80 hover:border-indigo-300 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden"
-                >
-                  <div className="p-6">
-                    {/* Header Badges */}
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="px-2.5 py-1 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-200 shadow-2xs">
-                          {bank.subject}
-                        </span>
-                        <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold">
-                          {bank.gradeLevel}
-                        </span>
-                      </div>
-                      <span className="text-xs font-bold text-slate-400">
-                        {bank._count?.questions || 0} Butir Soal
-                      </span>
-                    </div>
+            <div className="space-y-4">
+              <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
+                      <tr>
+                        <th className="py-3.5 px-4 text-center w-12">No</th>
+                        <th className="py-3.5 px-4">Judul Bank Soal</th>
+                        <th className="py-3.5 px-4">Mapel & Tingkat</th>
+                        <th className="py-3.5 px-4">Tahun Ajaran & Semester</th>
+                        <th className="py-3.5 px-4 text-center">Soal & Durasi</th>
+                        <th className="py-3.5 px-4">Penyusun & Cabang</th>
+                        <th className="py-3.5 px-4 text-right">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {bankData.data.map((bank: QuestionBank, idx: number) => {
+                        const rowNo = (page - 1) * 12 + idx + 1;
+                        const editable = canEditBank(bank);
 
-                    {/* Title */}
-                    <h3
-                      onClick={() => navigate(`/dashboard/bank-soal/${bank.id}`)}
-                      className="font-bold text-slate-900 text-base leading-snug hover:text-indigo-600 cursor-pointer transition line-clamp-2"
-                    >
-                      {bank.title}
-                    </h3>
+                        return (
+                          <tr
+                            key={bank.id}
+                            className={`hover:bg-slate-50/80 transition-colors ${
+                              bank.isOfficial ? 'bg-amber-50/40' : ''
+                            }`}
+                          >
+                            <td className="py-3.5 px-4 text-center text-slate-400 font-medium">{rowNo}</td>
 
-                    {/* Meta info */}
-                    <div className="mt-4 space-y-1.5 text-xs text-slate-500">
-                      {bank.institution && (
-                        <div className="flex items-center gap-1.5 truncate font-medium">
-                          <Building className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                          <span className="truncate">{bank.institution}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-3 font-medium">
-                        {bank.timeLimit && (
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{bank.timeLimit} Menit</span>
-                          </div>
-                        )}
-                        {bank.academicYear && (
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                            <span>
-                              {bank.academicYear} ({bank.semester || 'Ganjil'})
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 text-[11px] text-slate-400 pt-1">
-                        <span>Oleh: {bank.teacher?.operatorName || bank.teacher?.username || 'Guru'}</span>
-                        {bank.cabang && <span>• {bank.cabang.name}</span>}
-                      </div>
-                    </div>
-                  </div>
+                            <td className="py-3.5 px-4 max-w-sm">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <button
+                                    onClick={() => navigate(`/dashboard/bank-soal/${bank.id}`)}
+                                    className="font-bold text-slate-900 hover:text-indigo-600 text-left transition-colors cursor-pointer text-xs"
+                                  >
+                                    {bank.title}
+                                  </button>
+                                  {bank.isOfficial && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                                      <Crown className="w-3 h-3 text-amber-600 fill-amber-500" />
+                                      SOAL RESMI UJIAN
+                                    </span>
+                                  )}
+                                </div>
+                                {bank.assignment?.project && (
+                                  <p className="text-[10px] text-indigo-600 font-medium">
+                                    Terkait Proyek: {bank.assignment.project.title}
+                                  </p>
+                                )}
+                              </div>
+                            </td>
 
-                  {/* Actions Footer */}
-                  <div className="px-6 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between">
+                            <td className="py-3.5 px-4">
+                              <div className="space-y-0.5">
+                                <span className="font-bold text-slate-800">{bank.subject}</span>
+                                <p className="text-[11px] text-slate-500 font-medium">{bank.gradeLevel}</p>
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <div className="space-y-0.5 text-slate-600 font-medium">
+                                <span>{bank.academicYear || '-'}</span>
+                                <p className="text-[11px] text-slate-400">
+                                  {bank.semester ? `Semester ${bank.semester}` : '-'}
+                                </p>
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4 text-center">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-[11px]">
+                                {bank._count?.questions || 0} Soal
+                              </span>
+                              {bank.timeLimit && (
+                                <p className="text-[10px] text-slate-400 mt-0.5">{bank.timeLimit} Menit</p>
+                              )}
+                            </td>
+
+                            <td className="py-3.5 px-4">
+                              <div className="space-y-0.5">
+                                <p className="font-bold text-slate-700">
+                                  {bank.teacher?.operatorName || bank.teacher?.username || 'Guru'}
+                                </p>
+                                <p className="text-[11px] text-slate-400 font-medium">
+                                  {bank.cabang?.name || 'Pusat'}
+                                </p>
+                              </div>
+                            </td>
+
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1 flex-wrap">
+                                {/* Readonly View - Accessible to ALL roles */}
+                                <button
+                                  onClick={() => navigate(`/dashboard/bank-soal/${bank.id}`)}
+                                  title="Buka / Lihat Naskah Soal"
+                                  className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-slate-500" />
+                                  <span>Lihat</span>
+                                </button>
+
+                                {/* Kelola Soal - For owners/admins */}
+                                {editable && (
+                                  <button
+                                    onClick={() => navigate(`/dashboard/bank-soal/${bank.id}`)}
+                                    title="Kelola & Edit Butir Soal"
+                                    className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-xl transition cursor-pointer"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                )}
+
+                                {/* Jadikan Soal Resmi Ujian - Global Admin Only */}
+                                {isGlobal && (
+                                  <button
+                                    onClick={() => handleToggleOfficial(bank)}
+                                    title={bank.isOfficial ? 'Batalkan Status Soal Resmi Ujian' : 'Jadikan Naskah Soal Resmi Ujian'}
+                                    className={`p-1.5 rounded-xl transition cursor-pointer ${
+                                      bank.isOfficial
+                                        ? 'text-amber-800 bg-amber-200/80 hover:bg-amber-300'
+                                        : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                                    }`}
+                                  >
+                                    <Crown className="w-4 h-4" />
+                                  </button>
+                                )}
+
+                                {/* Pindahkan ke Proyek Lain - Global Admin Only */}
+                                {isGlobal && (
+                                  <button
+                                    onClick={() => setTransferModalBank(bank)}
+                                    title="Pindahkan Bank Soal ke Proyek Lain"
+                                    className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition cursor-pointer"
+                                  >
+                                    <FolderInput className="w-4 h-4" />
+                                  </button>
+                                )}
+
+                                {/* Ekspor Docx - All roles */}
+                                <button
+                                  onClick={() => setExportModalBank(bank)}
+                                  title="Unduh File Word (.docx)"
+                                  className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition cursor-pointer"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
+
+                                {/* Edit metadata & Duplikat & Hapus - For owners/admins */}
+                                {editable && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setBankToEdit(bank);
+                                        setActiveAssignmentContext(null);
+                                        setIsCreateModalOpen(true);
+                                      }}
+                                      title="Edit Pengaturan Paket"
+                                      className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                                    >
+                                      <FileText className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDuplicateBank(bank.id)}
+                                      title="Duplikat Paket"
+                                      className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                                    >
+                                      <Copy className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteBank(bank.id, bank.title)}
+                                      title="Hapus Paket"
+                                      className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Pagination */}
+              {bankData?.pagination && bankData.pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between px-2 pt-2 text-xs text-slate-500">
+                  <p>
+                    Menampilkan halaman <span className="font-bold text-slate-800">{page}</span> dari{' '}
+                    <span className="font-bold text-slate-800">{bankData.pagination.totalPages}</span> ({bankData.pagination.totalItems} paket soal)
+                  </p>
+                  <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => navigate(`/dashboard/bank-soal/${bank.id}`)}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition cursor-pointer"
+                      type="button"
+                      disabled={page <= 1}
+                      onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                      className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-semibold disabled:opacity-40 hover:bg-slate-50 transition cursor-pointer"
                     >
-                      <span>Kelola Soal</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      Sebelumnya
                     </button>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        title="Unduh Naskah Word (.docx)"
-                        onClick={() => setExportModalBank(bank)}
-                        className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition cursor-pointer"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        title="Edit Informasi Paket"
-                        onClick={() => {
-                          setBankToEdit(bank);
-                          setActiveAssignmentContext(null);
-                          setIsCreateModalOpen(true);
-                        }}
-                        className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition cursor-pointer"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        title="Duplikat Paket"
-                        onClick={() => handleDuplicateBank(bank.id)}
-                        className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition cursor-pointer"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        title="Hapus Paket"
-                        onClick={() => handleDeleteBank(bank.id, bank.title)}
-                        className="p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      disabled={page >= bankData.pagination.totalPages}
+                      onClick={() => setPage((prev) => prev + 1)}
+                      className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-semibold disabled:opacity-40 hover:bg-slate-50 transition cursor-pointer"
+                    >
+                      Berikutnya
+                    </button>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
@@ -1058,6 +1192,14 @@ export const BankSoalListPage: React.FC = () => {
           isOpen={!!exportModalBank}
           onClose={() => setExportModalBank(null)}
           bank={exportModalBank}
+        />
+      )}
+
+      {transferModalBank && (
+        <TransferBankSoalModal
+          isOpen={!!transferModalBank}
+          onClose={() => setTransferModalBank(null)}
+          bank={transferModalBank}
         />
       )}
 

@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, AlertCircle, FileText, HelpCircle, Check, Loader2 } from 'lucide-react';
 import { useCreateBatchQuestions } from '../hooks/useBankSoal';
 import type { QuestionType } from '../types';
+import { isHighSchoolGrade, QuestionAssignmentMeta } from './QuestionEditorModal';
 
 interface QuickImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   bankId: string;
   nextIndex?: number;
+  gradeLevel?: string;
+  assignment?: QuestionAssignmentMeta | null;
 }
 
 interface ParsedOption {
@@ -30,7 +33,10 @@ export const QuickImportModal: React.FC<QuickImportModalProps> = ({
   onClose,
   bankId,
   nextIndex = 1,
+  gradeLevel,
+  assignment,
 }) => {
+  const isHighSchool = isHighSchoolGrade(gradeLevel || assignment?.gradeLevel);
   const [rawText, setRawText] = useState('');
   const [parsedQuestions, setParsedQuestions] = useState<ParsedQuestion[]>([]);
   const [step, setStep] = useState<'input' | 'preview'>('input');

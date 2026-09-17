@@ -1,8 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, HelpCircle, FileText, CheckCircle, Award, Plus, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, CheckCircle2, HelpCircle, FileText, CheckCircle, Award, Plus, ArrowRight, Sparkles } from 'lucide-react';
 import { RichMathEditor } from './RichMathEditor';
 import { useCreateQuestionItem, useUpdateQuestionItem } from '../hooks/useBankSoal';
-import type { QuestionItem, QuestionOption, QuestionType } from '../types';
+import type { QuestionItem, QuestionOption, QuestionType, BankSoalAssignment } from '../types';
+
+export const isHighSchoolGrade = (gradeLevel?: string | null): boolean => {
+  if (!gradeLevel) return false;
+  const normalized = gradeLevel.toLowerCase();
+  return (
+    /\b(10|11|12|x|xi|xii)\b/.test(normalized) ||
+    /kelas\s*(10|11|12)/i.test(normalized) ||
+    normalized.includes('sma') ||
+    normalized.includes('smk') ||
+    normalized.includes('aliyah') ||
+    normalized.includes('ma ') ||
+    normalized.endsWith('ma')
+  );
+};
+
+export interface QuestionAssignmentMeta {
+  id?: string;
+  targetMcqCount?: number;
+  targetEssayCount?: number;
+  subjectName?: string;
+  gradeLevel?: string;
+  status?: string;
+  project?: {
+    title?: string;
+  };
+}
 
 interface QuestionEditorModalProps {
   isOpen: boolean;
@@ -10,6 +36,8 @@ interface QuestionEditorModalProps {
   bankId: string;
   questionToEdit?: QuestionItem | null;
   nextIndex?: number;
+  gradeLevel?: string;
+  assignment?: QuestionAssignmentMeta | null;
 }
 
 export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
@@ -18,8 +46,98 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
   bankId,
   questionToEdit,
   nextIndex = 1,
+  gradeLevel,
+  assignment,
 }) => {
-  const [type, setType] = useState<QuestionType>('MCQ_4');
+  const isHighSchool = isHighSchoolGrade(gradeLevel || assignment?.gradeLevel);
+
+  // Penentuan tipe butir soal yang sesuai dengan penugasan proyek
+  const assignedTypes = useMemo(() => {
+    const list: { type: QuestionType; label: string; sublabel: string; count?: number }[] = [];
+
+    if (assignment) {
+      const targetMcq = assignment.targetMcqCount ?? 0;
+      const targetEssay = assignment.targetEssayCount ?? 0;
+
+      if (targetMcq > 0) {
+        if (isHighSchool) {
+          list.push({
+            type: 'MCQ_5',
+            label: 'Pilihan Ganda (ABCDE)',
+            sublabel: '5 Pilihan Opsi (A, B, C, D, E)',
+            count: targetMcq,
+          });
+        } else {
+          list.push({
+            type: 'MCQ_4',
+            label: 'Pilihan Ganda (ABCD)',
+            sublabel: '4 Pilihan Opsi (A, B, C, D)',
+            count: targetMcq,
+          });
+        }
+      }
+
+      if (targetEssay > 0) {
+        list.push({
+          type: 'ESSAY',
+          label: 'Soal Uraian / Esai',
+          sublabel: 'Jawaban bebas dengan rubrik penilaian',
+          count: targetEssay,
+        });
+      }
+    }
+
+    // Jika tanpa penugasan (bank soal mandiri)
+    if (list.length === 0) {
+      if (isHighSchool) {
+        list.push({
+          type: 'MCQ_5',
+          label: 'Pilihan Ganda (ABCDE)',
+          sublabel: '5 Pilihan Opsi (A, B, C, D, E)',
+        });
+      } else {
+        list.push({
+          type: 'MCQ_4',
+          label: 'Pilihan Ganda (ABCD)',
+          sublabel: '4 Pilihan Opsi (A, B, C, D)',
+        });
+      }
+      list.push({
+        type: 'ESSAY',
+        label: 'Soal Uraian / Esai',
+        sublabel: 'Jawaban bebas dengan rubrik penilaian',
+      });
+    }
+
+    // Jika sedang edit soal, pastikan tipe soal lama tetap tersedia di daftar
+    if (questionToEdit && !list.some((item) => item.type === questionToEdit.type)) {
+      if (questionToEdit.type === 'MCQ_4') {
+        list.unshift({
+          type: 'MCQ_4',
+          label: 'Pilihan Ganda (ABCD)',
+          sublabel: '4 Pilihan Opsi (A, B, C, D)',
+        });
+      } else if (questionToEdit.type === 'MCQ_5') {
+        list.unshift({
+          type: 'MCQ_5',
+          label: 'Pilihan Ganda (ABCDE)',
+          sublabel: '5 Pilihan Opsi (A, B, C, D, E)',
+        });
+      } else if (questionToEdit.type === 'ESSAY') {
+        list.push({
+          type: 'ESSAY',
+          label: 'Soal Uraian / Esai',
+          sublabel: 'Jawaban bebas dengan rubrik penilaian',
+        });
+      }
+    }
+
+    return list;
+  }, [assignment, gradeLevel, isHighSchool, questionToEdit]);
+
+  const defaultAssignedType = assignedTypes[0]?.type || (isHighSchool ? 'MCQ_5' : 'MCQ_4');
+
+  const [type, setType] = useState<QuestionType>(defaultAssignedType);
   const [contentHtml, setContentHtml] = useState('');
   const [answerKey, setAnswerKey] = useState('');
   const [weight, setWeight] = useState<number>(1);
@@ -37,7 +155,7 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
 
   useEffect(() => {
     if (questionToEdit) {
-      setType(questionToEdit.type || 'MCQ_4');
+      setType(questionToEdit.type || defaultAssignedType);
       setContentHtml(questionToEdit.contentHtml || '');
       setAnswerKey(questionToEdit.answerKey || '');
       setWeight(questionToEdit.weight ?? 1);
@@ -61,18 +179,30 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
         ]);
       }
     } else {
-      setType('MCQ_4');
+      setType(defaultAssignedType);
       setContentHtml('');
       setAnswerKey('');
       setWeight(1);
-      setOptions([
-        { label: 'A', contentHtml: '', isCorrect: true, orderIndex: 0 },
-        { label: 'B', contentHtml: '', isCorrect: false, orderIndex: 1 },
-        { label: 'C', contentHtml: '', isCorrect: false, orderIndex: 2 },
-        { label: 'D', contentHtml: '', isCorrect: false, orderIndex: 3 },
-      ]);
+      if (defaultAssignedType === 'MCQ_5') {
+        setOptions([
+          { label: 'A', contentHtml: '', isCorrect: true, orderIndex: 0 },
+          { label: 'B', contentHtml: '', isCorrect: false, orderIndex: 1 },
+          { label: 'C', contentHtml: '', isCorrect: false, orderIndex: 2 },
+          { label: 'D', contentHtml: '', isCorrect: false, orderIndex: 3 },
+          { label: 'E', contentHtml: '', isCorrect: false, orderIndex: 4 },
+        ]);
+      } else if (defaultAssignedType === 'MCQ_4') {
+        setOptions([
+          { label: 'A', contentHtml: '', isCorrect: true, orderIndex: 0 },
+          { label: 'B', contentHtml: '', isCorrect: false, orderIndex: 1 },
+          { label: 'C', contentHtml: '', isCorrect: false, orderIndex: 2 },
+          { label: 'D', contentHtml: '', isCorrect: false, orderIndex: 3 },
+        ]);
+      } else {
+        setOptions([]);
+      }
     }
-  }, [questionToEdit, isOpen]);
+  }, [questionToEdit, isOpen, defaultAssignedType]);
 
   useEffect(() => {
     if (questionToEdit) {
@@ -169,13 +299,24 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
           setContentHtml('');
           setAnswerKey('');
           setWeight(1);
-          setOptions([
-            { label: 'A', contentHtml: '', isCorrect: true, orderIndex: 0 },
-            { label: 'B', contentHtml: '', isCorrect: false, orderIndex: 1 },
-            { label: 'C', contentHtml: '', isCorrect: false, orderIndex: 2 },
-            { label: 'D', contentHtml: '', isCorrect: false, orderIndex: 3 },
-            ...(type === 'MCQ_5' ? [{ label: 'E', contentHtml: '', isCorrect: false, orderIndex: 4 }] : []),
-          ]);
+          if (type === 'MCQ_5') {
+            setOptions([
+              { label: 'A', contentHtml: '', isCorrect: true, orderIndex: 0 },
+              { label: 'B', contentHtml: '', isCorrect: false, orderIndex: 1 },
+              { label: 'C', contentHtml: '', isCorrect: false, orderIndex: 2 },
+              { label: 'D', contentHtml: '', isCorrect: false, orderIndex: 3 },
+              { label: 'E', contentHtml: '', isCorrect: false, orderIndex: 4 },
+            ]);
+          } else if (type === 'MCQ_4') {
+            setOptions([
+              { label: 'A', contentHtml: '', isCorrect: true, orderIndex: 0 },
+              { label: 'B', contentHtml: '', isCorrect: false, orderIndex: 1 },
+              { label: 'C', contentHtml: '', isCorrect: false, orderIndex: 2 },
+              { label: 'D', contentHtml: '', isCorrect: false, orderIndex: 3 },
+            ]);
+          } else {
+            setOptions([]);
+          }
           setSuccessBanner(`✓ Soal nomor ${savedNum} berhasil disimpan! Lanjutkan nomor ${savedNum + 1}.`);
           setTimeout(() => setSuccessBanner(null), 4000);
         } else {
@@ -232,57 +373,55 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6 flex-1">
           {/* Tipe Soal Selector */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
-              Tipe Butir Soal
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <button
-                type="button"
-                onClick={() => handleTypeChange('MCQ_4')}
-                className={`p-4 rounded-2xl border text-left transition cursor-pointer flex flex-col gap-1 ${
-                  type === 'MCQ_4'
-                    ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 shadow-2xs'
-                    : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                }`}
-              >
-                <div className="flex items-center justify-between font-bold text-xs">
-                  <span>Pilihan Ganda (ABCD)</span>
-                  {type === 'MCQ_4' && <CheckCircle className="w-4 h-4 text-indigo-600" />}
-                </div>
-                <span className="text-[11px] text-slate-500">4 Pilihan Opsi (A, B, C, D)</span>
-              </button>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Tipe Butir Soal
+              </label>
+              {assignment && (
+                <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-indigo-600" />
+                  <span>Disesuaikan Penugasan: {assignment.subjectName} ({assignment.gradeLevel})</span>
+                </span>
+              )}
+            </div>
 
-              <button
-                type="button"
-                onClick={() => handleTypeChange('MCQ_5')}
-                className={`p-4 rounded-2xl border text-left transition cursor-pointer flex flex-col gap-1 ${
-                  type === 'MCQ_5'
-                    ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 shadow-2xs'
-                    : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                }`}
-              >
-                <div className="flex items-center justify-between font-bold text-xs">
-                  <span>Pilihan Ganda (ABCDE)</span>
-                  {type === 'MCQ_5' && <CheckCircle className="w-4 h-4 text-indigo-600" />}
-                </div>
-                <span className="text-[11px] text-slate-500">5 Pilihan Opsi (A, B, C, D, E)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleTypeChange('ESSAY')}
-                className={`p-4 rounded-2xl border text-left transition cursor-pointer flex flex-col gap-1 ${
-                  type === 'ESSAY'
-                    ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 shadow-2xs'
-                    : 'border-slate-200 hover:border-slate-300 text-slate-700'
-                }`}
-              >
-                <div className="flex items-center justify-between font-bold text-xs">
-                  <span>Soal Uraian / Esai</span>
-                  {type === 'ESSAY' && <CheckCircle className="w-4 h-4 text-indigo-600" />}
-                </div>
-                <span className="text-[11px] text-slate-500">Jawaban bebas dengan rubrik</span>
-              </button>
+            <div
+              className={`grid gap-3 ${
+                assignedTypes.length === 1
+                  ? 'grid-cols-1'
+                  : assignedTypes.length === 2
+                  ? 'grid-cols-1 sm:grid-cols-2'
+                  : 'grid-cols-1 sm:grid-cols-3'
+              }`}
+            >
+              {assignedTypes.map((item) => {
+                const isSelected = type === item.type;
+                return (
+                  <button
+                    key={item.type}
+                    type="button"
+                    onClick={() => handleTypeChange(item.type)}
+                    className={`p-4 rounded-2xl border text-left transition cursor-pointer flex flex-col gap-1.5 ${
+                      isSelected
+                        ? 'border-indigo-600 bg-indigo-50/50 text-indigo-950 shadow-2xs'
+                        : 'border-slate-200 hover:border-slate-300 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between font-bold text-xs">
+                      <span className="flex items-center gap-2">
+                        <span>{item.label}</span>
+                        {item.count !== undefined && item.count > 0 && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-indigo-100/90 text-indigo-700 border border-indigo-200/60">
+                            Target: {item.count} Butir
+                          </span>
+                        )}
+                      </span>
+                      {isSelected && <CheckCircle className="w-4 h-4 text-indigo-600 shrink-0" />}
+                    </div>
+                    <span className="text-[11px] text-slate-500">{item.sublabel}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

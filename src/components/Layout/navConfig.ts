@@ -148,23 +148,7 @@ export function useNavEntries(): NavEntry[] {
         });
       }
 
-      guruEntries.push(
-        {
-          type: 'link',
-          key: 'pembelajaran',
-          label: 'Jurnal / Silabus Mapel',
-          icon: BookOpen,
-          to: '/dashboard/pembelajaran',
-          highlight: true,
-        },
-        {
-          type: 'link',
-          key: 'absensi-siswa',
-          label: 'Absensi Siswa',
-          icon: UserCheck,
-          to: '/dashboard/absensi/siswa',
-        },
-      );
+
 
       if (isRaporEnabled) {
         guruEntries.push({

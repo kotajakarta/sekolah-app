@@ -99,6 +99,13 @@ export const BankSoalDetailPage: React.FC = () => {
   const mcqCount = allQuestions.filter((q) => q.type.startsWith('MCQ') || q.type === 'TRUE_FALSE').length;
   const essayCount = allQuestions.filter((q) => q.type === 'ESSAY').length;
 
+  const targetMcq = bank.assignment?.targetMcqCount ?? 0;
+  const targetEssay = bank.assignment?.targetEssayCount ?? 0;
+  const isTargetMet =
+    mcqCount >= targetMcq &&
+    essayCount >= targetEssay &&
+    (targetMcq > 0 || targetEssay > 0 ? true : allQuestions.length > 0);
+
   const handleDeleteQuestion = async (q: QuestionItem) => {
     if (confirm(`Apakah Anda yakin ingin menghapus butir soal #${q.orderIndex + 1}?`)) {
       try {
@@ -133,6 +140,12 @@ export const BankSoalDetailPage: React.FC = () => {
 
   const handleCompleteAssignment = async () => {
     if (!bank.assignment?.id) return;
+    if (!isTargetMet) {
+      alert(
+        `Target butir naskah soal belum terpenuhi!\n\nTarget PG: ${mcqCount}/${targetMcq} butir\nTarget Esai: ${essayCount}/${targetEssay} butir\n\nSilakan lengkapi butir soal terlebih dahulu sebelum mengajukan naskah.`,
+      );
+      return;
+    }
     if (confirm('Apakah Anda yakin naskah soal ini sudah selesai dan siap diajukan ke Cabang/Pengawas untuk diverifikasi?')) {
       try {
         await updateAssignmentMutation.mutateAsync({
@@ -206,11 +219,26 @@ export const BankSoalDetailPage: React.FC = () => {
           {isOwner && (bank.assignment.status === 'DALAM_PROSES' || bank.assignment.status === 'DITUGASKAN') && (
             <button
               type="button"
+              disabled={!isTargetMet}
               onClick={handleCompleteAssignment}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer flex items-center gap-2 shrink-0"
+              title={
+                !isTargetMet
+                  ? `Target belum terpenuhi (PG: ${mcqCount}/${targetMcq}, Esai: ${essayCount}/${targetEssay}). Tombol akan aktif setelah jumlah soal memenuhi target.`
+                  : 'Ajukan naskah soal yang sudah selesai ke Cabang/Pengawas'
+              }
+              className={`px-5 py-2.5 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+                isTargetMet
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20 cursor-pointer'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none border border-slate-300/70'
+              }`}
             >
               <CheckCircle2 className="w-4 h-4" />
               <span>Ajukan Naskah Selesai</span>
+              {!isTargetMet && (
+                <span className="text-[10px] bg-slate-300/80 text-slate-600 font-extrabold px-1.5 py-0.5 rounded-md">
+                  Belum Lengkap
+                </span>
+              )}
             </button>
           )}
         </div>
@@ -522,6 +550,8 @@ export const BankSoalDetailPage: React.FC = () => {
         bankId={bank.id}
         questionToEdit={questionToEdit}
         nextIndex={allQuestions.length + 1}
+        gradeLevel={bank.gradeLevel}
+        assignment={bank.assignment}
       />
 
       <QuickImportModal
@@ -529,6 +559,8 @@ export const BankSoalDetailPage: React.FC = () => {
         onClose={() => setIsQuickImportOpen(false)}
         bankId={bank.id}
         nextIndex={allQuestions.length + 1}
+        gradeLevel={bank.gradeLevel}
+        assignment={bank.assignment}
       />
 
       <QuestionBankModal

@@ -8,6 +8,29 @@ interface KeaktifanMapelModalProps {
   onClose: () => void;
 }
 
+function normalizeTurkishKey(str?: string | null): string {
+  if (!str) return '';
+  return str
+    .trim()
+    .toUpperCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/İ/g, 'I')
+    .replace(/I/g, 'I')
+    .replace(/ı/g, 'I')
+    .replace(/i/g, 'I')
+    .replace(/Ü/g, 'U')
+    .replace(/ü/g, 'U')
+    .replace(/Ö/g, 'O')
+    .replace(/ö/g, 'O')
+    .replace(/Ş/g, 'S')
+    .replace(/ş/g, 'S')
+    .replace(/Ç/g, 'C')
+    .replace(/ç/g, 'C')
+    .replace(/Ğ/g, 'G')
+    .replace(/ğ/g, 'G');
+}
+
 export default function KeaktifanMapelModal({ mapel, onClose }: KeaktifanMapelModalProps) {
   const queryClient = useQueryClient();
 
@@ -40,11 +63,13 @@ export default function KeaktifanMapelModal({ mapel, onClose }: KeaktifanMapelMo
   const isMapelActiveInJenisGrup = (jenisName: string) => {
     if (!mapelGrupList || !grupDaimiList) return false;
 
+    const targetKey = normalizeTurkishKey(jenisName);
     const matchingGrupIds = grupDaimiList
-      .filter((g: any) => 
-        (g.jenis && g.jenis.toLowerCase() === jenisName.toLowerCase()) ||
-        (g.name && g.name.toLowerCase() === jenisName.toLowerCase())
-      )
+      .filter((g: any) => {
+        const gJenisKey = normalizeTurkishKey(g.jenis);
+        const gNameKey = normalizeTurkishKey(g.name);
+        return gJenisKey === targetKey || gNameKey === targetKey;
+      })
       .map((g: any) => g.id);
 
     if (matchingGrupIds.length === 0) return false;

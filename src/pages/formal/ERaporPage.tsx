@@ -6,7 +6,7 @@ import { useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useM
 import {
   BookOpen, Save, Printer, UserCheck,
   Layers, Sparkles, Filter, Building2, MapPin, Eye, AlertTriangle, X, Upload, ShieldAlert,
-  Scan
+  Scan, ChevronDown, ChevronUp, LayoutGrid, CheckCircle2
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import HafalanAlQuranModal from './HafalanAlQuranModal';
@@ -66,11 +66,87 @@ interface PresensiCatatanRow {
   statusAkhir: string;
 }
 
+export const TABS_CONFIG = [
+  {
+    id: 'nilai' as const,
+    number: '1',
+    label: '1. Input Nilai Mapel',
+    shortLabel: 'Input Nilai Mapel',
+    description: 'Entry nilai akhir per mata pelajaran',
+    icon: BookOpen,
+    badgeColor: 'bg-emerald-600',
+    activeColor: 'border-emerald-600 text-emerald-800 bg-emerald-50/70',
+  },
+  {
+    id: 'presensi' as const,
+    number: '2',
+    label: '2. Presensi & Catatan Wali',
+    shortLabel: 'Presensi & Sikap',
+    description: 'Absensi, sikap santri & catatan wali',
+    icon: UserCheck,
+    badgeColor: 'bg-blue-600',
+    activeColor: 'border-blue-600 text-blue-800 bg-blue-50/70',
+  },
+  {
+    id: 'leger' as const,
+    number: '3',
+    label: '3. Leger Nilai Kelas',
+    shortLabel: 'Leger Nilai Kelas',
+    description: 'Matriks rekap nilai seluruh mapel',
+    icon: Layers,
+    badgeColor: 'bg-amber-600',
+    activeColor: 'border-amber-600 text-amber-800 bg-amber-50/70',
+  },
+  {
+    id: 'cetak' as const,
+    number: '4',
+    label: '4. Cetak Rapor Muadalah',
+    shortLabel: 'Cetak Rapor Santri',
+    description: 'Download & cetak PDF rapor santri',
+    icon: Printer,
+    badgeColor: 'bg-purple-600',
+    activeColor: 'border-purple-600 text-purple-800 bg-purple-50/70',
+  },
+  {
+    id: 'import-riwayat' as const,
+    number: '5',
+    label: '5. Import Riwayat Nilai',
+    shortLabel: 'Import Excel Nilai',
+    description: 'Unggah file Excel nilai lampau',
+    icon: Upload,
+    badgeColor: 'bg-teal-600',
+    activeColor: 'border-teal-600 text-teal-800 bg-teal-50/70',
+  },
+  {
+    id: 'cek-riwayat' as const,
+    number: '6',
+    label: '6. Cek Kelengkapan Riwayat',
+    shortLabel: 'Cek Kelengkapan',
+    description: 'Audit kelengkapan nilai riwayat',
+    icon: ShieldAlert,
+    badgeColor: 'bg-rose-600',
+    activeColor: 'border-rose-600 text-rose-800 bg-rose-50/70',
+  },
+  {
+    id: 'omr-ljk' as const,
+    number: '7',
+    label: '7. Koreksi LJK (OMR)',
+    shortLabel: 'Koreksi LJK (OMR)',
+    description: 'Scan kamera HP & cetak lembar LJK A4',
+    icon: Scan,
+    isHighlight: true,
+    badgeColor: 'bg-indigo-600',
+    activeColor: 'border-indigo-600 text-indigo-800 bg-indigo-50/80 shadow-xs',
+  },
+];
+
 export const ERaporPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'nilai' | 'presensi' | 'leger' | 'cetak' | 'import-riwayat' | 'cek-riwayat' | 'omr-ljk'>('nilai');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const currentTabConfig = TABS_CONFIG.find(t => t.id === activeTab) || TABS_CONFIG[0];
 
   // Master Data Wilayah & Cabang
   const { data: wilayahList = [] } = useGetWilayah();
@@ -479,85 +555,125 @@ export const ERaporPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Tabs Navigation */}
-      <div className="border-b border-slate-200 bg-white px-4 pt-3 rounded-xl shadow-sm">
-        <div className="flex items-center gap-2 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('nilai')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${activeTab === 'nilai'
-              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>1. Input Nilai Mapel</span>
-          </button>
+      {/* ========================================================
+          TABS NAVIGATION (RESPONSIVE: MOBILE-FRIENDLY & DESKTOP)
+          ======================================================== */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        {/* ── 1. TAMPILAN KHUSUS MOBILE (md:hidden) TANPA GESER-GESER ── */}
+        <div className="md:hidden p-3 space-y-2.5 bg-slate-50/50">
+          {/* Header Banner Menu Aktif & Tombol Buka/Tutup Menu */}
+          <div className="flex items-center justify-between gap-2 p-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white font-black text-xs shadow-xs ${currentTabConfig.badgeColor}`}>
+                {currentTabConfig.number}
+              </div>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Menu Rapor Aktif ({currentTabConfig.number} dari 7):
+                </span>
+                <span className="text-xs font-black text-slate-900 truncate block">
+                  {currentTabConfig.label}
+                </span>
+              </div>
+            </div>
 
-          <button
-            onClick={() => setActiveTab('presensi')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${activeTab === 'presensi'
-              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-          >
-            <UserCheck className="w-4 h-4" />
-            <span>2. Presensi & Catatan Wali</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg text-xs font-bold text-slate-700 flex items-center gap-1 shrink-0 transition cursor-pointer"
+            >
+              <LayoutGrid className="w-3.5 h-3.5 text-indigo-600" />
+              <span>{isMobileMenuOpen ? 'Ringkas' : 'Lihat Semua'}</span>
+              {isMobileMenuOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          </div>
 
-          <button
-            onClick={() => setActiveTab('leger')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${activeTab === 'leger'
-              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-          >
-            <Layers className="w-4 h-4" />
-            <span>3. Leger Nilai Kelas</span>
-          </button>
+          {/* Quick 1-Click Dropdown Selector (Mudah bagi guru gaptek: tinggal tap dropdown) */}
+          <div>
+            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+              Ganti Menu Rapor (1-Tap):
+            </label>
+            <select
+              value={activeTab}
+              onChange={(e) => {
+                setActiveTab(e.target.value as any);
+              }}
+              className="w-full px-3 py-2 bg-white border-2 border-indigo-400/40 rounded-xl text-xs font-black text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xs cursor-pointer"
+            >
+              {TABS_CONFIG.map((tab) => (
+                <option key={tab.id} value={tab.id}>
+                  {tab.number}. {tab.label} {tab.isHighlight ? '⭐ (Scanner Kamera & LJK A4)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <button
-            onClick={() => setActiveTab('cetak')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${activeTab === 'cetak'
-              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-          >
-            <Printer className="w-4 h-4" />
-            <span>4. Cetak Rapor Muadalah</span>
-          </button>
+          {/* Grid 7 Tombol Menu (Semua langsung terlihat di layar HP, tanpa perlu geser horizontal) */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            {TABS_CONFIG.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveTab(tab.id as any);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`p-2.5 rounded-xl border text-left flex items-start gap-2 transition cursor-pointer ${
+                    tab.isHighlight ? 'col-span-2 bg-gradient-to-r from-indigo-50/90 to-violet-50/90' : ''
+                  } ${
+                    isActive
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-950 shadow-xs ring-1 ring-indigo-500'
+                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <div
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-white font-bold text-[11px] shadow-2xs ${tab.badgeColor}`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs font-extrabold truncate">
+                        {tab.number}. {tab.shortLabel}
+                      </span>
+                      {isActive && <CheckCircle2 className="w-3 h-3 text-indigo-600 shrink-0" />}
+                    </div>
+                    <p className="text-[10px] text-slate-500 truncate leading-tight mt-0.5">
+                      {tab.description}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-          <button
-            onClick={() => setActiveTab('import-riwayat')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${activeTab === 'import-riwayat'
-              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-          >
-            <Upload className="w-4 h-4" />
-            <span>5. Import Riwayat Nilai</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('cek-riwayat')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-t-lg transition-all border-b-2 ${activeTab === 'cek-riwayat'
-              ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-          >
-            <ShieldAlert className="w-4 h-4" />
-            <span>6. Cek Kelengkapan Riwayat</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('omr-ljk')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-lg transition-all border-b-2 ${activeTab === 'omr-ljk'
-              ? 'border-indigo-600 text-indigo-800 bg-indigo-50/70 shadow-2xs'
-              : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-          >
-            <Scan className="w-4 h-4 text-indigo-600" />
-            <span>7. Koreksi LJK (OMR)</span>
-          </button>
+        {/* ── 2. TAMPILAN KHUSUS DESKTOP (hidden md:flex) ── */}
+        <div className="hidden md:flex items-center gap-1.5 px-4 pt-3 overflow-x-auto border-b border-slate-200">
+          {TABS_CONFIG.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-3.5 py-2.5 text-xs font-bold rounded-t-xl transition-all border-b-2 whitespace-nowrap cursor-pointer ${
+                  isActive
+                    ? tab.activeColor
+                    : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-md flex items-center justify-center text-white text-[10px] font-black ${tab.badgeColor}`}>
+                  {tab.number}
+                </div>
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

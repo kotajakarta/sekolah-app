@@ -29,6 +29,8 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
     { label: 'C', contentHtml: '', isCorrect: false, orderIndex: 2 },
     { label: 'D', contentHtml: '', isCorrect: false, orderIndex: 3 },
   ]);
+  const [currentNumber, setCurrentNumber] = useState(nextIndex);
+  const [successBanner, setSuccessBanner] = useState<string | null>(null);
 
   const createMutation = useCreateQuestionItem();
   const updateMutation = useUpdateQuestionItem();
@@ -71,6 +73,14 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
       ]);
     }
   }, [questionToEdit, isOpen]);
+
+  useEffect(() => {
+    if (questionToEdit) {
+      setCurrentNumber(questionToEdit.orderIndex + 1);
+    } else {
+      setCurrentNumber(nextIndex);
+    }
+  }, [questionToEdit, nextIndex, isOpen]);
 
   // Handle Type Change (MCQ_4, MCQ_5, ESSAY)
   const handleTypeChange = (newType: QuestionType) => {
@@ -121,18 +131,7 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
     );
   };
 
-  if (!isOpen) return null;
 
-  const [currentNumber, setCurrentNumber] = useState(nextIndex);
-  const [successBanner, setSuccessBanner] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (questionToEdit) {
-      setCurrentNumber(questionToEdit.orderIndex + 1);
-    } else {
-      setCurrentNumber(nextIndex);
-    }
-  }, [questionToEdit, nextIndex, isOpen]);
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
 
@@ -192,6 +191,8 @@ export const QuestionEditorModal: React.FC<QuestionEditorModalProps> = ({
     e.preventDefault();
     handleSave(false);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">

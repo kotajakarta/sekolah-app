@@ -30,8 +30,10 @@ import {
   BookOpen,
   X,
   Printer,
+  Layers,
 } from 'lucide-react';
 import { LjkPrintModal } from './LjkPrintModal';
+import { LjkBulkPdfModal } from './LjkBulkPdfModal';
 
 export interface StudentOption {
   id: string;
@@ -135,6 +137,11 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
 
   // Print LJK Builder Modal State
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+
+  // Bulk PDF Upload State
+  const [bulkPdfFile, setBulkPdfFile] = useState<File | null>(null);
+  const [isBulkPdfModalOpen, setIsBulkPdfModalOpen] = useState(false);
+  const bulkPdfInputRef = useRef<HTMLInputElement>(null);
 
   // Dual-view Preview & Edit State
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
@@ -598,21 +605,21 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
       {!scanResult ? (
         <div className="bg-white rounded-3xl border border-slate-200/80 p-6 md:p-10 shadow-xs space-y-6">
           <div className="max-w-xl mx-auto space-y-6 text-center">
-            {/* Opsi Metode Input: Kamera HP (Utama), Galeri/File, Cetak Lembar LJK */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 w-full">
+            {/* Opsi Metode Input: Kamera HP (Utama), Galeri/File, Cetak Lembar LJK, Upload PDF Masal */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 w-full">
               {/* 1. Kamera HP Bawaan (Tombol Utama Terbesar & Paling Mudah untuk Guru) */}
               <button
                 type="button"
                 onClick={() => nativeCameraInputRef.current?.click()}
-                className="px-5 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-2xl text-xs font-bold shadow-lg hover:shadow-indigo-500/25 transition flex items-center justify-center gap-3 cursor-pointer ring-2 ring-indigo-500/30 active:scale-[0.98]"
+                className="px-4 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white rounded-2xl text-xs font-bold shadow-lg hover:shadow-indigo-500/25 transition flex items-center justify-center gap-3 cursor-pointer ring-2 ring-indigo-500/30 active:scale-[0.98]"
                 title="Buka kamera bawaan HP untuk jepret LJK dengan kualitas foto maksimal"
               >
                 <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
                   <Camera className="w-5 h-5 text-white" />
                 </div>
                 <div className="text-left leading-tight">
-                  <div className="text-sm font-extrabold">Ambil Foto (Kamera HP)</div>
-                  <div className="text-[11px] text-blue-100 font-normal">Jepret langsung via kamera bawaan HP</div>
+                  <div className="text-xs font-extrabold">Ambil Foto (Kamera HP)</div>
+                  <div className="text-[10px] text-blue-100 font-normal">Kamera langsung</div>
                 </div>
               </button>
 
@@ -628,11 +635,30 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                 </div>
                 <div className="text-left leading-tight">
                   <div className="text-xs font-extrabold">Pilih Foto / Galeri</div>
-                  <div className="text-[10px] text-slate-500 font-normal">Dari galeri HP atau file laptop</div>
+                  <div className="text-[10px] text-slate-500 font-normal">Foto dari galeri</div>
                 </div>
               </button>
 
-              {/* 3. Cetak Lembar LJK Siswa */}
+              {/* 3. Upload PDF LJK Masal */}
+              <button
+                type="button"
+                onClick={() => bulkPdfInputRef.current?.click()}
+                className="px-4 py-4 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 hover:from-violet-700 hover:to-indigo-800 text-white rounded-2xl text-xs font-bold shadow-md hover:shadow-purple-500/20 transition flex items-center justify-center gap-3 cursor-pointer active:scale-[0.98] ring-2 ring-purple-500/20"
+                title="Unggah berkas PDF berisi banyak lembar LJK untuk dipindai secara masal"
+              >
+                <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center shrink-0">
+                  <Layers className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-left leading-tight">
+                  <div className="text-xs font-extrabold flex items-center gap-1">
+                    <span>Upload PDF Masal</span>
+                    <span className="text-[8px] bg-white/30 px-1 py-0.2 rounded font-black tracking-wider">OMR</span>
+                  </div>
+                  <div className="text-[10px] text-purple-100 font-normal">Multi-Page LJK</div>
+                </div>
+              </button>
+
+              {/* 4. Cetak Lembar LJK Siswa */}
               <button
                 type="button"
                 onClick={() => setIsPrintModalOpen(true)}
@@ -644,10 +670,43 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                 </div>
                 <div className="text-left leading-tight">
                   <div className="text-xs font-extrabold">Cetak Format LJK</div>
-                  <div className="text-[10px] text-emerald-100 font-normal">PDF Lembar Jawab Siswa</div>
+                  <div className="text-[10px] text-emerald-100 font-normal">PDF Lembar Jawab</div>
                 </div>
               </button>
             </div>
+
+            {/* Banner Keterangan Wajib CamScanner Android (Auto-Crop) */}
+            <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-amber-500/10 border border-amber-200/90 rounded-2xl p-4 text-left flex items-start gap-3 text-amber-950 shadow-2xs">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                <AlertCircle className="w-4 h-4 text-amber-700" />
+              </div>
+              <div className="text-xs leading-relaxed">
+                <span className="font-extrabold text-amber-950 block mb-0.5">
+                  ⚠️ Petunjuk Upload LJK Masal (Wajib CamScanner Android Auto-Crop):
+                </span>
+                Jika mengunggah lembar LJK via PDF masal, <strong>wajib menggunakan aplikasi CamScanner Android</strong> (atau document scanner sejenis) dengan fitur <strong>Auto-Crop</strong> aktif. Auto-crop memotong batas 4 kotak hitam di sudut lembar LJK secara presisi dan lurus agar pembacaan OMR akurat.
+              </div>
+            </div>
+
+            {/* Input Tersembunyi untuk Upload PDF Masal */}
+            <input
+              ref={bulkPdfInputRef}
+              type="file"
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+                    showToast('error', 'Harap pilih berkas dokumen format PDF.');
+                    return;
+                  }
+                  setBulkPdfFile(file);
+                  setIsBulkPdfModalOpen(true);
+                }
+                e.target.value = '';
+              }}
+            />
 
             {/* Input Tersembunyi untuk Kamera Bawaan HP */}
             <input
@@ -1326,6 +1385,34 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
         semester={semester}
         siswaList={siswaList}
         officialBankTitle={activeBankDetail?.title || matchedOfficialBank?.title}
+      />
+
+      {/* ── MODAL UPLOAD & REVIEW LJK MASAL VIA PDF ── */}
+      <LjkBulkPdfModal
+        isOpen={isBulkPdfModalOpen}
+        onClose={() => {
+          setIsBulkPdfModalOpen(false);
+          setBulkPdfFile(null);
+        }}
+        pdfFile={bulkPdfFile}
+        selectedCabangId={selectedCabangId}
+        selectedKelasId={selectedKelasId}
+        selectedKelas={selectedKelas}
+        selectedMapelId={selectedMapelId}
+        selectedMapel={selectedMapel}
+        tahunAjaran={tahunAjaran}
+        semester={semester}
+        siswaList={siswaList}
+        activeBankSoalId={activeBankSoalId}
+        activeBankDetail={activeBankDetail}
+        officialBanks={officialBanks}
+        matchedOfficialBank={matchedOfficialBank}
+        onSuccessSaveAll={() => {
+          queryClient.invalidateQueries({ queryKey: ['formal-ljk-history'] });
+          queryClient.invalidateQueries({ queryKey: ['erapor-nilai'] });
+          queryClient.invalidateQueries({ queryKey: ['erapor-leger'] });
+          queryClient.invalidateQueries({ queryKey: ['erapor-cetak-list'] });
+        }}
       />
     </div>
   );

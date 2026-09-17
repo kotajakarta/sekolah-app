@@ -155,7 +155,7 @@ export const ERaporPage: React.FC = () => {
       });
       return res.data;
     },
-    enabled: !!selectedKelasId && !!selectedMapelId && !!tahunAjaran && !!semester && activeTab === 'nilai'
+    enabled: !!selectedKelasId && !!selectedMapelId && !!tahunAjaran && !!semester && (activeTab === 'nilai' || activeTab === 'omr-ljk')
   });
 
   // Local state untuk form batch nilai
@@ -1087,7 +1087,22 @@ export const ERaporPage: React.FC = () => {
       {activeTab === 'cek-riwayat' && <RiwayatContinuityTab />}
 
       {/* TAB 7: MODUL OMR / OCR LJK READER */}
-      {activeTab === 'omr-ljk' && <LjkScannerTab />}
+      {activeTab === 'omr-ljk' && (
+        <LjkScannerTab
+          selectedCabangId={selectedCabangId}
+          selectedKelasId={selectedKelasId}
+          selectedKelas={selectedKelasInfo}
+          selectedMapelId={selectedMapelId}
+          selectedMapel={mapelList.find((m) => m.id === selectedMapelId)}
+          tahunAjaran={tahunAjaran}
+          semester={semester}
+          siswaList={nilaiRows.map((r) => ({
+            id: r.studentId,
+            namaLengkap: r.fullName,
+            nisn: r.nisn,
+          }))}
+        />
+      )}
 
       {warningPopoverId && (() => {
         const row = cetakListData?.data.find((r: any) => r.studentId === warningPopoverId);

@@ -155,6 +155,9 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
     questionBankId?: string;
   } | null>(null);
 
+  // Persistent User Selected Bank Soal
+  const [userSelectedBankId, setUserSelectedBankId] = useState<string>('');
+
   // Sync to e-Rapor Checkbox
   const [syncToRapor, setSyncToRapor] = useState<boolean>(true);
 
@@ -213,8 +216,8 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
     return officialBanks.length === 1 ? officialBanks[0] : null;
   }, [officialBanks, selectedMapel]);
 
-  // Active official bank soal ID
-  const activeBankSoalId = editForm?.questionBankId || scanResult?.questionBank?.id || matchedOfficialBank?.id;
+  // Active official bank soal ID (prioritize user choice from dropdown)
+  const activeBankSoalId = userSelectedBankId || editForm?.questionBankId || scanResult?.questionBank?.id || matchedOfficialBank?.id;
 
   // 3. Fetch detail bank soal yang sedang aktif (termasuk butir soal & opsi kunci jawaban resmi)
   const { data: activeBankDetail } = useQuery({
@@ -381,9 +384,14 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
 
       if (activeBankSoalId) formData.append('questionBankId', activeBankSoalId);
       if (mapelForScan) formData.append('mapel', mapelForScan);
-      if (selectedMapelId) formData.append('mataPelajaranId', selectedMapelId);
+      // Hanya kirim mataPelajaranId jika subjek bank soal cocok dengan mata pelajaran parent
+      if (selectedMapelId && (!activeBankForScan || activeBankForScan.subject?.toLowerCase() === selectedMapel?.name?.toLowerCase())) {
+        formData.append('mataPelajaranId', selectedMapelId);
+      }
       if (kelasForScan) formData.append('kelas', kelasForScan);
-      if (selectedKelasId) formData.append('kelasId', selectedKelasId);
+      if (selectedKelasId && (!activeBankForScan || activeBankForScan.gradeLevel?.toLowerCase() === selectedKelas?.name?.toLowerCase())) {
+        formData.append('kelasId', selectedKelasId);
+      }
       if (tahunAjaran) formData.append('tahunAjaran', tahunAjaran);
       if (semester) formData.append('semester', semester);
 
@@ -650,17 +658,19 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
             value={activeBankSoalId || ''}
             onChange={(e) => {
               const val = e.target.value;
+              setUserSelectedBankId(val);
               // Cari bank yang dipilih untuk update mapel & kelas secara otomatis
               const chosenBank = officialBanks.find((b: any) => b.id === val);
-              setEditForm((prev) => prev ? {
-                ...prev,
-                questionBankId: val,
-                // Saat ganti bank soal, mapel & kelas otomatis mengikuti bank yang dipilih
-                ...(chosenBank ? {
-                  mapel: chosenBank.subject || prev.mapel,
-                  kelas: chosenBank.gradeLevel || prev.kelas,
-                } : {}),
-              } : { kodeCabang: '', nisn: '', kelas: '', semester: '', mapel: chosenBank?.subject || '', jawaban: {}, questionBankId: val });
+              if (editForm) {
+                setEditForm((prev) => prev ? {
+                  ...prev,
+                  questionBankId: val,
+                  ...(chosenBank ? {
+                    mapel: chosenBank.subject || prev.mapel,
+                    kelas: chosenBank.gradeLevel || prev.kelas,
+                  } : {}),
+                } : null);
+              }
             }}
             className="w-full md:w-72 px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 shadow-xs cursor-pointer"
           >
@@ -982,7 +992,13 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                       value={editForm?.studentId || ''}
                       onChange={(e) => {
                         const sId = e.target.value;
-                        const st = siswaList.find((s) => s.id === sId);
+                        const allStudents = [
+                          ...siswaList,
+                          ...(scanResult?.student && !siswaList.some(s => s.id === scanResult.student!.id)
+                            ? [{ id: scanResult.student.id, namaLengkap: scanResult.student.namaLengkap, nisn: scanResult.student.nisn }]
+                            : []),
+                        ];
+                        const st = allStudents.find((s) => s.id === sId);
                         setEditForm((prev) => ({
                           ...prev!,
                           studentId: sId,
@@ -994,9 +1010,15 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                       }`}
                     >
                       <option value="">-- Pilih Nama Siswa --</option>
-                      {siswaList.map((st) => (
+                      {/* Gabungkan siswa dari kelas dan siswa hasil deteksi OMR */}
+                      {[
+                        ...(scanResult?.student && !siswaList.some(s => s.id === scanResult.student!.id)
+                          ? [{ id: scanResult.student.id, namaLengkap: scanResult.student.namaLengkap, nisn: scanResult.student.nisn, isDetected: true }]
+                          : []),
+                        ...siswaList,
+                      ].map((st: any) => (
                         <option key={st.id} value={st.id}>
-                          {st.namaLengkap} ({st.nisn})
+                          {st.isDetected ? `✨ [Terdeteksi OMR] ` : ''}{st.namaLengkap} ({st.nisn})
                         </option>
                       ))}
                     </select>

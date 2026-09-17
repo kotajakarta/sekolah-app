@@ -197,6 +197,7 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
   });
 
   // Auto-detect bank soal resmi yang cocok dengan Mapel & Kelas saat ini
+  // Priority: 1) match by selectedMapel name, 2) first official bank, 3) null
   const matchedOfficialBank = useMemo(() => {
     if (!officialBanks.length) return null;
     if (selectedMapel?.name) {
@@ -207,7 +208,9 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
       );
       if (found) return found;
     }
-    return officialBanks[0] || null;
+    // Only fallback to [0] if there's exactly 1 official bank,
+    // otherwise return null to avoid silently picking wrong subject
+    return officialBanks.length === 1 ? officialBanks[0] : null;
   }, [officialBanks, selectedMapel]);
 
   // Active official bank soal ID
@@ -370,10 +373,16 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
       const formData = new FormData();
       formData.append('file', fileToScan);
 
+      // Prioritas mapel & kelas: dari bank soal aktif (yang dipilih user di dropdown naskah)
+      // bukan dari selectedMapel parent page (yang mungkin berbeda)
+      const activeBankForScan = activeBankDetail || (activeBankSoalId ? officialBanks.find((b: any) => b.id === activeBankSoalId) : null) || matchedOfficialBank;
+      const mapelForScan = activeBankForScan?.subject || selectedMapel?.name || '';
+      const kelasForScan = activeBankForScan?.gradeLevel || selectedKelas?.name || '';
+
       if (activeBankSoalId) formData.append('questionBankId', activeBankSoalId);
-      if (selectedMapel?.name) formData.append('mapel', selectedMapel.name);
+      if (mapelForScan) formData.append('mapel', mapelForScan);
       if (selectedMapelId) formData.append('mataPelajaranId', selectedMapelId);
-      if (selectedKelas?.name) formData.append('kelas', selectedKelas.name);
+      if (kelasForScan) formData.append('kelas', kelasForScan);
       if (selectedKelasId) formData.append('kelasId', selectedKelasId);
       if (tahunAjaran) formData.append('tahunAjaran', tahunAjaran);
       if (semester) formData.append('semester', semester);
@@ -389,8 +398,16 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
       const data = res.data;
       setScanResult(data);
 
-      // Cocokkan student dari siswaList jika ada
+      // Mapel & kelas dari bank soal (bukan dari parent page)
+      // Bank soal yang dipilih adalah acuan utama, bukan selectedMapel
+      const bankSubject = data.questionBank?.subject || activeBankForScan?.subject || mapelForScan;
+      const bankGrade = data.questionBank?.gradeLevel || activeBankForScan?.gradeLevel || kelasForScan;
+
+      // Auto-cocokkan siswa berdasarkan NISN dari hasil scan
+      // Cek dari: 1) backend matched student, 2) siswaList by NISN
       let autoMatchedStudentId = data.student?.id;
+      let autoMatchedNisn = data.nisn || '';
+
       if (!autoMatchedStudentId && data.nisn && siswaList.length > 0) {
         const found = siswaList.find((s) => s.nisn === data.nisn);
         if (found) autoMatchedStudentId = found.id;
@@ -398,18 +415,19 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
 
       setEditForm({
         kodeCabang: data.kodeCabang || '1001',
-        nisn: data.nisn || '',
+        nisn: autoMatchedNisn,
         studentId: autoMatchedStudentId,
-        kelas: data.kelas || selectedKelas?.name || '7',
+        kelas: bankGrade || data.kelas || selectedKelas?.name || '12',
         semester: data.semester || semester || 'GANJIL',
-        mapel: data.mapel || selectedMapel?.name || 'Pendidikan Agama Islam',
+        // Mapel: WAJIB dari bank soal yang dipilih, bukan dari selectedMapel parent
+        mapel: bankSubject || data.mapel || selectedMapel?.name || '',
         jawaban: { ...data.jawaban },
         questionBankId: data.questionBank?.id || activeBankSoalId,
       });
 
       showToast(
         'success',
-        `LJK berhasil dipindai dengan tingkat keyakinan OMR ${(data.confidence * 100).toFixed(0)}%!`,
+        `LJK berhasil dipindai dengan tingkat keyakinan OMR ${(data.confidence * 100).toFixed(0)}%${autoMatchedStudentId ? ' | Siswa teridentifikasi!' : ''}`,
       );
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Gagal memproses gambar LJK.';
@@ -441,6 +459,7 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
   };
 
   // Hitung ulang skor live di UI berdasarkan Kunci Jawaban Resmi
+  // Formula: tiap soal benar = 4 poin (25 soal × 4 = 100 poin maks)
   const liveStats = useMemo(() => {
     if (!editForm) return { benar: 0, salah: 0, kosong: 0, skor: 0, total: 25 };
     const hasKeys = Object.keys(officialKeyMap).length > 0;
@@ -462,12 +481,13 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
           salah++;
         }
       } else {
-        // Fallback jika belum ada kunci resmi
+        // Fallback jika belum ada kunci resmi: hitung semua yg diisi sebagai benar
         benar++;
       }
     }
 
-    const skor = Number(((benar / total) * 100).toFixed(1));
+    // Skor: benar × 4 (25 soal × 4 = 100 poin maks)
+    const skor = benar * 4;
     return { benar, salah, kosong, skor, total };
   }, [editForm?.jawaban, officialKeyMap]);
 
@@ -630,9 +650,17 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
             value={activeBankSoalId || ''}
             onChange={(e) => {
               const val = e.target.value;
-              if (editForm) {
-                setEditForm((prev) => ({ ...prev!, questionBankId: val }));
-              }
+              // Cari bank yang dipilih untuk update mapel & kelas secara otomatis
+              const chosenBank = officialBanks.find((b: any) => b.id === val);
+              setEditForm((prev) => prev ? {
+                ...prev,
+                questionBankId: val,
+                // Saat ganti bank soal, mapel & kelas otomatis mengikuti bank yang dipilih
+                ...(chosenBank ? {
+                  mapel: chosenBank.subject || prev.mapel,
+                  kelas: chosenBank.gradeLevel || prev.kelas,
+                } : {}),
+              } : { kodeCabang: '', nisn: '', kelas: '', semester: '', mapel: chosenBank?.subject || '', jawaban: {}, questionBankId: val });
             }}
             className="w-full md:w-72 px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30 shadow-xs cursor-pointer"
           >
@@ -918,15 +946,33 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                       value={editForm?.nisn || ''}
                       onChange={(e) => {
                         const val = e.target.value;
+                        // Auto-cocokkan siswa dari list ketika NISN diketik/diubah
                         const matched = siswaList.find((s) => s.nisn === val);
                         setEditForm((prev) => ({
                           ...prev!,
                           nisn: val,
-                          studentId: matched?.id || prev?.studentId,
+                          studentId: matched?.id || (val.length < 10 ? undefined : prev?.studentId),
                         }));
                       }}
-                      className="mt-1 w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono"
+                      className={`mt-1 w-full px-3 py-1.5 bg-white border rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-mono ${
+                        editForm?.studentId ? 'border-emerald-400 bg-emerald-50/30' : 'border-slate-200'
+                      }`}
                     />
+                    {/* Tampilkan nama siswa yang cocok dengan NISN */}
+                    {(() => {
+                      const fromList = siswaList.find(s => s.id === editForm?.studentId);
+                      const fromScan = scanResult?.student;
+                      const displayName = fromList?.namaLengkap || fromScan?.namaLengkap;
+                      return displayName ? (
+                        <p className="text-[10px] text-emerald-700 font-bold mt-0.5 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> {displayName}
+                        </p>
+                      ) : editForm?.nisn && editForm.nisn.length === 10 ? (
+                        <p className="text-[10px] text-amber-600 font-medium mt-0.5">
+                          ⚠ NISN tidak ditemukan di kelas ini
+                        </p>
+                      ) : null;
+                    })()}
                   </div>
 
                   {/* Dropdown Siswa Terdaftar di Kelas */}
@@ -943,7 +989,9 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                           nisn: st?.nisn || prev?.nisn || '',
                         }));
                       }}
-                      className="mt-1 w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      className={`mt-1 w-full px-3 py-1.5 bg-white border rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 ${
+                        editForm?.studentId ? 'border-emerald-400 bg-emerald-50/30' : 'border-slate-200'
+                      }`}
                     >
                       <option value="">-- Pilih Nama Siswa --</option>
                       {siswaList.map((st) => (
@@ -952,6 +1000,12 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                         </option>
                       ))}
                     </select>
+                    {/* Jika student dari scan tidak ada di list (beda kelas), tampilkan info */}
+                    {!editForm?.studentId && scanResult?.student && (
+                      <p className="text-[10px] text-indigo-600 font-medium mt-0.5">
+                        📋 Dari DB: {scanResult.student.namaLengkap} ({scanResult.student.nisn})
+                      </p>
+                    )}
                   </div>
 
                   <div>

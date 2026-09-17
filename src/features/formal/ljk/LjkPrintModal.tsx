@@ -154,7 +154,7 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
     officialBankTitle || 'PENILAIAN AKHIR SEMESTER (PAS)',
   );
   const [kodeCabang, setKodeCabang] = useState<string>('1001');
-  const [spareBlankCount, setSpareBlankCount] = useState<number>(1);
+  const [spareBlankCount, setSpareBlankCount] = useState<number>(0);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
 
   // Auto-update kode cabang jika kelas memiliki cabang kode
@@ -249,8 +249,8 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
           .ljk-single-page {
             width: 198mm !important;
             max-width: 198mm !important;
-            height: 284mm !important;
-            max-height: 284mm !important;
+            height: 280mm !important;
+            max-height: 280mm !important;
             page-break-after: always !important;
             break-after: page !important;
             page-break-inside: avoid !important;
@@ -259,7 +259,6 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
             box-sizing: border-box !important;
             overflow: hidden !important;
             background: #ffffff !important;
-            border: 2px solid #000000 !important;
           }
           .ljk-single-page:last-child {
             page-break-after: auto !important;
@@ -627,9 +626,9 @@ const LjkSingleSheetView: React.FC<LjkSingleSheetViewProps> = ({
     <div
       style={{
         width: '198mm',
-        height: '282mm',
-        maxHeight: '282mm',
-        padding: '3.5mm 4mm',
+        height: '280mm',
+        maxHeight: '280mm',
+        padding: '3mm 3.5mm',
         backgroundColor: '#ffffff',
         color: '#000000',
         fontFamily: 'Arial, Helvetica, sans-serif',
@@ -666,7 +665,10 @@ const LjkSingleSheetView: React.FC<LjkSingleSheetViewProps> = ({
       </svg>
 
       {/* ── 1. KOP LEMBAR JAWABAN KOMPUTER ── */}
-      <div className="border-b-2 border-black pb-1 mb-1 text-center">
+      <div
+        style={{ marginLeft: '9mm', marginRight: '9mm' }}
+        className="border-b-2 border-black pb-1 mb-1 text-center"
+      >
         <h2 className="text-xs font-black tracking-wider uppercase m-0 leading-tight">
           LEMBAR JAWABAN KOMPUTER (LJK)
         </h2>
@@ -887,7 +889,10 @@ const LjkSingleSheetView: React.FC<LjkSingleSheetViewProps> = ({
       </div>
 
       {/* ── 5. PETUNJUK TEKNIS PENGISIAN LJK (FOOTER) ── */}
-      <div className="border border-black p-1.5 text-[8px] leading-tight text-slate-800 bg-slate-50">
+      <div
+        style={{ marginLeft: '9mm', marginRight: '9mm' }}
+        className="border border-black p-1 text-[8px] leading-tight text-slate-800 bg-slate-50"
+      >
         <span className="font-bold uppercase tracking-wider block mb-0.5">
           PETUNJUK PENGISIAN LEMBAR JAWABAN:
         </span>

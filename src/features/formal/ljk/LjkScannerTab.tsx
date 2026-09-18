@@ -75,6 +75,11 @@ interface ScanResult {
   jumlahKosong?: number;
   skor?: number;
   fileUrl: string;
+  // IDs terdeteksi dari LJK (bukan dari filter UI) — backend mengembalikan ini
+  mataPelajaranId?: string | null;
+  mataPelajaranDetected?: { id: string; name: string; kodeMapel?: string | null } | null;
+  kelasId?: string | null;
+  kelasDetected?: { id: string; name: string; tingkat?: string | null } | null;
   cabang?: { id: string; name: string; kode?: string } | null;
   student?: MatchedStudent | null;
   questionBank?: {
@@ -153,6 +158,9 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
     kelas: string;
     semester: string;
     mapel: string;
+    // ID yang terdeteksi dari LJK scan (bukan dari filter UI)
+    mataPelajaranId?: string;
+    kelasId?: string;
     jawaban: Record<string, string>;
     questionBankId?: string;
   } | null>(null);
@@ -350,6 +358,9 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
         semester: data.semester || semester || 'GANJIL',
         // Mapel: WAJIB dari bank soal yang dipilih, bukan dari selectedMapel parent
         mapel: bankSubject || data.mapel || selectedMapel?.name || '',
+        // Simpan mataPelajaranId & kelasId dari hasil scan LJK — WAJIB dipakai saat confirm
+        mataPelajaranId: data.mataPelajaranId || undefined,
+        kelasId: data.kelasId || undefined,
         jawaban: { ...data.jawaban },
         questionBankId: data.questionBank?.id || activeBankSoalId,
       });
@@ -426,10 +437,13 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
       const payload = {
         kodeCabang: editForm.kodeCabang,
         mapel: editForm.mapel,
-        mataPelajaranId: selectedMapelId || undefined,
+        // PENTING: Gunakan mataPelajaranId dari hasil scan LJK, BUKAN dari filter UI.
+        // Backend juga akan re-resolve dari editForm.mapel jika ini kosong.
+        mataPelajaranId: editForm.mataPelajaranId || undefined,
         semester: editForm.semester,
         kelas: editForm.kelas,
-        kelasId: selectedKelasId || undefined,
+        // PENTING: Gunakan kelasId dari hasil scan LJK, BUKAN dari filter UI.
+        kelasId: editForm.kelasId || undefined,
         tahunAjaran: tahunAjaran || '2024/2025',
         nisn: editForm.nisn,
         studentId: editForm.studentId || scanResult.student?.id,

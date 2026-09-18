@@ -41,6 +41,9 @@ export interface BulkScannedItem {
   kelas: string;
   semester: string;
   mapel: string;
+  // ID yang terdeteksi dari LJK (bukan dari filter UI)
+  mataPelajaranId?: string;
+  kelasId?: string;
   jawaban: Record<string, string>;
   totalSoal: number;
   // Skor & Analisis
@@ -283,6 +286,9 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
             kelas: data.kelas || kelasForScan || '12',
             semester: data.semester || semester || 'GANJIL',
             mapel: data.mapel || mapelForScan || (data.kodeMapelNum ? `Kode ${data.kodeMapelNum}` : ''),
+            // Simpan mataPelajaranId & kelasId DARI SCAN — ini yang dipakai saat confirm, bukan dari filter UI
+            mataPelajaranId: data.mataPelajaranId || undefined,
+            kelasId: data.kelasId || undefined,
             jawaban,
             totalSoal,
             skor: calculatedSkor,
@@ -421,10 +427,13 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
       const payloadItems = validItems.map((it) => ({
         kodeCabang: it.kodeCabang,
         mapel: it.mapel || selectedMapel?.name || '',
-        mataPelajaranId: selectedMapelId || undefined,
+        // PENTING: Gunakan mataPelajaranId dari hasil scan LJK per-item, BUKAN dari filter UI
+        // Backend akan re-resolve dari it.mapel jika it.mataPelajaranId kosong
+        mataPelajaranId: it.mataPelajaranId || undefined,
         semester: it.semester || semester || 'GANJIL',
         kelas: it.kelas || selectedKelas?.name || '12',
-        kelasId: selectedKelasId || undefined,
+        // PENTING: Gunakan kelasId dari hasil scan LJK per-item, BUKAN dari filter UI
+        kelasId: it.kelasId || undefined,
         tahunAjaran: tahunAjaran || '2024/2025',
         nisn: it.nisn,
         studentId: it.studentId || undefined,

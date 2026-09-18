@@ -432,9 +432,9 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
         mataPelajaranId: it.mataPelajaranId || undefined,
         semester: it.semester || semester || 'GANJIL',
         kelas: it.kelas || selectedKelas?.name || '12',
-        // PENTING: Gunakan kelasId dari hasil scan LJK per-item, BUKAN dari filter UI
-        kelasId: it.kelasId || undefined,
-        tahunAjaran: tahunAjaran || '2024/2025',
+        // PENTING: Gunakan kelasId dari hasil scan LJK per-item, fallback ke filter UI
+        kelasId: it.kelasId || selectedKelasId || undefined,
+        tahunAjaran: tahunAjaran || '2026/2027',
         nisn: it.nisn,
         studentId: it.studentId || undefined,
         cabangId: selectedCabangId || undefined,

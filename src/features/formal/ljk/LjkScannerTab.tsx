@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  AlertTriangle,
   RefreshCw,
   ZoomIn,
   ZoomOut,
@@ -60,13 +59,6 @@ interface MatchedStudent {
   cabangName?: string;
 }
 
-interface ErasureDetail {
-  hasErasure: boolean;
-  isDoubleMarked: boolean;
-  suspiciousOptions: string[];
-  noiseScore: number;
-}
-
 interface ScanResult {
   kodeCabang: string;
   nisn: string;
@@ -83,13 +75,11 @@ interface ScanResult {
   jumlahKosong?: number;
   skor?: number;
   fileUrl: string;
-  // IDs terdeteksi dari LJK (bukan dari filter UI)
+  // IDs terdeteksi dari LJK (bukan dari filter UI) — backend mengembalikan ini
   mataPelajaranId?: string | null;
   mataPelajaranDetected?: { id: string; name: string; kodeMapel?: string | null } | null;
   kelasId?: string | null;
   kelasDetected?: { id: string; name: string; tingkat?: string | null } | null;
-  // Peta coretan/hapusan per nomor soal
-  erasureMap?: Record<string, ErasureDetail> | null;
   cabang?: { id: string; name: string; kode?: string } | null;
   student?: MatchedStudent | null;
   questionBank?: {
@@ -173,8 +163,6 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
     kelasId?: string;
     jawaban: Record<string, string>;
     questionBankId?: string;
-    // Peta coretan/hapusan per nomor soal dari OMR
-    erasureMap?: Record<string, ErasureDetail> | null;
   } | null>(null);
 
   // Persistent User Selected Bank Soal
@@ -368,12 +356,13 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
         studentId: autoMatchedStudentId,
         kelas: bankGrade || data.kelas || selectedKelas?.name || '12',
         semester: data.semester || semester || 'GANJIL',
+        // Mapel: WAJIB dari bank soal yang dipilih, bukan dari selectedMapel parent
         mapel: bankSubject || data.mapel || selectedMapel?.name || '',
+        // Simpan mataPelajaranId & kelasId dari hasil scan LJK — WAJIB dipakai saat confirm
         mataPelajaranId: data.mataPelajaranId || undefined,
         kelasId: data.kelasId || undefined,
         jawaban: { ...data.jawaban },
         questionBankId: data.questionBank?.id || activeBankSoalId,
-        erasureMap: data.erasureMap || null,
       });
 
       showToast(
@@ -453,9 +442,9 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
         mataPelajaranId: editForm.mataPelajaranId || undefined,
         semester: editForm.semester,
         kelas: editForm.kelas,
-        // PENTING: Gunakan kelasId dari hasil scan LJK, BUKAN dari filter UI.
-        kelasId: editForm.kelasId || undefined,
-        tahunAjaran: tahunAjaran || '2024/2025',
+        // PENTING: Gunakan kelasId dari hasil scan LJK, fallback ke filter UI.
+        kelasId: editForm.kelasId || selectedKelasId || undefined,
+        tahunAjaran: tahunAjaran || '2026/2027',
         nisn: editForm.nisn,
         studentId: editForm.studentId || scanResult.student?.id,
         cabangId: scanResult.cabang?.id || selectedCabangId || undefined,
@@ -1181,9 +1170,6 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                     const studentAns = (editForm?.jawaban[qNum.toString()] || '').toUpperCase().trim();
                     const officialKey = (officialKeyMap[qNum.toString()] || '').toUpperCase().trim();
                     const isAmbiguous = scanResult.ambiguities.includes(qNum);
-                    const erasure = editForm?.erasureMap?.[qNum.toString()];
-                    const hasErasure = erasure?.hasErasure || false;
-                    const isDoubleMarked = erasure?.isDoubleMarked || false;
 
                     const isCorrect = officialKey && studentAns === officialKey;
                     const isWrong = officialKey && studentAns && studentAns !== officialKey;
@@ -1192,11 +1178,7 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                       <div
                         key={qNum}
                         className={`flex items-center justify-between p-2 rounded-xl border transition-colors ${
-                          isDoubleMarked
-                            ? 'bg-orange-50/80 border-orange-400'
-                            : hasErasure
-                            ? 'bg-amber-50/60 border-amber-300'
-                            : isAmbiguous
+                          isAmbiguous
                             ? 'bg-amber-50/80 border-amber-300'
                             : isCorrect
                             ? 'bg-emerald-50/50 border-emerald-200'
@@ -1211,15 +1193,7 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                           <span className="font-bold text-slate-700 text-xs w-6 text-right">
                             #{qNum}
                           </span>
-                          {isDoubleMarked ? (
-                            <span title={`CORETAN: 2 opsi diisi sekaligus — verifikasi manual`}>
-                              <AlertTriangle className="w-3.5 h-3.5 text-orange-500" />
-                            </span>
-                          ) : hasErasure ? (
-                            <span title={`HAPUSAN: ${erasure?.suspiciousOptions.length} opsi mencurigakan (noise ${((erasure?.noiseScore ?? 0) * 100).toFixed(0)}%)`}>
-                              <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                            </span>
-                          ) : isAmbiguous ? (
+                          {isAmbiguous ? (
                             <span title="Arsiran ambigu, harap cocokkan dengan foto">
                               <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
                             </span>

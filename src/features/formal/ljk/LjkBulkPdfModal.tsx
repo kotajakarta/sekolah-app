@@ -217,6 +217,9 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
           }
           if (tahunAjaran) formData.append('tahunAjaran', tahunAjaran);
           if (semester) formData.append('semester', semester);
+          if (activeBank?.totalQuestions) {
+            formData.append('totalSoal', activeBank.totalQuestions.toString());
+          }
 
           const res = await apiClient.post<any>('/formal/ljk/scan', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },

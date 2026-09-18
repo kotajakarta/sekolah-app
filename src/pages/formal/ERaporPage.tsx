@@ -6,7 +6,7 @@ import { useGetWilayah, useGetCabang } from '../../features/core_data/hooks/useM
 import {
   BookOpen, Save, Printer, UserCheck,
   Layers, Sparkles, Filter, Building2, MapPin, Eye, AlertTriangle, X, Upload, ShieldAlert,
-  Scan, ChevronDown, ChevronUp, LayoutGrid, CheckCircle2
+  Scan, ChevronDown, ChevronUp, LayoutGrid, CheckCircle2, BarChart2
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import HafalanAlQuranModal from './HafalanAlQuranModal';
@@ -15,6 +15,7 @@ import Pagination from '../../components/Pagination';
 import ImportRiwayatNilaiTab from './ImportRiwayatNilaiTab';
 import RiwayatContinuityTab from './RiwayatContinuityTab';
 import { LjkScannerTab } from '../../features/formal/ljk/LjkScannerTab';
+import { LjkAnalyticsDashboard } from '../../features/formal/ljk/LjkAnalyticsDashboard';
 import { calculatePredikat, PREDIKAT_SIKAP_OPTIONS, SIKAP_FIELDS } from './eRaporConstants';
 
 interface Kelas {
@@ -138,13 +139,23 @@ export const TABS_CONFIG = [
     badgeColor: 'bg-indigo-600',
     activeColor: 'border-indigo-600 text-indigo-800 bg-indigo-50/80 shadow-xs',
   },
+  {
+    id: 'analitik-ljk' as const,
+    number: '8',
+    label: '8. Analitik LJK',
+    shortLabel: 'Analitik LJK',
+    description: 'Distribusi nilai & analisis per soal',
+    icon: BarChart2,
+    badgeColor: 'bg-violet-600',
+    activeColor: 'border-violet-600 text-violet-800 bg-violet-50/80 shadow-xs',
+  },
 ];
 
 export const ERaporPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'nilai' | 'presensi' | 'leger' | 'cetak' | 'import-riwayat' | 'cek-riwayat' | 'omr-ljk'>('nilai');
+  const [activeTab, setActiveTab] = useState<'nilai' | 'presensi' | 'leger' | 'cetak' | 'import-riwayat' | 'cek-riwayat' | 'omr-ljk' | 'analitik-ljk'>('nilai');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const currentTabConfig = TABS_CONFIG.find(t => t.id === activeTab) || TABS_CONFIG[0];
 
@@ -1217,6 +1228,18 @@ export const ERaporPage: React.FC = () => {
             namaLengkap: r.fullName,
             nisn: r.nisn,
           }))}
+        />
+      )}
+
+      {/* TAB 8: ANALITIK LJK */}
+      {activeTab === 'analitik-ljk' && (
+        <LjkAnalyticsDashboard
+          selectedMapelId={selectedMapelId}
+          selectedMapel={mapelList.find((m) => m.id === selectedMapelId)}
+          selectedKelasId={selectedKelasId}
+          selectedKelas={selectedKelasInfo}
+          tahunAjaran={tahunAjaran}
+          semester={semester}
         />
       )}
 

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
 import {
@@ -256,21 +257,20 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
             margin: 0 !important;
             padding: 0 !important;
             width: 297mm !important;
-            height: 210mm !important;
+            height: auto !important;
+            min-height: 100% !important;
+            overflow: visible !important;
             background: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          body * {
-            visibility: hidden !important;
-          }
-          #ljk-print-area, #ljk-print-area * {
-            visibility: visible !important;
+          /* Sembunyikan seluruh elemen lain di body (#root, backdrop modal, dll) */
+          body > :not(#ljk-print-area) {
+            display: none !important;
           }
           #ljk-print-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+            display: block !important;
+            position: static !important;
             width: 297mm !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -280,9 +280,9 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
             width: 297mm !important;
             max-width: 297mm !important;
             min-width: 297mm !important;
-            height: 210mm !important;
-            max-height: 210mm !important;
-            min-height: 210mm !important;
+            height: 209.5mm !important;
+            max-height: 209.5mm !important;
+            min-height: 209.5mm !important;
             page-break-after: always !important;
             break-after: page !important;
             page-break-inside: avoid !important;
@@ -646,42 +646,46 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
         </div>
       </div>
 
-      {/* ── AREA CETAK FISIK (HANYA AKTIF SAAT WINDOW.PRINT()) ── */}
-      <div id="ljk-print-area" className="hidden print:block">
-        {a4Pages.map((pair, pIdx) => (
-          <div key={pIdx} className="ljk-a4-landscape-page">
-            {/* LJK A5 Sisi Kiri */}
-            <LjkA5Sheet
-              student={pair.left}
-              examTitle={examTitle}
-              kodeCabang={kodeCabang}
-              kodeMapel={kodeMapel}
-              mapelName={currentMapelObj?.name || 'Mata Pelajaran'}
-              kelasNum={kelasNum}
-              semesterName={activeSemester}
-              isGanjil={isGanjil}
-              tahunAjaran={activeTahunAjaran}
-              totalSoal={totalSoal}
-              isLeftHalf={true}
-            />
+      {/* ── AREA CETAK FISIK (PORTAL LANGSUNG KE DOCUMENT.BODY AGAR MULTI-PAGE PRINT BEKERJA PENUH) ── */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <div id="ljk-print-area" className="hidden print:block">
+            {a4Pages.map((pair, pIdx) => (
+              <div key={pIdx} className="ljk-a4-landscape-page">
+                {/* LJK A5 Sisi Kiri */}
+                <LjkA5Sheet
+                  student={pair.left}
+                  examTitle={examTitle}
+                  kodeCabang={kodeCabang}
+                  kodeMapel={kodeMapel}
+                  mapelName={currentMapelObj?.name || 'Mata Pelajaran'}
+                  kelasNum={kelasNum}
+                  semesterName={activeSemester}
+                  isGanjil={isGanjil}
+                  tahunAjaran={activeTahunAjaran}
+                  totalSoal={totalSoal}
+                  isLeftHalf={true}
+                />
 
-            {/* LJK A5 Sisi Kanan */}
-            <LjkA5Sheet
-              student={pair.right}
-              examTitle={examTitle}
-              kodeCabang={kodeCabang}
-              kodeMapel={kodeMapel}
-              mapelName={currentMapelObj?.name || 'Mata Pelajaran'}
-              kelasNum={kelasNum}
-              semesterName={activeSemester}
-              isGanjil={isGanjil}
-              tahunAjaran={activeTahunAjaran}
-              totalSoal={totalSoal}
-              isLeftHalf={false}
-            />
-          </div>
-        ))}
-      </div>
+                {/* LJK A5 Sisi Kanan */}
+                <LjkA5Sheet
+                  student={pair.right}
+                  examTitle={examTitle}
+                  kodeCabang={kodeCabang}
+                  kodeMapel={kodeMapel}
+                  mapelName={currentMapelObj?.name || 'Mata Pelajaran'}
+                  kelasNum={kelasNum}
+                  semesterName={activeSemester}
+                  isGanjil={isGanjil}
+                  tahunAjaran={activeTahunAjaran}
+                  totalSoal={totalSoal}
+                  isLeftHalf={false}
+                />
+              </div>
+            ))}
+          </div>,
+          document.body,
+        )}
     </>
   );
 };

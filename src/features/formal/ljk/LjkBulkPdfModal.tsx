@@ -34,6 +34,7 @@ export interface BulkScannedItem {
   fileUrl?: string;
   // Data Siswa & Mapel
   kodeCabang: string;
+  kodeMapelNum?: string;
   nisn: string;
   studentId?: string;
   studentName?: string;
@@ -41,6 +42,7 @@ export interface BulkScannedItem {
   semester: string;
   mapel: string;
   jawaban: Record<string, string>;
+  totalSoal: number;
   // Skor & Analisis
   skor: number;
   jumlahBenar: number;
@@ -101,6 +103,9 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
   const [items, setItems] = useState<BulkScannedItem[]>([]);
   const [syncToRapor, setSyncToRapor] = useState<boolean>(true);
   const [filterTab, setFilterTab] = useState<'ALL' | 'ATTENTION' | 'VALID'>('ALL');
+  // Mode format LJK: false = Standar (1 halaman PDF = 1 lembar A5 yang sudah dipotong)
+  // true = Khusus jika user scan lembar A4 landscape utuh yang memuat 2 LJK belum dipotong
+  const [splitLandscape, setSplitLandscape] = useState<boolean>(false);
 
   // Preview & Zoom Modal
   const [previewZoomImage, setPreviewZoomImage] = useState<string | null>(null);
@@ -156,10 +161,13 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
       setPhase('EXTRACTING');
       setExtractProgress({ current: 0, total: 1 });
 
-      // 1. Ekstrak PDF ke lembaran gambar JPG (scale 2.0 = ~1600x2300 piksel)
-      const extractedPages = await extractLjkPdfPages(file, (page, idx, total) => {
-        setExtractProgress({ current: idx + 1, total });
-      });
+      // 1. Ekstrak PDF ke lembaran gambar JPG (scale 2.0)
+      // Mode splitLandscape: setiap halaman A4 landscape → 2 gambar A5 portrait
+      const extractedPages = await extractLjkPdfPages(
+        file,
+        (page, idx, total) => { setExtractProgress({ current: idx + 1, total }); },
+        { splitLandscape }
+      );
 
       if (isAbortedRef.current) return;
 
@@ -230,10 +238,10 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
           }
 
           // Hitung statistik jawaban dengan officialKeyMap
+          const totalSoal = data.totalSoal ?? 25;
           let benar = 0;
           let salah = 0;
           let kosong = 0;
-          const totalSoal = 25;
           const jawaban = data.jawaban || {};
 
           for (let q = 1; q <= totalSoal; q++) {
@@ -265,17 +273,19 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
             previewUrl: page.previewUrl,
             fileUrl: data.fileUrl,
             kodeCabang: data.kodeCabang || '1001',
+            kodeMapelNum: data.kodeMapelNum || '',
             nisn: data.nisn || '',
             studentId,
             studentName: studentName || (data.nisn ? `NISN ${data.nisn} (Belum Terdaftar)` : 'Tidak Terdeteksi'),
             kelas: data.kelas || kelasForScan || '12',
             semester: data.semester || semester || 'GANJIL',
-            mapel: data.mapel || mapelForScan || '',
+            mapel: data.mapel || mapelForScan || (data.kodeMapelNum ? `Kode ${data.kodeMapelNum}` : ''),
             jawaban,
+            totalSoal,
             skor: calculatedSkor,
-            jumlahBenar: benar,
-            jumlahSalah: salah,
-            jumlahKosong: kosong,
+            jumlahBenar: data.jumlahBenar ?? benar,
+            jumlahSalah: data.jumlahSalah ?? salah,
+            jumlahKosong: data.jumlahKosong ?? kosong,
             confidence,
             ambiguities,
             status: isAmbiguous ? 'AMBIGUOUS' : 'SUCCESS',
@@ -290,11 +300,13 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
             file: page.file,
             previewUrl: page.previewUrl,
             kodeCabang: '1001',
+            kodeMapelNum: '',
             nisn: '',
             kelas: selectedKelas?.name || '',
             semester: semester || 'GANJIL',
             mapel: selectedMapel?.name || '',
             jawaban: {},
+            totalSoal: 25,
             skor: 0,
             jumlahBenar: 0,
             jumlahSalah: 0,
@@ -360,7 +372,7 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
     let benar = 0;
     let salah = 0;
     let kosong = 0;
-    const totalSoal = 25;
+    const totalSoal = updated.totalSoal || 25;
 
     for (let q = 1; q <= totalSoal; q++) {
       const qStr = q.toString();
@@ -415,7 +427,7 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
         studentId: it.studentId || undefined,
         cabangId: selectedCabangId || undefined,
         jawaban: it.jawaban,
-        totalSoal: 25,
+        totalSoal: it.totalSoal || 25,
         jumlahBenar: it.jumlahBenar,
         jumlahSalah: it.jumlahSalah,
         jumlahKosong: it.jumlahKosong,
@@ -515,12 +527,11 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
           </div>
           <div className="text-xs leading-relaxed text-amber-950">
             <span className="font-bold text-amber-900 block mb-0.5">
-              ⚠️ Wajib Menggunakan CamScanner Android (Auto-Crop) untuk Hasil Presisi:
+              ⚠️ Panduan Scan Lembar LJK A5 (Kertas Sudah Dipotong):
             </span>
-            Untuk pemindaian LJK masal via PDF, wajib menggunakan aplikasi <strong>CamScanner di Android</strong> (atau
-            aplikasi scanner dokumen sejenis) dengan fitur <strong>Auto-Crop</strong> aktif. Auto-crop memastikan 4 kotak
-            hitam di sudut lembar LJK terpotong presisi dan lurus sehingga algoritma bilinear OMR dapat membaca bulatan
-            arsiran siswa dengan akurasi maksimal.
+            Kertas LJK A5 yang sudah dipotong per-santri dibaca <strong>1 lembar A5 per halaman PDF</strong> secara otomatis.
+            Wajib gunakan aplikasi <strong>CamScanner Android</strong> dengan fitur <strong>Auto-Crop</strong> aktif agar 4 kotak
+            hitam di sudut lembar terpotong lurus dan presisi sehingga pembacaan OMR 100% akurat.
           </div>
         </div>
 
@@ -702,7 +713,16 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
                   </button>
                 </div>
 
-                <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer select-none" title="Aktifkan hanya jika scan lembar A4 landscape utuh yang memuat 2 LJK belum dipotong">
+                    <input
+                      type="checkbox"
+                      checked={splitLandscape}
+                      onChange={(e) => setSplitLandscape(e.target.checked)}
+                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span>Belah A4 (Jika scan 2 LJK per halaman belum dipotong)</span>
+                  </label>
                   <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -771,10 +791,18 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
                                 <div className="font-extrabold text-slate-900 text-xs truncate">
                                   {it.studentName}
                                 </div>
-                                <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 flex-wrap">
                                   <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-semibold">
                                     NISN: {it.nisn || '-'}
                                   </span>
+                                  {it.kodeMapelNum && (
+                                    <span
+                                      className="font-mono bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-indigo-200"
+                                      title={`Kode Mapel terdeteksi dari LJK: ${it.kodeMapelNum}`}
+                                    >
+                                      Mapel {it.kodeMapelNum}: {it.mapel || 'Terdeteksi'}
+                                    </span>
+                                  )}
                                   {it.studentId ? (
                                     <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                                       Terdaftar

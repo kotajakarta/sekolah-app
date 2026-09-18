@@ -69,6 +69,7 @@ interface ScanResult {
   confidence: number;
   ambiguities: number[];
   totalSoal: number;
+  kodeMapelNum?: string;
   jumlahBenar?: number;
   jumlahSalah?: number;
   jumlahKosong?: number;
@@ -309,6 +310,9 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
       if (selectedKelasId && (!activeBankForScan || activeBankForScan.gradeLevel?.toLowerCase() === selectedKelas?.name?.toLowerCase())) {
         formData.append('kelasId', selectedKelasId);
       }
+      if (activeBankForScan?.totalQuestions) {
+        formData.append('totalSoal', activeBankForScan.totalQuestions.toString());
+      }
       if (tahunAjaran) formData.append('tahunAjaran', tahunAjaran);
       if (semester) formData.append('semester', semester);
 
@@ -384,14 +388,13 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
   };
 
   // Hitung ulang skor live di UI berdasarkan Kunci Jawaban Resmi
-  // Formula: tiap soal benar = 4 poin (25 soal × 4 = 100 poin maks)
   const liveStats = useMemo(() => {
-    if (!editForm) return { benar: 0, salah: 0, kosong: 0, skor: 0, total: 25 };
+    const total = scanResult?.totalSoal || 25;
+    if (!editForm) return { benar: 0, salah: 0, kosong: 0, skor: 0, total };
     const hasKeys = Object.keys(officialKeyMap).length > 0;
     let benar = 0;
     let salah = 0;
     let kosong = 0;
-    const total = 25;
 
     for (let q = 1; q <= total; q++) {
       const studentAns = (editForm.jawaban[q.toString()] || '').toUpperCase().trim();
@@ -411,10 +414,9 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
       }
     }
 
-    // Skor: benar × 4 (25 soal × 4 = 100 poin maks)
-    const skor = benar * 4;
+    const skor = Math.round((benar / total) * 100);
     return { benar, salah, kosong, skor, total };
-  }, [editForm?.jawaban, officialKeyMap]);
+  }, [editForm?.jawaban, officialKeyMap, scanResult?.totalSoal]);
 
   // Simpan hasil LJK terkonfirmasi ke database & auto-sync ke e-Rapor
   const confirmMutation = useMutation({
@@ -433,7 +435,7 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
         studentId: editForm.studentId || scanResult.student?.id,
         cabangId: scanResult.cabang?.id || selectedCabangId || undefined,
         jawaban: editForm.jawaban,
-        totalSoal: 25,
+        totalSoal: scanResult.totalSoal || 25,
         jumlahBenar: liveStats.benar,
         jumlahSalah: liveStats.salah,
         jumlahKosong: liveStats.kosong,
@@ -1065,7 +1067,14 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600">Mata Pelajaran</label>
+                    <label className="block text-[11px] font-bold text-slate-600 flex items-center justify-between">
+                      <span>Mata Pelajaran</span>
+                      {scanResult?.kodeMapelNum && (
+                        <span className="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                          Kode LJK: {scanResult.kodeMapelNum}
+                        </span>
+                      )}
+                    </label>
                     <input
                       type="text"
                       value={editForm?.mapel || ''}
@@ -1130,11 +1139,11 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                 </div>
               </div>
 
-              {/* Card 3: Matriks 25 Butir Jawaban PG dengan Kunci Benchmark */}
+              {/* Card 3: Matriks Jawaban PG dengan Kunci Benchmark */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Matriks 25 Butir Jawaban Siswa & Pembanding Kunci Resmi
+                    Matriks {scanResult.totalSoal || 25} Butir Jawaban Siswa &amp; Pembanding Kunci Resmi
                   </h4>
                   <span className="text-[11px] text-slate-400">
                     Klik bulatan untuk mengubah jawaban jika arsiran salah dibaca
@@ -1142,7 +1151,7 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2.5 bg-slate-50/40 p-4 rounded-2xl border border-slate-200/80">
-                  {[...Array(25)].map((_, i) => {
+                  {[...Array(scanResult.totalSoal || 25)].map((_, i) => {
                     const qNum = i + 1;
                     const studentAns = (editForm?.jawaban[qNum.toString()] || '').toUpperCase().trim();
                     const officialKey = (officialKeyMap[qNum.toString()] || '').toUpperCase().trim();

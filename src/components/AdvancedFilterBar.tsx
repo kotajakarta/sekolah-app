@@ -190,35 +190,39 @@ export default function AdvancedFilterBar({
       {isExpanded && (
         <div className="p-3.5 border-t border-slate-100 bg-white">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Wilayah</label>
-              <select
-                value={filters.wilayahId}
-                onChange={(e) => handleChange('wilayahId', e.target.value)}
-                disabled={isWilayahLocked}
-                className="w-full text-xs rounded-lg border border-slate-300 bg-slate-50 py-1.5 px-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500"
-              >
-                <option value="">Semua Wilayah</option>
-                {wilayahs.map((w: any) => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Cabang</label>
-              <select
-                value={filters.cabangId}
-                onChange={(e) => handleChange('cabangId', e.target.value)}
-                disabled={isBranchLocked}
-                className="w-full text-xs rounded-lg border border-slate-300 bg-slate-50 py-1.5 px-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500"
-              >
-                <option value="">Semua Cabang</option>
-                {filteredCabangs.map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
+            {!isBranchLocked && (
+              <>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Wilayah</label>
+                  <select
+                    value={filters.wilayahId}
+                    onChange={(e) => handleChange('wilayahId', e.target.value)}
+                    disabled={isWilayahLocked}
+                    className="w-full text-xs rounded-lg border border-slate-300 bg-slate-50 py-1.5 px-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500"
+                  >
+                    <option value="">Semua Wilayah</option>
+                    {wilayahs.map((w: any) => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Cabang</label>
+                  <select
+                    value={filters.cabangId}
+                    onChange={(e) => handleChange('cabangId', e.target.value)}
+                    disabled={isBranchLocked}
+                    className="w-full text-xs rounded-lg border border-slate-300 bg-slate-50 py-1.5 px-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500"
+                  >
+                    <option value="">Semua Cabang</option>
+                    {filteredCabangs.map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
 
             <div>
               <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Kelas</label>

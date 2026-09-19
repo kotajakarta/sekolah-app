@@ -225,7 +225,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2.5 flex-wrap">
             <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-lg font-bold uppercase text-[10px] tracking-wider border border-indigo-100">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>{statsData.rbacIdentity?.scope || 'USER'}</span>
+              <span>{user?.scope === 'CABANG' ? 'PESANTREN' : (statsData.rbacIdentity?.scope || 'USER')}</span>
             </div>
 
             <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
@@ -233,7 +233,7 @@ export default function Dashboard() {
               <span className="font-bold text-slate-800 text-[11px]">{statsData.rbacIdentity?.operatorName || '-'}</span>
             </div>
 
-            {statsData.rbacIdentity?.wilayahName && (
+            {statsData.rbacIdentity?.wilayahName && user?.scope !== 'CABANG' && (
               <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
                 <span className="text-slate-400 text-[11px]">Wilayah:</span>
                 <span className="font-semibold text-slate-800 text-[11px]">{statsData.rbacIdentity.wilayahName}</span>
@@ -242,7 +242,7 @@ export default function Dashboard() {
 
             {statsData.rbacIdentity?.cabangName && (
               <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
-                <span className="text-slate-400 text-[11px]">Cabang:</span>
+                <span className="text-slate-400 text-[11px]">{user?.scope === 'CABANG' ? 'Pesantren:' : 'Cabang:'}</span>
                 <span className="font-semibold text-slate-800 text-[11px]">{statsData.rbacIdentity.cabangName}</span>
               </div>
             )}
@@ -252,7 +252,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 flex-wrap">
             {statsData.rbacIdentity?.ketuaCabangName && (
               <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/60 px-2.5 py-0.5 rounded-lg text-[11px]">
-                <span className="text-[10px] uppercase font-bold text-slate-400">Ketua Cabang:</span>
+                <span className="text-[10px] uppercase font-bold text-slate-400">{user?.scope === 'CABANG' ? 'Pimpinan Pesantren:' : 'Ketua Cabang:'}</span>
                 <span className="font-semibold text-slate-800">{statsData.rbacIdentity.ketuaCabangName}</span>
                 {statsData.rbacIdentity.ketuaCabangPhone && (
                   <a href={`tel:${statsData.rbacIdentity.ketuaCabangPhone}`} className="text-blue-600 hover:underline font-medium text-[10px] flex items-center gap-0.5 ml-1">
@@ -307,95 +307,108 @@ export default function Dashboard() {
         )}
 
         {/* Global Filter Controls */}
-        <div className="flex flex-col sm:flex-row gap-2.5 items-center pt-0.5">
-          <div className="flex items-center gap-1.5 text-slate-600 font-bold text-xs shrink-0">
-            <Filter className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Filter Dashboard:</span>
-          </div>
+        {user?.scope !== 'CABANG' ? (
+          <div className="flex flex-col sm:flex-row gap-2.5 items-center pt-0.5">
+            <div className="flex items-center gap-1.5 text-slate-600 font-bold text-xs shrink-0">
+              <Filter className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Filter Dashboard:</span>
+            </div>
 
-          <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-4 gap-2">
-            <select
-              value={globalJenisRegion}
-              onChange={e => {
-                setGlobalJenisRegion(e.target.value);
-                setGlobalWilayah('');
-                setGlobalLembagaMuadalah('');
-                setGlobalCabang('');
-              }}
-              disabled={user?.scope !== 'GLOBAL'}
-              className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-indigo-500 focus:outline-none disabled:opacity-75 font-medium text-slate-700"
-            >
-              <option value="wilayah">Tingkat Wilayah</option>
-              <option value="lembaga">Lembaga Muadalah</option>
-            </select>
-
-            {globalJenisRegion === 'wilayah' ? (
+            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-4 gap-2">
               <select
-                value={globalWilayah}
+                value={globalJenisRegion}
                 onChange={e => {
-                  setGlobalWilayah(e.target.value);
+                  setGlobalJenisRegion(e.target.value);
+                  setGlobalWilayah('');
+                  setGlobalLembagaMuadalah('');
                   setGlobalCabang('');
                 }}
                 disabled={user?.scope !== 'GLOBAL'}
                 className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-indigo-500 focus:outline-none disabled:opacity-75 font-medium text-slate-700"
               >
-                {user?.scope === 'GLOBAL' ? (
-                  <>
-                    <option value="">-- Semua Wilayah --</option>
-                    {wilayahs.map((w: any) => (
-                      <option key={w.id} value={w.id}>{w.name}</option>
-                    ))}
-                  </>
-                ) : (
-                  <option value={globalWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
-                )}
+                <option value="wilayah">Tingkat Wilayah</option>
+                <option value="lembaga">Lembaga Muadalah</option>
               </select>
-            ) : (
+
+              {globalJenisRegion === 'wilayah' ? (
+                <select
+                  value={globalWilayah}
+                  onChange={e => {
+                    setGlobalWilayah(e.target.value);
+                    setGlobalCabang('');
+                  }}
+                  disabled={user?.scope !== 'GLOBAL'}
+                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-indigo-500 focus:outline-none disabled:opacity-75 font-medium text-slate-700"
+                >
+                  {user?.scope === 'GLOBAL' ? (
+                    <>
+                      <option value="">-- Semua Wilayah --</option>
+                      {wilayahs.map((w: any) => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </>
+                  ) : (
+                    <option value={globalWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
+                  )}
+                </select>
+              ) : (
+                <select
+                  value={globalLembagaMuadalah}
+                  onChange={e => {
+                    setGlobalLembagaMuadalah(e.target.value);
+                    setGlobalCabang('');
+                  }}
+                  disabled={user?.scope !== 'GLOBAL'}
+                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-indigo-500 focus:outline-none disabled:opacity-75 font-medium text-slate-700"
+                >
+                  <option value="">-- Semua Lembaga --</option>
+                  {muadalahs.map((m: any) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              )}
+
               <select
-                value={globalLembagaMuadalah}
-                onChange={e => {
-                  setGlobalLembagaMuadalah(e.target.value);
-                  setGlobalCabang('');
-                }}
-                disabled={user?.scope !== 'GLOBAL'}
+                value={globalCabang}
+                onChange={e => setGlobalCabang(e.target.value)}
+                disabled={user?.scope !== 'GLOBAL' && user?.scope !== 'WILAYAH'}
                 className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-indigo-500 focus:outline-none disabled:opacity-75 font-medium text-slate-700"
               >
-                <option value="">-- Semua Lembaga --</option>
-                {muadalahs.map((m: any) => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
+                <option value="">-- Semua Cabang --</option>
+                {filteredBranches.map((b: any) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </select>
-            )}
 
-            <select
-              value={globalCabang}
-              onChange={e => setGlobalCabang(e.target.value)}
-              disabled={user?.scope === 'CABANG'}
-              className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-indigo-500 focus:outline-none disabled:opacity-75 font-medium text-slate-700"
-            >
-              {user?.scope === 'CABANG' ? (
-                <option value={globalCabang}>{user?.cabangName || 'Cabang Terkunci'}</option>
-              ) : (
-                <>
-                  <option value="">-- Semua Cabang --</option>
-                  {filteredBranches.map((b: any) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </>
-              )}
-            </select>
-
-            <select
-              value={globalJenisKelamin}
-              onChange={e => setGlobalJenisKelamin(e.target.value)}
-              className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-indigo-500 focus:outline-none font-medium text-slate-700"
-            >
-              <option value="">-- Semua Gender --</option>
-              <option value="L">Laki-laki</option>
-              <option value="P">Perempuan</option>
-            </select>
+              <select
+                value={globalJenisKelamin}
+                onChange={e => setGlobalJenisKelamin(e.target.value)}
+                className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-indigo-500 focus:outline-none font-medium text-slate-700"
+              >
+                <option value="">-- Semua Gender --</option>
+                <option value="L">Laki-laki</option>
+                <option value="P">Perempuan</option>
+              </select>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row gap-2.5 items-center justify-between pt-0.5">
+            <div className="text-xs text-slate-500 font-medium">
+              Data analitik dan statistik real-time pesantren mandiri.
+            </div>
+            <div className="w-full sm:w-48">
+              <select
+                value={globalJenisKelamin}
+                onChange={e => setGlobalJenisKelamin(e.target.value)}
+                className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:ring-1 focus:ring-indigo-500 focus:outline-none font-medium text-slate-700"
+              >
+                <option value="">-- Semua Gender Santri --</option>
+                <option value="L">Santri Putra (Laki-laki)</option>
+                <option value="P">Santri Putri (Perempuan)</option>
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 2. Top Summary Metric Cards (5 Compact Cards) */}

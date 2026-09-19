@@ -313,7 +313,7 @@ const MainLayout = () => {
             )}
             {user?.scope === 'CABANG' && (
               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm truncate max-w-[140px] sm:max-w-none">
-                <span className="hidden sm:inline">Cabang:&nbsp;</span>{user.cabangName || 'Semua Cabang'}
+                <span className="hidden sm:inline">Pesantren:&nbsp;</span>{user.cabangName || 'Pesantren'}
               </span>
             )}
             {user?.scope === 'WALI_KELAS' && (

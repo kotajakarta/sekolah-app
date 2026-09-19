@@ -145,18 +145,24 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
   const activeCount = selectedStudentsData.filter(s => s.statusPool === 'AKTIF_CABANG').length;
   const tersediaCount = selectedStudentsData.filter(s => s.statusPool !== 'AKTIF_CABANG').length;
 
-  let buttonText = 'Tarik Siswa Terpilih';
+  let buttonText = isCabangUser ? 'Daftarkan Santri Terpilih' : 'Tarik Siswa Terpilih';
   let buttonColor = 'bg-indigo-600 hover:bg-indigo-700';
 
   if (selectedStudentIds.length > 0) {
     if (activeCount > 0 && tersediaCount > 0) {
-      buttonText = `Tarik ${tersediaCount} & Ajukan ${activeCount} Siswa`;
+      buttonText = isCabangUser 
+        ? `Daftarkan ${tersediaCount} & Ajukan Mutasi ${activeCount} Siswa` 
+        : `Tarik ${tersediaCount} & Ajukan ${activeCount} Siswa`;
       buttonColor = 'bg-amber-600 hover:bg-amber-700';
     } else if (activeCount > 0) {
-      buttonText = `Ajukan Penarikan ${activeCount} Siswa ke Pusat`;
+      buttonText = isCabangUser 
+        ? `Ajukan Mutasi Masuk ${activeCount} Siswa` 
+        : `Ajukan Penarikan ${activeCount} Siswa ke Pusat`;
       buttonColor = 'bg-amber-600 hover:bg-amber-700';
     } else {
-      buttonText = `Tarik ${tersediaCount} Siswa ke Cabang`;
+      buttonText = isCabangUser 
+        ? `Daftarkan ${tersediaCount} Siswa ke Pesantren` 
+        : `Tarik ${tersediaCount} Siswa ke Cabang`;
       buttonColor = 'bg-indigo-600 hover:bg-indigo-700';
     }
   }
@@ -172,10 +178,10 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
               <div>
                 <h3 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
                   <UserPlus className="w-5 h-5 text-indigo-600" />
-                  Tarik Data Santri dari Pool
+                  {isCabangUser ? 'Penerimaan / Registrasi Santri' : 'Tarik Data Santri dari Pool'}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Cari santri dari pool dan alokasikan ke cabang tujuan.
+                  {isCabangUser ? 'Cari dan daftarkan santri ke database pesantren/lembaga Anda.' : 'Cari santri dari pool dan alokasikan ke cabang tujuan.'}
                 </p>
               </div>
               <button 
@@ -218,8 +224,8 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
                     ✓
                   </div>
                   <div>
-                    <p className="font-bold">Cabang Penempatan</p>
-                    <p className="text-[11px] text-indigo-700">Siswa yang ditarik akan langsung dialokasikan ke cabang Anda saat ini.</p>
+                    <p className="font-bold">Lembaga Penempatan</p>
+                    <p className="text-[11px] text-indigo-700">Santri yang didaftarkan akan langsung dialokasikan ke lembaga Anda.</p>
                   </div>
                 </div>
               )}

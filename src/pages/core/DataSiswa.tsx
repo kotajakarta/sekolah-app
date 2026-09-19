@@ -210,7 +210,7 @@ export default function DataSiswa() {
         'Tingkat': tingkatInfo,
         'Kelas Formal': kelasInfo,
         'Grup Daimi': daimiInfo,
-        'Status Pool': student.statusPool ? student.statusPool.replace('_', ' ') : '-',
+        [user?.scope === 'CABANG' ? 'Status Santri' : 'Status Pool']: student.statusPool === 'AKTIF_CABANG' && user?.scope === 'CABANG' ? 'Aktif' : (student.statusPool ? student.statusPool.replace('_', ' ') : '-'),
         'Status Aktif': student.isActive ? 'Aktif' : 'Tidak Aktif',
         'Kelengkapan Data (%)': `${progress}%`,
         'Nama Ayah': student.biodata?.namaAyah || '-',
@@ -591,7 +591,7 @@ export default function DataSiswa() {
                   className="inline-flex items-center justify-center px-4 py-2 border border-indigo-200 shadow-sm text-sm font-medium rounded-xl text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
-                  {t('siswa.tarik_data') || 'Tarik Data Santri'}
+                  {user?.scope === 'CABANG' ? 'Penerimaan Santri' : (t('siswa.tarik_data') || 'Tarik Data Santri')}
                 </button>
               )}
               <button
@@ -599,7 +599,7 @@ export default function DataSiswa() {
                 className="inline-flex items-center justify-center px-4 py-2 border border-amber-200 shadow-sm text-sm font-medium rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
               >
                 <UserMinus className="w-4 h-4 mr-2" />
-                {t('siswa.lepas_massal') || 'Lepas Massal'}
+                {user?.scope === 'CABANG' ? 'Mutasi Massal' : (t('siswa.lepas_massal') || 'Lepas Massal')}
               </button>
               <button onClick={handleAdd} className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors">
                 <Plus className="w-4 h-4 mr-2" />
@@ -633,7 +633,7 @@ export default function DataSiswa() {
         >
           <Users className="w-4 h-4" />
           Data Semua Santri
-          {isBranchLocked && (
+          {isBranchLocked && user?.scope !== 'CABANG' && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 ml-1">
               <Lock className="w-2.5 h-2.5" /> Terkunci
             </span>
@@ -737,8 +737,12 @@ export default function DataSiswa() {
                       <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">No</th>
                       <th scope="col" className="px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-16">{t('siswa.table.photo') || 'Foto'}</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.name')} & NIK</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('wilayah.region_name')}</th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
+                      {user?.scope !== 'CABANG' && (
+                        <>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('wilayah.region_name')}</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
+                        </>
+                      )}
                       <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.table.academic') || 'Akademik'}</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.table.completeness') || 'Kelengkapan'}</th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('siswa.table.status') || 'Status'}</th>
@@ -782,12 +786,16 @@ export default function DataSiswa() {
                                 {student.biodata?.nisn ? ` | NISN: ${student.biodata.nisn}` : ''}
                               </div>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                              {student.wilayah?.name || '-'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                              {student.cabang?.name || '-'}
-                            </td>
+                            {user?.scope !== 'CABANG' && (
+                              <>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                                  {student.wilayah?.name || '-'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                                  {student.cabang?.name || '-'}
+                                </td>
+                              </>
+                            )}
                             <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-700">
                               <div className="flex flex-wrap gap-1 items-center">
                                 {student.siswaFormal?.kelas ? (
@@ -850,7 +858,7 @@ export default function DataSiswa() {
                                       student.statusPool === 'MUTASI' ? 'bg-amber-100 text-amber-800' :
                                         'bg-slate-100 text-slate-800'
                                   }`}>
-                                  {student.statusPool.replace('_', ' ')}
+                                  {student.statusPool === 'AKTIF_CABANG' && user?.scope === 'CABANG' ? 'Aktif' : student.statusPool.replace('_', ' ')}
                                 </span>
                                 {!student.isActive && (
                                   <span className="inline-flex rounded-full px-2 text-[10px] font-semibold leading-4 bg-red-100 text-red-700 w-fit">
@@ -880,7 +888,7 @@ export default function DataSiswa() {
                                     <button
                                       onClick={() => setStudentToLepas(student)}
                                       className="inline-flex items-center justify-center p-1.5 border border-amber-200 shadow-sm rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors"
-                                      title="Lepas Siswa"
+                                      title={user?.scope === 'CABANG' ? 'Mutasi Santri Keluar' : 'Lepas Siswa'}
                                     >
                                       <UserMinus className="h-3.5 w-3.5" />
                                     </button>

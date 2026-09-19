@@ -4,6 +4,7 @@ import { useLepasMassalSiswa } from '../hooks/usePoolStudents';
 import { X, Search, AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../../contexts/ToastContext';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface LepasSiswaMassalModalProps {
   students: Student[];
@@ -11,6 +12,8 @@ interface LepasSiswaMassalModalProps {
 }
 
 export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaMassalModalProps) {
+  const { user } = useAuth();
+  const isCabang = user?.scope === 'CABANG';
   const { t } = useTranslation();
   const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
@@ -109,10 +112,10 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
             <div className="flex justify-between items-center mb-5 border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-lg font-semibold leading-6 text-slate-900">
-                  Lepas Siswa Massal ke Pool
+                  {isCabang ? 'Mutasi Santri Keluar (Massal)' : 'Lepas Siswa Massal ke Pool'}
                 </h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  Pilih siswa aktif cabang untuk dikembalikan ke pool atau dikeluarkan.
+                  {isCabang ? 'Pilih santri aktif untuk dimutasi keluar atau dinonaktifkan.' : 'Pilih siswa aktif cabang untuk dikembalikan ke pool atau dikeluarkan.'}
                 </p>
               </div>
               {!isProcessing && (
@@ -125,7 +128,7 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
             {isProcessing ? (
               <div className="my-6 p-6 bg-amber-50 rounded-xl border border-amber-200 space-y-4 text-center">
                 <div className="flex justify-between items-center text-sm font-semibold text-amber-900">
-                  <span>Memproses Pelepasan Siswa...</span>
+                  <span>{isCabang ? 'Memproses Mutasi Santri...' : 'Memproses Pelepasan Siswa...'}</span>
                   <span>{Math.round((progress.processed / (progress.total || 1)) * 100)}%</span>
                 </div>
                 <div className="w-full bg-amber-200 rounded-full h-3 overflow-hidden shadow-inner">
@@ -139,15 +142,15 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
                   <span>Antrean {progress.currentBatch} dari {progress.totalBatches} (200 / batch)</span>
                 </div>
                 <p className="text-xs text-amber-600 animate-pulse pt-2 border-t border-amber-200/60">
-                  Harap tunggu, sistem sedang melepas siswa secara bertahap...
+                  {isCabang ? 'Harap tunggu, sistem sedang memproses mutasi santri...' : 'Harap tunggu, sistem sedang melepas siswa secara bertahap...'}
                 </p>
               </div>
             ) : releasableStudents.length === 0 ? (
               <div className="my-6 p-6 text-center bg-slate-50 rounded-xl border border-slate-200">
                 <AlertCircle className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                <h4 className="text-sm font-semibold text-slate-800">Tidak Ada Siswa Aktif Cabang</h4>
+                <h4 className="text-sm font-semibold text-slate-800">{isCabang ? 'Tidak Ada Santri Aktif' : 'Tidak Ada Siswa Aktif Cabang'}</h4>
                 <p className="text-xs text-slate-500 mt-1">
-                  Semua siswa dalam daftar filter saat ini sudah berada di pool atau status non-aktif.
+                  {isCabang ? 'Semua santri dalam daftar saat ini sudah tidak aktif atau termutasi.' : 'Semua siswa dalam daftar filter saat ini sudah berada di pool atau status non-aktif.'}
                 </p>
               </div>
             ) : (
@@ -259,7 +262,7 @@ export default function LepasSiswaMassalModal({ students, onClose }: LepasSiswaM
                 onClick={handleLepas}
                 className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-xl hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
               >
-                Lepas {selectedIds.length} Siswa
+                {isCabang ? `Mutasikan ${selectedIds.length} Santri` : `Lepas ${selectedIds.length} Siswa`}
               </button>
             )}
           </div>

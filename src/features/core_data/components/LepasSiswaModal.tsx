@@ -3,6 +3,7 @@ import { Student } from '../hooks/useGetStudents';
 import { useLepasSiswa } from '../hooks/usePoolStudents';
 import { X } from 'lucide-react';
 import { useToast } from '../../../contexts/ToastContext';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface LepasSiswaModalProps {
   student: Student;
@@ -10,6 +11,8 @@ interface LepasSiswaModalProps {
 }
 
 export default function LepasSiswaModal({ student, onClose }: LepasSiswaModalProps) {
+  const { user } = useAuth();
+  const isCabang = user?.scope === 'CABANG';
   const [statusAkhir, setStatusAkhir] = useState('TERSEDIA');
   const [catatan, setCatatan] = useState('');
   const { showToast } = useToast();
@@ -43,7 +46,7 @@ export default function LepasSiswaModal({ student, onClose }: LepasSiswaModalPro
           <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-center mb-5">
               <h3 className="text-lg font-semibold leading-6 text-gray-900">
-                Lepas Siswa ke Pool
+                {isCabang ? 'Mutasi Santri Keluar' : 'Lepas Siswa ke Pool'}
               </h3>
               <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
                 <X className="h-5 w-5" />
@@ -52,7 +55,7 @@ export default function LepasSiswaModal({ student, onClose }: LepasSiswaModalPro
             
             <div className="mb-4">
               <p className="text-sm text-gray-500">
-                Siswa <span className="font-medium text-gray-900">{student.biodata?.fullName}</span> akan dilepas ke pool.
+                Siswa <span className="font-medium text-gray-900">{student.biodata?.fullName}</span> {isCabang ? 'akan dimutasi keluar dari lembaga.' : 'akan dilepas ke pool.'}
               </p>
             </div>
 
@@ -90,7 +93,7 @@ export default function LepasSiswaModal({ student, onClose }: LepasSiswaModalPro
               onClick={handleLepas}
               className="inline-flex w-full justify-center rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500 sm:ml-3 sm:w-auto disabled:opacity-50"
             >
-              {lepasSiswaMutation.isPending ? 'Memproses...' : 'Lepas Siswa'}
+              {lepasSiswaMutation.isPending ? 'Memproses...' : isCabang ? 'Mutasikan Santri' : 'Lepas Siswa'}
             </button>
             <button
               type="button"

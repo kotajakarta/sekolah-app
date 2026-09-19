@@ -2,6 +2,7 @@ import React from 'react';
 import { Guru, useLepasGuru } from '../hooks/usePoolGuru';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface LepasGuruModalProps {
   guru: Guru;
@@ -10,6 +11,8 @@ interface LepasGuruModalProps {
 
 export default function LepasGuruModal({ guru, onClose }: LepasGuruModalProps) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const isCabang = user?.scope === 'CABANG';
   const lepasGuruMutation = useLepasGuru();
 
   const handleLepas = () => {
@@ -27,7 +30,7 @@ export default function LepasGuruModal({ guru, onClose }: LepasGuruModalProps) {
           <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-center mb-5">
               <h3 className="text-lg font-semibold leading-6 text-gray-900">
-                {t('guru.lepas.title')}
+                {isCabang ? 'Mutasi Guru Keluar' : t('guru.lepas.title')}
               </h3>
               <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
                 <X className="h-5 w-5" />
@@ -36,12 +39,16 @@ export default function LepasGuruModal({ guru, onClose }: LepasGuruModalProps) {
 
             <div className="mb-4">
               <p className="text-sm text-gray-500">
-                {t('guru.lepas.desc').split('{name}').map((part, i, arr) => (
-                  <React.Fragment key={i}>
-                    {part}
-                    {i < arr.length - 1 && <span className="font-medium text-gray-900">{guru.name}</span>}
-                  </React.Fragment>
-                ))}
+                {isCabang ? (
+                  <>Guru <span className="font-medium text-gray-900">{guru.name}</span> akan dimutasi keluar dari lembaga/pesantren.</>
+                ) : (
+                  t('guru.lepas.desc').split('{name}').map((part, i, arr) => (
+                    <React.Fragment key={i}>
+                      {part}
+                      {i < arr.length - 1 && <span className="font-medium text-gray-900">{guru.name}</span>}
+                    </React.Fragment>
+                  ))
+                )}
               </p>
             </div>
           </div>
@@ -53,7 +60,7 @@ export default function LepasGuruModal({ guru, onClose }: LepasGuruModalProps) {
               onClick={handleLepas}
               className="inline-flex w-full justify-center rounded-md bg-amber-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-500 sm:ml-3 sm:w-auto disabled:opacity-50"
             >
-              {lepasGuruMutation.isPending ? t('guru.lepas.processing') : t('guru.lepas.btn_lepas')}
+              {lepasGuruMutation.isPending ? t('guru.lepas.processing') : isCabang ? 'Mutasikan Guru' : t('guru.lepas.btn_lepas')}
             </button>
             <button
               type="button"

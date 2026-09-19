@@ -271,7 +271,7 @@ export function useNavEntries(): NavEntry[] {
 
     const kelembagaanItems = [
       { to: '/dashboard/profile', label: t('sidebar.profil_saya') || 'Profil Saya', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
-      { to: '/dashboard/profile-cabang', label: t('sidebar.profil_cabang') || 'Profil Cabang', show: user?.scope === 'CABANG' },
+      { to: '/dashboard/profile-cabang', label: user?.scope === 'CABANG' ? 'Profil Lembaga / Pesantren' : (t('sidebar.profil_cabang') || 'Profil Cabang'), show: user?.scope === 'CABANG' },
       { to: '/dashboard/formal/muadalah', label: t('sidebar.lembaga_muadalah') || 'Lembaga Muadalah', show: user?.divisi === 'FORMAL' || user?.divisi === 'ALL' },
       { to: '/dashboard/formal/emis-sync', label: 'Validasi EMIS & Verval', show: user?.scope === 'GLOBAL' },
       { to: '/dashboard/core/cabang', label: t('sidebar.cabang') || 'Data Cabang', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
@@ -307,9 +307,9 @@ export function useNavEntries(): NavEntry[] {
     ];
 
     const bapItems = [
-      { to: '/dashboard/kegiatan/dashboard', label: 'Dashboard Infografik BAP', show: true },
-      { to: '/dashboard/kegiatan', label: t('sidebar.bap_list') || 'Daftar BAP Laporan', show: true },
-      { to: '/dashboard/kegiatan/buat', label: t('sidebar.bap_create') || 'Buat Laporan BAP', show: user?.scope === 'CABANG' },
+      { to: '/dashboard/kegiatan/dashboard', label: user?.scope === 'CABANG' ? 'Dashboard Kegiatan' : 'Dashboard Infografik BAP', show: true },
+      { to: '/dashboard/kegiatan', label: user?.scope === 'CABANG' ? 'Daftar Laporan Kegiatan' : (t('sidebar.bap_list') || 'Daftar BAP Laporan'), show: true },
+      { to: '/dashboard/kegiatan/buat', label: user?.scope === 'CABANG' ? 'Buat Laporan Kegiatan' : (t('sidebar.bap_create') || 'Buat Laporan BAP'), show: user?.scope === 'CABANG' },
       { to: '/dashboard/kegiatan/templates', label: t('sidebar.bap_templates') || 'Kelola Template Kegiatan', show: user?.scope === 'GLOBAL' },
       { to: '/dashboard/kegiatan/jenis', label: t('sidebar.bap_types') || 'Kelola Jenis Kegiatan', show: user?.scope === 'GLOBAL' },
     ].filter(i => i.show).map(({ show, ...rest }) => rest);
@@ -323,7 +323,7 @@ export function useNavEntries(): NavEntry[] {
     ].filter(i => i.show).map(({ show, ...rest }) => rest);
 
     const konfirmasiItems: NavSubItem[] = [
-      { to: '/dashboard/core/permintaan-tarik', label: t('sidebar.status_mutasi') || 'Status Mutasi & Tarik Data', badge: pendingCount },
+      { to: '/dashboard/core/permintaan-tarik', label: user?.scope === 'CABANG' ? 'Status Mutasi Santri' : (t('sidebar.status_mutasi') || 'Status Mutasi & Tarik Data'), badge: pendingCount },
       { to: '/dashboard/core/permohonan-izin', label: t('portal.nav_konfirmasi_izin') || 'Konfirmasi Izin Santri' },
     ];
 
@@ -348,7 +348,7 @@ export function useNavEntries(): NavEntry[] {
     }
 
     entries.push({ type: 'group', key: 'layanan', label: t('sidebar.layanan') || 'Layanan dan Bantuan', icon: HeartHandshake, items: layananItems });
-    entries.push({ type: 'group', key: 'bap', label: t('sidebar.bap') || 'Berita Acara (BAP)', icon: FileText, items: bapItems });
+    entries.push({ type: 'group', key: 'bap', label: user?.scope === 'CABANG' ? 'Laporan Kegiatan' : (t('sidebar.bap') || 'Berita Acara (BAP)'), icon: FileText, items: bapItems });
     entries.push({ type: 'group', key: 'monitoring', label: t('sidebar.monitoring') || 'Monitoring', icon: Activity, items: monitoringItems });
     entries.push({ type: 'group', key: 'konfirmasi', label: t('sidebar.konfirmasi') || 'Konfirmasi', icon: CheckCircle, items: konfirmasiItems });
 

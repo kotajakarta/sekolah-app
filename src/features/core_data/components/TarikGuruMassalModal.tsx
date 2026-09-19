@@ -78,7 +78,7 @@ export default function TarikGuruMassalModal({ onClose }: TarikGuruMassalModalPr
           <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold leading-6 text-gray-900">
-                {t('guru.tarik.title')}
+                {isCabangUser ? 'Penerimaan / Registrasi Guru' : t('guru.tarik.title')}
               </h3>
               <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
                 <X className="h-5 w-5" />
@@ -113,7 +113,7 @@ export default function TarikGuruMassalModal({ onClose }: TarikGuruMassalModalPr
               
               {isCabangUser && (
                 <div className="p-3 bg-blue-50 text-blue-700 rounded-md text-sm flex items-center">
-                  {t('guru.tarik.info_cabang_saat_ini')}
+                  Guru yang dipilih akan dialokasikan ke pesantren/lembaga Anda saat ini.
                 </div>
               )}
 
@@ -199,7 +199,11 @@ export default function TarikGuruMassalModal({ onClose }: TarikGuruMassalModalPr
               onClick={handleTarik}
               className="inline-flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 sm:ml-3 sm:w-auto disabled:opacity-50"
             >
-              {tarikMassalMutation.isPending ? t('common.loading') : t('guru.tarik.btn_tarik').replace('{count}', selectedStaffIds.length.toString())}
+              {tarikMassalMutation.isPending
+                ? t('common.loading')
+                : isCabangUser
+                  ? `Daftarkan ${selectedStaffIds.length} Guru ke Pesantren`
+                  : t('guru.tarik.btn_tarik').replace('{count}', selectedStaffIds.length.toString())}
             </button>
             <button
               type="button"

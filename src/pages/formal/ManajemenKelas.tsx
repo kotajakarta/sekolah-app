@@ -495,9 +495,9 @@ export default function ManajemenKelas() {
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
                   <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm border-b border-slate-100 pb-3">
                     <Filter className="w-4 h-4 text-indigo-600" />
-                    <span>Filter Wilayah & Cabang (RBAC)</span>
+                    <span>{user?.scope === 'CABANG' ? 'Filter Kelas' : 'Filter Wilayah & Cabang (RBAC)'}</span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className={`grid grid-cols-1 sm:grid-cols-2 ${user?.scope === 'CABANG' ? 'md:grid-cols-2' : 'md:grid-cols-4'} gap-4`}>
                     <div>
                       <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Lembaga Muadalah</label>
                       <select
@@ -514,41 +514,44 @@ export default function ManajemenKelas() {
                       </select>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Wilayah</label>
-                      <select
-                        value={filterWilayah}
-                        onChange={e => handleFilterWilayahChange(e.target.value)}
-                        disabled={!isAdmin}
-                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
-                      >
-                        {isAdmin ? (
-                          <>
-                            <option value="">-- Semua Wilayah --</option>
-                            {wilayahs.map((w: any) => (
-                              <option key={w.id} value={w.id}>{w.name}</option>
-                            ))}
-                          </>
-                        ) : (
-                          <option value={filterWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
-                        )}
-                      </select>
-                    </div>
+                    {user?.scope !== 'CABANG' && (
+                      <>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Wilayah</label>
+                          <select
+                            value={filterWilayah}
+                            onChange={e => handleFilterWilayahChange(e.target.value)}
+                            disabled={!isAdmin}
+                            className="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
+                          >
+                            {isAdmin ? (
+                              <>
+                                <option value="">-- Semua Wilayah --</option>
+                                {wilayahs.map((w: any) => (
+                                  <option key={w.id} value={w.id}>{w.name}</option>
+                                ))}
+                              </>
+                            ) : (
+                              <option value={filterWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
+                            )}
+                          </select>
+                        </div>
 
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Cabang</label>
-                      <select
-                        value={filterCabang}
-                        onChange={e => handleFilterCabangChange(e.target.value)}
-                        disabled={user?.scope === 'CABANG'}
-                        className="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
-                      >
-                        <option value="">-- Semua Cabang --</option>
-                        {filteredFilterCabangList.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Cabang</label>
+                          <select
+                            value={filterCabang}
+                            onChange={e => handleFilterCabangChange(e.target.value)}
+                            className="w-full px-3.5 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
+                          >
+                            <option value="">-- Semua Cabang --</option>
+                            {filteredFilterCabangList.map((c) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
+                    )}
 
                     <div>
                       <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Status Kelas</label>
@@ -705,7 +708,9 @@ export default function ManajemenKelas() {
                           <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Nama Kelas</th>
                           <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Tingkat</th>
                           <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Lembaga Muadalah</th>
-                          <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
+                          {user?.scope !== 'CABANG' && (
+                            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('cabang.branch_name')}</th>
+                          )}
                           <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Status</th>
                           <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest w-28">Jumlah Siswa</th>
                           <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{t('common.action')}</th>
@@ -726,9 +731,11 @@ export default function ManajemenKelas() {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-semibold text-indigo-650">
                               {kelas.lembagaMuadalah?.name || '-'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                              {kelas.cabang ? `${kelas.cabang.name} ${kelas.cabang.wilayah ? `(${kelas.cabang.wilayah.name})` : ''}` : '-'}
-                            </td>
+                            {user?.scope !== 'CABANG' && (
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                {kelas.cabang ? `${kelas.cabang.name} ${kelas.cabang.wilayah ? `(${kelas.cabang.wilayah.name})` : ''}` : '-'}
+                              </td>
+                            )}
                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                               <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${kelas.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                 {kelas.isActive ? 'Aktif' : 'Tidak Aktif'}

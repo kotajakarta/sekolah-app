@@ -475,7 +475,7 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
-                      <span>Kode Cabang (4 Digit)</span>
+                      <span>{user?.scope === 'CABANG' ? 'Kode Lembaga (4 Digit)' : 'Kode Cabang (4 Digit)'}</span>
                       <span className="text-[9px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold">
                         <Lock className="w-2.5 h-2.5" /> Terkunci
                       </span>
@@ -487,7 +487,7 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
                       value={kodeCabang}
                       className="w-full px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono font-extrabold text-slate-800 text-center cursor-not-allowed select-none shadow-inner"
                       placeholder="1001"
-                      title="Kode cabang terkunci otomatis sesuai role cabang akun yang login"
+                      title={user?.scope === 'CABANG' ? 'Kode lembaga terisi otomatis' : 'Kode cabang terkunci otomatis sesuai role cabang akun yang login'}
                     />
                     {activeCabangObj?.name && (
                       <p className="text-[10px] text-slate-500 font-semibold mt-1 truncate text-center" title={activeCabangObj.name}>
@@ -673,6 +673,7 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
                       tahunAjaran={activeTahunAjaran}
                       totalSoal={totalSoal}
                       isLeftHalf={true}
+                      isCabang={user?.scope === 'CABANG'}
                     />
 
                     {/* Sisi Kanan: LJK Siswa 2 */}
@@ -688,6 +689,7 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
                       tahunAjaran={activeTahunAjaran}
                       totalSoal={totalSoal}
                       isLeftHalf={false}
+                      isCabang={user?.scope === 'CABANG'}
                     />
                   </div>
                 ) : (
@@ -725,6 +727,7 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
                   tahunAjaran={activeTahunAjaran}
                   totalSoal={totalSoal}
                   isLeftHalf={true}
+                  isCabang={user?.scope === 'CABANG'}
                 />
 
                 {/* LJK A5 Sisi Kanan */}
@@ -740,6 +743,7 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
                   tahunAjaran={activeTahunAjaran}
                   totalSoal={totalSoal}
                   isLeftHalf={false}
+                  isCabang={user?.scope === 'CABANG'}
                 />
               </div>
             ))}
@@ -771,6 +775,7 @@ interface LjkA5SheetProps {
   tahunAjaran: string;
   totalSoal: 25 | 30 | 40 | 50;
   isLeftHalf: boolean;
+  isCabang?: boolean;
 }
 
 const BUBBLE_SIZE = 3.2; // 3.2mm diameter seragam untuk seluruh bulatan LJK
@@ -791,6 +796,7 @@ const LjkA5Sheet: React.FC<LjkA5SheetProps> = ({
   tahunAjaran,
   totalSoal,
   isLeftHalf,
+  isCabang,
 }) => {
   // 4 digit kode cabang
   const cabangDigits = (kodeCabang || '1001').padEnd(4, '0').slice(0, 4).split('');
@@ -943,7 +949,7 @@ const LjkA5Sheet: React.FC<LjkA5SheetProps> = ({
           fontWeight: '900',
         }}
       >
-        KODE CABANG
+        {isCabang ? 'KODE LEMBAGA' : 'KODE CABANG'}
       </div>
       {[0, 1, 2, 3].map((c) => {
         const cx = 17.0 + c * DIGIT_COL_SPACING;

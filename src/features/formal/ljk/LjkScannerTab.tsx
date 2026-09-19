@@ -1401,7 +1401,7 @@ export const LjkScannerTab: React.FC<LjkScannerTabProps> = ({
       <LjkPrintModal
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}
-        selectedCabangId={selectedCabangId}
+        selectedCabangId={selectedCabangId || user?.cabangId}
         selectedKelas={selectedKelas}
         selectedMapel={selectedMapel}
         tahunAjaran={tahunAjaran}

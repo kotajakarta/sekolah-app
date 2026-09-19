@@ -1205,7 +1205,7 @@ export const ERaporPage: React.FC = () => {
       {/* TAB 7: MODUL OMR / OCR LJK READER */}
       {activeTab === 'omr-ljk' && (
         <LjkScannerTab
-          selectedCabangId={selectedCabangId}
+          selectedCabangId={selectedCabangId || user?.cabangId}
           selectedKelasId={selectedKelasId}
           selectedKelas={selectedKelasInfo}
           selectedMapelId={selectedMapelId}

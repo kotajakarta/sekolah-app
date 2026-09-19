@@ -19,7 +19,10 @@ import {
   Scissors,
   Layers,
   HelpCircle,
+  Lock,
 } from 'lucide-react';
+import { useAuth } from '../../../hooks/useAuth';
+import { useGetCabang } from '../../core_data/hooks/useMasterData';
 import { StudentOption } from './LjkScannerTab';
 
 export interface LjkPrintModalProps {
@@ -45,6 +48,9 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
   siswaList: initialSiswaList = [],
   officialBankTitle,
 }) => {
+  const { user } = useAuth();
+  const { data: masterCabangList = [] } = useGetCabang();
+
   // 1. Fetch Pengaturan Akademik Aktif
   const { data: pengaturanAkademik } = useQuery({
     queryKey: ['pengaturan-akademik'],
@@ -157,18 +163,63 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
   const [examTitle, setExamTitle] = useState<string>(
     officialBankTitle || 'PENILAIAN AKHIR SEMESTER (PAS)',
   );
-  const [kodeCabang, setKodeCabang] = useState<string>('1001');
+  // Resolusi Cabang aktif untuk LJK:
+  // Prioritas 1: Sesuai role cabang akun yang login (user.cabangId / user.cabangKode)
+  // Prioritas 2: Dari data cabang kelas yang dipilih
+  // Prioritas 3: Dari filter selectedCabangId
+  const activeCabangObj = useMemo(() => {
+    // 1. Akun login jika terikat cabang
+    if (user?.cabangId) {
+      const byUser = masterCabangList.find((c) => c.id === user.cabangId);
+      if (byUser) return byUser;
+      if (user.cabangName) {
+        return {
+          id: user.cabangId,
+          name: user.cabangName,
+          kode: user.cabangKode || null,
+        };
+      }
+    }
+
+    // 2. Kelas yang dipilih
+    if (currentKelasObj?.cabang) {
+      if (currentKelasObj.cabang.kode) return currentKelasObj.cabang;
+      const byKelas = masterCabangList.find(
+        (c) => c.id === currentKelasObj.cabang?.id || c.id === (currentKelasObj as any).cabangId,
+      );
+      if (byKelas) return byKelas;
+    } else if ((currentKelasObj as any)?.cabangId) {
+      const byKelas = masterCabangList.find(
+        (c) => c.id === (currentKelasObj as any).cabangId,
+      );
+      if (byKelas) return byKelas;
+    }
+
+    // 3. Prop selectedCabangId
+    if (selectedCabangId) {
+      const byProp = masterCabangList.find((c) => c.id === selectedCabangId);
+      if (byProp) return byProp;
+    }
+
+    return null;
+  }, [user, masterCabangList, currentKelasObj, selectedCabangId]);
+
+  const [kodeCabang, setKodeCabang] = useState<string>(() => {
+    return activeCabangObj?.kode || currentKelasObj?.cabang?.kode || '1001';
+  });
   const [kodeMapel, setKodeMapel] = useState<string>('01');
   const [totalSoal, setTotalSoal] = useState<25 | 30 | 40 | 50>(25);
   const [spareBlankCount, setSpareBlankCount] = useState<number>(0);
   const [previewPageIndex, setPreviewPageIndex] = useState<number>(0);
 
-  // Auto-update kode cabang jika kelas memiliki cabang kode
+  // Auto-update kode cabang: terisi otomatis sesuai role cabang akun yang login / kelas terpilih
   useEffect(() => {
-    if (currentKelasObj?.cabang?.kode) {
+    if (activeCabangObj?.kode) {
+      setKodeCabang(activeCabangObj.kode);
+    } else if (currentKelasObj?.cabang?.kode) {
       setKodeCabang(currentKelasObj.cabang.kode);
     }
-  }, [currentKelasObj]);
+  }, [activeCabangObj, currentKelasObj]);
 
   // Auto-update kode mapel jika mapel memiliki kodeMapel di database
   useEffect(() => {
@@ -423,17 +474,26 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
                 {/* Kode Cabang & Kode Mapel */}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Kode Cabang (4 Digit)
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                      <span>Kode Cabang (4 Digit)</span>
+                      <span className="text-[9px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold">
+                        <Lock className="w-2.5 h-2.5" /> Terkunci
+                      </span>
                     </label>
                     <input
                       type="text"
+                      readOnly
                       maxLength={4}
                       value={kodeCabang}
-                      onChange={(e) => setKodeCabang(e.target.value.replace(/\D/g, ''))}
-                      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-800 text-center"
+                      className="w-full px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono font-extrabold text-slate-800 text-center cursor-not-allowed select-none shadow-inner"
                       placeholder="1001"
+                      title="Kode cabang terkunci otomatis sesuai role cabang akun yang login"
                     />
+                    {activeCabangObj?.name && (
+                      <p className="text-[10px] text-slate-500 font-semibold mt-1 truncate text-center" title={activeCabangObj.name}>
+                        {activeCabangObj.name}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">

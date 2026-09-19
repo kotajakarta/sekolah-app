@@ -12,6 +12,7 @@ export interface AuthUser {
   cabangId?: string;
   wilayahName?: string;
   cabangName?: string;
+  cabangKode?: string;
 }
 
 interface AuthContextType {

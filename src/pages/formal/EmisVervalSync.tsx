@@ -192,6 +192,10 @@ export default function EmisVervalSync() {
 
   // Helper kunci unik EMIS di frontend
   const getEmisStudentKey = (item: any): string => {
+    const nama = String(item.full_name || item.nama || item.list_full_name || '').trim().toLowerCase();
+    const tgl = String(item.birth_date || item.tanggal_lahir || item.list_birth_date || '').trim();
+    if (nama && tgl) return `NAME_DOB:${nama}|${tgl}`;
+
     const nik = String(item.nik || item.list_nik || item.identity_number || item.no_identitas || item.no_kk || '').replace(/\D/g, '').trim();
     if (nik && nik.length >= 10) return `NIK:${nik}`;
 
@@ -200,10 +204,6 @@ export default function EmisVervalSync() {
 
     const id = String(item.id || item._emis_id || '').trim();
     if (id && !id.startsWith('temp-')) return `ID:${id}`;
-
-    const nama = String(item.full_name || item.nama || item.list_full_name || '').trim().toLowerCase();
-    const tgl = String(item.birth_date || item.tanggal_lahir || item.list_birth_date || '').trim();
-    if (nama && tgl) return `NAME_DOB:${nama}|${tgl}`;
 
     const tmpt = String(item.birth_place || item.tempat_lahir || item.list_birth_place || '').trim().toLowerCase();
     if (nama && tmpt) return `NAME_POB:${nama}|${tmpt}`;
@@ -304,6 +304,10 @@ export default function EmisVervalSync() {
 
   // Helper kunci unik VervalPD di frontend
   const getVervalStudentKey = (item: any): string => {
+    const nama = String(item.nama || '').trim().toLowerCase();
+    const tgl = String(item.tanggalLahir || '').trim();
+    if (nama && tgl) return `NAME_DOB:${nama}|${tgl}`;
+
     const nik = String(item.nik || '').replace(/\D/g, '').trim();
     if (nik && nik.length >= 10) return `NIK:${nik}`;
 
@@ -312,10 +316,6 @@ export default function EmisVervalSync() {
 
     const pdId = String(item.pesertaDidikId || item.id || '').trim();
     if (pdId && !pdId.startsWith('temp-')) return `PD:${pdId}`;
-
-    const nama = String(item.nama || '').trim().toLowerCase();
-    const tgl = String(item.tanggalLahir || '').trim();
-    if (nama && tgl) return `NAME_DOB:${nama}|${tgl}`;
 
     const tmpt = String(item.tempatLahir || '').trim().toLowerCase();
     if (nama && tmpt) return `NAME_POB:${nama}|${tmpt}`;

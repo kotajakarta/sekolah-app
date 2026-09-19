@@ -57,6 +57,7 @@ export interface BulkScannedItem {
   status: 'SUCCESS' | 'AMBIGUOUS' | 'ERROR';
   errorMessage?: string;
   questionBankId?: string;
+  answerKey?: Record<string, string>;
 }
 
 export interface LjkBulkPdfModalProps {
@@ -243,7 +244,14 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
             }
           }
 
-          // Hitung statistik jawaban dengan officialKeyMap
+          // Kunci jawaban item: prioritaskan answerKey dari scan backend sesuai bank soal LJK
+          const itemKeyMap = (data.answerKey && Object.keys(data.answerKey).length > 0)
+            ? data.answerKey
+            : (data.questionBank?.answerKey && Object.keys(data.questionBank.answerKey).length > 0)
+              ? data.questionBank.answerKey
+              : officialKeyMap;
+
+          // Hitung statistik jawaban dengan itemKeyMap
           const totalSoal = data.totalSoal ?? 25;
           let benar = 0;
           let salah = 0;
@@ -253,7 +261,7 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
           for (let q = 1; q <= totalSoal; q++) {
             const qStr = q.toString();
             const ans = (jawaban[qStr] || '').toUpperCase();
-            const key = officialKeyMap[qStr];
+            const key = itemKeyMap[qStr];
 
             if (!ans) {
               kosong++;
@@ -264,8 +272,21 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
             }
           }
 
-          const calculatedSkor =
-            Object.keys(officialKeyMap).length > 0 ? Math.round((benar / totalSoal) * 100) : data.skor ?? 0;
+          // Prioritaskan hasil benar & skor dari scan backend yang akurat sesuai soal LJK
+          const finalBenar = (data.jumlahBenar !== undefined && data.jumlahBenar !== null)
+            ? data.jumlahBenar
+            : benar;
+          const finalSalah = (data.jumlahSalah !== undefined && data.jumlahSalah !== null)
+            ? data.jumlahSalah
+            : salah;
+          const finalKosong = (data.jumlahKosong !== undefined && data.jumlahKosong !== null)
+            ? data.jumlahKosong
+            : kosong;
+
+          // Rumus skor: untuk 25 soal adalah jumlah benar * 4 (25 -> 100, 24 -> 96, 23 -> 92)
+          const calculatedSkor = (data.skor !== undefined && data.skor !== null && Math.abs(data.skor - Math.round((finalBenar / totalSoal) * 100)) <= 5)
+            ? data.skor
+            : totalSoal > 0 ? Math.round((finalBenar / totalSoal) * 100) : 0;
 
           const confidence = data.confidence ?? 0;
           const ambiguities = data.ambiguities || [];
@@ -292,13 +313,14 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
             jawaban,
             totalSoal,
             skor: calculatedSkor,
-            jumlahBenar: data.jumlahBenar ?? benar,
-            jumlahSalah: data.jumlahSalah ?? salah,
-            jumlahKosong: data.jumlahKosong ?? kosong,
+            jumlahBenar: finalBenar,
+            jumlahSalah: finalSalah,
+            jumlahKosong: finalKosong,
             confidence,
             ambiguities,
             status: isAmbiguous ? 'AMBIGUOUS' : 'SUCCESS',
             questionBankId: data.questionBank?.id || activeBank?.id,
+            answerKey: itemKeyMap,
           });
         } catch (scanErr: any) {
           console.warn(`Gagal memindai halaman ${pageNum}:`, scanErr);
@@ -383,10 +405,11 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
     let kosong = 0;
     const totalSoal = updated.totalSoal || 25;
 
+    const itemKeyMap = updated.answerKey || officialKeyMap;
     for (let q = 1; q <= totalSoal; q++) {
       const qStr = q.toString();
       const ans = (updated.jawaban[qStr] || '').toUpperCase();
-      const key = officialKeyMap[qStr];
+      const key = itemKeyMap[qStr];
 
       if (!ans) {
         kosong++;
@@ -397,7 +420,7 @@ export const LjkBulkPdfModal: React.FC<LjkBulkPdfModalProps> = ({
       }
     }
 
-    const skor = Object.keys(officialKeyMap).length > 0 ? Math.round((benar / totalSoal) * 100) : updated.skor;
+    const skor = totalSoal > 0 ? Math.round((benar / totalSoal) * 100) : updated.skor;
 
     const finalItem: BulkScannedItem = {
       ...updated,

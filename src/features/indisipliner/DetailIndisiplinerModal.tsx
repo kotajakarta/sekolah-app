@@ -1,6 +1,21 @@
 import React from 'react';
-import { X, AlertTriangle, FileWarning, LogOut, Download, Calendar, User, Building, ShieldCheck, Printer } from 'lucide-react';
+import {
+  X,
+  AlertTriangle,
+  FileWarning,
+  LogOut,
+  Download,
+  Calendar,
+  User,
+  Building,
+  ShieldCheck,
+  Printer,
+  FileDown,
+  Paperclip,
+  ExternalLink,
+} from 'lucide-react';
 import { PelanggaranRecord, SuratPeringatanRecord, PengeluaranSiswaRecord } from './types';
+import { downloadSpTemplateDocx, downloadPengeluaranTemplateDocx } from './useIndisipliner';
 
 type DetailData =
   | { type: 'pelanggaran'; data: PelanggaranRecord }
@@ -64,7 +79,7 @@ export default function DetailIndisiplinerModal({ detail, onClose }: DetailIndis
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -105,8 +120,8 @@ export default function DetailIndisiplinerModal({ detail, onClose }: DetailIndis
 
             {detail.type === 'sp' && (
               <div className="text-right">
-                <span className="text-[11px] text-slate-500 block">Tingkat SP</span>
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-black ${
+                <span className="text-[11px] text-slate-500 block">Tingkat Surat</span>
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-black tracking-wide ${
                   detail.data.tingkatSp === 'SP 3'
                     ? 'bg-rose-100 text-rose-800 border border-rose-300'
                     : detail.data.tingkatSp === 'SP 2'
@@ -120,48 +135,49 @@ export default function DetailIndisiplinerModal({ detail, onClose }: DetailIndis
 
             {detail.type === 'pengeluaran' && (
               <div className="text-right">
-                <span className="text-[11px] text-slate-500 block">Status Siswa</span>
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 border border-red-200">
-                  Resmi Dikeluarkan (DO)
+                <span className="text-[11px] text-slate-500 block">Status Santri</span>
+                <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-red-100 text-red-800 border border-red-200">
+                  Dikeluarkan (DO)
                 </span>
               </div>
             )}
           </div>
 
-          {/* Rincian Spesifik per Jenis */}
+          {/* Rincian Spesifik Sesuai Tipe Tab */}
           {detail.type === 'pelanggaran' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
-                  <span className="text-slate-500 font-medium">Jenis Pelanggaran</span>
-                  <p className="font-bold text-slate-900 text-sm">{detail.data.jenisPelanggaran}</p>
-                </div>
-                <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
-                  <span className="text-slate-500 font-medium">Tingkat Kategori</span>
+                  <span className="text-slate-500 font-medium">Kategori Pelanggaran</span>
                   <p className="font-bold text-slate-900">{detail.data.kategori}</p>
-                </div>
-                <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
-                  <span className="text-slate-500 font-medium">Waktu Kejadian</span>
-                  <p className="font-semibold text-slate-800">{formatDate(detail.data.tanggal)}</p>
                 </div>
                 <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
                   <span className="text-slate-500 font-medium">Lokasi Kejadian</span>
                   <p className="font-semibold text-slate-800">{detail.data.lokasi || '-'}</p>
                 </div>
+                <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
+                  <span className="text-slate-500 font-medium">Tanggal Pelanggaran</span>
+                  <p className="font-semibold text-slate-800">{formatDate(detail.data.tanggal)}</p>
+                </div>
+                <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
+                  <span className="text-slate-500 font-medium">Dicatat Oleh</span>
+                  <p className="font-semibold text-slate-800">{detail.data.dicatatOleh || 'Petugas Disiplin'}</p>
+                </div>
               </div>
 
-              <div className="p-3.5 bg-slate-50/50 border border-slate-200 rounded-xl text-xs space-y-1.5">
-                <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">Kronologi / Keterangan Kejadian:</span>
-                <p className="text-slate-800 leading-relaxed">{detail.data.keterangan || 'Tidak ada catatan tambahan.'}</p>
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1.5">
+                <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">Jenis & Uraian Pelanggaran:</span>
+                <p className="font-semibold text-slate-900 text-sm">{detail.data.jenisPelanggaran}</p>
+                {detail.data.keterangan && (
+                  <p className="text-slate-600 mt-1 leading-relaxed">{detail.data.keterangan}</p>
+                )}
               </div>
 
-              <div className="p-3.5 bg-amber-50/50 border border-amber-200 rounded-xl text-xs space-y-1.5">
-                <span className="font-bold text-amber-800 uppercase tracking-wider text-[10px]">Tindakan Pembinaan & Sanksi:</span>
-                <p className="text-amber-950 font-medium leading-relaxed">{detail.data.tindakanPembinaan || '-'}</p>
-              </div>
-
-              <div className="text-[11px] text-slate-400 text-right">
-                Petugas Pencatat: <strong className="text-slate-600">{detail.data.dicatatOleh || 'Pengurus Keamanan'}</strong>
+              <div className="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-xl text-xs space-y-1.5">
+                <span className="font-bold text-emerald-900 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> Tindakan Pembinaan / Sanksi:
+                </span>
+                <p className="text-emerald-950 font-semibold">{detail.data.tindakanPembinaan || '-'}</p>
               </div>
             </div>
           )}
@@ -202,6 +218,49 @@ export default function DetailIndisiplinerModal({ detail, onClose }: DetailIndis
                   <span className="text-rose-600 font-black text-sm">{detail.data.poinAkumulasi} Poin</span>
                 </div>
               </div>
+
+              {/* Lampiran Berkas Scan / Upload SP */}
+              {detail.data.dokumenSpUrl ? (
+                <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                      <Paperclip className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs">
+                      <span className="font-bold text-slate-900 block">Berkas Peringatan Terlampir</span>
+                      <span className="text-[10px] text-slate-500">{detail.data.ukuranDokumen || 'Dokumen'} • PDF/Gambar</span>
+                    </div>
+                  </div>
+                  <a
+                    href={detail.data.dokumenSpUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Buka Berkas
+                  </a>
+                </div>
+              ) : null}
+
+              {/* Tombol Unduh Format Word DOCX */}
+              <div className="p-3 bg-indigo-50/50 border border-indigo-200 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                    <FileDown className="w-4 h-4" />
+                  </div>
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-900 block">Surat Peringatan Resmi (DOCX)</span>
+                    <span className="text-[10px] text-slate-500">File Microsoft Word berisi data santri lengkap & siap cetak</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => downloadSpTemplateDocx(detail.data.tingkatSp, detail.data.id)}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" /> Unduh DOCX
+                </button>
+              </div>
             </div>
           )}
 
@@ -238,22 +297,46 @@ export default function DetailIndisiplinerModal({ detail, onClose }: DetailIndis
                 </div>
               )}
 
-              {/* Lampiran Dokumen SK */}
+              {/* Lampiran Dokumen SK (PDF / Gambar) */}
+              {detail.data.dokumenSkUrl ? (
+                <div className="p-3 bg-red-50/60 border border-red-200 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center">
+                      <Paperclip className="w-4 h-4" />
+                    </div>
+                    <div className="text-xs">
+                      <span className="font-bold text-slate-900 block">Berkas Asli SK Terlampir</span>
+                      <span className="text-[10px] text-slate-500">{detail.data.ukuranDokumen || 'Dokumen'} • PDF/Gambar</span>
+                    </div>
+                  </div>
+                  <a
+                    href={detail.data.dokumenSkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Buka Berkas
+                  </a>
+                </div>
+              ) : null}
+
+              {/* Tombol Unduh SK Format Word DOCX */}
               <div className="p-3 bg-indigo-50/50 border border-indigo-200 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
-                    <Download className="w-4 h-4" />
+                    <FileDown className="w-4 h-4" />
                   </div>
                   <div className="text-xs">
-                    <span className="font-bold text-slate-900 block">{detail.data.nomorSk}.pdf</span>
-                    <span className="text-[10px] text-slate-500">Berkas SK Resmi ({detail.data.ukuranDokumen || 'PDF Dokumen'})</span>
+                    <span className="font-bold text-slate-900 block">Surat Keputusan Resmi (DOCX)</span>
+                    <span className="text-[10px] text-slate-500">File Microsoft Word berisi data santri lengkap & siap cetak</span>
                   </div>
                 </div>
                 <button
-                  onClick={() => alert(`Simulasi: Mengunduh ${detail.data.nomorSk}.pdf`)}
+                  type="button"
+                  onClick={() => downloadPengeluaranTemplateDocx(detail.data.id)}
                   className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <Download className="w-3.5 h-3.5" /> Unduh Dokumen
+                  <Download className="w-3.5 h-3.5" /> Unduh DOCX
                 </button>
               </div>
             </div>

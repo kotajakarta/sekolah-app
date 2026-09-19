@@ -16,7 +16,9 @@ import {
   X,
   Sparkles,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  FileDown,
+  ChevronDown,
 } from 'lucide-react';
 import {
   PelanggaranRecord,
@@ -35,6 +37,8 @@ import {
   useGetPengeluaran,
   useCreatePengeluaran,
   useDeletePengeluaran,
+  downloadSpTemplateDocx,
+  downloadPengeluaranTemplateDocx,
 } from '../../features/indisipliner/useIndisipliner';
 import TambahDataModal from '../../features/indisipliner/TambahDataModal';
 import DetailIndisiplinerModal from '../../features/indisipliner/DetailIndisiplinerModal';
@@ -99,12 +103,15 @@ export default function CatatanIndisipliner() {
   >(null);
 
   // Notification Banner
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-  const showNotification = (msg: string, type: 'success' | 'info' = 'success') => {
+  const showNotification = (msg: string, type: 'success' | 'info' | 'error' = 'success') => {
     setNotification({ message: msg, type });
-    setTimeout(() => setNotification(null), 4000);
+    setTimeout(() => setNotification(null), 5000);
   };
+
+  // State Template Menu Dropdown
+  const [isTemplateMenuOpen, setIsTemplateMenuOpen] = useState(false);
 
   // Format Date Helper
   const formatDate = (dateStr: string) => {
@@ -120,34 +127,37 @@ export default function CatatanIndisipliner() {
     }
   };
 
-  // Handlers Tambah Data (Optimistic UI + API async sync)
+  // Handlers Tambah Data (API async sync with reliable error handling)
   const handleAddPelanggaran = async (newData: PelanggaranRecord) => {
-    setPelanggaranList(prev => [newData, ...prev]);
-    showNotification(`Catatan pelanggaran santri "${newData.namaSiswa}" berhasil ditambahkan.`);
     try {
-      await createPelanggaranMutation.mutateAsync(newData);
-    } catch (e) {
-      console.warn('API sync: Catatan pelanggaran tersimpan di state lokal.', e);
+      const saved = await createPelanggaranMutation.mutateAsync(newData);
+      setPelanggaranList(prev => [saved || newData, ...prev]);
+      showNotification(`Catatan pelanggaran santri "${newData.namaSiswa}" berhasil disimpan ke database.`, 'success');
+    } catch (e: any) {
+      console.error('API Error simpan pelanggaran:', e);
+      showNotification(`Gagal menyimpan pelanggaran: ${e?.response?.data?.message || e.message || 'Terjadi kesalahan sistem'}`, 'error');
     }
   };
 
   const handleAddSp = async (newData: SuratPeringatanRecord) => {
-    setSpList(prev => [newData, ...prev]);
-    showNotification(`Surat Peringatan ${newData.tingkatSp} untuk "${newData.namaSiswa}" berhasil diterbitkan.`);
     try {
-      await createSpMutation.mutateAsync(newData);
-    } catch (e) {
-      console.warn('API sync: SP tersimpan di state lokal.', e);
+      const saved = await createSpMutation.mutateAsync(newData);
+      setSpList(prev => [saved || newData, ...prev]);
+      showNotification(`Surat Peringatan ${newData.tingkatSp} untuk "${newData.namaSiswa}" berhasil diterbitkan.`, 'success');
+    } catch (e: any) {
+      console.error('API Error terbitkan SP:', e);
+      showNotification(`Gagal menerbitkan SP: ${e?.response?.data?.message || e.message || 'Terjadi kesalahan sistem'}`, 'error');
     }
   };
 
   const handleAddPengeluaran = async (newData: PengeluaranSiswaRecord) => {
-    setPengeluaranList(prev => [newData, ...prev]);
-    showNotification(`Catatan pengeluaran santri "${newData.namaSiswa}" berhasil diregistrasi.`);
     try {
-      await createPengeluaranMutation.mutateAsync(newData);
-    } catch (e) {
-      console.warn('API sync: Pengeluaran tersimpan di state lokal.', e);
+      const saved = await createPengeluaranMutation.mutateAsync(newData);
+      setPengeluaranList(prev => [saved || newData, ...prev]);
+      showNotification(`Catatan pengeluaran santri "${newData.namaSiswa}" berhasil diregistrasi ke database.`, 'success');
+    } catch (e: any) {
+      console.error('API Error pengeluaran santri:', e);
+      showNotification(`Gagal mencatat pengeluaran: ${e?.response?.data?.message || e.message || 'Terjadi kesalahan sistem'}`, 'error');
     }
   };
 
@@ -254,10 +264,18 @@ export default function CatatanIndisipliner() {
     <div className="space-y-6 animate-fadeIn pb-12">
       {/* Toast Notification */}
       {notification && (
-        <div className="fixed top-20 right-8 z-50 flex items-center gap-2.5 px-4 py-3 bg-slate-900 text-white rounded-xl shadow-xl border border-slate-700 text-xs font-medium animate-slideIn">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className={`fixed top-20 right-8 z-50 flex items-center gap-2.5 px-4 py-3 text-white rounded-xl shadow-xl border text-xs font-medium animate-slideIn ${
+          notification.type === 'error'
+            ? 'bg-rose-900 border-rose-700 text-rose-100'
+            : 'bg-slate-900 border-slate-700 text-slate-100'
+        }`}>
+          {notification.type === 'error' ? (
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          )}
           <span>{notification.message}</span>
-          <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white ml-2">
+          <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white ml-2 cursor-pointer">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -286,10 +304,10 @@ export default function CatatanIndisipliner() {
           </div>
         </div>
 
-        {/* Search Bar & Tombol + Tambah Data Sejajar */}
-        <div className="flex items-center gap-3">
+        {/* Search Bar & Tombol Aksi Sejajar */}
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Search Bar */}
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full sm:w-64">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
@@ -311,6 +329,86 @@ export default function CatatanIndisipliner() {
               >
                 <X className="w-3.5 h-3.5" />
               </button>
+            )}
+          </div>
+
+          {/* Dropdown Template Surat (DOCX) */}
+          <div className="relative">
+            <button
+              onClick={() => setIsTemplateMenuOpen(!isTemplateMenuOpen)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition-all cursor-pointer shadow-xs"
+              title="Download Template Blanko DOCX Resmi Pesantren"
+            >
+              <FileDown className="w-4 h-4 text-indigo-600 shrink-0" />
+              <span className="hidden sm:inline">Template DOCX</span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            </button>
+            {isTemplateMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-20" onClick={() => setIsTemplateMenuOpen(false)} />
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-30 animate-fadeIn text-xs">
+                  <div className="px-3.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                    Unduh Blanko Microsoft Word (.docx)
+                  </div>
+                  <button
+                    onClick={() => {
+                      downloadSpTemplateDocx('SP 1');
+                      setIsTemplateMenuOpen(false);
+                      showNotification('Template SP 1 sedang diunduh...');
+                    }}
+                    className="w-full text-left px-3.5 py-2 hover:bg-amber-50 hover:text-amber-800 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="font-medium">Surat Peringatan 1 (SP 1)</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">.docx</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      downloadSpTemplateDocx('SP 2');
+                      setIsTemplateMenuOpen(false);
+                      showNotification('Template SP 2 sedang diunduh...');
+                    }}
+                    className="w-full text-left px-3.5 py-2 hover:bg-orange-50 hover:text-orange-800 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-orange-500" />
+                      <span className="font-medium">Surat Peringatan 2 (SP 2)</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">.docx</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      downloadSpTemplateDocx('SP 3');
+                      setIsTemplateMenuOpen(false);
+                      showNotification('Template SP 3 sedang diunduh...');
+                    }}
+                    className="w-full text-left px-3.5 py-2 hover:bg-rose-50 hover:text-rose-800 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-3.5 h-3.5 text-rose-500" />
+                      <span className="font-medium">Surat Peringatan 3 (SP 3)</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">.docx</span>
+                  </button>
+                  <div className="border-t border-slate-100 my-1" />
+                  <button
+                    onClick={() => {
+                      downloadPengeluaranTemplateDocx();
+                      setIsTemplateMenuOpen(false);
+                      showNotification('Template SK Pemberhentian Santri sedang diunduh...');
+                    }}
+                    className="w-full text-left px-3.5 py-2 hover:bg-red-50 hover:text-red-800 flex items-center justify-between transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <LogOut className="w-3.5 h-3.5 text-red-500" />
+                      <span className="font-medium">SK Pengeluaran Santri (DO)</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">.docx</span>
+                  </button>
+                </div>
+              </>
             )}
           </div>
 
@@ -695,15 +793,25 @@ export default function CatatanIndisipliner() {
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1.5">
                             <button
+                              onClick={() => {
+                                downloadSpTemplateDocx(item.tingkatSp, item.id);
+                                showNotification(`Mengunduh ${item.tingkatSp} santri ${item.namaSiswa}...`);
+                              }}
+                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-colors cursor-pointer"
+                              title="Unduh Surat SP (.docx)"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => setDetailModalData({ type: 'sp', data: item })}
-                              className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition-colors"
+                              className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition-colors cursor-pointer"
                               title="Lihat Surat Peringatan"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDeleteSp(item.id, item.nomorSp)}
-                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors"
+                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
                               title="Hapus SP"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -800,15 +908,25 @@ export default function CatatanIndisipliner() {
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1.5">
                             <button
+                              onClick={() => {
+                                downloadPengeluaranTemplateDocx(item.id);
+                                showNotification(`Mengunduh SK DO santri ${item.namaSiswa}...`);
+                              }}
+                              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-colors cursor-pointer"
+                              title="Unduh SK Pengeluaran (.docx)"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => setDetailModalData({ type: 'pengeluaran', data: item })}
-                              className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition-colors"
+                              className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition-colors cursor-pointer"
                               title="Lihat Berita Acara & SK"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDeletePengeluaran(item.id, item.namaSiswa)}
-                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors"
+                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
                               title="Hapus Data"
                             >
                               <Trash2 className="w-4 h-4" />

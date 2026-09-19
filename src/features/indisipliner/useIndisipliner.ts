@@ -150,3 +150,50 @@ export function useDeletePengeluaran() {
     },
   });
 }
+
+// === UPLOAD BERKAS SP & PENGELUARAN (PDF / GAMBAR) ===
+export function useUploadIndisiplinerDoc() {
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await apiClient.post<{ url: string; filename: string; ukuranDokumen: string }>(
+        '/indisipliner/upload',
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      return res.data;
+    },
+  });
+}
+
+// === DOWNLOAD TEMPLATE DOCX ===
+export const downloadSpTemplateDocx = async (tingkat: string, id?: string) => {
+  const url = `/indisipliner/template/sp/${encodeURIComponent(tingkat)}${id ? `?id=${encodeURIComponent(id)}` : ''}`;
+  const response = await apiClient.get(url, { responseType: 'blob' });
+  const blob = new Blob([response.data], {
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+  const link = document.createElement('a');
+  link.href = window.URL.createObjectURL(blob);
+  link.download = id ? `Surat_Peringatan_${tingkat.replace(/\s+/g, '_')}.docx` : `Template_SP_${tingkat.replace(/\s+/g, '_')}.docx`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(link.href);
+};
+
+export const downloadPengeluaranTemplateDocx = async (id?: string) => {
+  const url = `/indisipliner/template/pengeluaran${id ? `?id=${encodeURIComponent(id)}` : ''}`;
+  const response = await apiClient.get(url, { responseType: 'blob' });
+  const blob = new Blob([response.data], {
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  });
+  const link = document.createElement('a');
+  link.href = window.URL.createObjectURL(blob);
+  link.download = id ? 'SK_Pengeluaran_Santri.docx' : 'Template_SK_Pengeluaran_Santri.docx';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(link.href);
+};

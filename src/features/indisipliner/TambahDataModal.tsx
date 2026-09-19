@@ -1,7 +1,22 @@
 import React, { useState, useMemo } from 'react';
-import { X, AlertTriangle, FileWarning, LogOut, Plus, Check, UserCheck, Search, Building2, School } from 'lucide-react';
+import {
+  X,
+  AlertTriangle,
+  FileWarning,
+  LogOut,
+  Plus,
+  Check,
+  Search,
+  Upload,
+  FileText,
+  FileDown,
+  Loader2,
+  Trash2,
+  Paperclip,
+} from 'lucide-react';
 import { PelanggaranRecord, SuratPeringatanRecord, PengeluaranSiswaRecord, TingkatSp, KategoriPelanggaran } from './types';
 import { useGetStudents, Student } from '../core_data/hooks/useGetStudents';
+import { useUploadIndisiplinerDoc, downloadSpTemplateDocx, downloadPengeluaranTemplateDocx } from './useIndisipliner';
 
 interface TambahDataModalProps {
   isOpen: boolean;
@@ -62,6 +77,12 @@ export default function TambahDataModal({
   const [kategoriAlasan, setKategoriAlasan] = useState<'Akumulasi Poin Maksimal' | 'Pelanggaran Berat Syariat / Asusila' | 'Mangkir / Kabur' | 'Kriminal / Narkoba' | 'Lainnya'>('Akumulasi Poin Maksimal');
   const [pejabatTtd, setPejabatTtd] = useState('');
 
+  // Upload File States
+  const uploadDocMutation = useUploadIndisiplinerDoc();
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedSpDoc, setUploadedSpDoc] = useState<{ url: string; filename: string; ukuran: string } | null>(null);
+  const [uploadedSkDoc, setUploadedSkDoc] = useState<{ url: string; filename: string; ukuran: string } | null>(null);
+
   // Error validation
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -101,6 +122,40 @@ export default function TambahDataModal({
     setNisLokal('');
     setKelas('');
     setSearchSantriQuery('');
+  };
+
+  // Handler upload berkas PDF / Gambar
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'sp' | 'sk') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+      setErrorMessage('Ukuran file maksimal 15 MB.');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setErrorMessage('');
+      const res = await uploadDocMutation.mutateAsync(file);
+      if (target === 'sp') {
+        setUploadedSpDoc({
+          url: res.url,
+          filename: res.filename,
+          ukuran: res.ukuranDokumen,
+        });
+      } else {
+        setUploadedSkDoc({
+          url: res.url,
+          filename: res.filename,
+          ukuran: res.ukuranDokumen,
+        });
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.response?.data?.message || 'Gagal mengunggah berkas dokumen.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -156,6 +211,8 @@ export default function TambahDataModal({
         berlakuHingga,
         poinAkumulasi: Number(poinAkumulasi) || 0,
         tembusan: 'Wali Santri, Pimpinan Lembaga, Wali Kelas',
+        dokumenSpUrl: uploadedSpDoc?.url || null,
+        ukuranDokumen: uploadedSpDoc?.ukuran || null,
       };
       onAddSp(newSp);
     } else {
@@ -175,8 +232,8 @@ export default function TambahDataModal({
         kategoriAlasan,
         nomorSk: nomorSk.trim() || `SK-DO/${new Date().getFullYear()}/${Date.now().toString().slice(-4)}`,
         tanggalSk: tanggal,
-        dokumenSkUrl: '',
-        ukuranDokumen: '-',
+        dokumenSkUrl: uploadedSkDoc?.url || '',
+        ukuranDokumen: uploadedSkDoc?.ukuran || '-',
         pejabatTtd: pejabatTtd.trim() || 'Pimpinan Pondok Pesantren',
       };
       onAddPengeluaran(newDo);
@@ -201,7 +258,7 @@ export default function TambahDataModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -261,7 +318,7 @@ export default function TambahDataModal({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 text-xs">
           {errorMessage && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center gap-2 text-xs font-medium">
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center gap-2 text-xs font-medium animate-fadeIn">
               <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
               <span>{errorMessage}</span>
             </div>
@@ -484,7 +541,20 @@ export default function TambahDataModal({
 
           {/* Form Content: SP */}
           {activeFormType === 'sp' && (
-            <div className="space-y-3">
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                <span className="text-[11px] font-bold text-slate-700">Format & Template Surat Peringatan</span>
+                <button
+                  type="button"
+                  onClick={() => downloadSpTemplateDocx(tingkatSp)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-[11px] font-bold transition-colors cursor-pointer border border-indigo-200"
+                  title="Unduh Template Word SP ini"
+                >
+                  <FileDown className="w-3.5 h-3.5 text-indigo-600" />
+                  Unduh Template DOCX ({tingkatSp})
+                </button>
+              </div>
+
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <label className="text-slate-600 font-semibold">Tingkat SP *</label>
@@ -544,12 +614,80 @@ export default function TambahDataModal({
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
+
+              {/* Upload Berkas Scan SP (PDF / Gambar) */}
+              <div className="p-3 bg-amber-50/50 border border-amber-200 rounded-xl space-y-2">
+                <label className="text-slate-700 font-bold flex items-center gap-1.5 text-[11px]">
+                  <Upload className="w-3.5 h-3.5 text-amber-600" />
+                  Lampirkan Scan / Dokumen SP (PDF atau Gambar)
+                </label>
+                {uploadedSpDoc ? (
+                  <div className="flex items-center justify-between p-2.5 bg-white border border-emerald-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <span className="font-bold text-slate-800 block truncate max-w-[280px]">
+                          {uploadedSpDoc.filename}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {uploadedSpDoc.ukuran} • Terlampir
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setUploadedSpDoc(null)}
+                      className="p-1 rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                      title="Hapus lampiran"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-amber-300 rounded-lg bg-white hover:bg-amber-50/50 transition-colors cursor-pointer text-center">
+                    <div className="flex items-center gap-2 text-amber-800 font-semibold text-xs">
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+                          <span>Mengunggah dokumen berkas...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Paperclip className="w-4 h-4 text-amber-600" />
+                          <span>Pilih file PDF atau Gambar (JPG, PNG)</span>
+                        </>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-0.5">Maksimal 15 MB</span>
+                    <input
+                      type="file"
+                      accept=".pdf,image/png,image/jpeg,image/webp"
+                      disabled={isUploading}
+                      onChange={(e) => handleFileUpload(e, 'sp')}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
             </div>
           )}
 
           {/* Form Content: Pengeluaran */}
           {activeFormType === 'pengeluaran' && (
-            <div className="space-y-3">
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                <span className="text-[11px] font-bold text-slate-700">Format & Template Surat Keputusan</span>
+                <button
+                  type="button"
+                  onClick={() => downloadPengeluaranTemplateDocx()}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-[11px] font-bold transition-colors cursor-pointer border border-indigo-200"
+                  title="Unduh Template Word SK Pengeluaran"
+                >
+                  <FileDown className="w-3.5 h-3.5 text-indigo-600" />
+                  Unduh Template DOCX (SK DO)
+                </button>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-slate-600 font-semibold">Nomor SK Pengeluaran</label>
@@ -594,11 +732,66 @@ export default function TambahDataModal({
                 <label className="text-slate-600 font-semibold">Pejabat yang Menandatangani SK</label>
                 <input
                   type="text"
-                  placeholder="Nama & Jabatan Penandatangan (contoh: Pimpinan Lembaga)"
+                  placeholder="Nama & Jabatan Penandatangan (contoh: Pimpinan Pondok Pesantren)"
                   value={pejabatTtd}
                   onChange={(e) => setPejabatTtd(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
                 />
+              </div>
+
+              {/* Upload Berkas Scan SK Pengeluaran (PDF / Gambar) */}
+              <div className="p-3 bg-red-50/50 border border-red-200 rounded-xl space-y-2">
+                <label className="text-slate-700 font-bold flex items-center gap-1.5 text-[11px]">
+                  <Upload className="w-3.5 h-3.5 text-red-600" />
+                  Lampirkan Berkas Asli SK Pengeluaran (PDF atau Gambar)
+                </label>
+                {uploadedSkDoc ? (
+                  <div className="flex items-center justify-between p-2.5 bg-white border border-emerald-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <span className="font-bold text-slate-800 block truncate max-w-[280px]">
+                          {uploadedSkDoc.filename}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {uploadedSkDoc.ukuran} • Terlampir
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setUploadedSkDoc(null)}
+                      className="p-1 rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                      title="Hapus lampiran"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-red-300 rounded-lg bg-white hover:bg-red-50/50 transition-colors cursor-pointer text-center">
+                    <div className="flex items-center gap-2 text-red-800 font-semibold text-xs">
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+                          <span>Mengunggah dokumen SK...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Paperclip className="w-4 h-4 text-red-600" />
+                          <span>Pilih file PDF atau Gambar (JPG, PNG)</span>
+                        </>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-0.5">Maksimal 15 MB</span>
+                    <input
+                      type="file"
+                      accept=".pdf,image/png,image/jpeg,image/webp"
+                      disabled={isUploading}
+                      onChange={(e) => handleFileUpload(e, 'sk')}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
             </div>
           )}
@@ -614,9 +807,18 @@ export default function TambahDataModal({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+              disabled={isUploading}
+              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
             >
-              <Check className="w-4 h-4" /> Simpan Data
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> Mengunggah...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" /> Simpan Data
+                </>
+              )}
             </button>
           </div>
         </form>

@@ -35,6 +35,8 @@ export interface SuratPeringatanRecord {
   berlakuHingga: string;
   poinAkumulasi: number;
   tembusan?: string;
+  dokumenSpUrl?: string | null;
+  ukuranDokumen?: string | null;
 }
 
 export interface PengeluaranSiswaRecord {

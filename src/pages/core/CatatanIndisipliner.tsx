@@ -25,11 +25,6 @@ import {
   IndisiplinerTab
 } from '../../features/indisipliner/types';
 import {
-  initialPelanggaranData,
-  initialSuratPeringatanData,
-  initialPengeluaranData
-} from '../../features/indisipliner/dummyData';
-import {
   useGetIndisiplinerStats,
   useGetPelanggaran,
   useCreatePelanggaran,
@@ -43,6 +38,7 @@ import {
 } from '../../features/indisipliner/useIndisipliner';
 import TambahDataModal from '../../features/indisipliner/TambahDataModal';
 import DetailIndisiplinerModal from '../../features/indisipliner/DetailIndisiplinerModal';
+import { useGetStudents } from '../../features/core_data/hooks/useGetStudents';
 
 export default function CatatanIndisipliner() {
   // State Tab Management (Active Default: 'pelanggaran')
@@ -54,16 +50,17 @@ export default function CatatanIndisipliner() {
   // Category Filter State (opsional untuk menyaring lebih spesifik)
   const [selectedKategori, setSelectedKategori] = useState<string>('ALL');
 
-  // Data States
-  const [pelanggaranList, setPelanggaranList] = useState<PelanggaranRecord[]>(initialPelanggaranData);
-  const [spList, setSpList] = useState<SuratPeringatanRecord[]>(initialSuratPeringatanData);
-  const [pengeluaranList, setPengeluaranList] = useState<PengeluaranSiswaRecord[]>(initialPengeluaranData);
+  // Data States - Murni hanya santri yang memiliki catatan indisipliner / bermasalah (Default kosong)
+  const [pelanggaranList, setPelanggaranList] = useState<PelanggaranRecord[]>([]);
+  const [spList, setSpList] = useState<SuratPeringatanRecord[]>([]);
+  const [pengeluaranList, setPengeluaranList] = useState<PengeluaranSiswaRecord[]>([]);
 
-  // API Queries
+  // API Queries (Real Database)
+  const { data: allStudents = [] } = useGetStudents();
   const { data: apiStats } = useGetIndisiplinerStats();
-  const { data: apiPelanggaran } = useGetPelanggaran();
-  const { data: apiSp } = useGetSp();
-  const { data: apiPengeluaran } = useGetPengeluaran();
+  const { data: apiPelanggaran, isLoading: isPelLoading } = useGetPelanggaran();
+  const { data: apiSp, isLoading: isSpLoading } = useGetSp();
+  const { data: apiPengeluaran, isLoading: isPengLoading } = useGetPengeluaran();
 
   // API Mutations
   const createPelanggaranMutation = useCreatePelanggaran();
@@ -73,21 +70,21 @@ export default function CatatanIndisipliner() {
   const createPengeluaranMutation = useCreatePengeluaran();
   const deletePengeluaranMutation = useDeletePengeluaran();
 
-  // Sinkronisasi data API ke local state ketika data dari backend tersedia
+  // Sinkronisasi data real API ke local state
   React.useEffect(() => {
-    if (apiPelanggaran && apiPelanggaran.length > 0) {
+    if (apiPelanggaran) {
       setPelanggaranList(apiPelanggaran);
     }
   }, [apiPelanggaran]);
 
   React.useEffect(() => {
-    if (apiSp && apiSp.length > 0) {
+    if (apiSp) {
       setSpList(apiSp);
     }
   }, [apiSp]);
 
   React.useEffect(() => {
-    if (apiPengeluaran && apiPengeluaran.length > 0) {
+    if (apiPengeluaran) {
       setPengeluaranList(apiPengeluaran);
     }
   }, [apiPengeluaran]);
@@ -233,11 +230,25 @@ export default function CatatanIndisipliner() {
     });
   }, [pengeluaranList, searchQuery]);
 
-  // Statistik Ringkas (KPI)
-  const totalPelanggaran = pelanggaranList.length;
-  const totalSpAktif = spList.filter(s => s.status === 'Aktif' || s.status === 'Masa Pembinaan').length;
-  const totalDikeluarkan = pengeluaranList.length;
-  const totalPoinSemua = pelanggaranList.reduce((acc, curr) => acc + curr.poin, 0);
+  // Statistik Ringkas (KPI) - Berasal dari data aktual
+  const totalPelanggaran = apiStats?.totalPelanggaran ?? pelanggaranList.length;
+  const totalSpAktif = apiStats?.spAktif ?? spList.filter(s => s.status === 'Aktif' || s.status === 'Masa Pembinaan').length;
+  const totalDikeluarkan = apiStats?.totalPengeluaran ?? pengeluaranList.length;
+  const totalPoinSemua = apiStats?.totalPoin ?? pelanggaranList.reduce((acc, curr) => acc + curr.poin, 0);
+
+  // Menghitung santri bermasalah riil (yang ada di daftar indisipliner) vs total santri keseluruhan
+  const uniqueTroubledCount = useMemo(() => {
+    const ids = new Set<string>();
+    pelanggaranList.forEach(p => p.siswaId && ids.add(p.siswaId));
+    spList.forEach(s => s.siswaId && ids.add(s.siswaId));
+    pengeluaranList.forEach(d => d.siswaId && ids.add(d.siswaId));
+    return ids.size;
+  }, [pelanggaranList, spList, pengeluaranList]);
+
+  const totalSantriLembaga = allStudents.length;
+  const tingkatKedisiplinan = totalSantriLembaga > 0
+    ? Math.max(0, Math.min(100, Math.round(((totalSantriLembaga - uniqueTroubledCount) / totalSantriLembaga) * 1000) / 10))
+    : 100;
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
@@ -352,8 +363,14 @@ export default function CatatanIndisipliner() {
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-xs text-slate-500 font-medium block">Tingkat Kedisiplinan</span>
-            <span className="text-2xl font-black text-emerald-600 mt-1 block">96.4%</span>
-            <span className="text-[10px] text-emerald-700 font-medium mt-0.5 block">Kepatuhan Tata Tertib</span>
+            <span className="text-2xl font-black text-emerald-600 mt-1 block">
+              {tingkatKedisiplinan}%
+            </span>
+            <span className="text-[10px] text-emerald-700 font-medium mt-0.5 block">
+              {uniqueTroubledCount === 0
+                ? 'Seluruh Santri Tertib (0 Bermasalah)'
+                : `${uniqueTroubledCount} dari ${totalSantriLembaga} Santri Bermasalah`}
+            </span>
           </div>
           <div className="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
             <TrendingUp className="w-5 h-5" />
@@ -494,10 +511,26 @@ export default function CatatanIndisipliner() {
                 <tbody className="divide-y divide-slate-100">
                   {filteredPelanggaran.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-400">
-                        <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                        <p className="font-semibold text-slate-600">Tidak ada data pelanggaran ditemukan</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">Coba sesuaikan kata kunci pencarian Anda</p>
+                      <td colSpan={7} className="py-16 text-center text-slate-400">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 border border-emerald-100 shadow-xs">
+                          <CheckCircle2 className="w-6 h-6" />
+                        </div>
+                        <p className="font-bold text-slate-700 text-sm">
+                          {searchQuery ? 'Tidak ada catatan pelanggaran yang cocok dengan pencarian' : 'Tidak Ada Catatan Pelanggaran Santri'}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+                          {searchQuery
+                            ? `Tidak ditemukan hasil pencarian untuk kata kunci "${searchQuery}".`
+                            : 'Alhamdulillah, seluruh santri tertib dan mematuhi peraturan. Hanya santri yang melakukan pelanggaran yang akan dicatat pada daftar ini.'}
+                        </p>
+                        {!searchQuery && (
+                          <button
+                            onClick={() => setIsTambahModalOpen(true)}
+                            className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs transition-colors cursor-pointer shadow-xs"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> + Catat Pelanggaran Baru
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ) : (
@@ -587,10 +620,26 @@ export default function CatatanIndisipliner() {
                 <tbody className="divide-y divide-slate-100">
                   {filteredSp.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-400">
-                        <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                        <p className="font-semibold text-slate-600">Tidak ada data Surat Peringatan</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">Coba sesuaikan kata kunci pencarian Anda</p>
+                      <td colSpan={7} className="py-16 text-center text-slate-400">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 border border-emerald-100 shadow-xs">
+                          <CheckCircle2 className="w-6 h-6" />
+                        </div>
+                        <p className="font-bold text-slate-700 text-sm">
+                          {searchQuery ? 'Tidak ada Surat Peringatan yang cocok dengan pencarian' : 'Tidak Ada Surat Peringatan (SP) Diterbitkan'}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+                          {searchQuery
+                            ? `Tidak ditemukan SP untuk kata kunci "${searchQuery}".`
+                            : 'Belum ada santri yang melampaui batas akumulasi poin untuk penerbitan SP 1, SP 2, maupun SP 3.'}
+                        </p>
+                        {!searchQuery && (
+                          <button
+                            onClick={() => setIsTambahModalOpen(true)}
+                            className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs transition-colors cursor-pointer shadow-xs"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> + Terbitkan SP Baru
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ) : (
@@ -690,10 +739,26 @@ export default function CatatanIndisipliner() {
                 <tbody className="divide-y divide-slate-100">
                   {filteredPengeluaran.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-400">
-                        <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                        <p className="font-semibold text-slate-600">Tidak ada data santri yang dikeluarkan</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">Coba sesuaikan kata kunci pencarian Anda</p>
+                      <td colSpan={7} className="py-16 text-center text-slate-400">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 border border-emerald-100 shadow-xs">
+                          <CheckCircle2 className="w-6 h-6" />
+                        </div>
+                        <p className="font-bold text-slate-700 text-sm">
+                          {searchQuery ? 'Tidak ada data pengeluaran yang cocok dengan pencarian' : 'Tidak Ada Santri yang Dikeluarkan'}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+                          {searchQuery
+                            ? `Tidak ditemukan arsip pengeluaran untuk kata kunci "${searchQuery}".`
+                            : 'Seluruh santri masih aktif belajar dan tidak ada catatan pemberhentian resmi / Drop Out (DO) pada lembaga ini.'}
+                        </p>
+                        {!searchQuery && (
+                          <button
+                            onClick={() => setIsTambahModalOpen(true)}
+                            className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs transition-colors cursor-pointer shadow-xs"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> + Catat Pengeluaran Santri
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ) : (

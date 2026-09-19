@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { X, AlertTriangle, FileWarning, LogOut, Plus, Check, UserCheck } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, AlertTriangle, FileWarning, LogOut, Plus, Check, UserCheck, Search, Building2, School } from 'lucide-react';
 import { PelanggaranRecord, SuratPeringatanRecord, PengeluaranSiswaRecord, TingkatSp, KategoriPelanggaran } from './types';
-import { useGetStudents } from '../core_data/hooks/useGetStudents';
+import { useGetStudents, Student } from '../core_data/hooks/useGetStudents';
 
 interface TambahDataModalProps {
   isOpen: boolean;
@@ -22,14 +22,22 @@ export default function TambahDataModal({
 }: TambahDataModalProps) {
   const [activeFormType, setActiveFormType] = useState<'pelanggaran' | 'sp' | 'pengeluaran'>(defaultTab);
 
-  const { data: students = [] } = useGetStudents();
+  // Ambil data santri riil dari database sistem
+  const { data: students = [], isLoading: isLoadingStudents } = useGetStudents();
 
-  // Form states - Pelanggaran
+  // Search & Selected Student State
+  const [searchSantriQuery, setSearchSantriQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+
+  // Form states - Identitas Santri
   const [siswaId, setSiswaId] = useState('');
   const [namaSiswa, setNamaSiswa] = useState('');
   const [nisLokal, setNisLokal] = useState('');
-  const [kelas, setKelas] = useState('X-A Ulya');
+  const [kelas, setKelas] = useState('');
   const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
+
+  // Form states - Pelanggaran
   const [jenisPelanggaran, setJenisPelanggaran] = useState('');
   const [kategori, setKategori] = useState<KategoriPelanggaran>('Ringan');
   const [poin, setPoin] = useState(5);
@@ -39,7 +47,7 @@ export default function TambahDataModal({
 
   // Form states - SP
   const [tingkatSp, setTingkatSp] = useState<TingkatSp>('SP 1');
-  const [nomorSp, setNomorSp] = useState(`SP/${Math.floor(Math.random() * 90 + 10)}/KDS/YTS/2026`);
+  const [nomorSp, setNomorSp] = useState('');
   const [alasanSp, setAlasanSp] = useState('');
   const [berlakuHingga, setBerlakuHingga] = useState(() => {
     const d = new Date();
@@ -49,74 +57,127 @@ export default function TambahDataModal({
   const [poinAkumulasi, setPoinAkumulasi] = useState(30);
 
   // Form states - Pengeluaran
-  const [nomorSk, setNomorSk] = useState(`SK/DO/YTS/2026/${Math.floor(Math.random() * 900 + 100)}`);
+  const [nomorSk, setNomorSk] = useState('');
   const [alasanPemberhentian, setAlasanPemberhentian] = useState('');
   const [kategoriAlasan, setKategoriAlasan] = useState<'Akumulasi Poin Maksimal' | 'Pelanggaran Berat Syariat / Asusila' | 'Mangkir / Kabur' | 'Kriminal / Narkoba' | 'Lainnya'>('Akumulasi Poin Maksimal');
-  const [pejabatTtd, setPejabatTtd] = useState('Dr. KH. Abdullah Syakir, M.Ag. (Pimpinan Lembaga)');
+  const [pejabatTtd, setPejabatTtd] = useState('');
+
+  // Error validation
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Auto-filter daftar santri berdasarkan kata kunci pencarian
+  const filteredStudents = useMemo(() => {
+    if (!searchSantriQuery.trim()) return [];
+    const q = searchSantriQuery.toLowerCase();
+    return students
+      .filter((s: Student) => {
+        const name = s.biodata?.fullName?.toLowerCase() || '';
+        const nis = (s.biodata?.nisLokal || s.siswaFormal?.nis || '').toLowerCase();
+        const nisn = (s.biodata?.nisn || s.siswaFormal?.nisn || '').toLowerCase();
+        const kelasName = (s.siswaFormal?.kelas?.name || '').toLowerCase();
+        const cabangName = (s.cabang?.name || '').toLowerCase();
+        return name.includes(q) || nis.includes(q) || nisn.includes(q) || kelasName.includes(q) || cabangName.includes(q);
+      })
+      .slice(0, 15);
+  }, [students, searchSantriQuery]);
+
+  // Handler memilih santri riil dari database
+  const handleSelectStudent = (student: Student) => {
+    setSelectedStudent(student);
+    setSiswaId(student.id);
+    setNamaSiswa(student.biodata?.fullName || 'Santri');
+    setNisLokal(student.biodata?.nisLokal || student.siswaFormal?.nis || '-');
+    setKelas(student.siswaFormal?.kelas?.name || student.cabang?.name || 'Reguler');
+    setSearchSantriQuery('');
+    setIsDropdownOpen(false);
+    setErrorMessage('');
+  };
+
+  // Reset pilihan santri
+  const handleResetStudent = () => {
+    setSelectedStudent(null);
+    setSiswaId('');
+    setNamaSiswa('');
+    setNisLokal('');
+    setKelas('');
+    setSearchSantriQuery('');
+  };
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!namaSiswa.trim()) {
-      alert('Nama Siswa wajib diisi!');
+    setErrorMessage('');
+
+    if (!siswaId || !namaSiswa.trim()) {
+      setErrorMessage('Wajib memilih santri terdaftar dari database sistem!');
       return;
     }
 
-    const effectiveSiswaId =
-      siswaId ||
-      students.find((s: any) => s.biodata?.fullName?.toLowerCase() === namaSiswa.trim().toLowerCase())?.id ||
-      `std-${Date.now()}`;
-
     if (activeFormType === 'pelanggaran') {
+      if (!jenisPelanggaran.trim()) {
+        setErrorMessage('Jenis/Nama pelanggaran wajib diisi!');
+        return;
+      }
+
       const newPel: PelanggaranRecord = {
-        id: `PLG-${Date.now().toString().slice(-4)}`,
+        id: `PLG-${Date.now()}`,
         tanggal,
-        siswaId: effectiveSiswaId,
+        siswaId,
         namaSiswa: namaSiswa.trim(),
-        nisLokal: nisLokal || `${Math.floor(Math.random() * 900000 + 100000)}`,
-        kelas,
-        jenisPelanggaran: jenisPelanggaran.trim() || 'Pelanggaran Disiplin',
+        nisLokal: nisLokal || '-',
+        kelas: kelas.trim() || 'Umum',
+        jenisPelanggaran: jenisPelanggaran.trim(),
         kategori,
         poin: Number(poin) || 5,
-        lokasi: lokasi.trim() || 'Lingkungan Lembaga',
+        lokasi: lokasi.trim() || '-',
         keterangan: keterangan.trim(),
-        tindakanPembinaan: tindakanPembinaan.trim() || 'Teguran tertulis & pembinaan',
+        tindakanPembinaan: tindakanPembinaan.trim() || 'Pembinaan lisan & tertulis',
         dicatatOleh: 'Petugas Ketertiban & Disiplin',
       };
       onAddPelanggaran(newPel);
     } else if (activeFormType === 'sp') {
+      if (!alasanSp.trim()) {
+        setErrorMessage('Alasan penerbitan SP wajib diisi!');
+        return;
+      }
+
       const newSp: SuratPeringatanRecord = {
-        id: `SP-${Date.now().toString().slice(-4)}`,
+        id: `SP-${Date.now()}`,
         tanggalTerbit: tanggal,
-        nomorSp: nomorSp.trim(),
-        siswaId: effectiveSiswaId,
+        nomorSp: nomorSp.trim() || `SP/${new Date().getFullYear()}/${Date.now().toString().slice(-4)}`,
+        siswaId,
         namaSiswa: namaSiswa.trim(),
-        nisLokal: nisLokal || `${Math.floor(Math.random() * 900000 + 100000)}`,
-        kelas,
+        nisLokal: nisLokal || '-',
+        kelas: kelas.trim() || 'Umum',
         tingkatSp,
         status: 'Aktif',
-        alasan: alasanSp.trim() || 'Pelanggaran tata tertib berturut-turut',
+        alasan: alasanSp.trim(),
         berlakuHingga,
-        poinAkumulasi: Number(poinAkumulasi) || 30,
-        tembusan: 'Wali Santri, Mudir Pesantren, Wali Kelas',
+        poinAkumulasi: Number(poinAkumulasi) || 0,
+        tembusan: 'Wali Santri, Pimpinan Lembaga, Wali Kelas',
       };
       onAddSp(newSp);
     } else {
+      if (!alasanPemberhentian.trim()) {
+        setErrorMessage('Alasan pemberhentian wajib diisi!');
+        return;
+      }
+
       const newDo: PengeluaranSiswaRecord = {
-        id: `DO-${Date.now().toString().slice(-4)}`,
+        id: `DO-${Date.now()}`,
         tanggalKeluar: tanggal,
-        siswaId: effectiveSiswaId,
+        siswaId,
         namaSiswa: namaSiswa.trim(),
-        nisLokal: nisLokal || `${Math.floor(Math.random() * 900000 + 100000)}`,
-        kelas,
-        alasanPemberhentian: alasanPemberhentian.trim() || 'Keputusan Sidang Disiplin Pesantren',
+        nisLokal: nisLokal || '-',
+        kelas: kelas.trim() || 'Umum',
+        alasanPemberhentian: alasanPemberhentian.trim(),
         kategoriAlasan,
-        nomorSk: nomorSk.trim(),
+        nomorSk: nomorSk.trim() || `SK-DO/${new Date().getFullYear()}/${Date.now().toString().slice(-4)}`,
         tanggalSk: tanggal,
-        dokumenSkUrl: `/dokumen/sk/${nomorSk.replace(/[\/]/g, '-')}.pdf`,
-        ukuranDokumen: '350 KB',
-        pejabatTtd,
+        dokumenSkUrl: '',
+        ukuranDokumen: '-',
+        pejabatTtd: pejabatTtd.trim() || 'Pimpinan Pondok Pesantren',
       };
       onAddPengeluaran(newDo);
     }
@@ -126,7 +187,7 @@ export default function TambahDataModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="px-6 py-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -135,7 +196,7 @@ export default function TambahDataModal({
             </div>
             <div>
               <h3 className="font-bold text-base">Tambah Catatan Indisipliner</h3>
-              <p className="text-xs text-slate-300">Pilih formulir sesuai jenis tindakan kedisiplinan</p>
+              <p className="text-xs text-slate-300">Catat santri yang melakukan pelanggaran atau tindakan disiplin</p>
             </div>
           </div>
           <button
@@ -150,8 +211,11 @@ export default function TambahDataModal({
         <div className="flex border-b border-slate-200 bg-slate-50 px-6 pt-3 gap-2">
           <button
             type="button"
-            onClick={() => setActiveFormType('pelanggaran')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all border-b-2 ${
+            onClick={() => {
+              setActiveFormType('pelanggaran');
+              setErrorMessage('');
+            }}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all border-b-2 cursor-pointer ${
               activeFormType === 'pelanggaran'
                 ? 'border-indigo-600 text-indigo-600 bg-white shadow-xs'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -163,8 +227,11 @@ export default function TambahDataModal({
 
           <button
             type="button"
-            onClick={() => setActiveFormType('sp')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all border-b-2 ${
+            onClick={() => {
+              setActiveFormType('sp');
+              setErrorMessage('');
+            }}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all border-b-2 cursor-pointer ${
               activeFormType === 'sp'
                 ? 'border-indigo-600 text-indigo-600 bg-white shadow-xs'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -176,8 +243,11 @@ export default function TambahDataModal({
 
           <button
             type="button"
-            onClick={() => setActiveFormType('pengeluaran')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all border-b-2 ${
+            onClick={() => {
+              setActiveFormType('pengeluaran');
+              setErrorMessage('');
+            }}
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all border-b-2 cursor-pointer ${
               activeFormType === 'pengeluaran'
                 ? 'border-indigo-600 text-indigo-600 bg-white shadow-xs'
                 : 'border-transparent text-slate-500 hover:text-slate-800'
@@ -190,75 +260,130 @@ export default function TambahDataModal({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 text-xs">
-          {/* Section: Identitas Santri (Shared) */}
-          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-            <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px] block">
-              Identitas Peserta Didik
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2 space-y-1">
-                <label className="text-slate-600 font-semibold">Nama Lengkap Santri *</label>
-                <input
-                  type="text"
-                  required
-                  list="santri-datalist"
-                  placeholder="Ketik atau pilih nama santri..."
-                  value={namaSiswa}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setNamaSiswa(val);
-                    const matched = students.find(
-                      (s: any) => s.biodata?.fullName?.toLowerCase() === val.trim().toLowerCase()
-                    );
-                    if (matched) {
-                      setSiswaId(matched.id);
-                      if (matched.biodata?.nisLokal || matched.siswaFormal?.nis) {
-                        setNisLokal(matched.biodata?.nisLokal || matched.siswaFormal?.nis);
-                      }
-                      if (matched.siswaFormal?.kelas?.name) {
-                        setKelas(matched.siswaFormal.kelas.name);
-                      }
-                    }
-                  }}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
-                />
-                <datalist id="santri-datalist">
-                  {students.slice(0, 100).map((s: any) => (
-                    <option key={s.id} value={s.biodata?.fullName || ''}>
-                      NIS: {s.biodata?.nisLokal || s.siswaFormal?.nis || '-'} • {s.siswaFormal?.kelas?.name || 'Umum'}
-                    </option>
-                  ))}
-                </datalist>
-              </div>
-              <div className="space-y-1">
-                <label className="text-slate-600 font-semibold">NIS Lokal</label>
-                <input
-                  type="text"
-                  placeholder="Contoh: 202401089"
-                  value={nisLokal}
-                  onChange={(e) => setNisLokal(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-mono"
-                />
-              </div>
+          {errorMessage && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-center gap-2 text-xs font-medium">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-500" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* Section: Identitas Santri Riil dari Database */}
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-slate-700 uppercase tracking-wider text-[10.5px]">
+                Identitas Peserta Didik (Data Santri Terdaftar)
+              </span>
+              {selectedStudent && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <Check className="w-3 h-3 text-emerald-600" /> Terverifikasi di Database
+                </span>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {selectedStudent ? (
+              /* Tampilan santri terpilih */
+              <div className="p-3.5 bg-white border-2 border-indigo-500/50 rounded-xl shadow-xs flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center font-bold text-indigo-700 text-sm shrink-0">
+                    {namaSiswa.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-xs">{namaSiswa}</h4>
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 mt-0.5">
+                      <span>NIS: <strong className="font-mono text-slate-700">{nisLokal}</strong></span>
+                      <span>•</span>
+                      <span>Kelas: <strong className="text-slate-700">{kelas}</strong></span>
+                      {selectedStudent.cabang?.name && (
+                        <>
+                          <span>•</span>
+                          <span className="text-indigo-600 font-medium">{selectedStudent.cabang.name}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetStudent}
+                  className="px-3 py-1.5 text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:bg-rose-50 border border-rose-200 rounded-lg transition-colors cursor-pointer"
+                >
+                  Ganti Santri
+                </button>
+              </div>
+            ) : (
+              /* Input pencarian santri dari database */
+              <div className="relative">
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder={
+                      isLoadingStudents
+                        ? 'Memuat data santri dari database...'
+                        : 'Ketik nama santri atau NIS untuk memilih dari database...'
+                    }
+                    disabled={isLoadingStudents}
+                    value={searchSantriQuery}
+                    onChange={(e) => {
+                      setSearchSantriQuery(e.target.value);
+                      setIsDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsDropdownOpen(true)}
+                    className="w-full pl-9.5 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-indigo-500 text-xs font-medium"
+                  />
+                </div>
+
+                {/* Dropdown hasil pencarian santri */}
+                {isDropdownOpen && searchSantriQuery.trim().length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-30 max-h-56 overflow-y-auto divide-y divide-slate-100">
+                    {filteredStudents.length === 0 ? (
+                      <div className="p-4 text-center text-slate-400 text-xs">
+                        Tidak ada santri ditemukan dengan kata kunci &quot;{searchSantriQuery}&quot;
+                      </div>
+                    ) : (
+                      filteredStudents.map((s: Student) => (
+                        <div
+                          key={s.id}
+                          onClick={() => handleSelectStudent(s)}
+                          className="p-2.5 hover:bg-indigo-50/70 transition-colors cursor-pointer flex items-center justify-between"
+                        >
+                          <div>
+                            <span className="font-bold text-slate-800 block text-xs">
+                              {s.biodata?.fullName || 'Tanpa Nama'}
+                            </span>
+                            <div className="text-[10.5px] text-slate-500 flex items-center gap-2 mt-0.5">
+                              <span>NIS: {s.biodata?.nisLokal || s.siswaFormal?.nis || '-'}</span>
+                              <span>•</span>
+                              <span>Kelas: {s.siswaFormal?.kelas?.name || 'Umum'}</span>
+                              {s.cabang?.name && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-indigo-600">{s.cabang.name}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">
+                            Pilih
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <div className="space-y-1">
-                <label className="text-slate-600 font-semibold">Kelas</label>
-                <select
+                <label className="text-slate-600 font-semibold">Kelas / Rombel</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: VII-A / X-B Ulya"
                   value={kelas}
                   onChange={(e) => setKelas(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium"
-                >
-                  <option value="VII-A Wustha">VII-A Wustha</option>
-                  <option value="VIII-B Wustha">VIII-B Wustha</option>
-                  <option value="IX-A Wustha">IX-A Wustha</option>
-                  <option value="X-A Ulya">X-A Ulya</option>
-                  <option value="X-B Ulya">X-B Ulya</option>
-                  <option value="XI-A Ulya">XI-A Ulya</option>
-                  <option value="XI-B Ulya">XI-B Ulya</option>
-                  <option value="XII-A Ulya">XII-A Ulya</option>
-                </select>
+                />
               </div>
 
               <div className="space-y-1">
@@ -287,7 +412,7 @@ export default function TambahDataModal({
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Terlambat shalat berjamaah / Membawa HP"
+                    placeholder="Contoh: Terlambat Shalat Berjamaah / Membawa HP / Keluar Asrama Tanpa Izin"
                     value={jenisPelanggaran}
                     onChange={(e) => setJenisPelanggaran(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
@@ -325,7 +450,7 @@ export default function TambahDataModal({
                   <label className="text-slate-600 font-semibold">Lokasi Kejadian</label>
                   <input
                     type="text"
-                    placeholder="Contoh: Asrama Putra / Masjid / Kelas"
+                    placeholder="Contoh: Asrama Putra / Masjid / Kelas / Lingkungan Lembaga"
                     value={lokasi}
                     onChange={(e) => setLokasi(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
@@ -337,7 +462,7 @@ export default function TambahDataModal({
                 <label className="text-slate-600 font-semibold">Kronologi & Keterangan</label>
                 <textarea
                   rows={2}
-                  placeholder="Ceritakan singkat kronologi kejadian pelanggaran..."
+                  placeholder="Ceritakan kronologi singkat kejadian pelanggaran..."
                   value={keterangan}
                   onChange={(e) => setKeterangan(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
@@ -345,10 +470,10 @@ export default function TambahDataModal({
               </div>
 
               <div className="space-y-1">
-                <label className="text-slate-600 font-semibold">Tindakan Pembinaan / Sanksi Awal</label>
+                <label className="text-slate-600 font-semibold">Tindakan Pembinaan / Sanksi</label>
                 <input
                   type="text"
-                  placeholder="Contoh: Hafalan surat Al-Mulk / Ganti rugi / Teguran tertulis"
+                  placeholder="Contoh: Teguran lisan, tadarus Al-Qur'an 1 juz, pemanggilan wali santri"
                   value={tindakanPembinaan}
                   onChange={(e) => setTindakanPembinaan(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
@@ -378,7 +503,7 @@ export default function TambahDataModal({
                   <label className="text-slate-600 font-semibold">Nomor Surat Peringatan</label>
                   <input
                     type="text"
-                    required
+                    placeholder="Contoh: 001/SP/PST/2026"
                     value={nomorSp}
                     onChange={(e) => setNomorSp(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-mono focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
@@ -413,7 +538,7 @@ export default function TambahDataModal({
                 <textarea
                   rows={2}
                   required
-                  placeholder="Jelaskan alasan penerbitan SP dan akumulasi catatan pelanggaran..."
+                  placeholder="Jelaskan dasar pertimbangan penerbitan surat peringatan..."
                   value={alasanSp}
                   onChange={(e) => setAlasanSp(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
@@ -427,10 +552,10 @@ export default function TambahDataModal({
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-slate-600 font-semibold">Nomor Surat Keputusan (SK)</label>
+                  <label className="text-slate-600 font-semibold">Nomor SK Pengeluaran</label>
                   <input
                     type="text"
-                    required
+                    placeholder="Contoh: 012/SK-DO/PST/2026"
                     value={nomorSk}
                     onChange={(e) => setNomorSk(e.target.value)}
                     className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg font-mono focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
@@ -458,7 +583,7 @@ export default function TambahDataModal({
                 <textarea
                   rows={2}
                   required
-                  placeholder="Uraikan dasar pemberhentian resmi santri dari lembaga..."
+                  placeholder="Uraikan dasar keputusan pemberhentian santri dari lembaga..."
                   value={alasanPemberhentian}
                   onChange={(e) => setAlasanPemberhentian(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500 font-medium text-rose-950"
@@ -469,6 +594,7 @@ export default function TambahDataModal({
                 <label className="text-slate-600 font-semibold">Pejabat yang Menandatangani SK</label>
                 <input
                   type="text"
+                  placeholder="Nama & Jabatan Penandatangan (contoh: Pimpinan Lembaga)"
                   value={pejabatTtd}
                   onChange={(e) => setPejabatTtd(e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-indigo-500"

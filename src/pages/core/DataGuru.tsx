@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UserCheck, Plus, UserMinus, UserPlus, Edit2, Trash2, LayoutDashboard, Users, Search, X, RotateCcw, KeyRound, Sparkles, Send } from 'lucide-react';
+import { UserCheck, Plus, UserMinus, UserPlus, Edit2, Trash2, LayoutDashboard, Users, Search, X, RotateCcw, KeyRound, Sparkles, Send, FileSpreadsheet } from 'lucide-react';
 import { useGetGuru, useDeleteGuru } from '../../features/core_data/hooks/useMasterData';
 import { Guru } from '../../features/core_data/hooks/usePoolGuru';
 import LepasGuruModal from '../../features/core_data/components/LepasGuruModal';
@@ -9,6 +9,7 @@ import GuruModal from '../../features/core_data/components/GuruModal';
 import GuruDashboardTab from '../../features/core_data/components/GuruDashboardTab';
 import TeacherAccountModal from '../../features/core_data/components/TeacherAccountModal';
 import BulkTeacherAccountModal from '../../features/core_data/components/BulkTeacherAccountModal';
+import CustomFilterExportGuruModal from '../../features/core_data/components/CustomFilterExportGuruModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
 import Pagination from '../../components/Pagination';
@@ -22,6 +23,7 @@ export default function DataGuru() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'data'>('dashboard');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCustomExportOpen, setIsCustomExportOpen] = useState(false);
   const itemsPerPage = 10;
 
   const { user } = useAuth();
@@ -225,6 +227,15 @@ export default function DataGuru() {
                 {t('guru.tarik_btn')}
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => setIsCustomExportOpen(true)}
+              className="inline-flex items-center justify-center px-3.5 py-2 border border-emerald-300 shadow-xs text-sm font-semibold rounded-lg text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition-colors cursor-pointer"
+              title="Filter Custom & Export Data Guru (Lengkap)"
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-1.5 text-emerald-600" />
+              <span>Filter Custom &amp; Export</span>
+            </button>
             <button onClick={handleCreate} className="inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 transition-colors cursor-pointer">
               <Plus className="w-4 h-4 mr-2" />
               {t('guru.add_button')}
@@ -281,6 +292,7 @@ export default function DataGuru() {
             userScope={user?.scope || ''} 
             userWilayahId={user?.wilayahId} 
             userCabangId={user?.cabangId} 
+            onOpenCustomExportModal={() => setIsCustomExportOpen(true)}
           />
 
           {/* Search Box on Data Tab */}
@@ -588,6 +600,12 @@ export default function DataGuru() {
         onConfirm={confirmDelete}
         title={t('guru.confirm_delete_title')}
         message={t('guru.confirm_delete_msg')}
+      />
+
+      <CustomFilterExportGuruModal
+        isOpen={isCustomExportOpen}
+        onClose={() => setIsCustomExportOpen(false)}
+        guruList={guru || []}
       />
     </div>
   );

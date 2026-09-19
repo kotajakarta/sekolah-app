@@ -3,7 +3,23 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from 'react-i18next';
-import { Activity, Loader2, Save, AlertCircle, CheckCircle, Search, Info, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import {
+  Activity,
+  Loader2,
+  Save,
+  AlertCircle,
+  CheckCircle,
+  Search,
+  Info,
+  ChevronLeft,
+  ChevronRight,
+  Users,
+  CalendarDays,
+  ClipboardCheck,
+  Stethoscope,
+} from 'lucide-react';
+import ModalSakitSantri, { parseCatatanSakit } from '../../features/absensi/ModalSakitSantri';
+import MatriksAbsensiBulanan from '../../features/absensi/MatriksAbsensiBulanan';
 
 interface Program {
   id: string;
@@ -44,10 +60,30 @@ export default function AbsensiSiswa() {
   const isWilayah = user?.scope === 'WILAYAH';
   const isCabang = user?.scope === 'CABANG' || user?.scope === 'WALI_KELAS' || user?.scope === 'GURU';
 
+  // Tab Menu: 'input' (Input Harian/Sesi) vs 'matriks' (Ringkasan & Matriks Bulanan)
+  const [activeTab, setActiveTab] = useState<'input' | 'matriks'>('input');
+
   const [selectedProgram, setSelectedProgram] = useState<string>('');
   const [selectedWilayah, setSelectedWilayah] = useState<string>('');
   const [selectedCabang, setSelectedCabang] = useState<string>('');
   const [selectedKelas, setSelectedKelas] = useState<string>('');
+
+  // Modal Sakit State
+  const [modalSakitState, setModalSakitState] = useState<{
+    isOpen: boolean;
+    studentId: string;
+    studentName: string;
+    nisLokal: string | null;
+    initialCatatan: string;
+    previousStatus: 'HADIR' | 'SAKIT' | 'IZIN' | 'ALPA';
+  }>({
+    isOpen: false,
+    studentId: '',
+    studentName: '',
+    nisLokal: null,
+    initialCatatan: '',
+    previousStatus: 'HADIR',
+  });
 
   // Search & Pagination states
   const [searchQuery, setSearchQuery] = useState('');
@@ -197,8 +233,38 @@ export default function AbsensiSiswa() {
   });
 
   const handleStatusChange = (studentId: string, status: 'HADIR' | 'SAKIT' | 'IZIN' | 'ALPA') => {
+    const currentRow = rows.find(r => r.studentId === studentId);
+    if (!currentRow) return;
+
+    if (status === 'SAKIT') {
+      // Buka modal keterangan sakit otomatis
+      setModalSakitState({
+        isOpen: true,
+        studentId,
+        studentName: currentRow.fullName,
+        nisLokal: currentRow.nisLokal,
+        initialCatatan: currentRow.catatan || '',
+        previousStatus: currentRow.status,
+      });
+      return;
+    }
+
     setRows(prev => prev.map(r => r.studentId === studentId ? { ...r, status } : r));
     setIsSavedSuccessfully(false);
+  };
+
+  const handleSaveModalSakit = (formattedCatatan: string) => {
+    setRows(prev => prev.map(r => r.studentId === modalSakitState.studentId ? {
+      ...r,
+      status: 'SAKIT',
+      catatan: formattedCatatan,
+    } : r));
+    setIsSavedSuccessfully(false);
+    setModalSakitState(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleCancelModalSakit = () => {
+    setModalSakitState(prev => ({ ...prev, isOpen: false }));
   };
 
   const handleCatatanChange = (studentId: string, catatan: string) => {
@@ -240,8 +306,54 @@ export default function AbsensiSiswa() {
         </p>
       </div>
 
-      {/* Filter Selector Section: Wilayah -> Cabang -> Kelas */}
-      <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-5 shadow-sm mb-4 sm:mb-6 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      {/* Tab Navigation: Input Absensi Sesi vs Ringkasan & Matriks Bulanan */}
+      <div className="flex items-center gap-2 border-b border-slate-200 mb-5 sm:mb-6">
+        <button
+          type="button"
+          onClick={() => setActiveTab('input')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'input'
+              ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50 rounded-t-xl shadow-2xs'
+              : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+          }`}
+        >
+          <ClipboardCheck className="w-4 h-4" />
+          <span>Input Absensi Harian / Sesi</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('matriks')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'matriks'
+              ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50 rounded-t-xl shadow-2xs'
+              : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
+          }`}
+        >
+          <CalendarDays className="w-4 h-4" />
+          <span>Ringkasan / Matriks Bulanan</span>
+        </button>
+      </div>
+
+      {activeTab === 'matriks' ? (
+        <MatriksAbsensiBulanan
+          selectedWilayah={selectedWilayah}
+          selectedCabang={selectedCabang}
+          selectedKelas={selectedKelas}
+          onWilayahChange={handleWilayahChange}
+          onCabangChange={handleCabangChange}
+          onKelasChange={setSelectedKelas}
+          wilayahs={wilayahs}
+          branches={filteredBranches}
+          classes={classes}
+          isGlobal={isGlobal}
+          isWilayah={isWilayah}
+          isCabang={isCabang}
+        />
+      ) : (
+        <>
+          {/* Filter Selector Section: Wilayah -> Cabang -> Kelas */}
+          <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-5 shadow-sm mb-4 sm:mb-6 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Program Absensi</label>
           {loadingPrograms ? (
@@ -466,6 +578,36 @@ export default function AbsensiSiswa() {
                       );
                     })}
                   </div>
+                  {row.status === 'SAKIT' && (
+                    <div className="flex items-center">
+                      {(() => {
+                        const parsed = parseCatatanSakit(row.catatan);
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setModalSakitState({
+                                isOpen: true,
+                                studentId: row.studentId,
+                                studentName: row.fullName,
+                                nisLokal: row.nisLokal,
+                                initialCatatan: row.catatan || '',
+                                previousStatus: row.status,
+                              });
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-all cursor-pointer"
+                          >
+                            <Stethoscope className="w-3 h-3 text-blue-600" />
+                            <span>{parsed.namaPenyakit || 'Detail Sakit'}</span>
+                            {parsed.posisiSantri && (
+                              <span className="text-blue-500 font-normal">• {parsed.posisiSantri}</span>
+                            )}
+                            <span className="text-[10px] text-blue-400">✏️</span>
+                          </button>
+                        );
+                      })()}
+                    </div>
+                  )}
                   <input
                     type="text"
                     placeholder="Catatan (opsional)"
@@ -517,6 +659,37 @@ export default function AbsensiSiswa() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
+                        {row.status === 'SAKIT' && (
+                          <div className="mb-1.5 flex items-center">
+                            {(() => {
+                              const parsed = parseCatatanSakit(row.catatan);
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setModalSakitState({
+                                      isOpen: true,
+                                      studentId: row.studentId,
+                                      studentName: row.fullName,
+                                      nisLokal: row.nisLokal,
+                                      initialCatatan: row.catatan || '',
+                                      previousStatus: row.status,
+                                    });
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-all cursor-pointer shadow-2xs"
+                                  title="Klik untuk mengubah rincian sakit"
+                                >
+                                  <Stethoscope className="w-3.5 h-3.5 text-blue-600" />
+                                  <span>{parsed.namaPenyakit || 'Detail Sakit'}</span>
+                                  {parsed.posisiSantri && (
+                                    <span className="text-blue-500 font-normal">• {parsed.posisiSantri}</span>
+                                  )}
+                                  <span className="text-[10px] text-blue-400">✏️</span>
+                                </button>
+                              );
+                            })()}
+                          </div>
+                        )}
                         <input
                           type="text"
                           placeholder="Tambahkan catatan (opsional)"
@@ -579,6 +752,18 @@ export default function AbsensiSiswa() {
       )}
         </div>
       </div>
+      </>
+    )}
+
+      {/* Modal Keterangan Sakit Santri */}
+      <ModalSakitSantri
+        isOpen={modalSakitState.isOpen}
+        studentName={modalSakitState.studentName}
+        nisLokal={modalSakitState.nisLokal}
+        initialCatatan={modalSakitState.initialCatatan}
+        onSave={handleSaveModalSakit}
+        onCancel={handleCancelModalSakit}
+      />
     </div>
   );
 }

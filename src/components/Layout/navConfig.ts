@@ -164,6 +164,14 @@ export function useNavEntries(): NavEntry[] {
       }
 
       guruEntries.push({
+        type: 'link',
+        key: 'indisipliner',
+        label: t('sidebar.catatan_indisipliner') || 'Catatan Indisipliner',
+        icon: ShieldAlert,
+        to: '/dashboard/indisipliner',
+      });
+
+      guruEntries.push({
         type: 'group',
         key: 'layanan',
         label: t('sidebar.layanan') || 'Layanan & Informasi',
@@ -348,6 +356,14 @@ export function useNavEntries(): NavEntry[] {
 
     entries.push({ type: 'group', key: 'sarpras', label: t('sidebar.sarpras') || 'Sarana Prasarana', icon: Building2, items: sarprasItems });
     entries.push({ type: 'group', key: 'santri', label: t('sidebar.santri') || 'Santri', icon: User, items: santriItems });
+    entries.push({
+      type: 'link',
+      key: 'indisipliner',
+      label: t('sidebar.catatan_indisipliner') || 'Catatan Indisipliner',
+      icon: ShieldAlert,
+      to: '/dashboard/indisipliner',
+      highlight: true,
+    });
     entries.push({ type: 'group', key: 'ustadz', label: t('sidebar.ustadz') || 'Ustadz', icon: Users, items: ustadzItems });
 
     if (showRombonganBelajar) {

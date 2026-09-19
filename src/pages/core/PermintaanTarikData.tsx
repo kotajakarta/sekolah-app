@@ -396,10 +396,12 @@ export default function PermintaanTarikData() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2.5">
             <Database className="w-6 h-6 text-indigo-600" />
-            Permintaan Tarik Data Siswa
+            {user?.scope === 'CABANG' ? 'Status Mutasi Santri' : 'Permintaan Tarik Data Siswa'}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Kelola dan konfirmasi permohonan penarikan data santri antar cabang via WhatsApp Ketua Muadalah
+            {user?.scope === 'CABANG' 
+              ? 'Pantau dan konfirmasi status permohonan mutasi santri masuk & keluar via WhatsApp Ketua Muadalah'
+              : 'Kelola dan konfirmasi permohonan penarikan data santri antar cabang via WhatsApp Ketua Muadalah'}
           </p>
         </div>
       </div>
@@ -524,33 +526,35 @@ export default function PermintaanTarikData() {
             </div>
 
             {/* Cabang Peminta */}
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                Cabang Pemohon (Tujuan)
-              </label>
-              <select
-                value={selectedRequestingCabang}
-                onChange={(e) => setSelectedRequestingCabang(e.target.value)}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-600 transition-all cursor-pointer"
-              >
-                <option value="ALL">Semua Cabang Pemohon</option>
-                {requestingCabangList.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
+            {user?.scope !== 'CABANG' && (
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Cabang Pemohon (Tujuan)
+                </label>
+                <select
+                  value={selectedRequestingCabang}
+                  onChange={(e) => setSelectedRequestingCabang(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-600 transition-all cursor-pointer"
+                >
+                  <option value="ALL">Semua Cabang Pemohon</option>
+                  {requestingCabangList.map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Cabang Asal */}
             <div>
               <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                Cabang Asal (Target)
+                {user?.scope === 'CABANG' ? 'Lembaga Asal' : 'Cabang Asal (Target)'}
               </label>
               <select
                 value={selectedTargetCabang}
                 onChange={(e) => setSelectedTargetCabang(e.target.value)}
                 className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:bg-white focus:border-indigo-600 transition-all cursor-pointer"
               >
-                <option value="ALL">Semua Cabang Asal</option>
+                <option value="ALL">{user?.scope === 'CABANG' ? 'Semua Lembaga Asal' : 'Semua Cabang Asal'}</option>
                 {targetCabangList.map(c => (
                   <option key={c} value={c}>{c}</option>
                 ))}
@@ -642,9 +646,9 @@ export default function PermintaanTarikData() {
                 <thead className="bg-slate-50/90 font-bold text-slate-700 uppercase tracking-wider">
                   <tr>
                     <th className="px-5 py-3.5">Siswa</th>
-                    <th className="px-5 py-3.5">Cabang Pemohon (Tujuan)</th>
-                    <th className="px-5 py-3.5">Cabang Asal</th>
-                    <th className="px-5 py-3.5">Ketua Muadalah & WhatsApp</th>
+                    <th className="px-5 py-3.5">{user?.scope === 'CABANG' ? 'Lembaga Tujuan' : 'Cabang Pemohon (Tujuan)'}</th>
+                    <th className="px-5 py-3.5">{user?.scope === 'CABANG' ? 'Lembaga Asal' : 'Cabang Asal'}</th>
+                    <th className="px-5 py-3.5">Ketua Muadalah &amp; WhatsApp</th>
                     <th className="px-5 py-3.5 text-center">Status</th>
                     <th className="px-5 py-3.5 text-center">Tanggal</th>
                     {user?.scope === 'GLOBAL' && (

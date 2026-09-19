@@ -736,7 +736,7 @@ export default function LembagaMuadalahPage() {
               <option value="ULA">ULA</option>
             </select>
 
-            {user?.scope !== 'WILAYAH' && (
+            {user?.scope === 'GLOBAL' && (
               <select
                 value={filterWilayah}
                 onChange={e => { setFilterWilayah(e.target.value); setCurrentPage(1); }}
@@ -752,7 +752,7 @@ export default function LembagaMuadalahPage() {
         </div>
 
         {/* ── KARTU RINGKASAN SANTRI PER WILAYAH (Hanya di Sub-Tab Jumlah Santri, 1 baris scroll) ── */}
-        {activeSubTab === 'jumlah_santri' && user?.scope !== 'WILAYAH' && wilayahSantriSummary.length > 0 && (
+        {activeSubTab === 'jumlah_santri' && user?.scope === 'GLOBAL' && wilayahSantriSummary.length > 0 && (
           <div className="flex gap-2.5 overflow-x-auto pb-1.5 -mx-1 px-1">
             {wilayahSantriSummary.map(w => (
               <div
@@ -801,7 +801,7 @@ export default function LembagaMuadalahPage() {
                   <tr>
                     <th className="py-3 px-3 text-center w-10">No</th>
                     <th className="py-3 px-3">Nama Lembaga</th>
-                    <th className="py-3 px-3">Wilayah</th>
+                    {user?.scope !== 'CABANG' && <th className="py-3 px-3">Wilayah</th>}
                     <th className="py-3 px-3">Pesantren Induk</th>
                     <th className="py-3 px-3 text-center">Jenjang</th>
                     <th className="py-3 px-3 text-center">Tahun Berdiri</th>
@@ -925,7 +925,9 @@ export default function LembagaMuadalahPage() {
                         {/* ── SUB-TAB 1: IDENTITAS BODY ── */}
                         {activeSubTab === 'identitas' && (
                           <>
-                            <td className="py-3.5 px-3 text-slate-700 font-medium">{item.wilayah?.name || '-'}</td>
+                            {user?.scope !== 'CABANG' && (
+                              <td className="py-3.5 px-3 text-slate-700 font-medium">{item.wilayah?.name || '-'}</td>
+                            )}
                             <td className="py-3.5 px-3 text-slate-700 font-medium">
                               <p className="font-semibold text-slate-800">{item.pesantrenInduk || '-'}</p>
                               <p className="text-[11px] font-medium text-slate-500 mt-0.5">

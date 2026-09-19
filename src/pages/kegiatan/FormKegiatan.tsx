@@ -481,7 +481,9 @@ export default function FormKegiatan() {
             <FileText className="w-6 h-6 text-indigo-500" />
             Tugas Pelaporan BAP Kegiatan
           </h1>
-          <p className="text-sm text-slate-500 mt-1">Daftar kegiatan yang dirilis oleh Pusat dan status penyelesaian pelaporan cabang Anda.</p>
+          <p className="text-sm text-slate-500 mt-1">
+            {user?.scope === 'CABANG' ? 'Daftar kegiatan dan status penyelesaian pelaporan lembaga / pesantren Anda.' : 'Daftar kegiatan yang dirilis oleh Pusat dan status penyelesaian pelaporan cabang Anda.'}
+          </p>
         </div>
 
         {isLoadingTemplates || isLoadingBaps ? (
@@ -627,7 +629,7 @@ export default function FormKegiatan() {
               </div>
               <div className="p-6 space-y-4">
                 <p className="text-sm text-slate-600">
-                  Kegiatan <span className="font-bold">{tidakBisaModalTemplate.judul}</span> akan ditandai tidak dapat dilaksanakan oleh cabang Anda. Jelaskan alasannya di bawah ini.
+                  Kegiatan <span className="font-bold">{tidakBisaModalTemplate.judul}</span> akan ditandai tidak dapat dilaksanakan oleh {user?.scope === 'CABANG' ? 'pesantren' : 'cabang'} Anda. Jelaskan alasannya di bawah ini.
                 </p>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Keterangan / Alasan *</label>
@@ -636,7 +638,7 @@ export default function FormKegiatan() {
                     rows={4}
                     value={alasanTidakBisa}
                     onChange={(e) => setAlasanTidakBisa(e.target.value)}
-                    placeholder="Contoh: Kegiatan tidak dapat dilaksanakan karena bencana alam / kondisi darurat cabang."
+                    placeholder={user?.scope === 'CABANG' ? "Contoh: Kegiatan tidak dapat dilaksanakan karena kondisi darurat di pesantren." : "Contoh: Kegiatan tidak dapat dilaksanakan karena bencana alam / kondisi darurat cabang."}
                     className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                   />
                 </div>
@@ -734,7 +736,9 @@ export default function FormKegiatan() {
             {activeView === 'EDIT' ? (isLockedForCabang ? 'Detail Laporan BAP Kegiatan (Dikunci)' : 'Edit Laporan BAP Kegiatan') : 'Buat Laporan BAP Kegiatan'}
           </h1>
           <p className="text-sm text-slate-500">
-            {activeView === 'EDIT' ? (isLockedForCabang ? 'Laporan BAP telah disetujui Pusat dan hanya dapat dilihat (Mode Baca).' : 'Ubah data pelaporan berita acara pelaksanaan cabang Anda.') : 'Laporkan berita acara pelaksanaan berdasarkan pedoman Pusat.'}
+            {activeView === 'EDIT' 
+              ? (isLockedForCabang ? 'Laporan BAP telah disetujui dan hanya dapat dilihat (Mode Baca).' : (user?.scope === 'CABANG' ? 'Ubah data pelaporan berita acara pelaksanaan lembaga Anda.' : 'Ubah data pelaporan berita acara pelaksanaan cabang Anda.')) 
+              : (user?.scope === 'CABANG' ? 'Laporkan berita acara pelaksanaan kegiatan.' : 'Laporkan berita acara pelaksanaan berdasarkan pedoman Pusat.')}
           </p>
         </div>
       </div>
@@ -743,11 +747,11 @@ export default function FormKegiatan() {
         <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 text-amber-900 text-sm shadow-sm">
           <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
-            <p className="font-bold text-amber-900">Laporan BAP Dikunci (Sudah Diterima Pusat)</p>
+            <p className="font-bold text-amber-900">{user?.scope === 'CABANG' ? 'Laporan BAP Dikunci (Sudah Terverifikasi)' : 'Laporan BAP Dikunci (Sudah Diterima Pusat)'}</p>
             <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
-              Laporan Berita Acara Pelaksanaan (BAP) ini telah diterima dan disetujui oleh Administrator Pusat pada{' '}
-              <span className="font-semibold">{editingBap?.confirmedAt ? new Date(editingBap.confirmedAt).toLocaleString('id-ID') : 'Pusat'}</span>.
-              Cabang Anda tidak dapat lagi mengubah data atau menghapus berkas laporan ini.
+              Laporan Berita Acara Pelaksanaan (BAP) ini telah diterima dan disetujui pada{' '}
+              <span className="font-semibold">{editingBap?.confirmedAt ? new Date(editingBap.confirmedAt).toLocaleString('id-ID') : '-'}</span>.
+              {user?.scope === 'CABANG' ? ' Laporan telah dikunci dan tidak dapat diubah lagi.' : ' Cabang Anda tidak dapat lagi mengubah data atau menghapus berkas laporan ini.'}
             </p>
           </div>
         </div>
@@ -881,7 +885,9 @@ export default function FormKegiatan() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Tempat Kegiatan (Nama Cabang Otomatis) {!isLockedForCabang && <span className="text-rose-500">*</span>}</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">
+              {user?.scope === 'CABANG' ? 'Tempat Kegiatan' : 'Tempat Kegiatan (Nama Cabang Otomatis)'} {!isLockedForCabang && <span className="text-rose-500">*</span>}
+            </label>
             <input
               type="text"
               name="tempatKegiatan"
@@ -889,7 +895,7 @@ export default function FormKegiatan() {
               disabled={isLockedForCabang}
               value={formData.tempatKegiatan}
               onChange={handleInputChange}
-              placeholder="Contoh: Aula Utama Asrama Cabang"
+              placeholder={user?.scope === 'CABANG' ? "Contoh: Aula Utama Pesantren" : "Contoh: Aula Utama Asrama Cabang"}
               className="w-full px-3.5 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 focus:outline-none text-sm font-semibold text-slate-800 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
             />
           </div>

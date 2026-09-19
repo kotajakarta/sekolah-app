@@ -6,6 +6,7 @@ import { useAuth } from '../../hooks/useAuth';
 import {
   Home, School, Building2, User, Users, UserCheck, FileText,
   HeartHandshake, Activity, CheckCircle, BookOpen, Mail, FileQuestion,
+  ShieldAlert,
 } from 'lucide-react';
 
 export interface NavSubItem {
@@ -68,6 +69,7 @@ export function useNavEntries(): NavEntry[] {
         { to: '/dashboard/core/siswa', label: t('sidebar.data_santri') || 'Data Semua Santri' },
         { to: '/dashboard/formal/siswa', label: t('sidebar.santri_muadalah') || 'Santri Muadalah' },
         { to: '/dashboard/absensi/siswa', label: t('sidebar.absensi_siswa') || 'Absensi Siswa' },
+        { to: '/dashboard/indisipliner', label: t('sidebar.catatan_indisipliner') || 'Catatan Indisipliner' },
       ];
       const auditorUstadz = [
         { to: '/dashboard/core/guru', label: t('sidebar.data_guru') || 'Data Guru' },
@@ -101,6 +103,7 @@ export function useNavEntries(): NavEntry[] {
       const pengawasSantri = [
         { to: '/dashboard/core/siswa', label: t('sidebar.data_santri') || 'Data Semua Santri' },
         { to: '/dashboard/formal/siswa', label: t('sidebar.santri_muadalah') || 'Santri Muadalah' },
+        { to: '/dashboard/indisipliner', label: t('sidebar.catatan_indisipliner') || 'Catatan Indisipliner' },
       ];
       const pengawasUstadz = [
         { to: '/dashboard/core/guru', label: t('sidebar.data_guru') || 'Data Guru' },
@@ -223,6 +226,13 @@ export function useNavEntries(): NavEntry[] {
           icon: UserCheck,
           to: '/dashboard/absensi/siswa',
         },
+        {
+          type: 'link',
+          key: 'indisipliner',
+          label: t('sidebar.catatan_indisipliner') || 'Catatan Indisipliner',
+          icon: ShieldAlert,
+          to: '/dashboard/indisipliner',
+        },
       );
 
       if (isRaporEnabled) {
@@ -292,6 +302,7 @@ export function useNavEntries(): NavEntry[] {
       { to: '/dashboard/core/pool', label: t('sidebar.pool_santri') || 'Pool Santri', show: user?.scope === 'GLOBAL' },
       { to: '/dashboard/absensi/siswa', label: t('sidebar.absensi_siswa') || 'Absensi Siswa', show: true },
       { to: '/dashboard/absensi/programs', label: t('sidebar.setting_absensi') || 'Setting Absensi Santri', show: user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH' },
+      { to: '/dashboard/indisipliner', label: t('sidebar.catatan_indisipliner') || 'Catatan Indisipliner', show: true },
     ].filter(i => i.show).map(({ show, ...rest }) => rest);
 
     const ustadzItems = [

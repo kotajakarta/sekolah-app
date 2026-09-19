@@ -229,7 +229,7 @@ export default function ManajemenRuang() {
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
           <Filter className="w-3.5 h-3.5" /> Filter Data
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${user?.scope === 'CABANG' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-3`}>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Cari Ruang</label>
             <div className="relative">
@@ -307,7 +307,7 @@ export default function ManajemenRuang() {
                   <th className="px-5 py-3">Tipe</th>
                   <th className="px-5 py-3 text-center">Kapasitas</th>
                   <th className="px-5 py-3 text-center">Luas (m²)</th>
-                  <th className="px-5 py-3">Cabang</th>
+                  {user?.scope !== 'CABANG' && <th className="px-5 py-3">Cabang</th>}
                   <th className="px-5 py-3 text-center">Kondisi</th>
                   <th className="px-5 py-3 text-center w-24">Aksi</th>
                 </tr>
@@ -324,7 +324,7 @@ export default function ManajemenRuang() {
                       <td className="px-5 py-3.5 text-slate-650">{tipeLabel}</td>
                       <td className="px-5 py-3.5 text-center text-slate-700 font-semibold">{ruang.kapasitas || '-'}</td>
                       <td className="px-5 py-3.5 text-center text-slate-700 font-semibold">{ruang.luas || '-'}</td>
-                      <td className="px-5 py-3.5 text-slate-500">{ruang.cabang?.name || '-'}</td>
+                      {user?.scope !== 'CABANG' && <td className="px-5 py-3.5 text-slate-500">{ruang.cabang?.name || '-'}</td>}
                       <td className="px-5 py-3.5 text-center">
                         <span className={`px-2.5 py-0.5 text-[11px] font-semibold rounded-full ${kondisiCfg?.color || 'bg-slate-100'}`}>
                           {kondisiCfg?.label || ruang.kondisi}

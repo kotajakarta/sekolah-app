@@ -309,45 +309,45 @@ export default function RekapitulasiKelengkapanData() {
           Panel Filter Data
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Filter Wilayah */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Wilayah</label>
-            <select
-              disabled={!isGlobal}
-              value={selectedWilayah}
-              onChange={(e) => {
-                setSelectedWilayah(e.target.value);
-                setSelectedCabang(''); // Reset cabang on wilayah change
-              }}
-              className="w-full bg-slate-50/50 hover:bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:border-indigo-500 transition-colors disabled:bg-slate-100 disabled:text-slate-500"
-            >
-              {isGlobal && <option value="">Semua Wilayah</option>}
-               {isGlobal ? (
-                wilayahs.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)
-              ) : (
-                user?.wilayahName && <option value={user.wilayahId}>{user.wilayahName}</option>
-              )}
-            </select>
-          </div>
+        <div className={`grid grid-cols-1 ${isCabang ? '' : 'md:grid-cols-3'} gap-4`}>
+          {!isCabang && (
+            <>
+              {/* Filter Wilayah */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Wilayah</label>
+                <select
+                  disabled={!isGlobal}
+                  value={selectedWilayah}
+                  onChange={(e) => {
+                    setSelectedWilayah(e.target.value);
+                    setSelectedCabang(''); // Reset cabang on wilayah change
+                  }}
+                  className="w-full bg-slate-50/50 hover:bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:border-indigo-500 transition-colors disabled:bg-slate-100 disabled:text-slate-500"
+                >
+                  {isGlobal && <option value="">Semua Wilayah</option>}
+                  {isGlobal ? (
+                    wilayahs.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)
+                  ) : (
+                    user?.wilayahName && <option value={user.wilayahId}>{user.wilayahName}</option>
+                  )}
+                </select>
+              </div>
 
-          {/* Filter Cabang */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Cabang</label>
-            <select
-              disabled={isCabang}
-              value={selectedCabang}
-              onChange={(e) => setSelectedCabang(e.target.value)}
-              className="w-full bg-slate-50/50 hover:bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:border-indigo-500 transition-colors disabled:bg-slate-100 disabled:text-slate-500"
-            >
-              {!isCabang && <option value="">Semua Cabang</option>}
-              {isCabang ? (
-                user?.cabangName && <option value={user.cabangId}>{user.cabangName}</option>
-              ) : (
-                filteredBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)
-              )}
-            </select>
-          </div>
+              {/* Filter Cabang */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Cabang</label>
+                <select
+                  disabled={isCabang}
+                  value={selectedCabang}
+                  onChange={(e) => setSelectedCabang(e.target.value)}
+                  className="w-full bg-slate-50/50 hover:bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:border-indigo-500 transition-colors disabled:bg-slate-100 disabled:text-slate-500"
+                >
+                  {!isCabang && <option value="">Semua Cabang</option>}
+                  {filteredBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+            </>
+          )}
 
           {/* Search Query */}
           <div>
@@ -420,13 +420,13 @@ export default function RekapitulasiKelengkapanData() {
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 text-sm font-bold text-slate-800">
               <Activity className="w-4 h-4 text-indigo-500" />
-              Ringkasan Kelengkapan per Cabang
+              {isCabang ? 'Ringkasan Kelengkapan Lembaga / Pesantren' : 'Ringkasan Kelengkapan per Cabang'}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200/80 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="py-3 px-6">Nama Cabang</th>
+                    <th className="py-3 px-6">{isCabang ? 'Lembaga / Pesantren' : 'Nama Cabang'}</th>
                     <th className="py-3 px-6 text-center">Rata-rata Kelengkapan</th>
                     <th className="py-3 px-6 text-center">Data Lengkap (100%)</th>
                     <th className="py-3 px-6 text-center">Belum Lengkap (&lt;100%)</th>
@@ -480,8 +480,8 @@ export default function RekapitulasiKelengkapanData() {
                 <tr className="bg-slate-55 border-b border-slate-200/80 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   <th className="py-4 px-6 text-center w-16">No</th>
                   <th className="py-4 px-6">Nama Lengkap</th>
-                  <th className="py-4 px-6">Wilayah & Cabang</th>
-                  <th className="py-4 px-6 text-center">Berkas & Ortu</th>
+                  {!isCabang && <th className="py-4 px-6">Wilayah &amp; Cabang</th>}
+                  <th className="py-4 px-6 text-center">Berkas &amp; Ortu</th>
                   <th className="py-4 px-6">Progress Kelengkapan</th>
                   <th className="py-4 px-6 text-center w-36">Aksi</th>
                 </tr>
@@ -516,10 +516,12 @@ export default function RekapitulasiKelengkapanData() {
                         <div className="font-semibold text-slate-800 text-sm">{b?.fullName}</div>
                         <div className="text-xs text-slate-400 font-medium mt-0.5">NIK: {b?.nik || '-'} • NISN: {b?.nisn || '-'}</div>
                       </td>
-                      <td className="py-4 px-6">
-                        <div className="text-sm font-semibold text-slate-700">{s.wilayah?.name || 'Tanpa Wilayah'}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">{s.cabang?.name || 'Tanpa Cabang'}</div>
-                      </td>
+                      {!isCabang && (
+                        <td className="py-4 px-6">
+                          <div className="text-sm font-semibold text-slate-700">{s.wilayah?.name || 'Tanpa Wilayah'}</div>
+                          <div className="text-xs text-slate-500 mt-0.5">{s.cabang?.name || 'Tanpa Cabang'}</div>
+                        </td>
+                      )}
                       <td className="py-4 px-6 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <span title="Foto" className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${hasFoto ? 'bg-green-50 border-green-200 text-green-700' : 'bg-slate-100 border-slate-200 text-slate-400'}`}>FOTO</span>

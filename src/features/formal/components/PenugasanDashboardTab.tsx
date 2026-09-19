@@ -328,17 +328,19 @@ export default function PenugasanDashboardTab({
       {/* Main Infographic Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        {/* CHART 1: Pemenuhan Guru Mapel Utama Per Cabang (7 cols) */}
+        {/* CHART 1: Pemenuhan Guru Mapel Utama (7 cols) */}
         <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
               <div>
                 <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-indigo-600" />
-                  Ketersediaan Guru Mapel Utama Per Cabang
+                  {userScope === 'CABANG' ? 'Ketersediaan Guru Mapel Utama' : 'Ketersediaan Guru Mapel Utama Per Cabang'}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Cakupan pengampu 5 mapel utama (Matematika, B. Indonesia, B. Inggris, IPA, PKN) per cabang
+                  {userScope === 'CABANG' 
+                    ? 'Cakupan pengampu 5 mapel utama (Matematika, B. Indonesia, B. Inggris, IPA, PKN)' 
+                    : 'Cakupan pengampu 5 mapel utama (Matematika, B. Indonesia, B. Inggris, IPA, PKN) per cabang'}
                 </p>
               </div>
             </div>
@@ -379,7 +381,7 @@ export default function PenugasanDashboardTab({
                 ))
               ) : (
                 <div className="py-8 text-center text-slate-400 text-xs">
-                  Tidak ada data cabang untuk ditampilkan.
+                  {userScope === 'CABANG' ? 'Tidak ada data untuk ditampilkan.' : 'Tidak ada data cabang untuk ditampilkan.'}
                 </div>
               )}
             </div>

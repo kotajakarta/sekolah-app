@@ -328,52 +328,56 @@ export default function MatriksAbsensiBulanan({
         </div>
 
         {/* Filter Dropdowns: Wilayah, Cabang, Kelas */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Wilayah</label>
-            <select
-              value={selectedWilayah}
-              onChange={(e) => onWilayahChange(e.target.value)}
-              disabled={!isGlobal}
-              className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-70"
-            >
-              {isGlobal ? (
-                <>
-                  <option value="">-- Semua Wilayah --</option>
-                  {wilayahs.map((w: any) => (
-                    <option key={w.id} value={w.id}>
-                      {w.name}
-                    </option>
-                  ))}
-                </>
-              ) : (
-                <option value={selectedWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
-              )}
-            </select>
-          </div>
+        <div className={`grid ${isCabang ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3'} gap-3`}>
+          {!isCabang && (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Wilayah</label>
+                <select
+                  value={selectedWilayah}
+                  onChange={(e) => onWilayahChange(e.target.value)}
+                  disabled={!isGlobal}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-70"
+                >
+                  {isGlobal ? (
+                    <>
+                      <option value="">-- Semua Wilayah --</option>
+                      {wilayahs.map((w: any) => (
+                        <option key={w.id} value={w.id}>
+                          {w.name}
+                        </option>
+                      ))}
+                    </>
+                  ) : (
+                    <option value={selectedWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
+                  )}
+                </select>
+              </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Cabang</label>
-            <select
-              value={selectedCabang}
-              onChange={(e) => onCabangChange(e.target.value)}
-              disabled={isCabang}
-              className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-70"
-            >
-              {isCabang ? (
-                <option value={selectedCabang}>{user?.cabangName || 'Cabang Terkunci'}</option>
-              ) : (
-                <>
-                  <option value="">-- Semua Cabang --</option>
-                  {branches.map((b: any) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </>
-              )}
-            </select>
-          </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Cabang</label>
+                <select
+                  value={selectedCabang}
+                  onChange={(e) => onCabangChange(e.target.value)}
+                  disabled={isCabang}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-70"
+                >
+                  {isCabang ? (
+                    <option value={selectedCabang}>{user?.cabangName || 'Cabang Terkunci'}</option>
+                  ) : (
+                    <>
+                      <option value="">-- Semua Cabang --</option>
+                      {branches.map((b: any) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+              </div>
+            </>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Kelas Formal</label>

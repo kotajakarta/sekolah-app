@@ -110,7 +110,7 @@ export default function ProfilCabang() {
   useEffect(() => {
     if (!cabangId) {
       setLoading(false);
-      setError('Cabang ID tidak terdeteksi pada sesi Anda.');
+      setError('ID Lembaga/Pesantren tidak terdeteksi pada sesi Anda.');
       return;
     }
 
@@ -188,7 +188,7 @@ export default function ProfilCabang() {
           }
         }).catch(console.error);
       } catch (err: any) {
-        setError('Gagal memuat profil cabang');
+        setError('Gagal memuat profil pesantren');
       } finally {
         setLoading(false);
       }
@@ -202,12 +202,12 @@ export default function ProfilCabang() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cabang'] });
-      setSuccessMessage('Profil cabang berhasil diperbarui!');
+      setSuccessMessage('Profil lembaga / pesantren berhasil diperbarui!');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => setSuccessMessage(null), 3000);
     },
     onError: () => {
-      setError('Gagal memperbarui profil cabang');
+      setError('Gagal memperbarui profil pesantren');
     }
   });
 
@@ -281,7 +281,7 @@ export default function ProfilCabang() {
     return (
       <div className="flex flex-col justify-center items-center h-[50vh] space-y-3">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        <p className="text-sm text-slate-500">Memuat profil cabang...</p>
+        <p className="text-sm text-slate-500">Memuat profil pesantren...</p>
       </div>
     );
   }
@@ -375,7 +375,7 @@ export default function ProfilCabang() {
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 uppercase flex items-center gap-1">
                       <Phone className="w-3.5 h-3.5 text-emerald-600" />
-                      Nomor WhatsApp / Telp Cabang *
+                      Nomor WhatsApp / Telp Lembaga *
                     </label>
                     <input 
                       type="text" 

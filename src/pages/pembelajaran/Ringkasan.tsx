@@ -186,6 +186,7 @@ type FilterMode = 'monthly' | 'semester' | 'yearly';
 
 export default function Ringkasan() {
   const { user } = useAuth();
+  const isCabang = user?.scope === 'CABANG';
   const queryClient = useQueryClient();
   const [syncSuccess, setSyncSuccess] = useState(false);
 
@@ -473,7 +474,7 @@ export default function Ringkasan() {
           )}
 
           {/* Wilayah Filter */}
-          {data.filterOptions?.wilayahList?.length > 0 && (
+          {!isCabang && data.filterOptions?.wilayahList?.length > 0 && (
             <select
               value={selectedWilayahFilter}
               onChange={e => {
@@ -491,7 +492,7 @@ export default function Ringkasan() {
           )}
 
           {/* Cabang Filter */}
-          {availableCabangList.length > 0 && (
+          {!isCabang && availableCabangList.length > 0 && (
             <select
               value={selectedCabangFilter}
               onChange={e => {
@@ -513,7 +514,7 @@ export default function Ringkasan() {
               type="button"
               onClick={() => syncMutation.mutate()}
               disabled={syncMutation.isPending}
-              title={user?.scope === 'GLOBAL' ? 'Hitung ulang data ringkasan nasional' : user?.scope === 'WILAYAH' ? 'Hitung ulang data ringkasan wilayah' : 'Hitung ulang data ringkasan cabang'}
+              title={user?.scope === 'GLOBAL' ? 'Hitung ulang data ringkasan nasional' : user?.scope === 'WILAYAH' ? 'Hitung ulang data ringkasan wilayah' : 'Hitung ulang data ringkasan pesantren'}
               className="inline-flex items-center px-3 py-1.5 bg-brand text-white rounded-xl text-xs font-bold shadow-sm hover:bg-brand/90 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${syncMutation.isPending ? 'animate-spin' : ''}`} />

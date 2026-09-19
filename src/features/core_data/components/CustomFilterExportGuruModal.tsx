@@ -5,6 +5,7 @@ import { Guru } from '../hooks/usePoolGuru';
 import { useGetCabang, useGetWilayah } from '../hooks/useMasterData';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface CustomFilterExportGuruModalProps {
   isOpen: boolean;
@@ -23,22 +24,24 @@ export interface GuruColumnOption {
 const AVAILABLE_COLUMNS_GURU: GuruColumnOption[] = [
   // 1. Identitas Guru
   { key: 'name', label: 'Nama Lengkap Guru', category: 'IDENTITAS', defaultSelected: true, getValue: (g) => g.name || '-' },
-  { key: 'nik', label: 'NIK (KTP)', category: 'IDENTITAS', defaultSelected: true, getValue: (g) => g.nik || '-' },
-  { key: 'jenisKelamin', label: 'Jenis Kelamin', category: 'IDENTITAS', defaultSelected: true, getValue: (g) => g.jenisKelamin === 'L' ? 'Laki-Laki' : g.jenisKelamin === 'P' ? 'Perempuan' : g.jenisKelamin || '-' },
-  { key: 'position', label: 'Jabatan / Posisi', category: 'IDENTITAS', defaultSelected: true, getValue: (g) => g.position || 'Guru' },
-  { key: 'phone', label: 'No. Handphone / WhatsApp', category: 'IDENTITAS', defaultSelected: true, getValue: (g) => g.phone || '-' },
-  { key: 'tempatLahir', label: 'Tempat Lahir', category: 'IDENTITAS', defaultSelected: false, getValue: (g) => g.tempatLahir || '-' },
-  { key: 'tanggalLahir', label: 'Tanggal Lahir', category: 'IDENTITAS', defaultSelected: false, getValue: (g) => g.tanggalLahir ? new Date(g.tanggalLahir).toLocaleDateString('id-ID') : '-' },
-  { key: 'statusPool', label: 'Status Penugasan', category: 'IDENTITAS', defaultSelected: false, getValue: (g) => g.statusPool === 'AKTIF_CABANG' ? 'Aktif Cabang' : g.statusPool || '-' },
+  { key: 'nik', label: 'NIK', category: 'IDENTITAS', defaultSelected: true, getValue: (g) => g.nik || '-' },
+  { key: 'gender', label: 'Jenis Kelamin', category: 'IDENTITAS', defaultSelected: true, getValue: (g) => g.gender === 'L' ? 'Laki-Laki' : g.gender === 'P' ? 'Perempuan' : '-' },
+  { key: 'phone', label: 'No. Handphone/WA', category: 'IDENTITAS', defaultSelected: true, getValue: (g) => g.phone || '-' },
+  { key: 'email', label: 'Email', category: 'IDENTITAS', defaultSelected: false, getValue: (g) => g.email || '-' },
+  { key: 'birthPlace', label: 'Tempat Lahir', category: 'IDENTITAS', defaultSelected: false, getValue: (g) => g.birthPlace || '-' },
+  { key: 'birthDate', label: 'Tanggal Lahir', category: 'IDENTITAS', defaultSelected: false, getValue: (g) => g.birthDate ? new Date(g.birthDate).toLocaleDateString('id-ID') : '-' },
+  { key: 'address', label: 'Alamat Tempat Tinggal', category: 'IDENTITAS', defaultSelected: false, getValue: (g) => g.address || '-' },
 
-  // 2. Pendidikan
-  { key: 'pendidikanTerakhir', label: 'Pendidikan Terakhir', category: 'PENDIDIKAN', defaultSelected: true, getValue: (g) => g.pendidikanTerakhir || '-' },
-  { key: 'perguruanTinggi', label: 'Perguruan Tinggi / Kampus', category: 'PENDIDIKAN', defaultSelected: true, getValue: (g) => g.perguruanTinggi || '-' },
-  { key: 'programStudi', label: 'Program Studi / Jurusan', category: 'PENDIDIKAN', defaultSelected: false, getValue: (g) => g.programStudi || '-' },
-  { key: 'tahunLulus', label: 'Tahun Kelulusan', category: 'PENDIDIKAN', defaultSelected: false, getValue: (g) => g.tahunLulus ? String(g.tahunLulus) : '-' },
+  // 2. Kepegawaian & Pendidikan
+  { key: 'nip', label: 'NIP / ID Guru', category: 'PENDIDIKAN', defaultSelected: false, getValue: (g) => g.nip || '-' },
+  { key: 'position', label: 'Jabatan / Posisi', category: 'PENDIDIKAN', defaultSelected: true, getValue: (g) => g.position || '-' },
+  { key: 'statusGuru', label: 'Status Kepegawaian', category: 'PENDIDIKAN', defaultSelected: true, getValue: (g) => g.statusGuru || '-' },
+  { key: 'pendidikanTerakhir', label: 'Pendidikan Terakhir', category: 'PENDIDIKAN', defaultSelected: false, getValue: (g) => g.pendidikanTerakhir || '-' },
+  { key: 'jurusan', label: 'Jurusan / Program Studi', category: 'PENDIDIKAN', defaultSelected: false, getValue: (g) => g.jurusan || '-' },
+  { key: 'alumniPesantren', label: 'Alumni Pondok/Pesantren', category: 'PENDIDIKAN', defaultSelected: false, getValue: (g) => g.alumniPesantren || '-' },
 
   // 3. Penugasan & Akademik
-  { key: 'wilayah', label: 'Wilayah', category: 'PENUGASAN', defaultSelected: true, getValue: (g) => g.wilayah?.name || '-' },
+  { key: 'wilayah', label: 'Wilayah Penempatan', category: 'PENUGASAN', defaultSelected: true, getValue: (g) => g.wilayah?.name || '-' },
   { key: 'cabang', label: 'Cabang Penempatan', category: 'PENUGASAN', defaultSelected: true, getValue: (g) => g.cabang?.name || '-' },
   {
     key: 'isWaliKelas',
@@ -92,9 +95,23 @@ const AVAILABLE_COLUMNS_GURU: GuruColumnOption[] = [
 ];
 
 export default function CustomFilterExportGuruModal({ isOpen, onClose, guruList }: CustomFilterExportGuruModalProps) {
-  const [selectedColumns, setSelectedColumns] = useState<string[]>(
-    AVAILABLE_COLUMNS_GURU.filter(c => c.defaultSelected).map(c => c.key)
-  );
+  const { user } = useAuth();
+  const isCabang = user?.scope === 'CABANG';
+
+  const availableColumns = useMemo(() => {
+    return AVAILABLE_COLUMNS_GURU.filter(c => {
+      if (isCabang && (c.key === 'wilayah' || c.key === 'cabang')) return false;
+      return true;
+    });
+  }, [isCabang]);
+
+  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setSelectedColumns(availableColumns.filter(c => c.defaultSelected).map(c => c.key));
+    }
+  }, [isOpen, availableColumns]);
 
   // Category tab filter inside column selection
   const [activeColCategory, setActiveColCategory] = useState<'ALL' | 'IDENTITAS' | 'PENDIDIKAN' | 'PENUGASAN' | 'AKUN'>('ALL');
@@ -165,14 +182,14 @@ export default function CustomFilterExportGuruModal({ isOpen, onClose, guruList 
 
   // Filter column options by category & search
   const visibleColumnOptions = useMemo(() => {
-    return AVAILABLE_COLUMNS_GURU.filter(col => {
+    return availableColumns.filter(col => {
       if (activeColCategory !== 'ALL' && col.category !== activeColCategory) return false;
       if (colSearchQuery.trim()) {
         return col.label.toLowerCase().includes(colSearchQuery.toLowerCase());
       }
       return true;
     });
-  }, [activeColCategory, colSearchQuery]);
+  }, [availableColumns, activeColCategory, colSearchQuery]);
 
   // Toggle Column Selection
   const toggleColumn = (key: string) => {
@@ -182,11 +199,11 @@ export default function CustomFilterExportGuruModal({ isOpen, onClose, guruList 
   };
 
   const selectAllColumns = () => {
-    setSelectedColumns(AVAILABLE_COLUMNS_GURU.map(c => c.key));
+    setSelectedColumns(availableColumns.map(c => c.key));
   };
 
   const resetColumns = () => {
-    setSelectedColumns(AVAILABLE_COLUMNS_GURU.filter(c => c.defaultSelected).map(c => c.key));
+    setSelectedColumns(availableColumns.filter(c => c.defaultSelected).map(c => c.key));
   };
 
   const clearAllColumns = () => {
@@ -205,7 +222,7 @@ export default function CustomFilterExportGuruModal({ isOpen, onClose, guruList 
       return;
     }
 
-    const activeCols = AVAILABLE_COLUMNS_GURU.filter(c => selectedColumns.includes(c.key));
+    const activeCols = availableColumns.filter(c => selectedColumns.includes(c.key));
 
     const exportData = filteredGuru.map((g, idx) => {
       const row: Record<string, any> = { 'No': idx + 1 };
@@ -230,7 +247,7 @@ export default function CustomFilterExportGuruModal({ isOpen, onClose, guruList 
 
   if (!isOpen) return null;
 
-  const activeCols = AVAILABLE_COLUMNS_GURU.filter(c => selectedColumns.includes(c.key));
+  const activeCols = availableColumns.filter(c => selectedColumns.includes(c.key));
 
   const getCategoryBadge = (cat: GuruColumnOption['category']) => {
     switch (cat) {
@@ -252,7 +269,11 @@ export default function CustomFilterExportGuruModal({ isOpen, onClose, guruList 
             </div>
             <div>
               <h3 className="font-bold text-base text-white">Filter Custom &amp; Export Data Guru (Lengkap)</h3>
-              <p className="text-xs text-slate-300">Pilih filter wilayah/cabang/kelas, tentukan kolom yang ingin ditampilkan, dan unduh format XLSX.</p>
+              <p className="text-xs text-slate-300">
+                {isCabang 
+                  ? 'Pilih filter kelas, tentukan kolom yang ingin ditampilkan, dan unduh format XLSX.'
+                  : 'Pilih filter wilayah/cabang/kelas, tentukan kolom yang ingin ditampilkan, dan unduh format XLSX.'}
+              </p>
             </div>
           </div>
           <button
@@ -269,40 +290,44 @@ export default function CustomFilterExportGuruModal({ isOpen, onClose, guruList 
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
             <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-slate-700">
               <Filter className="w-4 h-4 text-emerald-600" />
-              <span>1. Filter Lokasi &amp; Penugasan Guru</span>
+              <span>{isCabang ? '1. Filter Penugasan Guru' : '1. Filter Lokasi & Penugasan Guru'}</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Wilayah</label>
-                <select
-                  value={selectedWilayahId}
-                  onChange={(e) => {
-                    setSelectedWilayahId(e.target.value);
-                    setSelectedCabangId('');
-                  }}
-                  className="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                >
-                  <option value="">-- Semua Wilayah --</option>
-                  {wilayahs.map((w: any) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
-              </div>
+            <div className={`grid grid-cols-1 ${isCabang ? 'sm:grid-cols-2' : 'sm:grid-cols-2 md:grid-cols-4'} gap-3 text-xs`}>
+              {!isCabang && (
+                <>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Wilayah</label>
+                    <select
+                      value={selectedWilayahId}
+                      onChange={(e) => {
+                        setSelectedWilayahId(e.target.value);
+                        setSelectedCabangId('');
+                      }}
+                      className="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    >
+                      <option value="">-- Semua Wilayah --</option>
+                      {wilayahs.map((w: any) => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Cabang Penempatan</label>
-                <select
-                  value={selectedCabangId}
-                  onChange={(e) => setSelectedCabangId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                >
-                  <option value="">-- Semua Cabang --</option>
-                  {filteredCabangs.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Cabang Penempatan</label>
+                    <select
+                      value={selectedCabangId}
+                      onChange={(e) => setSelectedCabangId(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    >
+                      <option value="">-- Semua Cabang --</option>
+                      {filteredCabangs.map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-600 mb-1">Kelas Formal (Ajar/Wali)</label>
@@ -348,7 +373,7 @@ export default function CustomFilterExportGuruModal({ isOpen, onClose, guruList 
               <div>
                 <h4 className="font-bold text-xs uppercase tracking-wider text-slate-800 flex items-center gap-2">
                   <CheckSquare className="w-4 h-4 text-emerald-600" />
-                  2. Tentukan Kolom Tampilan &amp; Ekspor ({AVAILABLE_COLUMNS_GURU.length} Kolom Tersedia)
+                  2. Tentukan Kolom Tampilan &amp; Ekspor ({availableColumns.length} Kolom Tersedia)
                 </h4>
                 <p className="text-[11px] text-slate-500 mt-0.5">Centang kolom dari panel kiri. Kolom aktif yang akan diekspor tampil di sebelah kanan.</p>
               </div>

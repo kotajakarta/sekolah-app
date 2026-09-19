@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, KeyRound, Check, Send, Copy, RefreshCw, AlertCircle } from 'lucide-react';
 import { Staff, useCreateTeacherAccount, useResetTeacherPassword } from '../hooks/useMasterData';
 import { useToast } from '../../../contexts/ToastContext';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface TeacherAccountModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const TeacherAccountModal: React.FC<TeacherAccountModalProps> = ({
   mode,
   onSuccess,
 }) => {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const createAccountMutation = useCreateTeacherAccount();
   const resetPasswordMutation = useResetTeacherPassword();
@@ -236,7 +238,7 @@ export const TeacherAccountModal: React.FC<TeacherAccountModalProps> = ({
                   <p className="font-bold text-slate-800">{staff.name}</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-slate-500">Cabang:</span>
+                  <span className="text-slate-500">{user?.scope === 'CABANG' ? 'Pesantren:' : 'Cabang:'}</span>
                   <p className="font-semibold text-slate-700">{staff.cabang?.name || '-'}</p>
                 </div>
               </div>
@@ -337,7 +339,7 @@ export const TeacherAccountModal: React.FC<TeacherAccountModalProps> = ({
               <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-200 text-amber-900 flex items-start gap-2.5 text-xs">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <p className="text-[11px] leading-relaxed text-amber-800">
-                  <strong>Proteksi Aktif:</strong> Akun guru tidak dapat melihat data keuangan (syahriyah), mutasi/tarik santri, atau pengaturan cabang.
+                  <strong>Proteksi Aktif:</strong> Akun guru tidak dapat melihat data keuangan (syahriyah), mutasi/tarik santri, atau {user?.scope === 'CABANG' ? 'pengaturan lembaga' : 'pengaturan cabang'}.
                 </p>
               </div>
 

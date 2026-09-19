@@ -525,8 +525,12 @@ export default function PenugasanGuru() {
                 <tr className="bg-slate-50/70 text-[11px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200 select-none">
                   <th className="px-6 py-3.5 w-1/4">{t('penugasan.nama_guru') || 'Nama Guru'}</th>
                   <th className="px-6 py-3.5 w-2/5">{t('penugasan.penugasan') || 'Penugasan (Mapel & Kelas)'}</th>
-                  <th className="px-6 py-3.5">{t('penugasan.cabang') || 'Cabang'}</th>
-                  <th className="px-6 py-3.5">{t('penugasan.wilayah') || 'Wilayah'}</th>
+                  {user?.scope !== 'CABANG' && (
+                    <>
+                      <th className="px-6 py-3.5">{t('penugasan.cabang') || 'Cabang'}</th>
+                      <th className="px-6 py-3.5">{t('penugasan.wilayah') || 'Wilayah'}</th>
+                    </>
+                  )}
                   {!isReadOnly && (
                     <th className="px-6 py-3.5 text-center w-28">{t('common.action') || 'Aksi'}</th>
                   )}
@@ -572,15 +576,19 @@ export default function PenugasanGuru() {
                         </div>
                       </td>
 
-                      {/* Cabang */}
-                      <td className="px-6 py-4 text-slate-700 font-medium align-top whitespace-nowrap">
-                        {group.cabangName}
-                      </td>
+                      {user?.scope !== 'CABANG' && (
+                        <>
+                          {/* Cabang */}
+                          <td className="px-6 py-4 text-slate-700 font-medium align-top whitespace-nowrap">
+                            {group.cabangName}
+                          </td>
 
-                      {/* Wilayah */}
-                      <td className="px-6 py-4 text-slate-600 font-medium align-top whitespace-nowrap">
-                        {group.wilayahName}
-                      </td>
+                          {/* Wilayah */}
+                          <td className="px-6 py-4 text-slate-600 font-medium align-top whitespace-nowrap">
+                            {group.wilayahName}
+                          </td>
+                        </>
+                      )}
 
                       {/* Aksi */}
                       {!isReadOnly && (
@@ -602,7 +610,7 @@ export default function PenugasanGuru() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={isReadOnly ? 4 : 5} className="px-6 py-12 text-center text-slate-400">
+                    <td colSpan={user?.scope === 'CABANG' ? (isReadOnly ? 2 : 3) : (isReadOnly ? 4 : 5)} className="px-6 py-12 text-center text-slate-400">
                       <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                       {t('penugasan.empty_state') || 'Belum ada data penugasan guru yang sesuai filter.'}
                     </td>
@@ -669,7 +677,7 @@ export default function PenugasanGuru() {
                     <option value="">{t('penugasan.pilih_kelas')}</option>
                     {kelasList.map((k) => (
                       <option key={k.id} value={k.id}>
-                        {k.name} {k.cabang?.name ? `(${k.cabang.name})` : ''}
+                        {k.name} {user?.scope !== 'CABANG' && k.cabang?.name ? `(${k.cabang.name})` : ''}
                       </option>
                     ))}
                   </select>
@@ -801,44 +809,46 @@ export default function PenugasanGuru() {
               <div className="space-y-4">
                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('penugasan.progres_title')}</h4>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className={`grid grid-cols-1 ${user?.scope === 'CABANG' ? 'md:grid-cols-1' : 'md:grid-cols-2'} gap-6`}>
                   {/* Wilayah Progress */}
-                  <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wide">
-                      <MapPin className="w-3.5 h-3.5 text-indigo-500" />
-                      {t('penugasan.progres_wilayah')}
-                    </div>
-                    {modalWilayahProgress.length > 0 ? (
-                      <div className="space-y-3">
-                        {modalWilayahProgress.map(wp => (
-                          <div key={wp.id} className="space-y-1">
-                            <div className="flex justify-between text-xs font-medium text-slate-700">
-                              <span>{wp.name}</span>
-                              <span className="font-semibold text-slate-900">{wp.percent}% ({wp.assignedCount}/{wp.totalNeeded})</span>
-                            </div>
-                            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                              <div
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                      wp.percent === 100 ? 'bg-green-500' :
-                                          wp.percent >= 75 ? 'bg-emerald-500' :
-                                              wp.percent >= 50 ? 'bg-amber-500' : 'bg-rose-500'
-                                  }`}
-                                  style={{ width: `${wp.percent}%` }}
-                              />
-                            </div>
-                          </div>
-                        ))}
+                  {user?.scope !== 'CABANG' && (
+                    <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wide">
+                        <MapPin className="w-3.5 h-3.5 text-indigo-500" />
+                        {t('penugasan.progres_wilayah')}
                       </div>
-                    ) : (
-                      <p className="text-xs text-slate-400 italic">{t('penugasan.no_data_wilayah')}</p>
-                    )}
-                  </div>
+                      {modalWilayahProgress.length > 0 ? (
+                        <div className="space-y-3">
+                          {modalWilayahProgress.map(wp => (
+                            <div key={wp.id} className="space-y-1">
+                              <div className="flex justify-between text-xs font-medium text-slate-700">
+                                <span>{wp.name}</span>
+                                <span className="font-semibold text-slate-900">{wp.percent}% ({wp.assignedCount}/{wp.totalNeeded})</span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                                <div
+                                    className={`h-full rounded-full transition-all duration-500 ${
+                                        wp.percent === 100 ? 'bg-green-500' :
+                                            wp.percent >= 75 ? 'bg-emerald-500' :
+                                                wp.percent >= 50 ? 'bg-amber-500' : 'bg-rose-500'
+                                    }`}
+                                    style={{ width: `${wp.percent}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">{t('penugasan.no_data_wilayah')}</p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Cabang Progress */}
                   <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-100 space-y-3">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-wide">
                       <Building2 className="w-3.5 h-3.5 text-blue-500" />
-                      {t('penugasan.progres_cabang')}
+                      {user?.scope === 'CABANG' ? 'Progres Penugasan Pesantren' : t('penugasan.progres_cabang')}
                     </div>
                     {modalCabangProgress.length > 0 ? (
                       <div className="space-y-3 max-h-[180px] overflow-y-auto custom-scrollbar pr-1">

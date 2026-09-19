@@ -46,6 +46,7 @@ export default function LaporanPembelajaran() {
   const { user } = useAuth();
   const isGlobal = user?.scope === 'GLOBAL';
   const isWilayah = user?.scope === 'WILAYAH';
+  const isCabang = user?.scope === 'CABANG';
   const queryClient = useQueryClient();
 
   const currentMonthValue = () => {
@@ -67,7 +68,11 @@ export default function LaporanPembelajaran() {
 
   useEffect(() => {
     if (isWilayah && user?.wilayahId) setSelectedWilayah(user.wilayahId);
-  }, [user, isWilayah]);
+    if (isCabang) {
+      if (user?.wilayahId) setSelectedWilayah(user.wilayahId);
+      if (user?.cabangId) setSelectedCabang(user.cabangId);
+    }
+  }, [user, isWilayah, isCabang]);
 
   const { data: academicSetting } = useQuery({
     queryKey: ['pengaturan-akademik'],
@@ -406,37 +411,41 @@ export default function LaporanPembelajaran() {
     <div className="font-sans text-slate-800 animate-in fade-in duration-300 pb-12 space-y-6">
       {/* ── FILTER SECTION ── */}
       <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Wilayah</label>
-            <select
-              value={selectedWilayah}
-              onChange={e => { setSelectedWilayah(e.target.value); setSelectedCabang(''); }}
-              disabled={!isGlobal}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-75"
-            >
-              {isGlobal ? (
-                <>
-                  <option value="">Semua Wilayah</option>
-                  {wilayahs.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </>
-              ) : (
-                <option value={selectedWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
-              )}
-            </select>
-          </div>
+        <div className={`grid grid-cols-1 ${isCabang ? 'md:grid-cols-1 max-w-sm' : 'md:grid-cols-3'} gap-3 mb-3`}>
+          {!isCabang && (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Wilayah</label>
+                <select
+                  value={selectedWilayah}
+                  onChange={e => { setSelectedWilayah(e.target.value); setSelectedCabang(''); }}
+                  disabled={!isGlobal}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-75"
+                >
+                  {isGlobal ? (
+                    <>
+                      <option value="">Semua Wilayah</option>
+                      {wilayahs.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                    </>
+                  ) : (
+                    <option value={selectedWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
+                  )}
+                </select>
+              </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Cabang Pesantren</label>
-            <select
-              value={selectedCabang}
-              onChange={e => setSelectedCabang(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-            >
-              <option value="">Semua Cabang</option>
-              {filteredBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Cabang Pesantren</label>
+                <select
+                  value={selectedCabang}
+                  onChange={e => setSelectedCabang(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-white font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  <option value="">Semua Cabang</option>
+                  {filteredBranches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+            </>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Mata Pelajaran</label>
@@ -562,8 +571,10 @@ export default function LaporanPembelajaran() {
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Cabang</p>
-                <h4 className="text-xl font-black text-slate-900 tracking-tight">{laporan.rekap.length} Cabang</h4>
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{isCabang ? 'Lembaga / Pesantren' : 'Total Cabang'}</p>
+                <h4 className="text-xl font-black text-slate-900 tracking-tight truncate max-w-[200px]" title={isCabang ? user?.cabangName : `${laporan.rekap.length} Cabang`}>
+                  {isCabang ? (user?.cabangName || 'Pesantren') : `${laporan.rekap.length} Cabang`}
+                </h4>
               </div>
             </div>
 
@@ -598,8 +609,8 @@ export default function LaporanPembelajaran() {
             </div>
           </div>
 
-          {/* ── REKAPITULASI PER WILAYAH TABLE (Hanya muncul jika Filter Wilayah = Semua Wilayah / empty) ── */}
-          {selectedWilayah === '' && wilayahSummaryList.length > 0 && (
+          {/* ── REKAPITULASI PER WILAYAH TABLE (Hanya muncul jika Filter Wilayah = Semua Wilayah / empty & bukan CABANG) ── */}
+          {!isCabang && selectedWilayah === '' && wilayahSummaryList.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
               <div className="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -703,7 +714,7 @@ export default function LaporanPembelajaran() {
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-sky-400" />
                 <h3 className="text-xs sm:text-sm font-extrabold tracking-wide uppercase">
-                  Rincian Data Cabang ({filteredCabangList.length} Cabang)
+                  {isCabang ? 'Rincian Pelaksanaan Pembelajaran' : `Rincian Data Cabang (${filteredCabangList.length} Cabang)`}
                 </h3>
               </div>
 
@@ -712,7 +723,7 @@ export default function LaporanPembelajaran() {
                 <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Cari cabang..."
+                  placeholder={isCabang ? 'Cari data...' : 'Cari cabang...'}
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-800 text-white placeholder-slate-400 border border-slate-700 rounded-xl focus:outline-none focus:border-sky-400"
@@ -725,8 +736,12 @@ export default function LaporanPembelajaran() {
                 <thead className="bg-slate-50/80 text-slate-700 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
                   <tr className="border-b border-slate-200">
                     <th rowSpan={2} className="py-2.5 px-3 text-center w-12 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">No</th>
-                    <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Nama Cabang</th>
-                    <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Wilayah</th>
+                    {!isCabang && (
+                      <>
+                        <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Nama Cabang</th>
+                        <th rowSpan={2} className="py-2.5 px-3 bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Wilayah</th>
+                      </>
+                    )}
                     <th rowSpan={2} className="py-2.5 px-3 text-center bg-slate-100/90 text-slate-700 font-extrabold border-r border-slate-200 align-middle">Rombel Aktif</th>
                     <th className="py-2.5 px-3 text-center bg-[#6B21A8] text-white font-extrabold tracking-wide border-r border-purple-600 shadow-2xs">
                       PELAKSANAAN PEMBELAJARAN
@@ -747,8 +762,8 @@ export default function LaporanPembelajaran() {
                 <tbody className="divide-y divide-slate-100">
                   {/* TOP TOTAL SUMMARY ROW FOR FILTERED CABANGS */}
                   <tr className="bg-[#DCEBFB] border-b-2 border-sky-300 text-xs font-bold shadow-2xs">
-                    <td colSpan={3} className="py-3 px-3 text-right font-extrabold text-slate-800 bg-[#CFE2F9] border-r border-sky-300 uppercase tracking-wider">
-                      TOTAL ({filteredTotals.totalCabang} CABANG):
+                    <td colSpan={isCabang ? 1 : 3} className="py-3 px-3 text-right font-extrabold text-slate-800 bg-[#CFE2F9] border-r border-sky-300 uppercase tracking-wider">
+                      {isCabang ? 'TOTAL KESELURUHAN:' : `TOTAL (${filteredTotals.totalCabang} CABANG):`}
                     </td>
                     <td className="py-3 px-3 text-center font-extrabold text-slate-800 bg-[#CFE2F9] border-r border-sky-300 text-xs">
                       {filteredTotals.totalRombel} Rombel
@@ -769,20 +784,24 @@ export default function LaporanPembelajaran() {
 
                   {filteredCabangList.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-slate-400 text-xs font-medium">
-                        Tidak ada cabang yang cocok dengan pencarian "{searchQuery}".
+                      <td colSpan={isCabang ? 6 : 8} className="py-8 text-center text-slate-400 text-xs font-medium">
+                        {isCabang ? `Tidak ada data yang cocok dengan pencarian "${searchQuery}".` : `Tidak ada cabang yang cocok dengan pencarian "${searchQuery}".`}
                       </td>
                     </tr>
                   ) : (
                     filteredCabangList.map((row, idx) => (
                       <tr key={row.cabangId} className="hover:bg-slate-50 transition-colors">
                         <td className="py-3 px-3 text-center text-slate-400 font-medium">{idx + 1}</td>
-                        <td className="py-3 px-3 font-bold text-slate-900 border-r border-slate-100">
-                          {row.cabangName}
-                        </td>
-                        <td className="py-3 px-3 font-semibold text-slate-600 border-r border-slate-100">
-                          {row.wilayahName}
-                        </td>
+                        {!isCabang && (
+                          <>
+                            <td className="py-3 px-3 font-bold text-slate-900 border-r border-slate-100">
+                              {row.cabangName}
+                            </td>
+                            <td className="py-3 px-3 font-semibold text-slate-600 border-r border-slate-100">
+                              {row.wilayahName}
+                            </td>
+                          </>
+                        )}
                         <td className="py-3 px-3 text-center font-bold text-slate-700 border-r border-slate-100">
                           {(row.jumlahRombel || 0)} Rombel
                         </td>

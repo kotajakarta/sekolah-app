@@ -267,6 +267,7 @@ export default function GuruDashboardTab({
       </div>
 
       {/* Infographic Section: Wilayah Breakdown */}
+      {userScope !== 'CABANG' && (
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
           <div>
@@ -339,6 +340,7 @@ export default function GuruDashboardTab({
           </div>
         )}
       </div>
+      )}
 
       {/* Main Infographics Row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

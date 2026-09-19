@@ -205,8 +205,10 @@ export default function DataSiswa() {
         'Jenis Kelamin': student.biodata?.jenisKelamin || '-',
         'Tempat Lahir': student.biodata?.tempatLahir || '-',
         'Tanggal Lahir': student.biodata?.tanggalLahir ? new Date(student.biodata.tanggalLahir).toLocaleDateString('id-ID') : '-',
-        'Wilayah': student.wilayah?.name || '-',
-        'Cabang': student.cabang?.name || '-',
+        ...(user?.scope !== 'CABANG' ? {
+          'Wilayah': student.wilayah?.name || '-',
+          'Cabang': student.cabang?.name || '-',
+        } : {}),
         'Tingkat': tingkatInfo,
         'Kelas Formal': kelasInfo,
         'Grup Daimi': daimiInfo,
@@ -233,13 +235,9 @@ export default function DataSiswa() {
     // Format identity and phone columns as text so Excel doesn't turn numbers into scientific notation
     Object.keys(worksheet).forEach((cellRef) => {
       if (cellRef.startsWith('!')) return;
-      const cell = worksheet[cellRef];
-      if (cell && cell.v !== undefined && cell.v !== null) {
-        if (!cellRef.startsWith('A')) {
-          cell.t = 's';
-          cell.v = String(cell.v);
-          cell.z = '@';
-        }
+      const colLetter = cellRef.replace(/[0-9]/g, '');
+      if (['C', 'D', 'E', 'F', 'S', 'U', 'W'].includes(colLetter)) {
+        worksheet[cellRef].t = 's';
       }
     });
 
@@ -256,8 +254,10 @@ export default function DataSiswa() {
       { wch: 14 }, // JK
       { wch: 16 }, // Tempat Lahir
       { wch: 14 }, // Tanggal Lahir
-      { wch: 20 }, // Wilayah
-      { wch: 20 }, // Cabang
+      ...(user?.scope !== 'CABANG' ? [
+        { wch: 20 }, // Wilayah
+        { wch: 20 }, // Cabang
+      ] : []),
       { wch: 12 }, // Tingkat
       { wch: 16 }, // Kelas
       { wch: 16 }, // Daimi
@@ -660,7 +660,7 @@ export default function DataSiswa() {
               Akses Data Santri Terkunci
             </h3>
             <p className="text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
-              Untuk membuka <strong>Data Santri</strong> wajib mengisi data <strong>Profil Cabang</strong> secara lengkap (termasuk Nama Resmi, No. WhatsApp/Telepon, Kapasitas, Alamat Kelurahan s/d Provinsi, dan URL Google Maps).
+              Untuk membuka <strong>Data Santri</strong> wajib mengisi data <strong>{user?.scope === 'CABANG' ? 'Profil Lembaga / Pesantren' : 'Profil Cabang'}</strong> secara lengkap (termasuk Nama Resmi, No. WhatsApp/Telepon, Kapasitas, Alamat Kelurahan s/d Provinsi, dan URL Google Maps).
             </p>
           </div>
 
@@ -671,7 +671,7 @@ export default function DataSiswa() {
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-sm rounded-xl shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
             >
               <Building className="w-4 h-4" />
-              <span>Isi Profil Cabang Sekarang</span>
+              <span>{user?.scope === 'CABANG' ? 'Isi Profil Lembaga Sekarang' : 'Isi Profil Cabang Sekarang'}</span>
               <ExternalLink className="w-4 h-4" />
             </button>
           </div>

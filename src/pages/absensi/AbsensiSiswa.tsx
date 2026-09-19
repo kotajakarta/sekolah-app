@@ -302,7 +302,9 @@ export default function AbsensiSiswa() {
           {t('absensi.siswa_title') || 'Absensi Kehadiran Siswa'}
         </h1>
         <p className="hidden sm:block text-sm text-slate-500 mt-1">
-          {t('absensi.siswa_subtitle') || 'Pilih wilayah, cabang, program absensi, dan kelas untuk mulai mengisi kehadiran siswa pekanan.'}
+          {isCabang 
+            ? 'Pilih program absensi dan kelas untuk mulai mengisi kehadiran santri.' 
+            : (t('absensi.siswa_subtitle') || 'Pilih wilayah, cabang, program absensi, dan kelas untuk mulai mengisi kehadiran siswa pekanan.')}
         </p>
       </div>
 
@@ -353,7 +355,7 @@ export default function AbsensiSiswa() {
       ) : (
         <>
           {/* Filter Selector Section: Wilayah -> Cabang -> Kelas */}
-          <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-5 shadow-sm mb-4 sm:mb-6 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className={`bg-white border border-slate-200 rounded-xl p-3 sm:p-5 shadow-sm mb-4 sm:mb-6 grid ${isCabang ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 md:grid-cols-4'} gap-3 sm:gap-4`}>
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Program Absensi</label>
           {loadingPrograms ? (
@@ -374,47 +376,51 @@ export default function AbsensiSiswa() {
           )}
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Wilayah</label>
-          <select
-            value={selectedWilayah}
-            onChange={e => handleWilayahChange(e.target.value)}
-            disabled={!isGlobal}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-70"
-          >
-            {isGlobal ? (
-              <>
-                <option value="">-- Semua Wilayah --</option>
-                {wilayahs.map((w: any) => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
-                ))}
-              </>
-            ) : (
-              <option value={selectedWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
-            )}
-          </select>
-        </div>
+        {!isCabang && (
+          <>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Wilayah</label>
+              <select
+                value={selectedWilayah}
+                onChange={e => handleWilayahChange(e.target.value)}
+                disabled={!isGlobal}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-70"
+              >
+                {isGlobal ? (
+                  <>
+                    <option value="">-- Semua Wilayah --</option>
+                    {wilayahs.map((w: any) => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </>
+                ) : (
+                  <option value={selectedWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
+                )}
+              </select>
+            </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Cabang</label>
-          <select
-            value={selectedCabang}
-            onChange={e => handleCabangChange(e.target.value)}
-            disabled={isCabang}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-70"
-          >
-            {isCabang ? (
-              <option value={selectedCabang}>{user?.cabangName || 'Cabang Terkunci'}</option>
-            ) : (
-              <>
-                <option value="">-- Semua Cabang --</option>
-                {filteredBranches.map((b: any) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </>
-            )}
-          </select>
-        </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Cabang</label>
+              <select
+                value={selectedCabang}
+                onChange={e => handleCabangChange(e.target.value)}
+                disabled={isCabang}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-70"
+              >
+                {isCabang ? (
+                  <option value={selectedCabang}>{user?.cabangName || 'Cabang Terkunci'}</option>
+                ) : (
+                  <>
+                    <option value="">-- Semua Cabang --</option>
+                    {filteredBranches.map((b: any) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </>
+                )}
+              </select>
+            </div>
+          </>
+        )}
 
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Kelas Formal</label>
@@ -440,7 +446,7 @@ export default function AbsensiSiswa() {
               Daftar Santri & Status Kehadiran
             </h2>
             <p className="text-xs text-slate-500 mt-1">
-              Data santri akan muncul jika program, cabang, dan kelas telah dipilih.
+              Data santri akan muncul jika program{isCabang ? '' : ', cabang,'} dan kelas telah dipilih.
             </p>
           </div>
           {selectedProgram && selectedCabang && selectedKelas && programs && (

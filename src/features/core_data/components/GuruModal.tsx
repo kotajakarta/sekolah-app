@@ -218,7 +218,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
                     className="mt-1 block w-full rounded-md border border-slate-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
                     <option value="">{t('guru.form.position_ph')}</option>
-                    <option value="Ketua Cabang">{t('guru.form.pos_ketua_cabang')}</option>
+                    <option value="Ketua Cabang">{user?.scope === 'CABANG' ? 'Pimpinan Pesantren / Lembaga' : t('guru.form.pos_ketua_cabang')}</option>
                     <option value="Bendahara">{t('guru.form.pos_bendahara')}</option>
                     <option value="Sekretaris">{t('guru.form.pos_sekretaris')}</option>
                     <option value="Pengajar">{t('guru.form.pos_pengajar')}</option>
@@ -288,7 +288,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
 
               </div>
 
-              {!guru && (
+              {!guru && user?.scope !== 'CABANG' && (
                 <>
                   <h4 className="text-sm font-semibold text-slate-800 mt-6 border-b border-slate-100 pb-2 mb-4">{t('siswa.form.section_akademik')}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

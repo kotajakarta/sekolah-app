@@ -175,11 +175,11 @@ export default function KelolaCctvCabangTab() {
       {/* ── BANNER INFORMASI CABANG ── */}
       <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Video className="w-5 h-5 text-indigo-600" /> Konfigurasi Alamat Stream CCTV Cabang
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Video className="w-5 h-5 text-indigo-600" /> {user?.scope === 'CABANG' ? 'Konfigurasi Alamat Stream CCTV Pesantren' : 'Konfigurasi Alamat Stream CCTV Cabang'}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5 max-w-2xl">
-            Di sini administrator cabang dapat mendaftarkan URL streaming IP Camera / NVR (HLS `.m3u8`, RTSP, WebRTC, atau HTTP embed) untuk setiap lokasi kamera.
+            Di sini administrator dapat mendaftarkan URL streaming IP Camera / NVR (HLS `.m3u8`, RTSP, WebRTC, atau HTTP embed) untuk setiap lokasi kamera.
           </p>
         </div>
 
@@ -235,7 +235,7 @@ export default function KelolaCctvCabangTab() {
         ) : filteredCctv.length === 0 ? (
           <div className="p-8 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
             <Video className="w-8 h-8 text-slate-300 mx-auto" />
-            <p className="font-semibold text-slate-600">Belum ada kamera CCTV terdaftar untuk cabang ini.</p>
+            <p className="font-semibold text-slate-600">{user?.scope === 'CABANG' ? 'Belum ada kamera CCTV terdaftar untuk lembaga ini.' : 'Belum ada kamera CCTV terdaftar untuk cabang ini.'}</p>
             <p className="text-[11px] text-slate-400">Klik tombol "Tambah Kamera CCTV" di atas untuk mendaftarkan URL streaming kamera.</p>
           </div>
         ) : (
@@ -289,7 +289,7 @@ export default function KelolaCctvCabangTab() {
                           <XCircle className="w-3.5 h-3.5" /> Nonaktif
                         </span>
                       )}
-                      {item.cabang && <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">Cabang: {item.cabang.name}</span>}
+                      {item.cabang && user?.scope !== 'CABANG' && <span className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md">Cabang: {item.cabang.name}</span>}
                     </div>
 
                     <div className="flex items-center gap-1">
@@ -327,7 +327,7 @@ export default function KelolaCctvCabangTab() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
                 <Video className="w-5 h-5 text-indigo-600" />
-                {editingItem ? 'Edit Kamera CCTV' : 'Tambah Kamera CCTV Cabang'}
+                {editingItem ? 'Edit Kamera CCTV' : (user?.scope === 'CABANG' ? 'Tambah Kamera CCTV' : 'Tambah Kamera CCTV Cabang')}
               </h3>
               <button onClick={closeModal} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
                 <X className="w-5 h-5" />
@@ -381,7 +381,7 @@ export default function KelolaCctvCabangTab() {
                 <input
                   type="text"
                   required
-                  placeholder="https://cctv.cabang-gontor.com/live/kelas101.m3u8"
+                  placeholder="https://cctv.pesantren.id/live/kelas101.m3u8"
                   value={formData.streamUrl}
                   onChange={(e) => setFormData({ ...formData, streamUrl: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"

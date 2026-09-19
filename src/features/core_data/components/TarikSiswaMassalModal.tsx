@@ -351,8 +351,8 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
                           />
                         </th>
                         <th scope="col" className="px-4 py-3 text-left font-bold text-slate-600 uppercase tracking-wider">Nama & NIK</th>
-                        <th scope="col" className="px-4 py-3 text-left font-bold text-slate-600 uppercase tracking-wider">Wilayah Asal</th>
-                        <th scope="col" className="px-4 py-3 text-left font-bold text-slate-600 uppercase tracking-wider">Lokasi / Status</th>
+                        <th scope="col" className="px-4 py-3 text-left font-bold text-slate-600 uppercase tracking-wider">{isCabangUser ? 'Asal' : 'Wilayah Asal'}</th>
+                        <th scope="col" className="px-4 py-3 text-left font-bold text-slate-600 uppercase tracking-wider">{isCabangUser ? 'Status Santri' : 'Lokasi / Status'}</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
@@ -384,11 +384,11 @@ export default function TarikSiswaMassalModal({ onClose }: TarikSiswaMassalModal
                             <td className="px-4 py-3 whitespace-nowrap">
                               {student.statusPool === 'AKTIF_CABANG' ? (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                                  Di Cabang: {student.cabang?.name || '-'}
+                                  {isCabangUser ? 'Terdaftar di: ' : 'Di Cabang: '}{student.cabang?.name || '-'}
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                  Pool (Tersedia)
+                                  {isCabangUser ? 'Belum Terdaftar' : 'Pool (Tersedia)'}
                                 </span>
                               )}
                             </td>

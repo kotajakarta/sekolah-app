@@ -33,6 +33,7 @@ import PoolSiswa from './pages/core/PoolSiswa';
 import PoolGuru from './pages/core/PoolGuru';
 import DataSiswa from './pages/core/DataSiswa';
 import DataResidu from './pages/core/DataResidu';
+import CatatanIndisipliner from './pages/core/CatatanIndisipliner';
 import DaftarUlangSiswa from './pages/core/DaftarUlangSiswa';
 import PermintaanTarikData from './pages/core/PermintaanTarikData';
 import DataGuru from './pages/core/DataGuru';
@@ -554,6 +555,8 @@ export default function App() {
               <Route path="umum/kalender" element={<KalenderAkademikUmum />} />
               <Route path="core/siswa" element={<DataSiswa />} />
               <Route path="core/siswa-residu" element={<DataResidu />} />
+              <Route path="indisipliner" element={<CatatanIndisipliner />} />
+              <Route path="core/indisipliner" element={<CatatanIndisipliner />} />
               <Route path="core/daftar-ulang" element={<ScopeRoute allowed={['GLOBAL', 'AUDITOR']}><DaftarUlangSiswa /></ScopeRoute>} />
               <Route path="core/permintaan-tarik" element={<PermintaanTarikData />} />
               <Route path="core/permohonan-izin" element={<PermohonanIzinSantri />} />

@@ -281,7 +281,7 @@ export default function Dashboard() {
                 type="button"
                 onClick={() => syncMutation.mutate()}
                 disabled={syncMutation.isPending}
-                title={user?.scope === 'GLOBAL' ? 'Hitung ulang data dashboard nasional' : user?.scope === 'WILAYAH' ? 'Hitung ulang data dashboard wilayah' : 'Hitung ulang data dashboard cabang'}
+                title={user?.scope === 'GLOBAL' ? 'Hitung ulang data dashboard nasional' : user?.scope === 'WILAYAH' ? 'Hitung ulang data dashboard wilayah' : 'Hitung ulang data dashboard pesantren'}
                 className="inline-flex items-center px-2.5 py-0.5 bg-brand text-white rounded-lg text-[11px] font-bold shadow-sm hover:bg-brand/90 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`w-3 h-3 mr-1 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
@@ -297,7 +297,11 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
-                Perhatian: Terdapat <strong className="font-extrabold text-amber-900">{statsData.cabangMissingSubjectsCount} cabang</strong> yang memerlukan pemenuhan guru mata pelajaran umum!
+                {user?.scope === 'CABANG' ? (
+                  <>Perhatian: Lembaga Anda memerlukan pemenuhan guru mata pelajaran umum!</>
+                ) : (
+                  <>Perhatian: Terdapat <strong className="font-extrabold text-amber-900">{statsData.cabangMissingSubjectsCount} cabang</strong> yang memerlukan pemenuhan guru mata pelajaran umum!</>
+                )}
               </span>
             </div>
             <Link to="/dashboard/formal/penugasan-guru" className="font-bold text-amber-800 hover:text-amber-950 underline flex items-center gap-0.5 shrink-0 text-[11px]">
@@ -506,7 +510,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-            <span className="text-slate-500">Cabang Perlu Guru:</span>
+            <span className="text-slate-500">{user?.scope === 'CABANG' ? 'Status Kebutuhan Guru:' : 'Cabang Perlu Guru:'}</span>
             <span className={`font-bold text-[10px] px-1.5 py-0.5 rounded border ${hasIncidents ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
               {hasIncidents ? 'Perlu Guru' : 'Lengkap'}
             </span>
@@ -780,24 +784,26 @@ export default function Dashboard() {
               <Users className="w-4 h-4 text-indigo-600" />
               <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">{t('dashboard.ketersediaan_guru')}</h3>
             </div>
-            <div className="flex items-center gap-1.5 text-xs">
-              <select
-                value={selectedWilayahFilter}
-                onChange={e => { setSelectedWilayahFilter(e.target.value); setSelectedCabangFilter(''); }}
-                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
-              >
-                <option value="">{t('penugasan.semua_wilayah')}</option>
-                {wilayahOptions.map(w => <option key={w} value={w}>{w}</option>)}
-              </select>
-              <select
-                value={selectedCabangFilter}
-                onChange={e => setSelectedCabangFilter(e.target.value)}
-                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
-              >
-                <option value="">{t('penugasan.semua_cabang')}</option>
-                {cabangOptions.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
+            {user?.scope !== 'CABANG' && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <select
+                  value={selectedWilayahFilter}
+                  onChange={e => { setSelectedWilayahFilter(e.target.value); setSelectedCabangFilter(''); }}
+                  className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+                >
+                  <option value="">{t('penugasan.semua_wilayah')}</option>
+                  {wilayahOptions.map(w => <option key={w} value={w}>{w}</option>)}
+                </select>
+                <select
+                  value={selectedCabangFilter}
+                  onChange={e => setSelectedCabangFilter(e.target.value)}
+                  className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-[11px] focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+                >
+                  <option value="">{t('penugasan.semua_cabang')}</option>
+                  {cabangOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="overflow-x-auto max-h-[220px]">
@@ -805,7 +811,7 @@ export default function Dashboard() {
               <thead>
                 <tr className="font-bold text-slate-500 uppercase tracking-wide border-b border-slate-100 bg-slate-50/70">
                   <th className="px-3 py-2 w-14 text-center">{t('dashboard.status')}</th>
-                  <th className="px-3 py-2">{t('dashboard.nama_cabang')}</th>
+                  <th className="px-3 py-2">{user?.scope === 'CABANG' ? 'Lembaga / Pesantren' : t('dashboard.nama_cabang')}</th>
                   <th className="px-3 py-2">{t('dashboard.mapel_kurang')}</th>
                   <th className="px-3 py-2 w-12 text-center">{t('dashboard.aksi')}</th>
                 </tr>
@@ -822,7 +828,7 @@ export default function Dashboard() {
                       </td>
                       <td className="px-3 py-2 font-bold text-slate-800">
                         <div>{cabang.cabangName}</div>
-                        <div className="text-[10px] text-slate-400 font-normal">{cabang.wilayahName}</div>
+                        {user?.scope !== 'CABANG' && <div className="text-[10px] text-slate-400 font-normal">{cabang.wilayahName}</div>}
                       </td>
                       <td className="px-3 py-2">
                         {cabang.status === 'hijau' ? (

@@ -793,7 +793,9 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Nama Grup Daimi</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Jenis</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Cabang - Wilayah</th>
+                {user?.scope !== 'CABANG' && (
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Cabang - Wilayah</th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Ketua Grup</th>
                 <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-widest">Jumlah Siswa</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">Aksi</th>
@@ -814,18 +816,20 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                       <span className="text-slate-400">—</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                    {grup.cabang ? (
-                      <span>
-                        {grup.cabang.name}{' '}
-                        {grup.cabang.wilayah?.name && (
-                          <span className="text-slate-400 text-xs">({grup.cabang.wilayah.name})</span>
-                        )}
-                      </span>
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
-                  </td>
+                  {user?.scope !== 'CABANG' && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                      {grup.cabang ? (
+                        <span>
+                          {grup.cabang.name}{' '}
+                          {grup.cabang.wilayah?.name && (
+                            <span className="text-slate-400 text-xs">({grup.cabang.wilayah.name})</span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                     {grup.ketua?.name || <span className="text-slate-400">—</span>}
                   </td>
@@ -835,7 +839,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                     <button
                       onClick={() => openDetailModal(grup)}
-                      className="inline-flex items-center px-2 py-1 border border-slate-200 rounded text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100"
+                      className="inline-flex items-center px-2 py-1 border border-slate-300 rounded text-xs font-medium text-slate-700 bg-white hover:bg-slate-50"
                     >
                       <Eye className="w-3.5 h-3.5 mr-1" />
                       Detail
@@ -863,7 +867,7 @@ export default function GrupDaimiTab({ isAdmin = false }: GrupDaimiTabProps) {
               ))}
               {filteredGrupList.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                  <td colSpan={user?.scope === 'CABANG' ? 5 : 6} className="px-6 py-8 text-center text-slate-500">
                     Belum ada data Grup Daimi
                   </td>
                 </tr>

@@ -262,48 +262,45 @@ export default function RekapitulasiAbsensi() {
 
       {/* Filter panel */}
       <div className="bg-white border border-slate-200 rounded p-5 shadow-none mb-6 print:hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Wilayah</label>
-            <select
-              value={selectedWilayah}
-              onChange={e => handleWilayahChange(e.target.value)}
-              disabled={!isGlobal}
-              className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
-            >
-              {isGlobal ? (
-                <>
-                  <option value="">-- Semua Wilayah --</option>
-                  {wilayahs.map((w: any) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </>
-              ) : (
-                <option value={selectedWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
-              )}
-            </select>
-          </div>
+        <div className={`grid grid-cols-1 ${isCabang ? 'md:grid-cols-1 max-w-md' : 'md:grid-cols-3'} gap-4 mb-4`}>
+          {!isCabang && (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Wilayah</label>
+                <select
+                  value={selectedWilayah}
+                  onChange={e => handleWilayahChange(e.target.value)}
+                  disabled={!isGlobal}
+                  className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
+                >
+                  {isGlobal ? (
+                    <>
+                      <option value="">-- Semua Wilayah --</option>
+                      {wilayahs.map((w: any) => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </>
+                  ) : (
+                    <option value={selectedWilayah}>{user?.wilayahName || 'Wilayah Terkunci'}</option>
+                  )}
+                </select>
+              </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Cabang</label>
-            <select
-              value={selectedCabang}
-              onChange={e => handleCabangChange(e.target.value)}
-              disabled={isCabang}
-              className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
-            >
-              {isCabang ? (
-                <option value={selectedCabang}>{user?.cabangName || 'Cabang Terkunci'}</option>
-              ) : (
-                <>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Cabang</label>
+                <select
+                  value={selectedCabang}
+                  onChange={e => handleCabangChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm bg-slate-50/50"
+                >
                   <option value="">-- Semua Cabang --</option>
                   {filteredBranches.map((b: any) => (
                     <option key={b.id} value={b.id}>{b.name}</option>
                   ))}
-                </>
-              )}
-            </select>
-          </div>
+                </select>
+              </div>
+            </>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">Kelas Formal</label>
@@ -436,7 +433,11 @@ export default function RekapitulasiAbsensi() {
       {!isFilterReady ? (
         <div className="bg-slate-50 border border-dashed border-slate-300/80 rounded p-12 text-center text-slate-400 flex flex-col items-center justify-center print:hidden">
           <Info className="w-8 h-8 mb-2 text-slate-300" />
-          <p className="font-medium text-slate-600">Silakan lengkapi pemilihan Wilayah, Cabang, Kelas, dan filter tanggal/semester/bulan untuk memuat rekapitulasi absensi.</p>
+          <p className="font-medium text-slate-600">
+            {isCabang 
+              ? 'Silakan pilih Kelas dan filter tanggal/semester/bulan untuk memuat rekapitulasi absensi.'
+              : 'Silakan lengkapi pemilihan Wilayah, Cabang, Kelas, dan filter tanggal/semester/bulan untuk memuat rekapitulasi absensi.'}
+          </p>
         </div>
       ) : loadingRecap ? (
         <div className="bg-white border border-slate-200 rounded p-12 flex justify-center items-center print:hidden">
@@ -481,8 +482,14 @@ export default function RekapitulasiAbsensi() {
             <h1 className="text-xl font-bold text-center uppercase tracking-wide">Laporan Rekapitulasi Absensi Santri</h1>
             <div className="grid grid-cols-2 text-xs mt-3">
               <div>
-                <p><span className="font-semibold">Wilayah:</span> {selectedWilayah ? wilayahs.find((w: any) => w.id === selectedWilayah)?.name : 'Semua Wilayah'}</p>
-                <p><span className="font-semibold">Cabang:</span> {selectedCabang ? branches.find((b: any) => b.id === selectedCabang)?.name : 'Semua Cabang'}</p>
+                {!isCabang ? (
+                  <>
+                    <p><span className="font-semibold">Wilayah:</span> {selectedWilayah ? wilayahs.find((w: any) => w.id === selectedWilayah)?.name : 'Semua Wilayah'}</p>
+                    <p><span className="font-semibold">Cabang:</span> {selectedCabang ? branches.find((b: any) => b.id === selectedCabang)?.name : 'Semua Cabang'}</p>
+                  </>
+                ) : (
+                  <p><span className="font-semibold">Lembaga / Pesantren:</span> {user?.cabangName || '-'}</p>
+                )}
               </div>
               <div className="text-right">
                 <p><span className="font-semibold">Kelas:</span> {selectedKelas ? classes.find(c => c.id === selectedKelas)?.name : 'Semua Kelas'}</p>

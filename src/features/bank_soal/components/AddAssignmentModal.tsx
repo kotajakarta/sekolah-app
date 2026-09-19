@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Target, CheckCircle2, Building, Building2, User } from 'lucide-react';
 import { useAddProjectAssignment, useFormalMetadata, useHierarchyMetadata } from '../hooks/useBankSoal';
+import { useAuth } from '../../../hooks/useAuth';
 import type { BankSoalProject } from '../types';
 
 interface AddAssignmentModalProps {
@@ -31,6 +32,8 @@ export const AddAssignmentModal: React.FC<AddAssignmentModalProps> = ({
   onClose,
   project,
 }) => {
+  const { user } = useAuth();
+  const isCabang = user?.scope === 'CABANG';
   const { data: formalMeta } = useFormalMetadata();
   const addMutation = useAddProjectAssignment();
 
@@ -39,8 +42,8 @@ export const AddAssignmentModal: React.FC<AddAssignmentModalProps> = ({
   const [targetMcqCount, setTargetMcqCount] = useState(40);
   const [targetEssayCount, setTargetEssayCount] = useState(5);
   const [timeLimit, setTimeLimit] = useState(90);
-  const [selectedWilayah, setSelectedWilayah] = useState('');
-  const [selectedCabang, setSelectedCabang] = useState('');
+  const [selectedWilayah, setSelectedWilayah] = useState(isCabang ? (user?.wilayahId || '') : '');
+  const [selectedCabang, setSelectedCabang] = useState(isCabang ? (user?.cabangId || '') : '');
   const [instructions, setInstructions] = useState('');
 
   const { data: hierarchyMeta } = useHierarchyMetadata(
@@ -185,48 +188,50 @@ export const AddAssignmentModal: React.FC<AddAssignmentModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider flex items-center gap-1">
-                <Building className="w-3.5 h-3.5 text-slate-400" />
-                <span>Pilih Wilayah</span>
-              </label>
-              <select
-                value={selectedWilayah}
-                onChange={(e) => {
-                  setSelectedWilayah(e.target.value);
-                  setSelectedCabang('');
-                }}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-              >
-                <option value="">-- Belum Dipilih --</option>
-                {wilayahList.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {!isCabang && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider flex items-center gap-1">
+                  <Building className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Pilih Wilayah</span>
+                </label>
+                <select
+                  value={selectedWilayah}
+                  onChange={(e) => {
+                    setSelectedWilayah(e.target.value);
+                    setSelectedCabang('');
+                  }}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                >
+                  <option value="">-- Belum Dipilih --</option>
+                  {wilayahList.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider flex items-center gap-1">
-                <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                <span>Pilih Cabang</span>
-              </label>
-              <select
-                value={selectedCabang}
-                onChange={(e) => setSelectedCabang(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-              >
-                <option value="">-- Belum Dipilih --</option>
-                {branchList.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider flex items-center gap-1">
+                  <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Pilih Cabang</span>
+                </label>
+                <select
+                  value={selectedCabang}
+                  onChange={(e) => setSelectedCabang(e.target.value)}
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                >
+                  <option value="">-- Belum Dipilih --</option>
+                  {branchList.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Footer */}
           <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">

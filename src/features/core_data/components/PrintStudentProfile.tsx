@@ -2,6 +2,7 @@ import React from 'react';
 import { Student } from '../hooks/useGetStudents';
 import { RiwayatKelasFormal } from '../hooks/useRiwayatKelas';
 import { User } from 'lucide-react';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface PrintStudentProfileProps {
   student: Student | null;
@@ -41,12 +42,12 @@ export const formatJenisTingkatDaimi = (raw?: string | null): string => {
   return mapping[normalized] || raw;
 };
 
-export default function PrintStudentProfile({ student, riwayatKelas }: PrintStudentProfileProps) {
+export default function PrintStudentProfile({ student }: PrintStudentProfileProps) {
+  const { user } = useAuth();
+  const isCabang = user?.scope === 'CABANG';
   if (!student) return null;
 
   const b = student.biodata;
-  const rawDaimi = student.dataDaimi?.grup?.jenis || student.dataDaimi?.grup?.name || student.grupDaimi;
-  const jenisTingkatDaimi = formatJenisTingkatDaimi(rawDaimi);
 
   const formatDate = (d?: string | null) => {
     if (!d) return '-';
@@ -77,13 +78,20 @@ export default function PrintStudentProfile({ student, riwayatKelas }: PrintStud
     year: 'numeric'
   });
 
+  const lokasiKota = b?.alamatKabName
+    ? b.alamatKabName.replace(/^(KABUPATEN|KOTA)\s+/i, '')
+    : (student.cabang?.name || '');
+
   return (
-    <div className="hidden print:block w-full bg-white text-slate-900 font-sans text-[10.5px] leading-snug print-page" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+    <div
+      className="hidden print:block w-full bg-white text-slate-900 font-sans text-[11px] leading-normal print-page"
+      style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+    >
       <style>{`
         @media print {
           @page {
             size: A4 portrait;
-            margin: 8mm 10mm 8mm 10mm;
+            margin: 12mm 14mm 10mm 14mm;
           }
           html, body {
             height: 100%;
@@ -92,319 +100,279 @@ export default function PrintStudentProfile({ student, riwayatKelas }: PrintStud
             overflow: hidden !important;
           }
           .print-page {
-            page-break-inside: avoid !important;
-            page-break-after: avoid !important;
             height: 100%;
-            max-height: 280mm;
+            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            overflow: hidden;
           }
         }
       `}</style>
 
-      {/* HEADER DOKUMEN */}
-      <div className="border-b-2 border-slate-900 pb-2.5 mb-2.5 flex justify-between items-end">
-        <div>
-          <h1 className="text-lg font-black tracking-wide text-slate-900 uppercase">
-            LEMBAR DATA INDUK SANTRI
-          </h1>
-          <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mt-0.5">
-            BIODATA LENGKAP PESERTA DIDIK {student.cabang?.name ? `• CABANG ${student.cabang.name.toUpperCase()}` : ''}
-          </p>
+      {/* ── HEADER DOKUMEN ── */}
+      <div>
+        <div className="border-b-2 border-slate-900 pb-3 mb-4 flex justify-between items-end">
+          <div>
+            <h1 className="text-xl font-black tracking-wide text-slate-900 uppercase font-serif">
+              LEMBAR DATA INDUK SANTRI
+            </h1>
+            <p className="text-xs font-bold text-slate-700 uppercase tracking-wider mt-1">
+              BIODATA POKOK PESERTA DIDIK {student.cabang?.name ? (isCabang ? `• ${student.cabang.name.toUpperCase()}` : `• CABANG ${student.cabang.name.toUpperCase()}`) : ''}
+            </p>
+          </div>
+          <div className="text-right border-l-2 border-slate-300 pl-3 py-0.5">
+            <div className="text-[10px] text-slate-500 font-medium">Tahun Ajaran:</div>
+            <div className="text-xs font-black text-slate-900">
+              {student.siswaFormal?.kelas?.tahunAjaran || new Date().getFullYear()}
+            </div>
+          </div>
         </div>
-        <div className="text-right text-[9px] text-slate-500 font-medium">
-          Tahun Ajaran: <span className="font-bold text-slate-800">{student.siswaFormal?.kelas?.tahunAjaran || new Date().getFullYear()}</span>
-        </div>
-      </div>
 
-      {/* CONTENT WRAPPER WITH BALANCED SPACING */}
-      <div className="space-y-2.5 flex-1">
-        {/* A. IDENTITAS SANTRI DENGAN FOTO BERDAMPINGAN (TANPA NO KK) */}
-        <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/30">
-          <div className="font-bold text-slate-800 text-[10.5px] uppercase tracking-wider pb-1 mb-2 border-b border-slate-200 flex justify-between items-center">
-            <span>A. Identitas Santri</span>
-            <span className="text-[9px] text-slate-500 font-normal">Data Pokok Peserta Didik</span>
+        {/* ── BODY SECTIONS ── */}
+        <div className="space-y-4">
+          {/* A. IDENTITAS SANTRI */}
+          <div className="border border-slate-300 rounded-lg p-3.5 bg-white">
+            <div className="font-bold text-slate-900 text-xs uppercase tracking-wider pb-1.5 mb-2.5 border-b border-slate-200 flex justify-between items-center">
+              <span className="font-bold">A. Identitas Peserta Didik</span>
+              <span className="text-[9.5px] text-slate-500 font-normal">Dokumen Kependudukan Resmi</span>
+            </div>
+
+            <div className="flex gap-4 items-start">
+              {/* Kolom Kiri: Tabel Data Identitas (2 Kolom Grid) */}
+              <div className="flex-1 grid grid-cols-2 gap-x-6 gap-y-1.5 text-[10.5px]">
+                <div className="flex items-baseline">
+                  <span className="w-32 text-slate-500 shrink-0">Nama Lengkap</span>
+                  <span className="w-2 text-slate-400 mr-1">:</span>
+                  <span className="font-bold text-slate-950 uppercase truncate">{b?.fullName || '-'}</span>
+                </div>
+                <div className="flex items-baseline">
+                  <span className="w-32 text-slate-500 shrink-0">Kewarganegaraan</span>
+                  <span className="w-2 text-slate-400 mr-1">:</span>
+                  <span className="text-slate-900 font-medium">{b?.kewarganegaraan || 'WNI'}</span>
+                </div>
+
+                <div className="flex items-baseline">
+                  <span className="w-32 text-slate-500 shrink-0">NIK (KTP)</span>
+                  <span className="w-2 text-slate-400 mr-1">:</span>
+                  <span className="font-mono font-bold text-slate-900">{b?.nik || '-'}</span>
+                </div>
+                <div className="flex items-baseline">
+                  <span className="w-32 text-slate-500 shrink-0">Anak Ke- / Dari</span>
+                  <span className="w-2 text-slate-400 mr-1">:</span>
+                  <span className="text-slate-900">Ke- {b?.anakKe || '-'} dari {b?.jumlahSaudara || '-'} bersaudara</span>
+                </div>
+
+                <div className="flex items-baseline">
+                  <span className="w-32 text-slate-500 shrink-0">NISN</span>
+                  <span className="w-2 text-slate-400 mr-1">:</span>
+                  <span className="font-mono font-semibold text-slate-900">{b?.nisn || student.siswaFormal?.nisn || '-'}</span>
+                </div>
+                <div className="flex items-baseline">
+                  <span className="w-32 text-slate-500 shrink-0">Jenis Kelamin</span>
+                  <span className="w-2 text-slate-400 mr-1">:</span>
+                  <span className="text-slate-900 font-medium">
+                    {b?.jenisKelamin === 'L' ? 'Laki-laki' : b?.jenisKelamin === 'P' ? 'Perempuan' : b?.jenisKelamin || '-'}
+                  </span>
+                </div>
+
+                <div className="flex items-baseline">
+                  <span className="w-32 text-slate-500 shrink-0">Nomor Induk (NIS)</span>
+                  <span className="w-2 text-slate-400 mr-1">:</span>
+                  <span className="font-mono text-slate-900">{b?.nisLokal || student.siswaFormal?.nis || '-'}</span>
+                </div>
+                <div className="flex items-baseline">
+                  <span className="w-32 text-slate-500 shrink-0">No. HP / WhatsApp</span>
+                  <span className="w-2 text-slate-400 mr-1">:</span>
+                  <span className="text-slate-900 font-medium">{b?.phone || '-'}</span>
+                </div>
+
+                <div className="flex items-baseline col-span-2">
+                  <span className="w-32 text-slate-500 shrink-0">Tempat, Tgl Lahir</span>
+                  <span className="w-2 text-slate-400 mr-1">:</span>
+                  <span className="text-slate-900 font-medium">{b?.tempatLahir || '-'}, {formatDate(b?.tanggalLahir)}</span>
+                </div>
+
+                <div className="flex items-baseline col-span-2 pt-1.5 border-t border-slate-200 mt-1">
+                  <span className="w-32 text-slate-500 shrink-0">Alamat Lengkap</span>
+                  <span className="w-2 text-slate-400 mr-1">:</span>
+                  <span className="text-slate-900 leading-relaxed font-normal">{formatAlamatLengkap()}</span>
+                </div>
+              </div>
+
+              {/* Kolom Kanan: Pas Foto 3x4 Santri */}
+              <div className="w-28 h-36 shrink-0 border-2 border-slate-300 rounded-md bg-slate-50 flex flex-col items-center justify-center overflow-hidden shadow-xs">
+                {b?.fotoUrl ? (
+                  <img
+                    src={`/api/v1${b.fotoUrl}`}
+                    alt="Foto Santri"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-2 text-center text-slate-400">
+                    <User className="w-8 h-8 text-slate-300 mb-1" />
+                    <span className="text-[9px] font-bold tracking-wider text-slate-400">PAS FOTO</span>
+                    <span className="text-[8px] text-slate-400">3 x 4 cm</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          <div className="flex gap-3.5 items-start">
-            {/* Tabel Data Identitas (2 Kolom) */}
-            <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
-              <div className="flex items-baseline">
-                <span className="w-28 text-slate-500 shrink-0">Nama Lengkap</span>
-                <span className="w-2 text-slate-400">:</span>
-                <span className="font-bold text-slate-900 uppercase truncate">{b?.fullName || '-'}</span>
-              </div>
-              <div className="flex items-baseline">
-                <span className="w-28 text-slate-500 shrink-0">Kewarganegaraan</span>
-                <span className="w-2 text-slate-400">:</span>
-                <span className="text-slate-900">{b?.kewarganegaraan || 'WNI'}</span>
+          {/* B. DATA ORANG TUA / WALI */}
+          <div className="border border-slate-300 rounded-lg p-3.5 bg-white space-y-3">
+            <div className="font-bold text-slate-900 text-xs uppercase tracking-wider pb-1.5 border-b border-slate-200 flex justify-between items-center">
+              <span className="font-bold">B. Data Orang Tua & Wali</span>
+              <span className="text-[9.5px] text-slate-500 font-normal">Data Ayah & Ibu Kandung</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-[10.5px]">
+              {/* Ayah Kandung */}
+              <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/40">
+                <p className="font-bold uppercase text-[10px] border-b border-slate-200 pb-1.5 mb-2 text-slate-800 flex items-center justify-between">
+                  <span>1. Data Ayah Kandung</span>
+                  <span className={`text-[9px] px-1.5 py-0.2 rounded font-semibold ${
+                    b?.statusHidupAyah === 'Sudah Meninggal' || b?.statusHidupAyah === 'Wafat'
+                      ? 'bg-rose-100 text-rose-700'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {b?.statusHidupAyah || 'Hidup'}
+                  </span>
+                </p>
+                <div className="space-y-1.5">
+                  <div className="flex items-baseline">
+                    <span className="w-24 text-slate-500 shrink-0">Nama Lengkap</span>
+                    <span className="w-2 text-slate-400 mr-1">:</span>
+                    <span className="font-bold text-slate-950 uppercase truncate">{b?.namaAyah || '-'}</span>
+                  </div>
+                  <div className="flex items-baseline">
+                    <span className="w-24 text-slate-500 shrink-0">Status Hidup</span>
+                    <span className="w-2 text-slate-400 mr-1">:</span>
+                    <span className="text-slate-900 font-medium">{b?.statusHidupAyah || 'Hidup'}</span>
+                  </div>
+                  {b?.statusHidupAyah !== 'Sudah Meninggal' && b?.statusHidupAyah !== 'Wafat' && (
+                    <>
+                      <div className="flex items-baseline">
+                        <span className="w-24 text-slate-500 shrink-0">NIK Ayah</span>
+                        <span className="w-2 text-slate-400 mr-1">:</span>
+                        <span className="font-mono text-slate-900">{b?.nikAyah || '-'}</span>
+                      </div>
+                      <div className="flex items-baseline">
+                        <span className="w-24 text-slate-500 shrink-0">Tempat, TTL</span>
+                        <span className="w-2 text-slate-400 mr-1">:</span>
+                        <span className="text-slate-900">{b?.tempatLahirAyah || '-'}, {formatDate(b?.tanggalLahirAyah)}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
-              <div className="flex items-baseline">
-                <span className="w-28 text-slate-500 shrink-0">NIK (KTP)</span>
-                <span className="w-2 text-slate-400">:</span>
-                <span className="font-mono font-bold text-slate-900">{b?.nik || '-'}</span>
-              </div>
-              <div className="flex items-baseline">
-                <span className="w-28 text-slate-500 shrink-0">Anak Ke- / Bersaudara</span>
-                <span className="w-2 text-slate-400">:</span>
-                <span className="text-slate-900">Ke- {b?.anakKe || '-'} dari {b?.jumlahSaudara || '-'} bersaudara</span>
-              </div>
-
-              <div className="flex items-baseline">
-                <span className="w-28 text-slate-500 shrink-0">NISN / NIS Lokal</span>
-                <span className="w-2 text-slate-400">:</span>
-                <span className="text-slate-900">
-                  <span className="font-semibold">{b?.nisn || student.siswaFormal?.nisn || '-'}</span>
-                  <span className="text-slate-400 mx-1">/</span>
-                  <span>{b?.nisLokal || student.siswaFormal?.nis || '-'}</span>
-                </span>
-              </div>
-              <div className="flex items-baseline">
-                <span className="w-28 text-slate-500 shrink-0">No. HP / WhatsApp</span>
-                <span className="w-2 text-slate-400">:</span>
-                <span className="text-slate-900 font-medium">{b?.phone || '-'}</span>
-              </div>
-
-              <div className="flex items-baseline">
-                <span className="w-28 text-slate-500 shrink-0">Tempat, Tgl Lahir</span>
-                <span className="w-2 text-slate-400">:</span>
-                <span className="text-slate-900 font-medium">{b?.tempatLahir || '-'}, {formatDate(b?.tanggalLahir)}</span>
-              </div>
-              <div className="flex items-baseline">
-                <span className="w-28 text-slate-500 shrink-0">Jenis Kelamin</span>
-                <span className="w-2 text-slate-400">:</span>
-                <span className="text-slate-900">{b?.jenisKelamin === 'L' ? 'Laki-laki' : b?.jenisKelamin === 'P' ? 'Perempuan' : b?.jenisKelamin || '-'}</span>
-              </div>
-
-              <div className="flex items-baseline col-span-2 pt-1 border-t border-slate-100 mt-0.5">
-                <span className="w-28 text-slate-500 shrink-0">Alamat Lengkap</span>
-                <span className="w-2 text-slate-400">:</span>
-                <span className="text-slate-900 leading-snug">{formatAlamatLengkap()}</span>
+              {/* Ibu Kandung */}
+              <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/40">
+                <p className="font-bold uppercase text-[10px] border-b border-slate-200 pb-1.5 mb-2 text-slate-800 flex items-center justify-between">
+                  <span>2. Data Ibu Kandung</span>
+                  <span className={`text-[9px] px-1.5 py-0.2 rounded font-semibold ${
+                    b?.statusHidupIbu === 'Sudah Meninggal' || b?.statusHidupIbu === 'Wafat'
+                      ? 'bg-rose-100 text-rose-700'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {b?.statusHidupIbu || 'Hidup'}
+                  </span>
+                </p>
+                <div className="space-y-1.5">
+                  <div className="flex items-baseline">
+                    <span className="w-24 text-slate-500 shrink-0">Nama Lengkap</span>
+                    <span className="w-2 text-slate-400 mr-1">:</span>
+                    <span className="font-bold text-slate-950 uppercase truncate">{b?.namaIbu || '-'}</span>
+                  </div>
+                  <div className="flex items-baseline">
+                    <span className="w-24 text-slate-500 shrink-0">Status Hidup</span>
+                    <span className="w-2 text-slate-400 mr-1">:</span>
+                    <span className="text-slate-900 font-medium">{b?.statusHidupIbu || 'Hidup'}</span>
+                  </div>
+                  {b?.statusHidupIbu !== 'Sudah Meninggal' && b?.statusHidupIbu !== 'Wafat' && (
+                    <>
+                      <div className="flex items-baseline">
+                        <span className="w-24 text-slate-500 shrink-0">NIK Ibu</span>
+                        <span className="w-2 text-slate-400 mr-1">:</span>
+                        <span className="font-mono text-slate-900">{b?.nikIbu || '-'}</span>
+                      </div>
+                      <div className="flex items-baseline">
+                        <span className="w-24 text-slate-500 shrink-0">Tempat, TTL</span>
+                        <span className="w-2 text-slate-400 mr-1">:</span>
+                        <span className="text-slate-900">{b?.tempatLahirIbu || '-'}, {formatDate(b?.tanggalLahirIbu)}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Pas Foto Santri 3x4 (Terintegrasi Rapi di Samping Data Diri) */}
-            <div className="w-22 h-28 shrink-0 border border-slate-700 rounded bg-white flex flex-col items-center justify-center overflow-hidden shadow-xs">
-              {b?.fotoUrl ? (
-                <img
-                  src={`/api/v1${b.fotoUrl}`}
-                  alt="Foto Santri"
-                  className="w-full h-full object-cover"
-                />
+            {/* 3. Kontak Darurat / Wali */}
+            <div className="pt-2 border-t border-slate-200">
+              <p className="font-bold uppercase text-[10px] text-slate-700 mb-1.5">
+                3. Data Wali / Kontak Darurat
+              </p>
+              {b?.kontakDaruratNama ? (
+                <div className="grid grid-cols-3 gap-3 p-2.5 bg-slate-50 rounded border border-slate-200 text-[10px]">
+                  <div>
+                    <span className="text-slate-500 block text-[9px]">Nama Wali:</span>
+                    <span className="font-bold text-slate-900 uppercase">{b.kontakDaruratNama}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[9px]">Hubungan Keluarga:</span>
+                    <span className="font-medium text-slate-800">{b.kontakDaruratHubungan || '-'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[9px]">Nomor Telepon / HP:</span>
+                    <span className="font-mono font-medium text-slate-900">{b.kontakDaruratTelp || '-'}</span>
+                  </div>
+                </div>
               ) : (
-                <div className="flex flex-col items-center justify-center p-1 text-center text-slate-400">
-                  <User className="w-7 h-7 text-slate-300" />
-                  <span className="text-[8px] font-semibold tracking-wider text-slate-400 mt-1">FOTO 3x4</span>
+                <div className="p-2 bg-slate-50/60 rounded border border-slate-200 text-[10px] text-slate-600 italic">
+                  Wali santri adalah orang tua kandung (sesuai data Ayah / Ibu di atas).
                 </div>
               )}
             </div>
           </div>
         </div>
-
-        {/* B. DATA ORANG TUA & WALI */}
-        <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/30">
-          <div className="font-bold text-slate-800 text-[10.5px] uppercase tracking-wider pb-1 mb-2 border-b border-slate-200">
-            B. Data Orang Tua & Wali
-          </div>
-          <div className="grid grid-cols-2 gap-3.5 text-[10px]">
-            {/* Ayah */}
-            <div className="border border-slate-200/80 rounded-md p-2 bg-white">
-              <p className="font-bold text-slate-800 uppercase text-[9.5px] border-b border-slate-100 pb-1 mb-1.5 text-indigo-900">
-                Data Ayah Kandung
-              </p>
-              <div className="space-y-1">
-                <div className="flex items-baseline">
-                  <span className="w-22 text-slate-500 shrink-0">Nama Lengkap</span>
-                  <span className="w-2 text-slate-400">:</span>
-                  <span className="font-bold text-slate-900 uppercase truncate">{b?.namaAyah || '-'}</span>
-                </div>
-                <div className="flex items-baseline">
-                  <span className="w-22 text-slate-500 shrink-0">Status Hidup</span>
-                  <span className="w-2 text-slate-400">:</span>
-                  <span className={`font-semibold ${b?.statusHidupAyah === 'Sudah Meninggal' ? 'text-rose-600' : 'text-slate-800'}`}>{b?.statusHidupAyah || '-'}</span>
-                </div>
-                {b?.statusHidupAyah !== 'Sudah Meninggal' && b?.statusHidupAyah !== 'Wafat' && (
-                  <>
-                    <div className="flex items-baseline">
-                      <span className="w-22 text-slate-500 shrink-0">NIK Ayah</span>
-                      <span className="w-2 text-slate-400">:</span>
-                      <span className="font-mono text-slate-900">{b?.nikAyah || '-'}</span>
-                    </div>
-                    <div className="flex items-baseline">
-                      <span className="w-22 text-slate-500 shrink-0">TTL</span>
-                      <span className="w-2 text-slate-400">:</span>
-                      <span className="text-slate-800">{b?.tempatLahirAyah || '-'}, {formatDate(b?.tanggalLahirAyah)}</span>
-                    </div>
-                  </>
-                )}
-                <div className="flex items-baseline">
-                  <span className="w-22 text-slate-500 shrink-0">Pendidikan</span>
-                  <span className="w-2 text-slate-400">:</span>
-                  <span className="text-slate-800">{b?.pendidikanAyah || '-'}</span>
-                </div>
-                <div className="flex items-baseline">
-                  <span className="w-22 text-slate-500 shrink-0">Pekerjaan</span>
-                  <span className="w-2 text-slate-400">:</span>
-                  <span className="text-slate-800">{b?.pekerjaanAyah || '-'}</span>
-                </div>
-                <div className="flex items-baseline">
-                  <span className="w-22 text-slate-500 shrink-0">Penghasilan</span>
-                  <span className="w-2 text-slate-400">:</span>
-                  <span className="text-slate-800">{b?.penghasilanAyah || '-'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Ibu */}
-            <div className="border border-slate-200/80 rounded-md p-2 bg-white">
-              <p className="font-bold text-slate-800 uppercase text-[9.5px] border-b border-slate-100 pb-1 mb-1.5 text-indigo-900">
-                Data Ibu Kandung
-              </p>
-              <div className="space-y-1">
-                <div className="flex items-baseline">
-                  <span className="w-22 text-slate-500 shrink-0">Nama Lengkap</span>
-                  <span className="w-2 text-slate-400">:</span>
-                  <span className="font-bold text-slate-900 uppercase truncate">{b?.namaIbu || '-'}</span>
-                </div>
-                <div className="flex items-baseline">
-                  <span className="w-22 text-slate-500 shrink-0">Status Hidup</span>
-                  <span className="w-2 text-slate-400">:</span>
-                  <span className={`font-semibold ${b?.statusHidupIbu === 'Sudah Meninggal' ? 'text-rose-600' : 'text-slate-800'}`}>{b?.statusHidupIbu || '-'}</span>
-                </div>
-                {b?.statusHidupIbu !== 'Sudah Meninggal' && b?.statusHidupIbu !== 'Wafat' && (
-                  <>
-                    <div className="flex items-baseline">
-                      <span className="w-22 text-slate-500 shrink-0">NIK Ibu</span>
-                      <span className="w-2 text-slate-400">:</span>
-                      <span className="font-mono text-slate-900">{b?.nikIbu || '-'}</span>
-                    </div>
-                    <div className="flex items-baseline">
-                      <span className="w-22 text-slate-500 shrink-0">TTL</span>
-                      <span className="w-2 text-slate-400">:</span>
-                      <span className="text-slate-800">{b?.tempatLahirIbu || '-'}, {formatDate(b?.tanggalLahirIbu)}</span>
-                    </div>
-                  </>
-                )}
-                <div className="flex items-baseline">
-                  <span className="w-22 text-slate-500 shrink-0">Pendidikan</span>
-                  <span className="w-2 text-slate-400">:</span>
-                  <span className="text-slate-800">{b?.pendidikanIbu || '-'}</span>
-                </div>
-                <div className="flex items-baseline">
-                  <span className="w-22 text-slate-500 shrink-0">Pekerjaan</span>
-                  <span className="w-2 text-slate-400">:</span>
-                  <span className="text-slate-800">{b?.pekerjaanIbu || '-'}</span>
-                </div>
-                <div className="flex items-baseline">
-                  <span className="w-22 text-slate-500 shrink-0">Penghasilan</span>
-                  <span className="w-2 text-slate-400">:</span>
-                  <span className="text-slate-800">{b?.penghasilanIbu || '-'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Kontak Darurat / Wali */}
-          {b?.kontakDaruratNama && (
-            <div className="mt-2 px-2.5 py-1.5 bg-white border border-slate-200/80 rounded-md flex justify-between text-[9.5px]">
-              <div><span className="text-slate-500 font-medium">Kontak Darurat / Wali:</span> <span className="font-bold text-slate-900">{b.kontakDaruratNama}</span></div>
-              <div><span className="text-slate-500 font-medium">Hubungan:</span> <span className="text-slate-800 font-semibold">{b.kontakDaruratHubungan || '-'}</span></div>
-              <div><span className="text-slate-500 font-medium">No. Telepon / HP:</span> <span className="text-slate-800 font-semibold">{b.kontakDaruratTelp || '-'}</span></div>
-            </div>
-          )}
-        </div>
-
-        {/* C. DATA AKADEMIK & PESANTREN */}
-        <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/30">
-          <div className="font-bold text-slate-800 text-[10.5px] uppercase tracking-wider pb-1 mb-2 border-b border-slate-200">
-            C. Data Akademik
-          </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[10px]">
-            <div className="flex items-baseline">
-              <span className="w-28 text-slate-500 shrink-0">Cabang / Pondok</span>
-              <span className="w-2 text-slate-400">:</span>
-              <span className="font-bold text-slate-900 uppercase truncate">{student.cabang?.name || '-'}</span>
-            </div>
-            <div className="flex items-baseline">
-              <span className="w-28 text-slate-500 shrink-0">Kelas Formal</span>
-              <span className="w-2 text-slate-400">:</span>
-              <span className="font-semibold text-slate-900">{student.siswaFormal?.kelas?.name || '-'}</span>
-            </div>
-
-            <div className="flex items-baseline">
-              <span className="w-28 text-slate-500 shrink-0">Lembaga Pendidikan</span>
-              <span className="w-2 text-slate-400">:</span>
-              <span className="text-slate-800 truncate">{student.siswaFormal?.kelas?.lembagaMuadalah?.name || '-'}</span>
-            </div>
-            <div className="flex items-baseline">
-              <span className="w-28 text-slate-500 shrink-0">Tingkat / Jenjang</span>
-              <span className="w-2 text-slate-400">:</span>
-              <span className="text-slate-800">{student.siswaFormal?.tingkat || student.siswaFormal?.kelas?.tingkat || '-'}</span>
-            </div>
-
-            <div className="flex items-baseline col-span-2 pt-1 border-t border-slate-100 mt-0.5">
-              <span className="w-28 text-slate-600 font-semibold shrink-0">Jenis / Tingkat Daimi</span>
-              <span className="w-2 text-slate-400">:</span>
-              <span className="font-bold text-indigo-900 uppercase bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 text-[10.5px]">{jenisTingkatDaimi}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* D. RIWAYAT AKTIVITAS BELAJAR */}
-        {riwayatKelas && riwayatKelas.length > 0 ? (
-          <div className="border border-slate-200 rounded-lg p-2.5 bg-slate-50/30">
-            <div className="font-bold text-slate-800 text-[10.5px] uppercase tracking-wider pb-1 mb-1.5 border-b border-slate-200 flex justify-between items-center">
-              <span>D. Riwayat Kelas & Aktivitas Belajar</span>
-              <span className="text-[8.5px] text-slate-500 font-normal">Riwayat Semester Terdaftar</span>
-            </div>
-            <table className="w-full text-left text-[9px] border border-slate-200 bg-white">
-              <thead className="bg-slate-100 text-slate-700 font-bold uppercase">
-                <tr>
-                  <th className="py-1 px-2 border-r border-slate-200 w-8 text-center">No</th>
-                  <th className="py-1 px-2 border-r border-slate-200">Tahun Ajaran</th>
-                  <th className="py-1 px-2 border-r border-slate-200">Semester</th>
-                  <th className="py-1 px-2 border-r border-slate-200">Kelas / Rombel</th>
-                  <th className="py-1 px-2 border-r border-slate-200">Wali Kelas</th>
-                  <th className="py-1 px-2 text-center">Status Akhir</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {riwayatKelas.slice(0, 3).map((riwayat, idx) => (
-                  <tr key={riwayat.id}>
-                    <td className="py-1 px-2 text-center border-r border-slate-100 font-semibold text-slate-500">{idx + 1}</td>
-                    <td className="py-1 px-2 border-r border-slate-100 font-semibold text-slate-800">{riwayat.tahunAjaran}</td>
-                    <td className="py-1 px-2 border-r border-slate-100 text-slate-700">{riwayat.semester}</td>
-                    <td className="py-1 px-2 border-r border-slate-100 text-slate-800">{riwayat.kelas?.name || '-'}</td>
-                    <td className="py-1 px-2 border-r border-slate-100 text-slate-600">{riwayat.waliKelas?.name || '-'}</td>
-                    <td className="py-1 px-2 text-center font-semibold text-slate-800">{riwayat.statusAkhir || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : null}
       </div>
 
-      {/* TANDA TANGAN & PENGESAHAN (FOOTER PROPOSIONAL DI BAGIAN BAWAH) */}
-      <div className="pt-4 border-t border-slate-200 mt-2" style={{ pageBreakInside: 'avoid' }}>
-        <div className="flex justify-between items-start text-[10px]">
-          <div className="text-center w-52">
-            <p className="text-slate-600 mb-14">Wali Santri,</p>
-            <p className="font-bold text-slate-900 border-b border-slate-800 pb-0.5 uppercase truncate">
-              ( {b?.namaAyah || b?.namaIbu || b?.kontakDaruratNama || '...........................................'} )
+      {/* ── FOOTER & PENGESAHAN DOKUMEN ── */}
+      <div className="pt-6 border-t-2 border-slate-800 mt-6" style={{ pageBreakInside: 'avoid' }}>
+        <p className="text-[9.5px] text-slate-500 italic text-center mb-6">
+          Demikian data induk ini dibuat dengan sebenar-benarnya berdasarkan dokumen kependudukan resmi dan catatan registrasi santri.
+        </p>
+
+        <div className="flex justify-between items-start text-[11px] px-8">
+          {/* Kolom Tanda Tangan Wali */}
+          <div className="text-center w-60">
+            <p className="text-slate-600 font-medium mb-16">
+              Orang Tua / Wali Santri,
+            </p>
+            <p className="font-bold text-slate-950 border-b border-slate-900 pb-0.5 uppercase tracking-wide truncate">
+              {b?.namaAyah || b?.namaIbu || b?.kontakDaruratNama || '( .................................................... )'}
             </p>
           </div>
 
-          <div className="text-center w-56">
-            <p className="text-slate-500 text-[9px] mb-1">Dicetak pada: {currentDate}</p>
-            <p className="text-slate-600 mb-14">Petugas / Tata Usaha,</p>
-            <p className="font-bold text-slate-900 border-b border-slate-800 pb-0.5">
-              ( ........................................... )
+          {/* Kolom Tanda Tangan Petugas / Lembaga */}
+          <div className="text-center w-60">
+            <p className="text-slate-600 font-medium">
+              {lokasiKota ? `${lokasiKota}, ` : ''}{currentDate}
+            </p>
+            <p className="text-slate-600 font-medium mb-16">
+              Petugas Pendaftaran / Tata Usaha,
+            </p>
+            <p className="font-bold text-slate-950 border-b border-slate-900 pb-0.5">
+              ( .................................................... )
             </p>
           </div>
+        </div>
+
+        {/* Info Cetak Elektronik Sistem */}
+        <div className="flex justify-between items-center text-[8.5px] text-slate-400 mt-6 pt-2 border-t border-slate-200">
+          <span>Sistem Informasi Manajemen Pesantren (SIMP)</span>
+          <span>Dokumen Resmi • Lembar 1 dari 1</span>
+          <span>Dicetak pada: {new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</span>
         </div>
       </div>
     </div>

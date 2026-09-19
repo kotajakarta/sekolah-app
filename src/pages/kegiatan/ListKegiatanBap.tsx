@@ -446,11 +446,13 @@ export default function ListKegiatanBap() {
             <Building className="w-6 h-6 text-indigo-600" />
             Laporan Berita Acara Pelaksanaan (BAP)
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            {user?.scope === 'GLOBAL' || user?.scope === 'AUDITOR'
-              ? 'Seluruh data BAP kegiatan sekolah yang dilaporkan oleh Cabang.'
-              : 'Daftar BAP kegiatan sekolah milik cabang Anda yang dilaporkan ke Pusat.'}
-          </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {(user?.scope === 'GLOBAL' || user?.scope === 'AUDITOR')
+                ? 'Seluruh data BAP kegiatan sekolah yang dilaporkan oleh Cabang.'
+                : isCabang
+                ? 'Daftar laporan BAP kegiatan sekolah di pesantren / lembaga Anda.'
+                : 'Daftar BAP kegiatan sekolah milik wilayah Anda.'}
+            </p>
         </div>
         
         {isCabang && (
@@ -494,7 +496,7 @@ export default function ListKegiatanBap() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari judul kegiatan, cabang, panitia, tempat..."
+              placeholder={isCabang ? "Cari judul kegiatan, panitia, tempat..." : "Cari judul kegiatan, cabang, panitia, tempat..."}
               className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/10 transition-all"
             />
             {searchQuery && (
@@ -778,7 +780,7 @@ export default function ListKegiatanBap() {
                     Kegiatan & Judul
                   </th>
                   <th scope="col" className="px-4 py-3 text-left font-bold uppercase tracking-wider">
-                    Cabang & Lokasi
+                    {isCabang ? 'Lokasi & Tempat' : 'Cabang & Lokasi'}
                   </th>
                   <th scope="col" className="px-4 py-3 text-left font-bold uppercase tracking-wider">
                     Waktu / Tanggal
@@ -1082,7 +1084,9 @@ export default function ListKegiatanBap() {
                                 <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex items-start gap-2.5">
                                   <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
                                   <div className="text-xs">
-                                    <p className="font-bold text-rose-800">Cabang Tidak Bisa Membuat BAP untuk Kegiatan Ini</p>
+                                    <p className="font-bold text-rose-800">
+                                      {isCabang ? 'Pesantren Tidak Bisa Membuat BAP untuk Kegiatan Ini' : 'Cabang Tidak Bisa Membuat BAP untuk Kegiatan Ini'}
+                                    </p>
                                     <p className="text-rose-700 mt-1 leading-relaxed whitespace-pre-wrap">
                                       {bap.alasanTidakBisaBap || '-'}
                                     </p>

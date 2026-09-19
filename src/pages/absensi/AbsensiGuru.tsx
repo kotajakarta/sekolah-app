@@ -194,58 +194,62 @@ export default function AbsensiGuru() {
           {t('absensi_guru.title')}
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          {t('absensi_guru.subtitle')}
+          {isCabang ? 'Pilih program absensi untuk mulai mengisi kehadiran Ustadz & Guru.' : t('absensi_guru.subtitle')}
         </p>
       </div>
 
       {/* Filter Panel */}
       <div className="bg-white border border-slate-200 rounded p-5 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">
-              {t('absensi_guru.wilayah')}
-            </label>
-            <select
-              value={selectedWilayah}
-              onChange={e => handleWilayahChange(e.target.value)}
-              disabled={!isGlobal}
-              className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
-            >
-              {isGlobal ? (
-                <>
-                  <option value="">{t('absensi_guru.semua_wilayah')}</option>
-                  {wilayahs.map((w: any) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </>
-              ) : (
-                <option value={selectedWilayah}>{user?.wilayahName || t('absensi_guru.wilayah_terkunci')}</option>
-              )}
-            </select>
-          </div>
+        <div className={`grid grid-cols-1 ${isCabang ? 'md:grid-cols-1 max-w-md' : 'md:grid-cols-3'} gap-4`}>
+          {!isCabang && (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">
+                  {t('absensi_guru.wilayah')}
+                </label>
+                <select
+                  value={selectedWilayah}
+                  onChange={e => handleWilayahChange(e.target.value)}
+                  disabled={!isGlobal}
+                  className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
+                >
+                  {isGlobal ? (
+                    <>
+                      <option value="">{t('absensi_guru.semua_wilayah')}</option>
+                      {wilayahs.map((w: any) => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </>
+                  ) : (
+                    <option value={selectedWilayah}>{user?.wilayahName || t('absensi_guru.wilayah_terkunci')}</option>
+                  )}
+                </select>
+              </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">
-              {t('absensi_guru.cabang')}
-            </label>
-            <select
-              value={selectedCabang}
-              onChange={e => handleCabangChange(e.target.value)}
-              disabled={isCabang}
-              className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
-            >
-              {isCabang ? (
-                <option value={selectedCabang}>{user?.cabangName || t('absensi_guru.cabang_terkunci')}</option>
-              ) : (
-                <>
-                  <option value="">{t('absensi_guru.semua_cabang')}</option>
-                  {filteredBranches.map((b: any) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
-                </>
-              )}
-            </select>
-          </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">
+                  {t('absensi_guru.cabang')}
+                </label>
+                <select
+                  value={selectedCabang}
+                  onChange={e => handleCabangChange(e.target.value)}
+                  disabled={isCabang}
+                  className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500 focus:outline-none text-sm bg-slate-50/50 disabled:opacity-75"
+                >
+                  {isCabang ? (
+                    <option value={selectedCabang}>{user?.cabangName || t('absensi_guru.cabang_terkunci')}</option>
+                  ) : (
+                    <>
+                      <option value="">{t('absensi_guru.semua_cabang')}</option>
+                      {filteredBranches.map((b: any) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </>
+                  )}
+                </select>
+              </div>
+            </>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wider">
@@ -360,13 +364,13 @@ export default function AbsensiGuru() {
                   {rows.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                        {t('absensi_guru.no_data_cabang')}
+                        {isCabang ? 'Belum ada data guru pada lembaga / pesantren ini.' : (t('absensi_guru.empty_data') || 'Belum ada data guru pada cabang ini.')}
                       </td>
                     </tr>
                   ) : paginatedRows.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                        {t('absensi_guru.no_data_search')}
+                        {t('absensi_guru.empty_search') || 'Tidak ada data guru yang cocok dengan pencarian.'}
                       </td>
                     </tr>
                   ) : (

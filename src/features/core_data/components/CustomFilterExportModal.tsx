@@ -5,6 +5,7 @@ import { Student } from '../hooks/useGetStudents';
 import { useGetCabang, useGetWilayah } from '../hooks/useMasterData';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../../lib/apiClient';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface CustomFilterExportModalProps {
   isOpen: boolean;
@@ -34,28 +35,25 @@ const AVAILABLE_COLUMNS: ColumnOption[] = [
   { key: 'kewarganegaraan', label: 'Kewarganegaraan', category: 'IDENTITAS', defaultSelected: false, getValue: (s) => s.biodata?.kewarganegaraan || 'WNI' },
   { key: 'phone', label: 'No. Handphone / WA', category: 'IDENTITAS', defaultSelected: false, getValue: (s) => s.biodata?.phone || '-' },
 
-  // Data Ayah
-  { key: 'namaAyah', label: 'Nama Ayah', category: 'ORTU', defaultSelected: true, getValue: (s) => s.biodata?.namaAyah || '-' },
-  { key: 'statusHidupAyah', label: 'Status Hidup Ayah', category: 'ORTU', defaultSelected: false, getValue: (s) => s.biodata?.statusHidupAyah || '-' },
+  // Orang Tua & Wali
+  { key: 'namaAyah', label: 'Nama Ayah', category: 'ORTU', defaultSelected: false, getValue: (s) => s.biodata?.namaAyah || '-' },
   { key: 'nikAyah', label: 'NIK Ayah', category: 'ORTU', defaultSelected: false, getValue: (s) => s.biodata?.nikAyah || '-' },
   { key: 'pekerjaanAyah', label: 'Pekerjaan Ayah', category: 'ORTU', defaultSelected: false, getValue: (s) => s.biodata?.pekerjaanAyah || '-' },
-  { key: 'pendidikanAyah', label: 'Pendidikan Ayah', category: 'ORTU', defaultSelected: false, getValue: (s) => s.biodata?.pendidikanAyah || '-' },
   { key: 'penghasilanAyah', label: 'Penghasilan Ayah', category: 'ORTU', defaultSelected: false, getValue: (s) => (s.biodata as any)?.penghasilanAyah || '-' },
-
-  // Data Ibu
-  { key: 'namaIbu', label: 'Nama Ibu', category: 'ORTU', defaultSelected: true, getValue: (s) => s.biodata?.namaIbu || '-' },
-  { key: 'statusHidupIbu', label: 'Status Hidup Ibu', category: 'ORTU', defaultSelected: false, getValue: (s) => s.biodata?.statusHidupIbu || '-' },
+  { key: 'namaIbu', label: 'Nama Ibu', category: 'ORTU', defaultSelected: false, getValue: (s) => s.biodata?.namaIbu || '-' },
   { key: 'nikIbu', label: 'NIK Ibu', category: 'ORTU', defaultSelected: false, getValue: (s) => s.biodata?.nikIbu || '-' },
   { key: 'pekerjaanIbu', label: 'Pekerjaan Ibu', category: 'ORTU', defaultSelected: false, getValue: (s) => s.biodata?.pekerjaanIbu || '-' },
-  { key: 'pendidikanIbu', label: 'Pendidikan Ibu', category: 'ORTU', defaultSelected: false, getValue: (s) => s.biodata?.pendidikanIbu || '-' },
   { key: 'penghasilanIbu', label: 'Penghasilan Ibu', category: 'ORTU', defaultSelected: false, getValue: (s) => (s.biodata as any)?.penghasilanIbu || '-' },
+  { key: 'noHpOrtu', label: 'No. HP Orang Tua', category: 'ORTU', defaultSelected: true, getValue: (s) => (s.biodata as any)?.noHpOrtu || (s.biodata as any)?.phone || '-' },
+  { key: 'namaWali', label: 'Nama Wali', category: 'ORTU', defaultSelected: false, getValue: (s) => (s.biodata as any)?.namaWali || '-' },
 
-  // Alamat Domisili
-  { key: 'alamatJalan', label: 'Alamat', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatJalan || s.biodata?.address || '-' },
-  { key: 'alamatKelName', label: 'Kel', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatKelName || '-' },
-  { key: 'alamatKecName', label: 'Kec', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatKecName || '-' },
-  { key: 'alamatKabName', label: 'Kab/Kota', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatKabName || '-' },
-  { key: 'alamatProvName', label: 'Provinsi', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatProvName || '-' },
+  // Alamat & Domisili
+  { key: 'alamatJalan', label: 'Alamat / Dusun', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatJalan || s.biodata?.address || '-' },
+  { key: 'kelurahan', label: 'Desa / Kelurahan', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatKelName || '-' },
+  { key: 'kecamatan', label: 'Kecamatan', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatKecName || '-' },
+  { key: 'kabupaten', label: 'Kabupaten / Kota', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatKabName || '-' },
+  { key: 'provinsi', label: 'Provinsi', category: 'ALAMAT', defaultSelected: false, getValue: (s) => s.biodata?.alamatProvName || '-' },
+  { key: 'kodePos', label: 'Kode Pos', category: 'ALAMAT', defaultSelected: false, getValue: (s) => (s.biodata as any)?.kodePos || '-' },
 
   // Kelembagaan & Status Pusdatin
   { key: 'wilayah', label: 'Wilayah', category: 'KELEMBAGAAN', defaultSelected: true, getValue: (s) => s.wilayah?.name || '-' },
@@ -63,13 +61,37 @@ const AVAILABLE_COLUMNS: ColumnOption[] = [
   { key: 'kelas', label: 'Kelas', category: 'KELEMBAGAAN', defaultSelected: true, getValue: (s) => s.siswaFormal?.kelas?.name || '-' },
   { key: 'lembagaMuadalah', label: 'Lembaga Muadalah', category: 'KELEMBAGAAN', defaultSelected: false, getValue: (s) => s.siswaFormal?.kelas?.lembagaMuadalah?.name || '-' },
   { key: 'statusVerval', label: 'Status Verval', category: 'KELEMBAGAAN', defaultSelected: false, getValue: (s) => s.siswaFormal?.isVerval ? 'Terverval' : 'Belum Verval' },
-  { key: 'statusPool', label: 'Status Pool', category: 'KELEMBAGAAN', defaultSelected: false, getValue: (s) => s.statusPool === 'AKTIF' ? 'Aktif Cabang' : 'Pool' },
+  { key: 'statusPool', label: 'Status Santri', category: 'KELEMBAGAAN', defaultSelected: false, getValue: (s) => s.statusPool === 'AKTIF' ? 'Aktif' : 'Pool' },
 ];
 
 export default function CustomFilterExportModal({ isOpen, onClose, students }: CustomFilterExportModalProps) {
-  const [selectedColumns, setSelectedColumns] = useState<string[]>(
-    AVAILABLE_COLUMNS.filter(c => c.defaultSelected).map(c => c.key)
-  );
+  const { user } = useAuth();
+  const isCabang = user?.scope === 'CABANG';
+
+  const availableColumns = useMemo(() => {
+    return AVAILABLE_COLUMNS.filter(c => {
+      if (isCabang && (c.key === 'wilayah' || c.key === 'cabang')) return false;
+      return true;
+    }).map(c => {
+      if (isCabang && c.key === 'statusPool') {
+        return {
+          ...c,
+          label: 'Status Santri',
+          getValue: (s: Student) => s.statusPool === 'AKTIF' ? 'Aktif' : 'Non-Aktif / Mutasi'
+        };
+      }
+      return c;
+    });
+  }, [isCabang]);
+
+  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+
+  // Sync selectedColumns when modal opens or availableColumns change
+  React.useEffect(() => {
+    if (isOpen) {
+      setSelectedColumns(availableColumns.filter(c => c.defaultSelected).map(c => c.key));
+    }
+  }, [isOpen, availableColumns]);
 
   // Category tab filter inside column selection
   const [activeColCategory, setActiveColCategory] = useState<'ALL' | 'IDENTITAS' | 'ORTU' | 'ALAMAT' | 'KELEMBAGAAN'>('ALL');
@@ -161,14 +183,14 @@ export default function CustomFilterExportModal({ isOpen, onClose, students }: C
 
   // Filter column options by category & search
   const visibleColumnOptions = useMemo(() => {
-    return AVAILABLE_COLUMNS.filter(col => {
+    return availableColumns.filter(col => {
       if (activeColCategory !== 'ALL' && col.category !== activeColCategory) return false;
       if (colSearchQuery.trim()) {
         return col.label.toLowerCase().includes(colSearchQuery.toLowerCase());
       }
       return true;
     });
-  }, [activeColCategory, colSearchQuery]);
+  }, [availableColumns, activeColCategory, colSearchQuery]);
 
   // Toggle Column Selection
   const toggleColumn = (key: string) => {
@@ -178,11 +200,11 @@ export default function CustomFilterExportModal({ isOpen, onClose, students }: C
   };
 
   const selectAllColumns = () => {
-    setSelectedColumns(AVAILABLE_COLUMNS.map(c => c.key));
+    setSelectedColumns(availableColumns.map(c => c.key));
   };
 
   const resetColumns = () => {
-    setSelectedColumns(AVAILABLE_COLUMNS.filter(c => c.defaultSelected).map(c => c.key));
+    setSelectedColumns(availableColumns.filter(c => c.defaultSelected).map(c => c.key));
   };
 
   const clearAllColumns = () => {
@@ -201,7 +223,7 @@ export default function CustomFilterExportModal({ isOpen, onClose, students }: C
       return;
     }
 
-    const activeCols = AVAILABLE_COLUMNS.filter(c => selectedColumns.includes(c.key));
+    const activeCols = availableColumns.filter(c => selectedColumns.includes(c.key));
 
     const exportData = filteredStudents.map((s, idx) => {
       const row: Record<string, any> = { 'No': idx + 1 };
@@ -221,7 +243,7 @@ export default function CustomFilterExportModal({ isOpen, onClose, students }: C
 
   if (!isOpen) return null;
 
-  const activeCols = AVAILABLE_COLUMNS.filter(c => selectedColumns.includes(c.key));
+  const activeCols = availableColumns.filter(c => selectedColumns.includes(c.key));
 
   const getCategoryBadge = (cat: ColumnOption['category']) => {
     switch (cat) {
@@ -260,66 +282,87 @@ export default function CustomFilterExportModal({ isOpen, onClose, students }: C
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
             <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-slate-700">
               <Filter className="w-4 h-4 text-indigo-600" />
-              <span>1. Filter Lokasi &amp; Lembaga</span>
+              <span>{isCabang ? '1. Filter Lembaga & Kelas' : '1. Filter Lokasi & Lembaga'}</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Jenis Filter Region</label>
-                <select
-                  value={filterMode}
-                  onChange={(e) => handleFilterModeChange(e.target.value as any)}
-                  className="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                >
-                  <option value="SEMUA">Semua Data Wilayah &amp; Lembaga</option>
-                  <option value="WILAYAH">Berdasarkan Wilayah</option>
-                  <option value="MUADALAH">Berdasarkan Lembaga Muadalah</option>
-                </select>
-              </div>
+            <div className={`grid grid-cols-1 ${isCabang ? 'sm:grid-cols-2' : 'sm:grid-cols-2 md:grid-cols-4'} gap-3 text-xs`}>
+              {!isCabang ? (
+                <>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Jenis Filter Region</label>
+                    <select
+                      value={filterMode}
+                      onChange={(e) => handleFilterModeChange(e.target.value as any)}
+                      className="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    >
+                      <option value="SEMUA">Semua Data Wilayah &amp; Lembaga</option>
+                      <option value="WILAYAH">Berdasarkan Wilayah</option>
+                      <option value="MUADALAH">Berdasarkan Lembaga Muadalah</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      {filterMode === 'WILAYAH' ? 'Pilih Wilayah' : filterMode === 'MUADALAH' ? 'Pilih Lembaga' : 'Region/Lembaga'}
+                    </label>
+                    <select
+                      value={selectedEntityId}
+                      onChange={(e) => {
+                        setSelectedEntityId(e.target.value);
+                        setSelectedCabangId('');
+                        setSelectedKelasId('');
+                      }}
+                      disabled={filterMode === 'SEMUA'}
+                      className="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
+                    >
+                      <option value="">{filterMode === 'WILAYAH' ? '-- Semua Wilayah --' : filterMode === 'MUADALAH' ? '-- Semua Lembaga --' : 'Pilih Jenis Filter Dulu'}</option>
+                      {filterMode === 'WILAYAH' && wilayahs.map((w: any) => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                      {filterMode === 'MUADALAH' && muadalahs.map((m: any) => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Cabang</label>
+                    <select
+                      value={selectedCabangId}
+                      onChange={(e) => {
+                        setSelectedCabangId(e.target.value);
+                        setSelectedKelasId('');
+                      }}
+                      className="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    >
+                      <option value="">-- Semua Cabang --</option>
+                      {filteredCabangs.map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Lembaga Muadalah</label>
+                  <select
+                    value={selectedEntityId}
+                    onChange={(e) => {
+                      setSelectedEntityId(e.target.value);
+                      setSelectedKelasId('');
+                    }}
+                    className="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  >
+                    <option value="">-- Semua Lembaga Muadalah --</option>
+                    {muadalahs.map((m: any) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                  {filterMode === 'WILAYAH' ? 'Pilih Wilayah' : filterMode === 'MUADALAH' ? 'Pilih Lembaga' : 'Region/Lembaga'}
-                </label>
-                <select
-                  value={selectedEntityId}
-                  onChange={(e) => {
-                    setSelectedEntityId(e.target.value);
-                    setSelectedCabangId('');
-                    setSelectedKelasId('');
-                  }}
-                  disabled={filterMode === 'SEMUA'}
-                  className="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-400"
-                >
-                  <option value="">{filterMode === 'WILAYAH' ? '-- Semua Wilayah --' : filterMode === 'MUADALAH' ? '-- Semua Lembaga --' : 'Pilih Jenis Filter Dulu'}</option>
-                  {filterMode === 'WILAYAH' && wilayahs.map((w: any) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                  {filterMode === 'MUADALAH' && muadalahs.map((m: any) => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Cabang</label>
-                <select
-                  value={selectedCabangId}
-                  onChange={(e) => {
-                    setSelectedCabangId(e.target.value);
-                    setSelectedKelasId('');
-                  }}
-                  className="w-full rounded-xl border border-slate-300 bg-white py-2 px-3 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                >
-                  <option value="">-- Semua Cabang --</option>
-                  {filteredCabangs.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Kelas</label>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Kelas Formal</label>
                 <select
                   value={selectedKelasId}
                   onChange={(e) => setSelectedKelasId(e.target.value)}

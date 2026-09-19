@@ -205,41 +205,44 @@ export default function KenaikanKelasModal({ kelasList, onClose }: KenaikanKelas
           <form id="kenaikan-form" onSubmit={handleSubmit} className="p-6 space-y-6">
             
             {/* Konfigurasi Awal */}
-            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Wilayah Asal</label>
-                <select
-                  value={asalWilayahId}
-                  onChange={(e) => {
-                    setAsalWilayahId(e.target.value);
-                    setAsalCabangId('');
-                    setFormData(p => ({ ...p, kelasAsalId: '' }));
-                  }}
-                  disabled={user?.scope === 'WILAYAH' || user?.scope === 'CABANG'}
-                  className="w-full rounded-lg border-slate-300 border px-3 py-2 text-sm bg-slate-50 disabled:bg-slate-100"
-                >
-                  <option value="">Semua Wilayah</option>
-                  {wilayahs.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
-                </select>
-              </div>
+            <div className={`bg-white p-5 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 ${user?.scope === 'CABANG' ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'} gap-4 items-end`}>
+              {user?.scope !== 'CABANG' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Wilayah Asal</label>
+                    <select
+                      value={asalWilayahId}
+                      onChange={(e) => {
+                        setAsalWilayahId(e.target.value);
+                        setAsalCabangId('');
+                        setFormData(p => ({ ...p, kelasAsalId: '' }));
+                      }}
+                      disabled={user?.scope === 'WILAYAH'}
+                      className="w-full rounded-lg border-slate-300 border px-3 py-2 text-sm bg-slate-50 disabled:bg-slate-100"
+                    >
+                      <option value="">Semua Wilayah</option>
+                      {wilayahs.map((w: any) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                    </select>
+                  </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Cabang Asal</label>
-                <select
-                  value={asalCabangId}
-                  onChange={(e) => {
-                    setAsalCabangId(e.target.value);
-                    setFormData(p => ({ ...p, kelasAsalId: '' }));
-                  }}
-                  disabled={user?.scope === 'CABANG'}
-                  className="w-full rounded-lg border-slate-300 border px-3 py-2 text-sm bg-slate-50 disabled:bg-slate-100"
-                >
-                  <option value="">Semua Cabang</option>
-                  {filteredCabangsAsal.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Cabang Asal</label>
+                    <select
+                      value={asalCabangId}
+                      onChange={(e) => {
+                        setAsalCabangId(e.target.value);
+                        setFormData(p => ({ ...p, kelasAsalId: '' }));
+                      }}
+                      className="w-full rounded-lg border-slate-300 border px-3 py-2 text-sm bg-slate-50"
+                    >
+                      <option value="">Semua Cabang</option>
+                      {filteredCabangsAsal.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                </>
+              )}
 
-              <div className="lg:col-span-2">
+              <div className={user?.scope === 'CABANG' ? '' : 'lg:col-span-2'}>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Pilih Kelas Asal</label>
                 <select
                   value={formData.kelasAsalId}
@@ -250,7 +253,9 @@ export default function KenaikanKelasModal({ kelasList, onClose }: KenaikanKelas
                   <option value="">-- Pilih Kelas --</option>
                   {filteredKelasAsal.length > 0 && <option value="ALL" className="font-bold text-indigo-600">-- PROSES SEMUA KELAS ({filteredKelasAsal.length}) --</option>}
                   {filteredKelasAsal.map(k => (
-                    <option key={k.id} value={k.id}>{k.name} {k.cabang ? `(${k.cabang.name})` : ''}</option>
+                    <option key={k.id} value={k.id}>
+                      {k.name} {user?.scope !== 'CABANG' && k.cabang ? `(${k.cabang.name})` : ''}
+                    </option>
                   ))}
                 </select>
               </div>

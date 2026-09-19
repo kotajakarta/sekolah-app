@@ -579,8 +579,8 @@ export const BankSoalListPage: React.FC = () => {
                         <th className="py-3.5 px-4">Judul Bank Soal</th>
                         <th className="py-3.5 px-4">Mapel & Tingkat</th>
                         <th className="py-3.5 px-4">Tahun Ajaran & Semester</th>
-                        <th className="py-3.5 px-4 text-center">Soal & Durasi</th>
-                        <th className="py-3.5 px-4">Penyusun & Cabang</th>
+                        <th className="py-3.5 px-4 text-center">Soal &amp; Durasi</th>
+                        <th className="py-3.5 px-4">{isCabang ? 'Penyusun' : 'Penyusun & Cabang'}</th>
                         <th className="py-3.5 px-4 text-right">Aksi</th>
                       </tr>
                     </thead>
@@ -921,7 +921,7 @@ export const BankSoalListPage: React.FC = () => {
                           type="text"
                           value={projectAssignmentSearch}
                           onChange={(e) => setProjectAssignmentSearch(e.target.value)}
-                          placeholder="Cari mapel, cabang, guru pengampu..."
+                          placeholder={isCabang ? "Cari mapel, guru pengampu..." : "Cari mapel, cabang, guru pengampu..."}
                           className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
                         />
                       </div>
@@ -951,8 +951,8 @@ export const BankSoalListPage: React.FC = () => {
                             <th className="p-3.5">Mata Pelajaran</th>
                             <th className="p-3.5">Tingkat</th>
                             <th className="p-3.5 text-center">Target Soal</th>
-                            <th className="p-3.5">Wilayah</th>
-                            <th className="p-3.5">Cabang Pelaksana</th>
+                            {!isCabang && <th className="p-3.5">Wilayah</th>}
+                            <th className="p-3.5">{isCabang ? 'Lembaga Pelaksana' : 'Cabang Pelaksana'}</th>
                             <th className="p-3.5">Guru Pengampu</th>
                             <th className="p-3.5 text-center">Status</th>
                             <th className="p-3.5 text-right">Aksi</th>
@@ -977,11 +977,13 @@ export const BankSoalListPage: React.FC = () => {
                                     {item.targetMcqCount} PG / {item.targetEssayCount} Esai
                                   </span>
                                 </td>
-                                <td className="p-3.5 text-slate-600 font-medium">
-                                  {item.wilayah?.name || (
-                                    <span className="text-slate-400 italic">Belum dipilih</span>
-                                  )}
-                                </td>
+                                {!isCabang && (
+                                  <td className="p-3.5 text-slate-600 font-medium">
+                                    {item.wilayah?.name || (
+                                      <span className="text-slate-400 italic">Belum dipilih</span>
+                                    )}
+                                  </td>
+                                )}
                                 <td className="p-3.5 text-slate-600 font-medium">
                                   {item.cabang?.name || (
                                     <span className="text-amber-600 font-bold text-[11px]">Menunggu Wilayah</span>
@@ -989,7 +991,7 @@ export const BankSoalListPage: React.FC = () => {
                                 </td>
                                 <td className="p-3.5 text-slate-600 font-medium">
                                   {item.teacher?.operatorName || item.teacher?.username || (
-                                    <span className="text-amber-600 font-bold text-[11px]">Menunggu Cabang</span>
+                                    <span className="text-amber-600 font-bold text-[11px]">{isCabang ? 'Menunggu Penugasan' : 'Menunggu Cabang'}</span>
                                   )}
                                 </td>
                                 <td className="p-3.5 text-center">
@@ -1140,7 +1142,7 @@ export const BankSoalListPage: React.FC = () => {
 
                     {task.notes && (
                       <div className="p-3 bg-slate-50 rounded-2xl text-xs text-slate-600 border border-slate-100">
-                        <span className="font-bold block mb-0.5 text-slate-800">Catatan Cabang:</span>
+                        <span className="font-bold block mb-0.5 text-slate-800">{isCabang ? 'Catatan Pesantren / Lembaga:' : 'Catatan Cabang:'}</span>
                         {task.notes}
                       </div>
                     )}

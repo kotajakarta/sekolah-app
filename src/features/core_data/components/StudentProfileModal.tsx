@@ -170,13 +170,15 @@ export default function StudentProfileModal({ student, onClose, onEdit }: Studen
                 <h4 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-slate-400" /> Penempatan & Akademik
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className={`grid grid-cols-1 ${user?.scope === 'CABANG' ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
+                  {user?.scope !== 'CABANG' && (
+                    <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                      <span className="block text-xs font-medium text-slate-500 mb-1">Wilayah</span>
+                      <span className="text-sm text-slate-900 font-medium">{student.wilayah?.name || '-'}</span>
+                    </div>
+                  )}
                   <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
-                    <span className="block text-xs font-medium text-slate-500 mb-1">Wilayah</span>
-                    <span className="text-sm text-slate-900 font-medium">{student.wilayah?.name || '-'}</span>
-                  </div>
-                  <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
-                    <span className="block text-xs font-medium text-slate-500 mb-1">Cabang</span>
+                    <span className="block text-xs font-medium text-slate-500 mb-1">{user?.scope === 'CABANG' ? 'Lembaga / Pesantren' : 'Cabang'}</span>
                     <span className="text-sm text-slate-900 font-medium">{student.cabang?.name || '-'}</span>
                   </div>
                   <div className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm">

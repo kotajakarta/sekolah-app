@@ -352,7 +352,7 @@ export default function SiswaDashboardTab({
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-indigo-800/40 flex items-center justify-between text-xs text-indigo-200">
-            <span className="flex items-center gap-1.5" title="Semua data di halaman ini merupakan santri aktif yang terdaftar di cabang">
+            <span className="flex items-center gap-1.5" title={userScope === 'CABANG' ? 'Semua data di halaman ini merupakan santri aktif yang terdaftar di pesantren' : 'Semua data di halaman ini merupakan santri aktif yang terdaftar di cabang'}>
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
               Santri Aktif Terdaftar
             </span>

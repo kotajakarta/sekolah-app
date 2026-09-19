@@ -477,7 +477,7 @@ export const LjkPrintModal: React.FC<LjkPrintModalProps> = ({
                     <label className="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
                       <span>{user?.scope === 'CABANG' ? 'Kode Lembaga (4 Digit)' : 'Kode Cabang (4 Digit)'}</span>
                       <span className="text-[9px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold">
-                        <Lock className="w-2.5 h-2.5" /> Terkunci
+                        {user?.scope === 'CABANG' ? 'Otomatis' : <><Lock className="w-2.5 h-2.5" /> Terkunci</>}
                       </span>
                     </label>
                     <input

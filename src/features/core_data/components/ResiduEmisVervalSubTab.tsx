@@ -350,7 +350,9 @@ export default function ResiduEmisVervalSubTab({
         <div className="bg-white p-16 rounded-3xl border border-slate-200/60 shadow-sm text-center flex flex-col items-center justify-center">
           <RefreshCw className="w-10 h-10 animate-spin text-indigo-600 mb-4" />
           <h3 className="text-base font-semibold text-slate-800">Memuat Data Residu Komparasi...</h3>
-          <p className="text-sm text-slate-500 mt-1">Mengambil snapshot audit EMIS & Verval untuk cabang Anda.</p>
+          <p className="text-sm text-slate-500 mt-1">
+            {userScope === 'CABANG' ? 'Mengambil snapshot audit EMIS & Verval untuk pesantren Anda.' : 'Mengambil snapshot audit EMIS & Verval untuk cabang Anda.'}
+          </p>
         </div>
       ) : isError ? (
         <div className="bg-rose-50 border border-rose-200 p-8 rounded-3xl text-center">
@@ -370,7 +372,7 @@ export default function ResiduEmisVervalSubTab({
           <h3 className="text-base font-bold text-slate-800">Belum Ada Riwayat Komparasi Tersimpan</h3>
           <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
             Audit EMIS & Verval dilakukan secara berkala oleh Administrator Pusat melalui menu Sinkronisasi EMIS & Verval.
-            Hasil komparasi santri cabang akan otomatis muncul di sini setelah sesi audit selesai dijalankan.
+            Hasil komparasi santri {userScope === 'CABANG' ? 'pesantren' : 'cabang'} akan otomatis muncul di sini setelah sesi audit selesai dijalankan.
           </p>
         </div>
       ) : (
@@ -482,7 +484,9 @@ export default function ResiduEmisVervalSubTab({
                 </span>
               </div>
               <p className="text-2xl font-black text-purple-700 mt-2">{reconcileData.totalButuhTindakan}</p>
-              <p className="text-xs text-purple-800 mt-0.5 font-bold">Total Tugas Cabang</p>
+              <p className="text-xs text-purple-800 mt-0.5 font-bold">
+                {userScope === 'CABANG' ? 'Total Tindakan Diperlukan' : 'Total Tugas Cabang'}
+              </p>
             </div>
           </div>
 
@@ -854,7 +858,7 @@ export default function ResiduEmisVervalSubTab({
                       Santri eSantri
                     </th>
                     <th className="px-4 py-4 font-bold whitespace-nowrap">
-                      Cabang / Kelas
+                      {userScope === 'CABANG' ? 'Kelas' : 'Cabang / Kelas'}
                     </th>
                     <th className="px-4 py-4 font-bold whitespace-nowrap">
                       Status EMIS (Kemenag)
@@ -866,7 +870,7 @@ export default function ResiduEmisVervalSubTab({
                       Diskrepansi / Catatan
                     </th>
                     <th className="px-4 py-4 font-bold min-w-[320px] max-w-[420px]">
-                      Rekomendasi Tindakan Cabang
+                      {userScope === 'CABANG' ? 'Rekomendasi Tindakan' : 'Rekomendasi Tindakan Cabang'}
                     </th>
                     <th className="px-4 py-4 font-bold text-center w-16 whitespace-nowrap">
                       Aksi
@@ -906,7 +910,9 @@ export default function ResiduEmisVervalSubTab({
 
                           {/* Cabang & Kelas */}
                           <td className="px-4 py-3.5 align-top whitespace-nowrap">
-                            <div className="font-semibold text-slate-800 text-xs">{s.cabangName}</div>
+                            {userScope !== 'CABANG' && (
+                              <div className="font-semibold text-slate-800 text-xs">{s.cabangName}</div>
+                            )}
                             <div className="text-[11px] text-slate-500 mt-0.5">
                               {s.tingkat ? `Tingkat ${s.tingkat}` : ''} {s.kelasName ? `• ${s.kelasName}` : ''}
                             </div>

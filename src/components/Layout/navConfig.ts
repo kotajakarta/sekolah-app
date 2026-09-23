@@ -17,8 +17,8 @@ export interface NavSubItem {
 }
 
 export type NavEntry =
-  | { type: 'link'; key: string; label: string; icon: any; to: string; highlight?: boolean }
-  | { type: 'group'; key: string; label: string; icon: any; items: NavSubItem[] };
+  | { type: 'link'; key: string; label: string; icon: any; to: string; highlight?: boolean; section?: string }
+  | { type: 'group'; key: string; label: string; icon: any; items: NavSubItem[]; section?: string };
 
 // Sumber tunggal daftar menu navigasi (dipakai oleh Sidebar desktop & bottom nav mobile)
 // supaya keduanya selalu sinkron tanpa perlu diubah dua tempat.
@@ -82,13 +82,13 @@ export function useNavEntries(): NavEntry[] {
       ];
 
       return [
-        { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard', icon: Home, to: '/dashboard' },
-        { type: 'group', key: 'kelembagaan', label: t('sidebar.kelembagaan') || 'Kelembagaan', icon: School, items: auditorKelembagaan },
-        { type: 'group', key: 'sarpras', label: t('sidebar.sarpras') || 'Sarana Prasarana', icon: Building2, items: auditorSarpras },
-        { type: 'group', key: 'santri', label: t('sidebar.santri') || 'Santri', icon: User, items: auditorSantri },
-        { type: 'group', key: 'ustadz', label: t('sidebar.ustadz') || 'Ustadz', icon: Users, items: auditorUstadz },
-        { type: 'link', key: 'rombel', label: t('sidebar.rombel') || 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas' },
-        { type: 'group', key: 'bap', label: t('sidebar.bap') || 'Berita Acara (BAP)', icon: FileText, items: auditorBap },
+        { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard', icon: Home, to: '/dashboard', section: 'Utama' },
+        { type: 'group', key: 'kelembagaan', label: t('sidebar.kelembagaan') || 'Kelembagaan', icon: School, items: auditorKelembagaan, section: 'Data Pokok' },
+        { type: 'group', key: 'sarpras', label: t('sidebar.sarpras') || 'Sarana Prasarana', icon: Building2, items: auditorSarpras, section: 'Data Pokok' },
+        { type: 'group', key: 'santri', label: t('sidebar.santri') || 'Santri', icon: User, items: auditorSantri, section: 'Data Pokok' },
+        { type: 'group', key: 'ustadz', label: t('sidebar.ustadz') || 'Ustadz', icon: Users, items: auditorUstadz, section: 'Data Pokok' },
+        { type: 'link', key: 'rombel', label: t('sidebar.rombel') || 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas', section: 'Data Pokok' },
+        { type: 'group', key: 'bap', label: t('sidebar.bap') || 'Berita Acara (BAP)', icon: FileText, items: auditorBap, section: 'Laporan' },
       ];
     }
 
@@ -122,22 +122,21 @@ export function useNavEntries(): NavEntry[] {
       ];
 
       return [
-        { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard', icon: Home, to: '/dashboard' },
-        { type: 'group', key: 'kelembagaan', label: t('sidebar.kelembagaan') || 'Kelembagaan', icon: School, items: pengawasKelembagaan },
-        { type: 'group', key: 'santri', label: t('sidebar.santri') || 'Santri', icon: User, items: pengawasSantri },
-        { type: 'group', key: 'ustadz', label: t('sidebar.ustadz') || 'Ustadz / Guru', icon: Users, items: pengawasUstadz },
-        { type: 'link', key: 'rombel', label: t('sidebar.rombel') || 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas' },
-        { type: 'link', key: 'pembelajaran', label: 'Kontrol Pembelajaran', icon: BookOpen, to: '/dashboard/pembelajaran' },
-        { type: 'group', key: 'monitoring', label: 'Monitoring & Evaluasi', icon: Activity, items: pengawasMonitoring },
-        { type: 'group', key: 'bap', label: t('sidebar.bap') || 'Berita Acara (BAP)', icon: FileText, items: pengawasBap },
+        { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard', icon: Home, to: '/dashboard', section: 'Utama' },
+        { type: 'link', key: 'pembelajaran', label: 'Kontrol Pembelajaran', icon: BookOpen, to: '/dashboard/pembelajaran', highlight: true, section: 'Akademik' },
+        { type: 'link', key: 'rombel', label: t('sidebar.rombel') || 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas', section: 'Akademik' },
+        { type: 'group', key: 'kelembagaan', label: t('sidebar.kelembagaan') || 'Kelembagaan', icon: School, items: pengawasKelembagaan, section: 'Data Pokok' },
+        { type: 'group', key: 'santri', label: t('sidebar.santri') || 'Santri', icon: User, items: pengawasSantri, section: 'Data Pokok' },
+        { type: 'group', key: 'ustadz', label: t('sidebar.ustadz') || 'Ustadz / Guru', icon: Users, items: pengawasUstadz, section: 'Data Pokok' },
+        { type: 'group', key: 'monitoring', label: 'Monitoring & Evaluasi', icon: Activity, items: pengawasMonitoring, section: 'Pengawasan' },
+        { type: 'group', key: 'bap', label: t('sidebar.bap') || 'Berita Acara (BAP)', icon: FileText, items: pengawasBap, section: 'Pengawasan' },
       ] as NavEntry[];
     }
-
 
     // =========================================================================
     if (user?.scope === 'GURU') {
       const guruEntries: NavEntry[] = [
-        { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard Guru', icon: Home, to: '/dashboard' },
+        { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard Guru', icon: Home, to: '/dashboard', section: 'Utama' },
       ];
 
       if (isBankSoalEnabled) {
@@ -148,10 +147,9 @@ export function useNavEntries(): NavEntry[] {
           icon: FileQuestion,
           to: '/dashboard/bank-soal',
           highlight: true,
+          section: 'Akademik',
         });
       }
-
-
 
       if (isRaporEnabled) {
         guruEntries.push({
@@ -160,6 +158,8 @@ export function useNavEntries(): NavEntry[] {
           label: 'Input Nilai (e-Rapor)',
           icon: FileText,
           to: '/dashboard/formal/rapor',
+          highlight: true,
+          section: 'Akademik',
         });
       }
 
@@ -169,6 +169,7 @@ export function useNavEntries(): NavEntry[] {
         label: t('sidebar.catatan_indisipliner') || 'Catatan Indisipliner',
         icon: ShieldAlert,
         to: '/dashboard/indisipliner',
+        section: 'Kesiswaan',
       });
 
       guruEntries.push({
@@ -180,6 +181,7 @@ export function useNavEntries(): NavEntry[] {
           { to: '/dashboard/umum/pengumuman', label: t('sidebar.pengumuman') || 'Pengumuman' },
           { to: '/dashboard/umum/kalender', label: t('sidebar.kalender') || 'Kalender Pendidikan' },
         ],
+        section: 'Layanan',
       });
 
       return guruEntries;
@@ -190,7 +192,7 @@ export function useNavEntries(): NavEntry[] {
     // =========================================================================
     if (user?.scope === 'WALI_KELAS') {
       const waliEntries: NavEntry[] = [
-        { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard Wali Kelas', icon: Home, to: '/dashboard' },
+        { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard Wali Kelas', icon: Home, to: '/dashboard', section: 'Utama' },
       ];
 
       if (isBankSoalEnabled) {
@@ -201,6 +203,7 @@ export function useNavEntries(): NavEntry[] {
           icon: FileQuestion,
           to: '/dashboard/bank-soal',
           highlight: true,
+          section: 'Akademik',
         });
       }
 
@@ -211,6 +214,7 @@ export function useNavEntries(): NavEntry[] {
           label: 'Rombel Kelas Saya',
           icon: UserCheck,
           to: '/dashboard/formal/kelas',
+          section: 'Akademik',
         },
         {
           type: 'link',
@@ -218,6 +222,7 @@ export function useNavEntries(): NavEntry[] {
           label: 'Santri Kelas Saya',
           icon: User,
           to: '/dashboard/formal/siswa',
+          section: 'Akademik',
         },
         {
           type: 'link',
@@ -226,6 +231,7 @@ export function useNavEntries(): NavEntry[] {
           icon: BookOpen,
           to: '/dashboard/pembelajaran',
           highlight: true,
+          section: 'Akademik',
         },
         {
           type: 'link',
@@ -233,14 +239,8 @@ export function useNavEntries(): NavEntry[] {
           label: 'Absensi Siswa',
           icon: UserCheck,
           to: '/dashboard/absensi/siswa',
-        },
-        {
-          type: 'link',
-          key: 'indisipliner',
-          label: t('sidebar.catatan_indisipliner') || 'Catatan Indisipliner',
-          icon: ShieldAlert,
-          to: '/dashboard/indisipliner',
-        },
+          section: 'Akademik',
+        }
       );
 
       if (isRaporEnabled) {
@@ -250,10 +250,20 @@ export function useNavEntries(): NavEntry[] {
           label: 'Rapor Kelas Saya',
           icon: FileText,
           to: '/dashboard/formal/rapor',
+          highlight: true,
+          section: 'Akademik',
         });
       }
 
       waliEntries.push(
+        {
+          type: 'link',
+          key: 'indisipliner',
+          label: t('sidebar.catatan_indisipliner') || 'Catatan Indisipliner',
+          icon: ShieldAlert,
+          to: '/dashboard/indisipliner',
+          section: 'Kesiswaan',
+        },
         {
           type: 'group',
           key: 'konfirmasi',
@@ -262,6 +272,7 @@ export function useNavEntries(): NavEntry[] {
           items: [
             { to: '/dashboard/core/permohonan-izin', label: 'Konfirmasi Izin Santri' },
           ],
+          section: 'Kesiswaan',
         },
         {
           type: 'group',
@@ -272,6 +283,7 @@ export function useNavEntries(): NavEntry[] {
             { to: '/dashboard/umum/pengumuman', label: t('sidebar.pengumuman') || 'Pengumuman' },
             { to: '/dashboard/umum/kalender', label: t('sidebar.kalender') || 'Kalender Pendidikan' },
           ],
+          section: 'Layanan',
         },
       );
 
@@ -347,38 +359,38 @@ export function useNavEntries(): NavEntry[] {
     ];
 
     const entries: NavEntry[] = [
-      { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard', icon: Home, to: '/dashboard' },
+      { type: 'link', key: 'dashboard', label: t('sidebar.dashboard') || 'Dashboard', icon: Home, to: '/dashboard', section: 'Utama' },
     ];
 
-    if (showKelembagaan) {
-      entries.push({ type: 'group', key: 'kelembagaan', label: t('sidebar.kelembagaan') || 'Kelembagaan', icon: School, items: kelembagaanItems });
-    }
-
-    entries.push({ type: 'group', key: 'sarpras', label: t('sidebar.sarpras') || 'Sarana Prasarana', icon: Building2, items: sarprasItems });
-    entries.push({ type: 'group', key: 'santri', label: t('sidebar.santri') || 'Santri', icon: User, items: santriItems });
-    entries.push({ type: 'group', key: 'ustadz', label: t('sidebar.ustadz') || 'Ustadz', icon: Users, items: ustadzItems });
-
+    // SECTION 1: AKADEMIK & PEMBELAJARAN (Tugas & KBM Harian)
     if (showRombonganBelajar) {
-      entries.push({ type: 'link', key: 'rombel', label: t('sidebar.rombel') || 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas' });
-      entries.push({ type: 'link', key: 'pembelajaran', label: t('sidebar.pembelajaran') || 'Kontrol Pembelajaran', icon: BookOpen, to: '/dashboard/pembelajaran', highlight: true });
+      entries.push({ type: 'link', key: 'rombel', label: t('sidebar.rombel') || 'Rombongan Belajar', icon: UserCheck, to: '/dashboard/formal/kelas', section: 'Akademik' });
+      entries.push({ type: 'link', key: 'pembelajaran', label: t('sidebar.pembelajaran') || 'Kontrol Pembelajaran', icon: BookOpen, to: '/dashboard/pembelajaran', highlight: true, section: 'Akademik' });
       if (isBankSoalEnabled) {
-        entries.push({ type: 'link', key: 'bank-soal', label: 'Bank Soal (DOCX)', icon: FileQuestion, to: '/dashboard/bank-soal', highlight: true });
+        entries.push({ type: 'link', key: 'bank-soal', label: 'Bank Soal (DOCX)', icon: FileQuestion, to: '/dashboard/bank-soal', highlight: true, section: 'Akademik' });
+      }
+      if (isRaporEnabled) {
+        entries.push({ type: 'link', key: 'rapor', label: t('sidebar.rapor') || 'Rapor Muadalah', icon: FileText, to: '/dashboard/formal/rapor', highlight: true, section: 'Akademik' });
       }
     }
-
-    entries.push({ type: 'group', key: 'layanan', label: t('sidebar.layanan') || 'Layanan dan Bantuan', icon: HeartHandshake, items: layananItems });
-    entries.push({ type: 'group', key: 'bap', label: user?.scope === 'CABANG' ? 'Laporan Kegiatan' : (t('sidebar.bap') || 'Berita Acara (BAP)'), icon: FileText, items: bapItems });
-    entries.push({ type: 'group', key: 'monitoring', label: t('sidebar.monitoring') || 'Monitoring', icon: Activity, items: monitoringItems });
-    entries.push({ type: 'group', key: 'konfirmasi', label: t('sidebar.konfirmasi') || 'Konfirmasi', icon: CheckCircle, items: konfirmasiItems });
-
-    if (showRombonganBelajar && isRaporEnabled) {
-      entries.push({ type: 'link', key: 'rapor', label: t('sidebar.rapor') || 'Rapor Muadalah', icon: FileText, to: '/dashboard/formal/rapor', highlight: true });
-    }
-    entries.push({ type: 'link', key: 'surat', label: t('sidebar.surat') || 'Layanan Surat', icon: Mail, to: '/dashboard/surat' });
-
     if (isPortalEnabled) {
-      entries.push({ type: 'link', key: 'portal-walsan', label: 'Portal Walsan', icon: HeartHandshake, to: '/dashboard/portal-walsan', highlight: true });
+      entries.push({ type: 'link', key: 'portal-walsan', label: 'Portal Walsan', icon: HeartHandshake, to: '/dashboard/portal-walsan', highlight: true, section: 'Akademik' });
     }
+
+    // SECTION 2: DATA POKOK (Master Entities)
+    if (showKelembagaan) {
+      entries.push({ type: 'group', key: 'kelembagaan', label: t('sidebar.kelembagaan') || 'Kelembagaan', icon: School, items: kelembagaanItems, section: 'Data Pokok' });
+    }
+    entries.push({ type: 'group', key: 'sarpras', label: t('sidebar.sarpras') || 'Sarana Prasarana', icon: Building2, items: sarprasItems, section: 'Data Pokok' });
+    entries.push({ type: 'group', key: 'santri', label: t('sidebar.santri') || 'Santri', icon: User, items: santriItems, section: 'Data Pokok' });
+    entries.push({ type: 'group', key: 'ustadz', label: t('sidebar.ustadz') || 'Ustadz', icon: Users, items: ustadzItems, section: 'Data Pokok' });
+
+    // SECTION 3: LAYANAN & OPERASIONAL
+    entries.push({ type: 'group', key: 'konfirmasi', label: t('sidebar.konfirmasi') || 'Konfirmasi', icon: CheckCircle, items: konfirmasiItems, section: 'Layanan & Laporan' });
+    entries.push({ type: 'group', key: 'bap', label: user?.scope === 'CABANG' ? 'Laporan Kegiatan' : (t('sidebar.bap') || 'Berita Acara (BAP)'), icon: FileText, items: bapItems, section: 'Layanan & Laporan' });
+    entries.push({ type: 'group', key: 'monitoring', label: t('sidebar.monitoring') || 'Monitoring', icon: Activity, items: monitoringItems, section: 'Layanan & Laporan' });
+    entries.push({ type: 'link', key: 'surat', label: t('sidebar.surat') || 'Layanan Surat', icon: Mail, to: '/dashboard/surat', section: 'Layanan & Laporan' });
+    entries.push({ type: 'group', key: 'layanan', label: t('sidebar.layanan') || 'Layanan dan Bantuan', icon: HeartHandshake, items: layananItems, section: 'Layanan & Laporan' });
 
     return entries;
   }, [user, t, pendingCount, moduleSettings]);

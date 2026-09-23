@@ -107,6 +107,7 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       showToast('info', t('siswa.form.alert_not_image'));
+      e.target.value = '';
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
@@ -118,11 +119,13 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
       setIsCompressing(true);
       const compressedBase64 = await compressImage(file, 150);
       setFormData(prev => ({ ...prev, [field]: compressedBase64 }));
+      showToast('success', 'Berkas berhasil dimuat ke formulir.');
     } catch (error) {
       console.error('Error compressing image:', error);
       showToast('info', t('siswa.form.alert_compress_fail'));
     } finally {
       setIsCompressing(false);
+      e.target.value = '';
     }
   };
 
@@ -135,9 +138,14 @@ export default function GuruModal({ guru, onClose }: GuruModalProps) {
       }
     },
     onSuccess: () => {
+      showToast('success', guru ? 'Data guru berhasil diperbarui!' : 'Data guru berhasil ditambahkan!');
       queryClient.invalidateQueries({ queryKey: ['master-data', 'guru'] });
       queryClient.invalidateQueries({ queryKey: ['guru', 'pool'] });
       onClose();
+    },
+    onError: (err: any) => {
+      const errMsg = err?.response?.data?.message || 'Gagal menyimpan data guru.';
+      showToast('error', errMsg);
     },
   });
 

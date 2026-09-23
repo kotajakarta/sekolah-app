@@ -21,6 +21,9 @@ export interface Staff {
   cabangId?: string | null;
   wilayahId?: string | null;
   grupDaimiId?: string | null;
+  ifadahUrl?: string | null;
+  ktpUrl?: string | null;
+  ijazahUrl?: string | null;
   wilayah?: { id: string; name: string };
   cabang?: { id: string; name: string; wilayahId?: string };
   grupDaimi?: { id: string; name: string };

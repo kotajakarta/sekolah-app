@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UserCheck, Plus, UserMinus, UserPlus, Edit2, Trash2, LayoutDashboard, Users, Search, X, RotateCcw, KeyRound, Sparkles, Send, FileSpreadsheet } from 'lucide-react';
+import { UserCheck, Plus, UserMinus, UserPlus, Edit2, Trash2, LayoutDashboard, Users, Search, X, RotateCcw, KeyRound, Sparkles, Send, FileSpreadsheet, User, Eye } from 'lucide-react';
 import { useGetGuru, useDeleteGuru } from '../../features/core_data/hooks/useMasterData';
 import { Guru } from '../../features/core_data/hooks/usePoolGuru';
 import LepasGuruModal from '../../features/core_data/components/LepasGuruModal';
 import TarikGuruMassalModal from '../../features/core_data/components/TarikGuruMassalModal';
 import GuruModal from '../../features/core_data/components/GuruModal';
+import GuruProfileModal from '../../features/core_data/components/GuruProfileModal';
 import GuruDashboardTab from '../../features/core_data/components/GuruDashboardTab';
 import TeacherAccountModal from '../../features/core_data/components/TeacherAccountModal';
 import BulkTeacherAccountModal from '../../features/core_data/components/BulkTeacherAccountModal';
@@ -53,6 +54,7 @@ export default function DataGuru() {
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [guruIdToDelete, setGuruIdToDelete] = useState<string | null>(null);
   const [guruToEdit, setGuruToEdit] = useState<Guru | null>(null);
+  const [guruForProfile, setGuruForProfile] = useState<Guru | null>(null);
 
   // Modal Akun Guru
   const [accountModalStaff, setAccountModalStaff] = useState<any | null>(null);
@@ -478,33 +480,79 @@ export default function DataGuru() {
                           </td>
 
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            {user?.scope !== 'AUDITOR' && user?.divisi !== 'PENGAWAS' ? (
-                              <>
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* 1. Tombol Profil Guru */}
+                              <div className="relative group/action inline-flex">
                                 <button
-                                  onClick={() => handleEdit(item)}
-                                  className="inline-flex items-center px-3 py-1.5 border border-indigo-200 shadow-sm text-xs font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors mr-2 cursor-pointer"
+                                  type="button"
+                                  onClick={() => setGuruForProfile(item)}
+                                  className="w-8 h-8 rounded-lg flex items-center justify-center text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/90 shadow-2xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                                  aria-label="Lihat Profil Guru"
                                 >
-                                  <Edit2 className="h-3.5 w-3.5 mr-1" />
-                                  {t('guru.form.edit_btn')}
+                                  <User className="w-4 h-4" />
                                 </button>
-                                <button
-                                  onClick={() => setGuruToLepas(item)}
-                                  className="inline-flex items-center px-3 py-1.5 border border-amber-200 shadow-sm text-xs font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors mr-2 cursor-pointer"
-                                >
-                                  <UserMinus className="h-3.5 w-3.5 mr-1" />
-                                  {user?.scope === 'CABANG' ? 'Mutasikan' : t('guru.form.lepas_btn')}
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(item.id)}
-                                  className="inline-flex items-center px-3 py-1.5 border border-red-200 shadow-sm text-xs font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors cursor-pointer"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                  {t('common.delete')}
-                                </button>
-                              </>
-                            ) : (
-                              <span className="text-xs text-slate-400 font-normal">Read-Only</span>
-                            )}
+                                <div className="pointer-events-none absolute bottom-full mb-1.5 right-0 hidden group-hover/action:flex items-center z-30 animate-fadeIn">
+                                  <div className="bg-slate-900/95 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md shadow-xl whitespace-nowrap border border-slate-700/60 backdrop-blur-xs">
+                                    Profil Guru
+                                  </div>
+                                </div>
+                              </div>
+
+                              {user?.scope !== 'AUDITOR' && user?.divisi !== 'PENGAWAS' && (
+                                <>
+                                  {/* 2. Tombol Edit Guru */}
+                                  <div className="relative group/action inline-flex">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEdit(item)}
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/90 shadow-2xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                                      aria-label={t('guru.form.edit_btn')}
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <div className="pointer-events-none absolute bottom-full mb-1.5 right-0 hidden group-hover/action:flex items-center z-30 animate-fadeIn">
+                                      <div className="bg-slate-900/95 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md shadow-xl whitespace-nowrap border border-slate-700/60 backdrop-blur-xs">
+                                        {t('guru.form.edit_btn')}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* 3. Tombol Mutasi / Lepas Guru */}
+                                  <div className="relative group/action inline-flex">
+                                    <button
+                                      type="button"
+                                      onClick={() => setGuruToLepas(item)}
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200/90 shadow-2xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                                      aria-label={user?.scope === 'CABANG' ? 'Mutasikan' : t('guru.form.lepas_btn')}
+                                    >
+                                      <UserMinus className="w-3.5 h-3.5" />
+                                    </button>
+                                    <div className="pointer-events-none absolute bottom-full mb-1.5 right-0 hidden group-hover/action:flex items-center z-30 animate-fadeIn">
+                                      <div className="bg-slate-900/95 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md shadow-xl whitespace-nowrap border border-slate-700/60 backdrop-blur-xs">
+                                        {user?.scope === 'CABANG' ? 'Mutasikan Guru' : t('guru.form.lepas_btn')}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* 4. Tombol Hapus Guru */}
+                                  <div className="relative group/action inline-flex">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDelete(item.id)}
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center text-red-700 bg-red-50 hover:bg-red-100 border border-red-200/90 shadow-2xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                                      aria-label={t('common.delete')}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <div className="pointer-events-none absolute bottom-full mb-1.5 right-0 hidden group-hover/action:flex items-center z-30 animate-fadeIn">
+                                      <div className="bg-slate-900/95 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md shadow-xl whitespace-nowrap border border-slate-700/60 backdrop-blur-xs">
+                                        {t('common.delete')}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -563,6 +611,18 @@ export default function DataGuru() {
         <GuruModal
           guru={guruToEdit}
           onClose={() => setIsGuruModalOpen(false)}
+        />
+      )}
+
+      {guruForProfile && (
+        <GuruProfileModal
+          guru={guruForProfile}
+          onClose={() => setGuruForProfile(null)}
+          onEdit={() => {
+            const target = guruForProfile;
+            setGuruForProfile(null);
+            handleEdit(target);
+          }}
         />
       )}
 

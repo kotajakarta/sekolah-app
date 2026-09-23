@@ -17,6 +17,7 @@ import { ToastProvider } from './contexts/ToastContext';
 import ToastContainer from './components/ToastContainer';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from './lib/apiClient';
+import { getFileUrl } from './utils/photo';
 
 // Import Pages
 import Dashboard from './pages/Dashboard';
@@ -314,7 +315,7 @@ const MainLayout = () => {
             )}
             {user?.scope === 'CABANG' && (
               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm truncate max-w-[140px] sm:max-w-none">
-                <span className="hidden sm:inline">Pesantren:&nbsp;</span>{user.cabangName || 'Pesantren'}
+                <span className="hidden sm:inline">PESANTREN &nbsp;</span>{user.cabangName || 'Pesantren'}
               </span>
             )}
             {user?.scope === 'WALI_KELAS' && (
@@ -375,9 +376,8 @@ const MainLayout = () => {
                         changeLanguage(opt.value);
                         setIsLangOpen(false);
                       }}
-                      className={`w-full text-left px-3.5 py-2 flex items-center justify-between hover:bg-indigo-50/60 transition-colors ${
-                        i18n.resolvedLanguage === opt.value ? 'font-bold text-indigo-600 bg-indigo-50/40' : 'text-slate-700'
-                      }`}
+                      className={`w-full text-left px-3.5 py-2 flex items-center justify-between hover:bg-indigo-50/60 transition-colors ${i18n.resolvedLanguage === opt.value ? 'font-bold text-indigo-600 bg-indigo-50/40' : 'text-slate-700'
+                        }`}
                     >
                       <span className="flex items-center gap-2">
                         <span>{opt.flag}</span>
@@ -494,13 +494,13 @@ const MainLayout = () => {
             <div className="w-px h-4 bg-gray-300"></div>
 
             <div className="relative" ref={dropdownRef}>
-              <button 
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center justify-center text-gray-500 hover:text-gray-900 transition-colors"
               >
                 <UserCircle className="w-6 h-6" />
               </button>
-              
+
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-[100]">
                   <button
@@ -535,12 +535,32 @@ const MainLayout = () => {
   );
 };
 
+function UploadsRedirect() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const rawPath = location.pathname + location.search;
+    const targetUrl = getFileUrl(rawPath);
+    if (targetUrl) {
+      window.location.replace(targetUrl);
+    }
+  }, [location]);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 text-slate-600 font-sans">
+      <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
+      <p className="text-sm font-semibold text-slate-700">Membuka berkas dokumen...</p>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <ToastProvider>
       <AuthProvider>
         <Router>
           <Routes>
+            <Route path="/uploads/*" element={<UploadsRedirect />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<LandingPage />} />
             <Route path="/ppdb" element={<PpdbPage />} />

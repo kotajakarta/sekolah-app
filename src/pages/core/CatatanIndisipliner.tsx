@@ -19,7 +19,12 @@ import {
   AlertCircle,
   FileDown,
   ChevronDown,
+  Clock,
+  Check,
+  XCircle,
+  Building,
 } from 'lucide-react';
+import AdvancedFilterBar, { FilterState } from '../../components/AdvancedFilterBar';
 import {
   PelanggaranRecord,
   SuratPeringatanRecord,
@@ -31,11 +36,14 @@ import {
   useGetPelanggaran,
   useCreatePelanggaran,
   useDeletePelanggaran,
+  useUpdatePelanggaranStatus,
   useGetSp,
   useCreateSp,
+  useUpdateSpStatusApproval,
   useDeleteSp,
   useGetPengeluaran,
   useCreatePengeluaran,
+  useUpdatePengeluaranStatus,
   useDeletePengeluaran,
   downloadSpTemplateDocx,
   downloadPengeluaranTemplateDocx,
@@ -43,6 +51,7 @@ import {
 import TambahDataModal from '../../features/indisipliner/TambahDataModal';
 import DetailIndisiplinerModal from '../../features/indisipliner/DetailIndisiplinerModal';
 import { useGetStudents } from '../../features/core_data/hooks/useGetStudents';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function CatatanIndisipliner() {
   // State Tab Management (Active Default: 'pelanggaran')
@@ -51,8 +60,25 @@ export default function CatatanIndisipliner() {
   // Search Bar State
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Category Filter State (opsional untuk menyaring lebih spesifik)
+  // Auth & Scope Check
+  const { user } = useAuth();
+  const isAdmin = user?.scope === 'GLOBAL' || user?.scope === 'WILAYAH';
+
+  // Category & Status Filter State
   const [selectedKategori, setSelectedKategori] = useState<string>('ALL');
+  const [selectedStatusPelanggaran, setSelectedStatusPelanggaran] = useState<string>('ALL');
+  const [selectedStatusSp, setSelectedStatusSp] = useState<string>('ALL');
+  const [selectedStatusPengeluaran, setSelectedStatusPengeluaran] = useState<string>('ALL');
+
+  // Advanced Filter State (Khusus Admin & Wilayah)
+  const [advancedFilters, setAdvancedFilters] = useState<FilterState>({
+    wilayahId: '',
+    cabangId: '',
+    kelasId: '',
+    lembagaMuadalahId: '',
+    jenisDaimi: '',
+    tingkat: '',
+  });
 
   // Data States - Murni hanya santri yang memiliki catatan indisipliner / bermasalah (Default kosong)
   const [pelanggaranList, setPelanggaranList] = useState<PelanggaranRecord[]>([]);
@@ -62,16 +88,39 @@ export default function CatatanIndisipliner() {
   // API Queries (Real Database)
   const { data: allStudents = [] } = useGetStudents();
   const { data: apiStats } = useGetIndisiplinerStats();
-  const { data: apiPelanggaran, isLoading: isPelLoading } = useGetPelanggaran();
-  const { data: apiSp, isLoading: isSpLoading } = useGetSp();
-  const { data: apiPengeluaran, isLoading: isPengLoading } = useGetPengeluaran();
+  const { data: apiPelanggaran, isLoading: isPelLoading } = useGetPelanggaran({
+    search: searchQuery,
+    kategori: selectedKategori,
+    status: selectedStatusPelanggaran,
+    wilayahId: advancedFilters.wilayahId,
+    cabangId: advancedFilters.cabangId,
+    kelasId: advancedFilters.kelasId,
+  });
+  const { data: apiSp, isLoading: isSpLoading } = useGetSp({
+    search: searchQuery,
+    tingkat: selectedKategori,
+    statusApproval: selectedStatusSp,
+    wilayahId: advancedFilters.wilayahId,
+    cabangId: advancedFilters.cabangId,
+    kelasId: advancedFilters.kelasId,
+  });
+  const { data: apiPengeluaran, isLoading: isPengLoading } = useGetPengeluaran({
+    search: searchQuery,
+    status: selectedStatusPengeluaran,
+    wilayahId: advancedFilters.wilayahId,
+    cabangId: advancedFilters.cabangId,
+    kelasId: advancedFilters.kelasId,
+  });
 
   // API Mutations
   const createPelanggaranMutation = useCreatePelanggaran();
   const deletePelanggaranMutation = useDeletePelanggaran();
+  const updatePelanggaranStatusMutation = useUpdatePelanggaranStatus();
   const createSpMutation = useCreateSp();
+  const updateSpStatusApprovalMutation = useUpdateSpStatusApproval();
   const deleteSpMutation = useDeleteSp();
   const createPengeluaranMutation = useCreatePengeluaran();
+  const updatePengeluaranStatusMutation = useUpdatePengeluaranStatus();
   const deletePengeluaranMutation = useDeletePengeluaran();
 
   // Sinkronisasi data real API ke local state
@@ -161,8 +210,87 @@ export default function CatatanIndisipliner() {
     }
   };
 
+  // Handlers Approval / Rejection Pelanggaran (Khusus Admin)
+  const handleApprovePelanggaran = async (id: string, nama: string) => {
+    try {
+      await updatePelanggaranStatusMutation.mutateAsync({ id, status: 'DISETUJUI' });
+      setPelanggaranList(prev => prev.map(p => p.id === id ? { ...p, status: 'DISETUJUI' } : p));
+      showNotification(`Pelanggaran santri "${nama}" telah disetujui.`, 'success');
+    } catch (e: any) {
+      console.error('API Error approve:', e);
+      showNotification(`Gagal menyetujui: ${e?.response?.data?.message || e.message || 'Terjadi kesalahan'}`, 'error');
+    }
+  };
+
+  const handleRejectPelanggaran = async (id: string, nama: string) => {
+    if (window.confirm(`Tolak laporan pelanggaran santri "${nama}"? Poin tidak akan dihitung.`)) {
+      try {
+        await updatePelanggaranStatusMutation.mutateAsync({ id, status: 'DITOLAK' });
+        setPelanggaranList(prev => prev.map(p => p.id === id ? { ...p, status: 'DITOLAK' } : p));
+        showNotification(`Pelanggaran santri "${nama}" telah ditolak.`, 'info');
+      } catch (e: any) {
+        console.error('API Error reject:', e);
+        showNotification(`Gagal menolak: ${e?.response?.data?.message || e.message || 'Terjadi kesalahan'}`, 'error');
+      }
+    }
+  };
+
+  // Handlers Approval / Rejection SP (Khusus Admin)
+  const handleApproveSp = async (id: string, nomor: string) => {
+    try {
+      await updateSpStatusApprovalMutation.mutateAsync({ id, statusApproval: 'DISETUJUI' });
+      setSpList(prev => prev.map(s => s.id === id ? { ...s, statusApproval: 'DISETUJUI' } : s));
+      showNotification(`Surat Peringatan "${nomor}" telah disetujui.`, 'success');
+    } catch (e: any) {
+      console.error('API Error approve SP:', e);
+      showNotification(`Gagal menyetujui SP: ${e?.response?.data?.message || e.message || 'Terjadi kesalahan'}`, 'error');
+    }
+  };
+
+  const handleRejectSp = async (id: string, nomor: string) => {
+    if (window.confirm(`Tolak penerbitan Surat Peringatan "${nomor}"?`)) {
+      try {
+        await updateSpStatusApprovalMutation.mutateAsync({ id, statusApproval: 'DITOLAK' });
+        setSpList(prev => prev.map(s => s.id === id ? { ...s, statusApproval: 'DITOLAK' } : s));
+        showNotification(`Surat Peringatan "${nomor}" telah ditolak.`, 'info');
+      } catch (e: any) {
+        console.error('API Error reject SP:', e);
+        showNotification(`Gagal menolak SP: ${e?.response?.data?.message || e.message || 'Terjadi kesalahan'}`, 'error');
+      }
+    }
+  };
+
+  // Handlers Approval / Rejection Pengeluaran Santri (Khusus Admin)
+  const handleApprovePengeluaran = async (id: string, nama: string) => {
+    try {
+      await updatePengeluaranStatusMutation.mutateAsync({ id, status: 'DISETUJUI' });
+      setPengeluaranList(prev => prev.map(p => p.id === id ? { ...p, status: 'DISETUJUI' } : p));
+      showNotification(`Pengeluaran santri "${nama}" telah disetujui. Santri resmi dinonaktifkan (DO).`, 'success');
+    } catch (e: any) {
+      console.error('API Error approve pengeluaran:', e);
+      showNotification(`Gagal menyetujui pengeluaran: ${e?.response?.data?.message || e.message || 'Terjadi kesalahan'}`, 'error');
+    }
+  };
+
+  const handleRejectPengeluaran = async (id: string, nama: string) => {
+    if (window.confirm(`Tolak laporan pengeluaran santri "${nama}"? Santri akan tetap berstatus aktif.`)) {
+      try {
+        await updatePengeluaranStatusMutation.mutateAsync({ id, status: 'DITOLAK' });
+        setPengeluaranList(prev => prev.map(p => p.id === id ? { ...p, status: 'DITOLAK' } : p));
+        showNotification(`Pengeluaran santri "${nama}" telah ditolak. Santri tetap aktif.`, 'info');
+      } catch (e: any) {
+        console.error('API Error reject pengeluaran:', e);
+        showNotification(`Gagal menolak pengeluaran: ${e?.response?.data?.message || e.message || 'Terjadi kesalahan'}`, 'error');
+      }
+    }
+  };
+
   // Handlers Hapus Data
   const handleDeletePelanggaran = async (id: string, nama: string) => {
+    if (!isAdmin) {
+      showNotification('Akses ditolak: Hanya admin yang berhak menghapus catatan pelanggaran.', 'error');
+      return;
+    }
     if (window.confirm(`Hapus catatan pelanggaran untuk "${nama}"?`)) {
       setPelanggaranList(prev => prev.filter(item => item.id !== id));
       showNotification(`Catatan pelanggaran "${nama}" telah dihapus.`);
@@ -175,6 +303,10 @@ export default function CatatanIndisipliner() {
   };
 
   const handleDeleteSp = async (id: string, nomor: string) => {
+    if (!isAdmin) {
+      showNotification('Akses ditolak: Hanya admin yang berhak menghapus surat peringatan.', 'error');
+      return;
+    }
     if (window.confirm(`Batalkan / hapus surat peringatan nomor "${nomor}"?`)) {
       setSpList(prev => prev.filter(item => item.id !== id));
       showNotification(`Surat peringatan "${nomor}" telah dihapus.`);
@@ -187,7 +319,11 @@ export default function CatatanIndisipliner() {
   };
 
   const handleDeletePengeluaran = async (id: string, nama: string) => {
-    if (window.confirm(`Hapus arsip pengeluaran santri "${nama}"?`)) {
+    if (!isAdmin) {
+      showNotification('Akses ditolak: Hanya admin yang berhak menghapus arsip pengeluaran santri.', 'error');
+      return;
+    }
+    if (window.confirm(`Hapus arsip pengeluaran santri "${nama}"? Status santri akan dipulihkan.`)) {
       setPengeluaranList(prev => prev.filter(item => item.id !== id));
       showNotification(`Arsip pengeluaran santri "${nama}" telah dihapus.`);
       try {
@@ -207,11 +343,34 @@ export default function CatatanIndisipliner() {
         item.namaSiswa.toLowerCase().includes(q) ||
         item.kelas.toLowerCase().includes(q) ||
         item.jenisPelanggaran.toLowerCase().includes(q) ||
+        (item.cabangName && item.cabangName.toLowerCase().includes(q)) ||
+        (item.wilayahName && item.wilayahName.toLowerCase().includes(q)) ||
         item.nisLokal.includes(q);
       const matchKategori = selectedKategori === 'ALL' || item.kategori === selectedKategori;
-      return matchSearch && matchKategori;
+      const matchStatus =
+        selectedStatusPelanggaran === 'ALL' ||
+        (item.status || 'DISETUJUI') === selectedStatusPelanggaran;
+      const matchWilayah = !advancedFilters.wilayahId || item.wilayahId === advancedFilters.wilayahId;
+      const matchCabang = !advancedFilters.cabangId || item.cabangId === advancedFilters.cabangId;
+      return matchSearch && matchKategori && matchStatus && matchWilayah && matchCabang;
     });
-  }, [pelanggaranList, searchQuery, selectedKategori]);
+  }, [pelanggaranList, searchQuery, selectedKategori, selectedStatusPelanggaran, advancedFilters]);
+
+  // Hitung jumlah data yang butuh approval
+  const pendingPelanggaranCount = useMemo(
+    () => pelanggaranList.filter(p => p.status === 'PENDING').length,
+    [pelanggaranList]
+  );
+
+  const pendingSpCount = useMemo(
+    () => spList.filter(s => s.statusApproval === 'PENDING').length,
+    [spList]
+  );
+
+  const pendingPengeluaranCount = useMemo(
+    () => pengeluaranList.filter(p => p.status === 'PENDING').length,
+    [pengeluaranList]
+  );
 
   const filteredSp = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -221,24 +380,38 @@ export default function CatatanIndisipliner() {
         item.namaSiswa.toLowerCase().includes(q) ||
         item.kelas.toLowerCase().includes(q) ||
         item.nomorSp.toLowerCase().includes(q) ||
-        item.tingkatSp.toLowerCase().includes(q);
+        item.tingkatSp.toLowerCase().includes(q) ||
+        (item.cabangName && item.cabangName.toLowerCase().includes(q)) ||
+        (item.wilayahName && item.wilayahName.toLowerCase().includes(q));
       const matchKategori = selectedKategori === 'ALL' || item.tingkatSp === selectedKategori;
-      return matchSearch && matchKategori;
+      const matchStatus =
+        selectedStatusSp === 'ALL' ||
+        (item.statusApproval || 'DISETUJUI') === selectedStatusSp;
+      const matchWilayah = !advancedFilters.wilayahId || item.wilayahId === advancedFilters.wilayahId;
+      const matchCabang = !advancedFilters.cabangId || item.cabangId === advancedFilters.cabangId;
+      return matchSearch && matchKategori && matchStatus && matchWilayah && matchCabang;
     });
-  }, [spList, searchQuery, selectedKategori]);
+  }, [spList, searchQuery, selectedKategori, selectedStatusSp, advancedFilters]);
 
   const filteredPengeluaran = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return pengeluaranList.filter(item => {
-      return (
+      const matchSearch =
         !q ||
         item.namaSiswa.toLowerCase().includes(q) ||
         item.kelas.toLowerCase().includes(q) ||
         item.alasanPemberhentian.toLowerCase().includes(q) ||
-        item.nomorSk.toLowerCase().includes(q)
-      );
+        item.nomorSk.toLowerCase().includes(q) ||
+        (item.cabangName && item.cabangName.toLowerCase().includes(q)) ||
+        (item.wilayahName && item.wilayahName.toLowerCase().includes(q));
+      const matchStatus =
+        selectedStatusPengeluaran === 'ALL' ||
+        (item.status || 'DISETUJUI') === selectedStatusPengeluaran;
+      const matchWilayah = !advancedFilters.wilayahId || item.wilayahId === advancedFilters.wilayahId;
+      const matchCabang = !advancedFilters.cabangId || item.cabangId === advancedFilters.cabangId;
+      return matchSearch && matchStatus && matchWilayah && matchCabang;
     });
-  }, [pengeluaranList, searchQuery]);
+  }, [pengeluaranList, searchQuery, selectedStatusPengeluaran, advancedFilters]);
 
   // Statistik Ringkas (KPI) - Berasal dari data aktual
   const totalPelanggaran = apiStats?.totalPelanggaran ?? pelanggaranList.length;
@@ -476,6 +649,16 @@ export default function CatatanIndisipliner() {
         </div>
       </div>
 
+      {/* ── ADVANCED FILTER (KHUSUS ADMIN & WILAYAH) ── */}
+      {isAdmin && (
+        <AdvancedFilterBar
+          onFilterChange={setAdvancedFilters}
+          userScope={user?.scope || ''}
+          userWilayahId={user?.wilayahId}
+          userCabangId={user?.cabangId}
+        />
+      )}
+
       {/* ── TAB MENU HORIZONTAL (STATE MANAGEMENT) ── */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="flex flex-wrap items-center justify-between border-b border-slate-200 px-4 pt-3 gap-2 bg-slate-50/50">
@@ -486,6 +669,7 @@ export default function CatatanIndisipliner() {
               onClick={() => {
                 setActiveTab('pelanggaran');
                 setSelectedKategori('ALL');
+                setSelectedStatusPelanggaran('ALL');
               }}
               className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                 activeTab === 'pelanggaran'
@@ -500,6 +684,11 @@ export default function CatatanIndisipliner() {
               }`}>
                 {pelanggaranList.length}
               </span>
+              {pendingPelanggaranCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white animate-pulse" title={`${pendingPelanggaranCount} laporan butuh persetujuan admin`}>
+                  {pendingPelanggaranCount} Menunggu
+                </span>
+              )}
             </button>
 
             {/* Tab 2: Surat Peringatan (SP) */}
@@ -507,6 +696,7 @@ export default function CatatanIndisipliner() {
               onClick={() => {
                 setActiveTab('sp');
                 setSelectedKategori('ALL');
+                setSelectedStatusSp('ALL');
               }}
               className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                 activeTab === 'sp'
@@ -521,6 +711,11 @@ export default function CatatanIndisipliner() {
               }`}>
                 {spList.length}
               </span>
+              {pendingSpCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white animate-pulse" title={`${pendingSpCount} SP butuh persetujuan admin`}>
+                  {pendingSpCount} Menunggu
+                </span>
+              )}
             </button>
 
             {/* Tab 3: Pengeluaran Siswa */}
@@ -528,6 +723,7 @@ export default function CatatanIndisipliner() {
               onClick={() => {
                 setActiveTab('pengeluaran');
                 setSelectedKategori('ALL');
+                setSelectedStatusPengeluaran('ALL');
               }}
               className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all cursor-pointer ${
                 activeTab === 'pengeluaran'
@@ -542,43 +738,143 @@ export default function CatatanIndisipliner() {
               }`}>
                 {pengeluaranList.length}
               </span>
+              {pendingPengeluaranCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white animate-pulse" title={`${pendingPengeluaranCount} pengeluaran butuh persetujuan admin`}>
+                  {pendingPengeluaranCount} Menunggu
+                </span>
+              )}
             </button>
           </div>
 
           {/* Quick Filter Pill Tag */}
           {activeTab === 'pelanggaran' && (
-            <div className="flex items-center gap-1.5 pb-2 text-xs">
-              <span className="text-slate-400 text-[11px] font-medium hidden sm:inline">Kategori:</span>
-              {['ALL', 'Ringan', 'Sedang', 'Berat'].map(kat => (
-                <button
-                  key={kat}
-                  onClick={() => setSelectedKategori(kat)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
-                    selectedKategori === kat
-                      ? 'bg-slate-900 text-white'
-                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  {kat === 'ALL' ? 'Semua' : kat}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-2.5 pb-2 text-xs">
+              {/* Filter Status Approval */}
+              <div className="flex items-center gap-1">
+                <span className="text-slate-400 text-[11px] font-medium hidden sm:inline">Status:</span>
+                {[
+                  { id: 'ALL', label: 'Semua Status' },
+                  { id: 'PENDING', label: 'Menunggu Approval' },
+                  { id: 'DISETUJUI', label: 'Disetujui' },
+                  { id: 'DITOLAK', label: 'Ditolak' }
+                ].map(st => (
+                  <button
+                    key={st.id}
+                    onClick={() => setSelectedStatusPelanggaran(st.id)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
+                      selectedStatusPelanggaran === st.id
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{st.label}</span>
+                    {st.id === 'PENDING' && pendingPelanggaranCount > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-amber-500 text-white font-extrabold">
+                        {pendingPelanggaranCount}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+
+              {/* Filter Kategori */}
+              <div className="flex items-center gap-1">
+                <span className="text-slate-400 text-[11px] font-medium hidden sm:inline">Kategori:</span>
+                {['ALL', 'Ringan', 'Sedang', 'Berat'].map(kat => (
+                  <button
+                    key={kat}
+                    onClick={() => setSelectedKategori(kat)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                      selectedKategori === kat
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {kat === 'ALL' ? 'Semua' : kat}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
           {activeTab === 'sp' && (
-            <div className="flex items-center gap-1.5 pb-2 text-xs">
-              <span className="text-slate-400 text-[11px] font-medium hidden sm:inline">Tingkat:</span>
-              {['ALL', 'SP 1', 'SP 2', 'SP 3'].map(lvl => (
+            <div className="flex flex-wrap items-center gap-2.5 pb-2 text-xs">
+              {/* Filter Status Approval */}
+              <div className="flex items-center gap-1">
+                <span className="text-slate-400 text-[11px] font-medium hidden sm:inline">Status:</span>
+                {[
+                  { id: 'ALL', label: 'Semua Status' },
+                  { id: 'PENDING', label: 'Menunggu Approval' },
+                  { id: 'DISETUJUI', label: 'Disetujui' },
+                  { id: 'DITOLAK', label: 'Ditolak' }
+                ].map(st => (
+                  <button
+                    key={st.id}
+                    onClick={() => setSelectedStatusSp(st.id)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
+                      selectedStatusSp === st.id
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{st.label}</span>
+                    {st.id === 'PENDING' && pendingSpCount > 0 && (
+                      <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-amber-500 text-white font-extrabold">
+                        {pendingSpCount}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+
+              {/* Filter Tingkat */}
+              <div className="flex items-center gap-1">
+                <span className="text-slate-400 text-[11px] font-medium hidden sm:inline">Tingkat:</span>
+                {['ALL', 'SP 1', 'SP 2', 'SP 3'].map(lvl => (
+                  <button
+                    key={lvl}
+                    onClick={() => setSelectedKategori(lvl)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
+                      selectedKategori === lvl
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {lvl === 'ALL' ? 'Semua Tingkat' : lvl}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'pengeluaran' && (
+            <div className="flex flex-wrap items-center gap-1 pb-2 text-xs">
+              <span className="text-slate-400 text-[11px] font-medium hidden sm:inline">Status:</span>
+              {[
+                { id: 'ALL', label: 'Semua Status' },
+                { id: 'PENDING', label: 'Menunggu Approval' },
+                { id: 'DISETUJUI', label: 'Disetujui' },
+                { id: 'DITOLAK', label: 'Ditolak' }
+              ].map(st => (
                 <button
-                  key={lvl}
-                  onClick={() => setSelectedKategori(lvl)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer ${
-                    selectedKategori === lvl
-                      ? 'bg-slate-900 text-white'
+                  key={st.id}
+                  onClick={() => setSelectedStatusPengeluaran(st.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1 ${
+                    selectedStatusPengeluaran === st.id
+                      ? 'bg-slate-900 text-white shadow-xs'
                       : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  {lvl === 'ALL' ? 'Semua Tingkat' : lvl}
+                  <span>{st.label}</span>
+                  {st.id === 'PENDING' && pendingPengeluaranCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-amber-500 text-white font-extrabold">
+                      {pendingPengeluaranCount}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -589,7 +885,7 @@ export default function CatatanIndisipliner() {
         <div className="p-0">
           {/* =========================================================================
               TAB 1: DATA PELANGGARAN (Active Default)
-              Kolom: Tanggal, Nama Siswa, Kelas, Jenis Pelanggaran, Poin, Aksi
+              Kolom: Tanggal, Nama Siswa, Kelas, Jenis Pelanggaran, Status, Poin, Aksi
               UI Rules: Conditional color badge untuk Poin (merah = tinggi, kuning = sedang, hijau/biru = rendah)
           ========================================================================= */}
           {activeTab === 'pelanggaran' && (
@@ -600,16 +896,18 @@ export default function CatatanIndisipliner() {
                     <th className="py-3 px-4 w-12 text-center">No</th>
                     <th className="py-3 px-4 w-32">Tanggal</th>
                     <th className="py-3 px-4">Nama Siswa</th>
+                    {isAdmin && <th className="py-3 px-4 w-44">Wilayah / Cabang</th>}
                     <th className="py-3 px-4 w-28">Kelas</th>
                     <th className="py-3 px-4">Jenis Pelanggaran</th>
+                    <th className="py-3 px-4 w-36 text-center">Status</th>
                     <th className="py-3 px-4 w-24 text-center">Poin</th>
-                    <th className="py-3 px-4 w-28 text-center">Aksi</th>
+                    <th className="py-3 px-4 w-32 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredPelanggaran.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-16 text-center text-slate-400">
+                      <td colSpan={isAdmin ? 9 : 8} className="py-16 text-center text-slate-400">
                         <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 border border-emerald-100 shadow-xs">
                           <CheckCircle2 className="w-6 h-6" />
                         </div>
@@ -645,6 +943,15 @@ export default function CatatanIndisipliner() {
                           <div className="font-bold text-slate-900">{item.namaSiswa}</div>
                           <div className="text-[10.5px] text-slate-400 font-mono">NIS: {item.nisLokal}</div>
                         </td>
+                        {isAdmin && (
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <div className="font-semibold text-slate-800 text-[11px] flex items-center gap-1.5">
+                              <Building className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              <span>{item.cabangName || '-'}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 pl-5">{item.wilayahName || '-'}</div>
+                          </td>
+                        )}
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <span className="px-2 py-0.5 rounded-md font-semibold text-[11px] bg-slate-100 text-slate-700 border border-slate-200">
                             {item.kelas}
@@ -656,11 +963,32 @@ export default function CatatanIndisipliner() {
                             <div className="text-[11px] text-slate-500 truncate max-w-xs">{item.keterangan}</div>
                           )}
                         </td>
+                        {/* Kolom Status Approval */}
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          {item.status === 'PENDING' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Menunggu persetujuan Admin Yayasan/Pusat">
+                              <Clock className="w-3 h-3 text-amber-500" />
+                              <span>Menunggu</span>
+                            </span>
+                          ) : item.status === 'DITOLAK' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200" title="Laporan ditolak oleh Admin">
+                              <XCircle className="w-3 h-3 text-rose-500" />
+                              <span>Ditolak</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Disetujui Admin">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                              <span>Disetujui</span>
+                            </span>
+                          )}
+                        </td>
                         {/* Conditional color badge untuk Poin: Merah (tinggi), Kuning (sedang), Biru (rendah) */}
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <span
                             className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-black border ${
-                              item.poin >= 25
+                              item.status === 'DITOLAK'
+                                ? 'bg-slate-100 text-slate-400 border-slate-200 line-through'
+                                : item.poin >= 25
                                 ? 'bg-rose-50 text-rose-700 border-rose-200'
                                 : item.poin >= 10
                                 ? 'bg-amber-50 text-amber-700 border-amber-200'
@@ -670,22 +998,48 @@ export default function CatatanIndisipliner() {
                             +{item.poin} Poin
                           </span>
                         </td>
+                        {/* Kolom Aksi */}
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1.5">
+                            {/* Tombol Approval Cepat bagi Admin untuk status PENDING */}
+                            {isAdmin && item.status === 'PENDING' && (
+                              <>
+                                <button
+                                  onClick={() => handleApprovePelanggaran(item.id, item.namaSiswa)}
+                                  className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-emerald-200 hover:border-emerald-300 transition-colors cursor-pointer"
+                                  title="Setujui Pelanggaran (Approve)"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleRejectPelanggaran(item.id, item.namaSiswa)}
+                                  className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-rose-200 hover:border-rose-300 transition-colors cursor-pointer"
+                                  title="Tolak Laporan Pelanggaran"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+
+                            {/* Tombol Lihat Rincian (Bisa diakses Cabang & Admin) */}
                             <button
                               onClick={() => setDetailModalData({ type: 'pelanggaran', data: item })}
-                              className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition-colors"
+                              className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition-colors cursor-pointer"
                               title="Lihat Rincian"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => handleDeletePelanggaran(item.id, item.namaSiswa)}
-                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors"
-                              title="Hapus Catatan"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+
+                            {/* Tombol Hapus: HANYA untuk Admin (Cabang dilarang ubah & hapus) */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleDeletePelanggaran(item.id, item.namaSiswa)}
+                                className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
+                                title="Hapus Catatan (Khusus Admin)"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -698,8 +1052,7 @@ export default function CatatanIndisipliner() {
 
           {/* =========================================================================
               TAB 2: SURAT PERINGATAN (SP)
-              Kolom: Tanggal Terbit, Nama Siswa, Kelas, Tingkat SP, Status, Aksi
-              UI Rules: Render 'Tingkat SP' dengan warna badge yang berbeda (SP 1, SP 2, SP 3)
+              Kolom: Tanggal Terbit, Nama Siswa, Kelas, Tingkat SP, Status SP, Status Approval, Aksi
           ========================================================================= */}
           {activeTab === 'sp' && (
             <div className="overflow-x-auto">
@@ -709,16 +1062,18 @@ export default function CatatanIndisipliner() {
                     <th className="py-3 px-4 w-12 text-center">No</th>
                     <th className="py-3 px-4 w-32">Tanggal Terbit</th>
                     <th className="py-3 px-4">Nama Siswa</th>
+                    {isAdmin && <th className="py-3 px-4 w-44">Wilayah / Cabang</th>}
                     <th className="py-3 px-4 w-28">Kelas</th>
                     <th className="py-3 px-4 w-28 text-center">Tingkat SP</th>
-                    <th className="py-3 px-4 w-36">Status</th>
-                    <th className="py-3 px-4 w-28 text-center">Aksi</th>
+                    <th className="py-3 px-4 w-36">Status SP</th>
+                    <th className="py-3 px-4 w-36 text-center">Status Approval</th>
+                    <th className="py-3 px-4 w-32 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredSp.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-16 text-center text-slate-400">
+                      <td colSpan={isAdmin ? 9 : 8} className="py-16 text-center text-slate-400">
                         <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 border border-emerald-100 shadow-xs">
                           <CheckCircle2 className="w-6 h-6" />
                         </div>
@@ -755,12 +1110,21 @@ export default function CatatanIndisipliner() {
                           <div className="font-bold text-slate-900">{item.namaSiswa}</div>
                           <div className="text-[10.5px] text-slate-400 font-mono">NIS: {item.nisLokal}</div>
                         </td>
+                        {isAdmin && (
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <div className="font-semibold text-slate-800 text-[11px] flex items-center gap-1.5">
+                              <Building className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              <span>{item.cabangName || '-'}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 pl-5">{item.wilayahName || '-'}</div>
+                          </td>
+                        )}
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <span className="px-2 py-0.5 rounded-md font-semibold text-[11px] bg-slate-100 text-slate-700 border border-slate-200">
                             {item.kelas}
                           </span>
                         </td>
-                        {/* Render 'Tingkat SP' dengan warna badge berbeda: SP 1 (kuning), SP 2 (oranye), SP 3 (merah) */}
+                        {/* Render 'Tingkat SP' dengan warna badge berbeda */}
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <span
                             className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-black border tracking-wide ${
@@ -790,8 +1154,48 @@ export default function CatatanIndisipliner() {
                             {item.status}
                           </span>
                         </td>
+                        {/* Kolom Status Approval */}
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          {item.statusApproval === 'PENDING' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Menunggu persetujuan Admin">
+                              <Clock className="w-3 h-3 text-amber-500" />
+                              <span>Menunggu</span>
+                            </span>
+                          ) : item.statusApproval === 'DITOLAK' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200" title="Penerbitan SP ditolak">
+                              <XCircle className="w-3 h-3 text-rose-500" />
+                              <span>Ditolak</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Disetujui Admin">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                              <span>Disetujui</span>
+                            </span>
+                          )}
+                        </td>
+                        {/* Kolom Aksi */}
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1.5">
+                            {/* Tombol Approval Cepat bagi Admin untuk status PENDING */}
+                            {isAdmin && item.statusApproval === 'PENDING' && (
+                              <>
+                                <button
+                                  onClick={() => handleApproveSp(item.id, item.nomorSp)}
+                                  className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-emerald-200 hover:border-emerald-300 transition-colors cursor-pointer"
+                                  title="Setujui SP (Approve)"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleRejectSp(item.id, item.nomorSp)}
+                                  className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-rose-200 hover:border-rose-300 transition-colors cursor-pointer"
+                                  title="Tolak SP"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+
                             <button
                               onClick={() => {
                                 downloadSpTemplateDocx(item.tingkatSp, item.id);
@@ -809,13 +1213,17 @@ export default function CatatanIndisipliner() {
                             >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => handleDeleteSp(item.id, item.nomorSp)}
-                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
-                              title="Hapus SP"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+
+                            {/* Tombol Hapus: HANYA untuk Admin (Cabang dilarang ubah & hapus) */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleDeleteSp(item.id, item.nomorSp)}
+                                className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
+                                title="Hapus SP (Khusus Admin)"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -828,7 +1236,7 @@ export default function CatatanIndisipliner() {
 
           {/* =========================================================================
               TAB 3: PENGELUARAN SISWA
-              Kolom: Tanggal Keluar, Nama Siswa, Kelas, Alasan Pemberhentian, Dokumen SK, Aksi
+              Kolom: Tanggal Keluar, Nama Siswa, Kelas, Alasan Pemberhentian, Dokumen SK, Status Approval, Aksi
           ========================================================================= */}
           {activeTab === 'pengeluaran' && (
             <div className="overflow-x-auto">
@@ -838,16 +1246,18 @@ export default function CatatanIndisipliner() {
                     <th className="py-3 px-4 w-12 text-center">No</th>
                     <th className="py-3 px-4 w-32">Tanggal Keluar</th>
                     <th className="py-3 px-4">Nama Siswa</th>
+                    {isAdmin && <th className="py-3 px-4 w-44">Wilayah / Cabang</th>}
                     <th className="py-3 px-4 w-28">Kelas</th>
                     <th className="py-3 px-4">Alasan Pemberhentian</th>
                     <th className="py-3 px-4 w-44">Dokumen SK</th>
-                    <th className="py-3 px-4 w-28 text-center">Aksi</th>
+                    <th className="py-3 px-4 w-36 text-center">Status Approval</th>
+                    <th className="py-3 px-4 w-32 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredPengeluaran.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-16 text-center text-slate-400">
+                      <td colSpan={isAdmin ? 9 : 8} className="py-16 text-center text-slate-400">
                         <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 border border-emerald-100 shadow-xs">
                           <CheckCircle2 className="w-6 h-6" />
                         </div>
@@ -883,6 +1293,15 @@ export default function CatatanIndisipliner() {
                           <div className="font-bold text-slate-900">{item.namaSiswa}</div>
                           <div className="text-[10.5px] text-slate-400 font-mono">NIS: {item.nisLokal}</div>
                         </td>
+                        {isAdmin && (
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <div className="font-semibold text-slate-800 text-[11px] flex items-center gap-1.5">
+                              <Building className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              <span>{item.cabangName || '-'}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 pl-5">{item.wilayahName || '-'}</div>
+                          </td>
+                        )}
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <span className="px-2 py-0.5 rounded-md font-semibold text-[11px] bg-slate-100 text-slate-700 border border-slate-200">
                             {item.kelas}
@@ -905,8 +1324,48 @@ export default function CatatanIndisipliner() {
                             <span className="truncate max-w-[130px]">{item.nomorSk}</span>
                           </button>
                         </td>
+                        {/* Kolom Status Approval */}
+                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                          {item.status === 'PENDING' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Menunggu persetujuan Admin">
+                              <Clock className="w-3 h-3 text-amber-500" />
+                              <span>Menunggu</span>
+                            </span>
+                          ) : item.status === 'DITOLAK' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200" title="Pengeluaran santri ditolak">
+                              <XCircle className="w-3 h-3 text-rose-500" />
+                              <span>Ditolak</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Disetujui Admin">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                              <span>Disetujui</span>
+                            </span>
+                          )}
+                        </td>
+                        {/* Kolom Aksi */}
                         <td className="py-3.5 px-4 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1.5">
+                            {/* Tombol Approval Cepat bagi Admin untuk status PENDING */}
+                            {isAdmin && item.status === 'PENDING' && (
+                              <>
+                                <button
+                                  onClick={() => handleApprovePengeluaran(item.id, item.namaSiswa)}
+                                  className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-emerald-200 hover:border-emerald-300 transition-colors cursor-pointer"
+                                  title="Setujui Pengeluaran (Drop Out)"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleRejectPengeluaran(item.id, item.namaSiswa)}
+                                  className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-rose-200 hover:border-rose-300 transition-colors cursor-pointer"
+                                  title="Tolak Pengeluaran Santri"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+
                             <button
                               onClick={() => {
                                 downloadPengeluaranTemplateDocx(item.id);
@@ -924,13 +1383,17 @@ export default function CatatanIndisipliner() {
                             >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => handleDeletePengeluaran(item.id, item.namaSiswa)}
-                              className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
-                              title="Hapus Data"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+
+                            {/* Tombol Hapus: HANYA untuk Admin (Cabang dilarang ubah & hapus) */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleDeletePengeluaran(item.id, item.namaSiswa)}
+                                className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
+                                title="Hapus Data (Khusus Admin)"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

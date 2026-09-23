@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
 import {
   Loader2, AlertCircle, Building2, CheckCircle2, Users, BookOpen,
-  ChevronLeft, ChevronRight, Search, ArrowUpRight, Calendar, X, Info, RefreshCw
+  ChevronLeft, ChevronRight, Search, ArrowUpRight, Calendar, X, Info, RefreshCw, CalendarOff
 } from 'lucide-react';
 import Pagination from '../../components/Pagination';
 import { useAuth } from '../../hooks/useAuth';
@@ -58,6 +58,22 @@ interface MapelDetailItem {
   alpa: number;
   totalSiswa: number;
   persenHadirMapel: number;
+  catatan?: string | null;
+  cabangName?: string | null;
+  kelasName?: string | null;
+}
+
+interface CabangHolidaySummary {
+  cabangId: string;
+  cabangName: string;
+  holidayType: 'FULL_DAY' | 'PARTIAL' | 'NONE';
+  holidayReasons: string[];
+  mapelCompleted: number;
+  mapelLibur: number;
+  mapelTarget: number;
+  persenMapel: number;
+  persenKehadiran: number;
+  totalKelas: number;
 }
 
 interface ClassWeekBreakdown {
@@ -70,6 +86,10 @@ interface ClassWeekBreakdown {
   hadir: number;
   totalAbsensi: number;
   persenKehadiran: number;
+  holidayType?: 'FULL_DAY' | 'PARTIAL' | 'NONE';
+  holidayReasons?: string[];
+  mapelLibur?: number;
+  cabangHolidays?: CabangHolidaySummary[];
   details?: MapelDetailItem[];
 }
 
@@ -89,6 +109,8 @@ interface UnitBreakdownItem {
   status: 'Optimal' | 'Sesuai Jalur' | 'Berisiko';
   weeks?: ClassWeekBreakdown[];
   details?: MapelDetailItem[];
+  selectedWeek?: ClassWeekBreakdown;
+  unitLabel?: string;
 }
 
 interface FilterOptions {
@@ -317,7 +339,17 @@ export default function Ringkasan() {
       }, 0);
       const persenKehadiran = isFuture || list.length === 0 ? 0 : Math.round(sumWeekPersenKehadiran / list.length);
 
+      const allCabangHolidays: CabangHolidaySummary[] = [];
+      list.forEach(u => {
+        const w = u.weeks?.[wIdx];
+        if (w?.cabangHolidays) {
+          allCabangHolidays.push(...w.cabangHolidays);
+        }
+      });
+
       return {
+        weekNumber: wIdx + 1,
+        dateLabel: weeksInfo[wIdx]?.dateLabel || `Pekan ${wIdx + 1}`,
         mapelCompleted,
         mapelTarget,
         persenMapel,
@@ -325,6 +357,7 @@ export default function Ringkasan() {
         totalAbsensi,
         persenKehadiran,
         isFuture,
+        cabangHolidays: allCabangHolidays,
         details: allDetails
       };
     });
@@ -700,7 +733,9 @@ export default function Ringkasan() {
                                 totalAbsensi: wData.totalAbsensi,
                                 persenKehadiran: wData.persenKehadiran,
                                 status: wData.persenMapel >= 90 ? 'Optimal' : wData.persenMapel >= 70 ? 'Sesuai Jalur' : 'Berisiko',
-                                details: wData.details || []
+                                details: wData.details || [],
+                                selectedWeek: wData,
+                                unitLabel: 'Total'
                               })}
                               title={`Detail Pengerjaan & Kehadiran Total ${wHeader.dateLabel}`}
                               className="absolute -top-1 -right-1.5 p-0.5 text-slate-300 hover:text-brand hover:bg-white rounded-lg transition-all cursor-pointer"
@@ -808,7 +843,9 @@ export default function Ringkasan() {
                                 onClick={() => setDetailModalItem({
                                   ...item,
                                   name: `${item.name} — ${wHeader.dateLabel}`,
-                                  details: wData.details || []
+                                  details: wData.details || [],
+                                  selectedWeek: wData,
+                                  unitLabel: data.unitLabel
                                 })}
                                 title={`Detail Pengerjaan & Kehadiran ${wHeader.dateLabel}`}
                                 className="absolute -top-1 -right-1.5 p-0.5 text-slate-300 hover:text-brand hover:bg-blue-50 rounded-lg transition-all"
@@ -893,18 +930,18 @@ export default function Ringkasan() {
         )}
       </div>
 
-      {/* Modal Detail Lengkap Ketercapaian Kelas */}
+      {/* Modal Detail Lengkap Ketercapaian & Alasan Libur */}
       {detailModalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-5xl max-h-[88vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
               <div>
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <span>Detail Lengkap Ketercapaian</span>
                   <span className="px-2.5 py-0.5 text-xs rounded-full bg-brand/10 text-brand font-extrabold">{detailModalItem.name}</span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-1 flex items-center gap-3">
+                <p className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                   {detailModalItem.jumlahCabang !== undefined && detailModalItem.jumlahCabang > 0 && (
                     <>
                       <span>Cabang: <strong>{detailModalItem.jumlahCabang} Cabang</strong></span>
@@ -919,6 +956,8 @@ export default function Ringkasan() {
                   )}
                   <span>Jumlah Siswa: <strong>{detailModalItem.jumlahSiswa || 0} Siswa</strong></span>
                   <span>&bull;</span>
+                  <span>Tingkat: <strong>{detailModalItem.unitLabel || data.unitLabel}</strong></span>
+                  <span>&bull;</span>
                   <span>Periode: <strong>{data.periodeLabel}</strong></span>
                 </p>
               </div>
@@ -931,60 +970,229 @@ export default function Ringkasan() {
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 overflow-y-auto space-y-4">
-              {detailModalItem.details && detailModalItem.details.length > 0 ? (
-                <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 font-semibold text-slate-600 uppercase tracking-wider">
-                        <th className="px-4 py-3 w-10 text-center">No</th>
-                        <th className="px-4 py-3">Mata Pelajaran</th>
-                        <th className="px-4 py-3">Guru Pengajar</th>
-                        <th className="px-4 py-3">Tanggal / Pertemuan</th>
-                        <th className="px-4 py-3 text-center">Status Mapel</th>
-                        <th className="px-4 py-3 text-center">Rincian Kehadiran</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {detailModalItem.details.map((d, idx) => (
-                        <tr key={d.id || idx} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="px-4 py-3 text-center font-medium text-slate-400">{idx + 1}</td>
-                          <td className="px-4 py-3 font-bold text-slate-900">{d.mataPelajaranName}</td>
-                          <td className="px-4 py-3 text-slate-600">{d.guruName || '-'}</td>
-                          <td className="px-4 py-3 font-medium text-slate-700">
-                            {new Date(d.tanggal).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-                              d.statusPelaksanaan === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                              d.statusPelaksanaan === 'LIBUR' ? 'bg-sky-50 text-sky-700 border-sky-200' :
-                              'bg-amber-50 text-amber-700 border-amber-200'
-                            }`}>
-                              {d.statusPelaksanaan === 'COMPLETED' ? 'Terlaksana' : d.statusPelaksanaan === 'LIBUR' ? 'Libur' : 'Belum'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded" title="Hadir">H: {d.hadir}</span>
-                              <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 font-bold rounded" title="Alpa">A: {d.alpa}</span>
-                              <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 font-bold rounded" title="Izin">I: {d.izin}</span>
-                              <span className="px-1.5 py-0.5 bg-sky-100 text-sky-800 font-bold rounded" title="Sakit">S: {d.sakit}</span>
-                              <div className="ml-1.5 flex flex-col items-start leading-none">
-                                <span className="font-bold text-brand">{Math.min(100, d.persenHadirMapel)}%</span>
-                                <span className="text-[9px] text-slate-400 font-normal">({d.hadir}/{d.totalSiswa || 1} Siswa)</span>
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="p-8 text-center text-slate-400 text-sm bg-slate-50 border border-slate-200 rounded-xl">
-                  Belum ada rincian pengerjaan mapel atau absensi di unit ini pada periode yang dipilih.
+            <div className="p-5 overflow-y-auto space-y-5">
+              {/* 1. SECTION: Status Libur untuk Level WILAYAH / TOTAL (Daftar Cabang & Alasan Libur) */}
+              {(detailModalItem.unitLabel === 'Wilayah' || detailModalItem.unitLabel === 'Total' || (detailModalItem.selectedWeek?.cabangHolidays && detailModalItem.selectedWeek.cabangHolidays.length > 0)) && (
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-brand" />
+                      <span>Status Cabang &amp; Keterangan Libur Pekan Ini</span>
+                    </h4>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      Total {detailModalItem.selectedWeek?.cabangHolidays?.length || 0} Cabang
+                    </span>
+                  </div>
+
+                  {/* Table of Cabang Holidays */}
+                  {detailModalItem.selectedWeek?.cabangHolidays && detailModalItem.selectedWeek.cabangHolidays.length > 0 ? (
+                    <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-2xs">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+                            <th className="px-3.5 py-2.5">Nama Cabang</th>
+                            <th className="px-3.5 py-2.5 text-center">Status Libur</th>
+                            <th className="px-3.5 py-2.5 text-center">Ketercapaian Mapel</th>
+                            <th className="px-3.5 py-2.5 text-center">Kehadiran</th>
+                            <th className="px-3.5 py-2.5">Alasan Libur / Keterangan</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {detailModalItem.selectedWeek.cabangHolidays.map((cab) => (
+                            <tr key={cab.cabangId} className="hover:bg-slate-50/60 transition-colors">
+                              <td className="px-3.5 py-2.5 font-bold text-slate-800">
+                                {cab.cabangName}
+                              </td>
+                              <td className="px-3.5 py-2.5 text-center">
+                                {cab.holidayType === 'FULL_DAY' ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200">
+                                    <CalendarOff className="w-3 h-3" />
+                                    Libur Sehari Full
+                                  </span>
+                                ) : cab.holidayType === 'PARTIAL' ? (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200">
+                                    Libur Sebagian ({cab.mapelLibur} Mapel)
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    KBM Normal
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-3.5 py-2.5 text-center">
+                                <span className="font-bold text-slate-700">
+                                  {cab.mapelCompleted}/{cab.mapelTarget}
+                                </span>
+                                <span className="text-[10px] text-slate-400 ml-1">({cab.persenMapel}%)</span>
+                              </td>
+                              <td className="px-3.5 py-2.5 text-center font-bold text-slate-700">
+                                {cab.persenKehadiran}%
+                              </td>
+                              <td className="px-3.5 py-2.5 text-slate-600">
+                                {cab.holidayReasons && cab.holidayReasons.length > 0 ? (
+                                  <div className="space-y-0.5">
+                                    {cab.holidayReasons.map((r, rIdx) => (
+                                      <div key={rIdx} className="text-xs font-semibold text-rose-800 bg-rose-50/70 px-2 py-0.5 rounded border border-rose-100/80 inline-block mr-1">
+                                        &bull; {r}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400 text-xs italic">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-500 text-center">
+                      Belum ada data rekapan cabang pada pekan ini.
+                    </div>
+                  )}
                 </div>
               )}
+
+              {/* 2. SECTION: Status Banner jika level CABANG (Libur Sehari Full vs Sebagian Mapel) */}
+              {(detailModalItem.unitLabel === 'Cabang' || (!detailModalItem.selectedWeek?.cabangHolidays && detailModalItem.selectedWeek?.holidayType)) && (
+                <div>
+                  {detailModalItem.selectedWeek?.holidayType === 'FULL_DAY' ? (
+                    <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-rose-100 text-rose-700 shrink-0">
+                        <CalendarOff className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-extrabold text-rose-900">LIBUR SEHARI PENUH (FULL)</h4>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-200/80 text-rose-800">Semua Rombel &amp; Mapel Libur</span>
+                        </div>
+                        <p className="text-xs text-rose-700 mt-0.5">
+                          Seluruh kegiatan belajar mengajar di cabang ini ditiadakan pada pekan terpilih.
+                        </p>
+                        {detailModalItem.selectedWeek.holidayReasons && detailModalItem.selectedWeek.holidayReasons.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-rose-200/60 text-xs">
+                            <span className="font-bold text-rose-900">Alasan Libur Cabang: </span>
+                            <span className="font-semibold text-rose-800">{detailModalItem.selectedWeek.holidayReasons.join('; ')}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : detailModalItem.selectedWeek?.holidayType === 'PARTIAL' ? (
+                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-3">
+                      <div className="p-2 rounded-xl bg-amber-100 text-amber-700 shrink-0">
+                        <AlertCircle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-extrabold text-amber-900">LIBUR SEBAGIAN MATA PELAJARAN</h4>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200/80 text-amber-800">
+                            {detailModalItem.selectedWeek.mapelLibur} Mapel Libur
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-700 mt-0.5">
+                          Sebagian mapel pada cabang ini diliburkan, sementara mapel lainnya tetap terjadwal/terlaksana.
+                        </p>
+                        {detailModalItem.selectedWeek.holidayReasons && detailModalItem.selectedWeek.holidayReasons.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-amber-200/60 text-xs">
+                            <span className="font-bold text-amber-900">Keterangan / Alasan: </span>
+                            <span className="font-semibold text-amber-800">{detailModalItem.selectedWeek.holidayReasons.join('; ')}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <div>
+                        <h4 className="text-xs font-bold text-emerald-900">KBM Berjalan Normal</h4>
+                        <p className="text-[11px] text-emerald-700">Tidak ada penandaan libur untuk sesi pembelajaran pada tanggal ini.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 3. SECTION: Tabel Rincian Mapel & Kehadiran */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-brand" />
+                  <span>Rincian Mata Pelajaran &amp; Kehadiran</span>
+                </h4>
+
+                {detailModalItem.details && detailModalItem.details.length > 0 ? (
+                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 font-semibold text-slate-600 uppercase tracking-wider text-[11px]">
+                          <th className="px-3.5 py-3 w-10 text-center">No</th>
+                          {(detailModalItem.unitLabel === 'Wilayah' || detailModalItem.unitLabel === 'Total') && (
+                            <th className="px-3.5 py-3">Cabang</th>
+                          )}
+                          <th className="px-3.5 py-3">Kelas</th>
+                          <th className="px-3.5 py-3">Mata Pelajaran</th>
+                          <th className="px-3.5 py-3">Guru Pengajar</th>
+                          <th className="px-3.5 py-3 text-center">Status Mapel</th>
+                          <th className="px-3.5 py-3">Keterangan / Alasan Libur</th>
+                          <th className="px-3.5 py-3 text-center">Rincian Kehadiran</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                        {detailModalItem.details.map((d, idx) => (
+                          <tr key={d.id || idx} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="px-3.5 py-3 text-center font-medium text-slate-400">{idx + 1}</td>
+                            {(detailModalItem.unitLabel === 'Wilayah' || detailModalItem.unitLabel === 'Total') && (
+                              <td className="px-3.5 py-3 font-semibold text-slate-800">{d.cabangName || '—'}</td>
+                            )}
+                            <td className="px-3.5 py-3 font-semibold text-slate-800">{d.kelasName || '—'}</td>
+                            <td className="px-3.5 py-3 font-bold text-slate-900">{d.mataPelajaranName}</td>
+                            <td className="px-3.5 py-3 text-slate-600">{d.guruName || '-'}</td>
+                            <td className="px-3.5 py-3 text-center">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                                d.statusPelaksanaan === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                d.statusPelaksanaan === 'LIBUR' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                                'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}>
+                                {d.statusPelaksanaan === 'COMPLETED' ? 'Terlaksana' : d.statusPelaksanaan === 'LIBUR' ? 'Libur' : 'Belum'}
+                              </span>
+                            </td>
+                            <td className="px-3.5 py-3 text-slate-700">
+                              {d.catatan ? (
+                                <span className="inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-medium text-[11px] border border-slate-200">
+                                  {d.catatan}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 italic text-[11px]">—</span>
+                              )}
+                            </td>
+                            <td className="px-3.5 py-3 text-center">
+                              {d.statusPelaksanaan === 'LIBUR' ? (
+                                <span className="text-slate-400 text-[11px] italic">Libur (Tanpa Absensi)</span>
+                              ) : (
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded" title="Hadir">H: {d.hadir}</span>
+                                  <span className="px-1.5 py-0.5 bg-rose-100 text-rose-800 font-bold rounded" title="Alpa">A: {d.alpa}</span>
+                                  <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 font-bold rounded" title="Izin">I: {d.izin}</span>
+                                  <span className="px-1.5 py-0.5 bg-sky-100 text-sky-800 font-bold rounded" title="Sakit">S: {d.sakit}</span>
+                                  <div className="ml-1.5 flex flex-col items-start leading-none">
+                                    <span className="font-bold text-brand">{Math.min(100, d.persenHadirMapel)}%</span>
+                                    <span className="text-[9px] text-slate-400 font-normal">({d.hadir}/{d.totalSiswa || 1} Siswa)</span>
+                                  </div>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-8 text-center text-slate-400 text-sm bg-slate-50 border border-slate-200 rounded-xl">
+                    Belum ada rincian pengerjaan mapel atau absensi di unit ini pada periode yang dipilih.
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Modal Footer */}

@@ -4,6 +4,8 @@ export type KategoriPelanggaran = 'Ringan' | 'Sedang' | 'Berat';
 
 export type StatusSp = 'Aktif' | 'Masa Pembinaan' | 'Selesai' | 'Ditingkatkan' | 'Sidang Disiplin';
 
+export type StatusPelanggaran = 'PENDING' | 'DISETUJUI' | 'DITOLAK';
+
 export interface PelanggaranRecord {
   id: string;
   tanggal: string; // ISO format or YYYY-MM-DD
@@ -12,6 +14,10 @@ export interface PelanggaranRecord {
   nisn?: string;
   nisLokal: string;
   kelas: string;
+  wilayahId?: string;
+  wilayahName?: string;
+  cabangId?: string;
+  cabangName?: string;
   jenisPelanggaran: string;
   kategori: KategoriPelanggaran;
   poin: number;
@@ -19,6 +25,9 @@ export interface PelanggaranRecord {
   lokasi?: string;
   tindakanPembinaan?: string;
   dicatatOleh?: string;
+  status?: StatusPelanggaran;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
 }
 
 export interface SuratPeringatanRecord {
@@ -29,6 +38,10 @@ export interface SuratPeringatanRecord {
   namaSiswa: string;
   nisLokal: string;
   kelas: string;
+  wilayahId?: string;
+  wilayahName?: string;
+  cabangId?: string;
+  cabangName?: string;
   tingkatSp: TingkatSp;
   status: StatusSp;
   alasan: string;
@@ -37,6 +50,9 @@ export interface SuratPeringatanRecord {
   tembusan?: string;
   dokumenSpUrl?: string | null;
   ukuranDokumen?: string | null;
+  statusApproval?: StatusPelanggaran;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
 }
 
 export interface PengeluaranSiswaRecord {
@@ -46,6 +62,10 @@ export interface PengeluaranSiswaRecord {
   namaSiswa: string;
   nisLokal: string;
   kelas: string;
+  wilayahId?: string;
+  wilayahName?: string;
+  cabangId?: string;
+  cabangName?: string;
   alasanPemberhentian: string;
   kategoriAlasan: 'Akumulasi Poin Maksimal' | 'Pelanggaran Berat Syariat / Asusila' | 'Mangkir / Kabur' | 'Kriminal / Narkoba' | 'Lainnya';
   nomorSk: string;
@@ -54,6 +74,20 @@ export interface PengeluaranSiswaRecord {
   ukuranDokumen?: string;
   pejabatTtd: string;
   keteranganTambahan?: string;
+  status?: StatusPelanggaran;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+}
+
+export interface IndisiplinerStats {
+  totalPelanggaran: number;
+  totalPoin: number;
+  totalSp: number;
+  spAktif: number;
+  totalPengeluaran: number;
+  pelanggaranPending?: number;
+  spPending?: number;
+  pengeluaranPending?: number;
 }
 
 export type IndisiplinerTab = 'pelanggaran' | 'sp' | 'pengeluaran';

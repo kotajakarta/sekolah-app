@@ -1,14 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../lib/apiClient';
-import { PelanggaranRecord, SuratPeringatanRecord, PengeluaranSiswaRecord } from './types';
-
-export interface IndisiplinerStats {
-  totalPelanggaran: number;
-  totalPoin: number;
-  totalSp: number;
-  spAktif: number;
-  totalPengeluaran: number;
-}
+import {
+  PelanggaranRecord,
+  SuratPeringatanRecord,
+  PengeluaranSiswaRecord,
+  StatusPelanggaran,
+  IndisiplinerStats,
+} from './types';
 
 // === STATS ===
 export function useGetIndisiplinerStats() {
@@ -23,7 +21,14 @@ export function useGetIndisiplinerStats() {
 }
 
 // === PELANGGARAN ===
-export function useGetPelanggaran(params?: { search?: string; kategori?: string }) {
+export function useGetPelanggaran(params?: {
+  search?: string;
+  kategori?: string;
+  status?: string;
+  wilayahId?: string;
+  cabangId?: string;
+  kelasId?: string;
+}) {
   return useQuery<PelanggaranRecord[]>({
     queryKey: ['indisipliner', 'pelanggaran', params],
     queryFn: async () => {
@@ -47,6 +52,32 @@ export function useCreatePelanggaran() {
   });
 }
 
+export function useUpdatePelanggaranStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: 'DISETUJUI' | 'DITOLAK' }) => {
+      const res = await apiClient.patch(`/indisipliner/pelanggaran/${id}/status`, { status });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['indisipliner'] });
+    },
+  });
+}
+
+export function useUpdatePelanggaran() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<PelanggaranRecord> }) => {
+      const res = await apiClient.put(`/indisipliner/pelanggaran/${id}`, data);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['indisipliner'] });
+    },
+  });
+}
+
 export function useDeletePelanggaran() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -61,7 +92,14 @@ export function useDeletePelanggaran() {
 }
 
 // === SURAT PERINGATAN (SP) ===
-export function useGetSp(params?: { search?: string; tingkat?: string }) {
+export function useGetSp(params?: {
+  search?: string;
+  tingkat?: string;
+  statusApproval?: string;
+  wilayahId?: string;
+  cabangId?: string;
+  kelasId?: string;
+}) {
   return useQuery<SuratPeringatanRecord[]>({
     queryKey: ['indisipliner', 'sp', params],
     queryFn: async () => {
@@ -77,6 +115,32 @@ export function useCreateSp() {
   return useMutation({
     mutationFn: async (payload: Partial<SuratPeringatanRecord>) => {
       const res = await apiClient.post('/indisipliner/sp', payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['indisipliner'] });
+    },
+  });
+}
+
+export function useUpdateSpStatusApproval() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, statusApproval }: { id: string; statusApproval: StatusPelanggaran }) => {
+      const res = await apiClient.patch(`/indisipliner/sp/${id}/status-approval`, { statusApproval });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['indisipliner'] });
+    },
+  });
+}
+
+export function useUpdateSp() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<SuratPeringatanRecord> }) => {
+      const res = await apiClient.put(`/indisipliner/sp/${id}`, data);
       return res.data;
     },
     onSuccess: () => {
@@ -112,7 +176,13 @@ export function useDeleteSp() {
 }
 
 // === PENGELUARAN SISWA ===
-export function useGetPengeluaran(params?: { search?: string }) {
+export function useGetPengeluaran(params?: {
+  search?: string;
+  status?: string;
+  wilayahId?: string;
+  cabangId?: string;
+  kelasId?: string;
+}) {
   return useQuery<PengeluaranSiswaRecord[]>({
     queryKey: ['indisipliner', 'pengeluaran', params],
     queryFn: async () => {
@@ -128,6 +198,34 @@ export function useCreatePengeluaran() {
   return useMutation({
     mutationFn: async (payload: Partial<PengeluaranSiswaRecord>) => {
       const res = await apiClient.post('/indisipliner/pengeluaran', payload);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['indisipliner'] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+  });
+}
+
+export function useUpdatePengeluaranStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: StatusPelanggaran }) => {
+      const res = await apiClient.patch(`/indisipliner/pengeluaran/${id}/status`, { status });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['indisipliner'] });
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+  });
+}
+
+export function useUpdatePengeluaran() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<PengeluaranSiswaRecord> }) => {
+      const res = await apiClient.put(`/indisipliner/pengeluaran/${id}`, data);
       return res.data;
     },
     onSuccess: () => {

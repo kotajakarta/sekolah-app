@@ -189,6 +189,7 @@ export default function TambahDataModal({
         keterangan: keterangan.trim(),
         tindakanPembinaan: tindakanPembinaan.trim() || 'Pembinaan lisan & tertulis',
         dicatatOleh: 'Petugas Ketertiban & Disiplin',
+        status: 'PENDING',
       };
       onAddPelanggaran(newPel);
     } else if (activeFormType === 'sp') {
@@ -213,6 +214,7 @@ export default function TambahDataModal({
         tembusan: 'Wali Santri, Pimpinan Lembaga, Wali Kelas',
         dokumenSpUrl: uploadedSpDoc?.url || null,
         ukuranDokumen: uploadedSpDoc?.ukuran || null,
+        statusApproval: 'PENDING',
       };
       onAddSp(newSp);
     } else {
@@ -235,6 +237,7 @@ export default function TambahDataModal({
         dokumenSkUrl: uploadedSkDoc?.url || '',
         ukuranDokumen: uploadedSkDoc?.ukuran || '-',
         pejabatTtd: pejabatTtd.trim() || 'Pimpinan Pondok Pesantren',
+        status: 'PENDING',
       };
       onAddPengeluaran(newDo);
     }

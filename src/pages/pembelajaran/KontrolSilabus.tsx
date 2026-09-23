@@ -4,7 +4,7 @@ import apiClient from '../../lib/apiClient';
 import { useAuth } from '../../hooks/useAuth';
 import {
   Loader2, Save, AlertCircle, CheckCircle, Info, ClipboardList, ChevronLeft, ChevronRight,
-  Calendar, Layers, CheckCircle2, UserCheck, Zap, Sparkles, Trash2
+  Calendar, Layers, CheckCircle2, UserCheck, Zap, Sparkles, Trash2, CalendarOff, X
 } from 'lucide-react';
 import AbsensiSilabusModal from './AbsensiSilabusModal';
 
@@ -96,6 +96,15 @@ const STATUS_OPTIONS = [
   { key: 'PENDING', label: 'Belum Dikerjakan', activeBg: 'bg-amber-100 text-amber-800 border-amber-300', hoverBg: 'hover:bg-amber-50 text-gray-600 border-gray-300' },
   { key: 'LIBUR', label: 'Libur', activeBg: 'bg-gray-200 text-gray-700 border-gray-300', hoverBg: 'hover:bg-gray-100 text-gray-600 border-gray-300' },
 ] as const;
+
+const LIBUR_PRESETS = [
+  'Libur Nasional / Kalender Pemerintah',
+  'Kegiatan Pondok / Acara Khusus Pesantren',
+  'Ujian Santri / Penilaian Tengah/Akhir Semester',
+  'Pengajar Berhalangan Hadir / Sakit',
+  'Awal / Akhir Semester',
+  'Kegiatan Ekstrakurikuler / Outing Santri'
+];
 
 function getSaturdaysInMonth(year: number, month: number): string[] {
   const dates: string[] = [];
@@ -189,6 +198,24 @@ export default function KontrolSilabus() {
     silabusId: string | null;
   }>>({});
   const [dailySavedSuccess, setDailySavedSuccess] = useState(false);
+
+  interface LiburModalData {
+    isOpen: boolean;
+    mode: 'ALL' | 'SINGLE';
+    kelasId?: string;
+    mapelId?: string;
+    kelasName?: string;
+    mapelName?: string;
+    catatan: string;
+  }
+
+  const [liburModal, setLiburModal] = useState<LiburModalData>({
+    isOpen: false,
+    mode: 'ALL',
+    catatan: ''
+  });
+  const [liburModalCatatanInput, setLiburModalCatatanInput] = useState('');
+  const [isSavingLiburModal, setIsSavingLiburModal] = useState(false);
 
   // Single Class & Mapel Mode State
   const [silabusItems, setSilabusItems] = useState<SilabusItem[]>([]);
@@ -390,6 +417,130 @@ export default function KontrolSilabus() {
       return next;
     });
     setDailySavedSuccess(false);
+  };
+
+  const applyLiburDraft = (catatan: string) => {
+    if (isFutureDate(selectedDate)) return;
+    const cleanCatatan = catatan.trim();
+    if (liburModal.mode === 'ALL') {
+      setDailyFormState(prev => {
+        const next = { ...prev };
+        (dailyData?.classes || []).forEach(c => {
+          c.mapels.forEach(m => {
+            const key = getDailyFormKey(c.kelasId, m.mataPelajaranId);
+            next[key] = {
+              ...next[key],
+              status: 'LIBUR',
+              catatan: cleanCatatan
+            };
+          });
+        });
+        return next;
+      });
+    } else if (liburModal.kelasId && liburModal.mapelId) {
+      const key = getDailyFormKey(liburModal.kelasId, liburModal.mapelId);
+      setDailyFormState(prev => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          status: 'LIBUR',
+          catatan: cleanCatatan
+        }
+      }));
+    }
+    setDailySavedSuccess(false);
+    setLiburModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const saveLiburDirectly = async (catatan: string) => {
+    if (isFutureDate(selectedDate)) return;
+    const cleanCatatan = catatan.trim();
+    setIsSavingLiburModal(true);
+    try {
+      let logs: any[] = [];
+      if (liburModal.mode === 'ALL') {
+        logs = (dailyData?.classes || []).flatMap(c =>
+          c.mapels.map(m => {
+            const key = getDailyFormKey(c.kelasId, m.mataPelajaranId);
+            const form = dailyFormState[key];
+            return {
+              kelasId: c.kelasId,
+              mataPelajaranId: m.mataPelajaranId,
+              silabusId: form?.silabusId || m.silabusId,
+              status: 'LIBUR' as const,
+              guruId: form?.guruId || m.guruId || m.defaultGuruId,
+              catatan: cleanCatatan
+            };
+          })
+        );
+      } else if (liburModal.kelasId && liburModal.mapelId) {
+        const targetKey = getDailyFormKey(liburModal.kelasId, liburModal.mapelId);
+        logs = (dailyData?.classes || []).flatMap(c =>
+          c.mapels.map(m => {
+            const key = getDailyFormKey(c.kelasId, m.mataPelajaranId);
+            const form = dailyFormState[key] || { status: m.status, guruId: m.guruId || m.defaultGuruId, silabusId: m.silabusId, catatan: m.catatan || '' };
+            if (key === targetKey) {
+              return {
+                kelasId: c.kelasId,
+                mataPelajaranId: m.mataPelajaranId,
+                silabusId: form.silabusId,
+                status: 'LIBUR' as const,
+                guruId: form.guruId,
+                catatan: cleanCatatan
+              };
+            }
+            return {
+              kelasId: c.kelasId,
+              mataPelajaranId: m.mataPelajaranId,
+              silabusId: form.silabusId,
+              status: form.status,
+              guruId: form.guruId,
+              catatan: form.catatan
+            };
+          })
+        );
+      }
+
+      await apiClient.post('/pembelajaran/pelaksanaan/daily-bulk', {
+        cabangId: selectedCabang || user?.cabangId,
+        tanggal: selectedDate,
+        logs
+      });
+
+      // Update local dailyFormState
+      setDailyFormState(prev => {
+        const next = { ...prev };
+        if (liburModal.mode === 'ALL') {
+          (dailyData?.classes || []).forEach(c => {
+            c.mapels.forEach(m => {
+              const key = getDailyFormKey(c.kelasId, m.mataPelajaranId);
+              next[key] = {
+                ...next[key],
+                status: 'LIBUR',
+                catatan: cleanCatatan
+              };
+            });
+          });
+        } else if (liburModal.kelasId && liburModal.mapelId) {
+          const key = getDailyFormKey(liburModal.kelasId, liburModal.mapelId);
+          next[key] = {
+            ...next[key],
+            status: 'LIBUR',
+            catatan: cleanCatatan
+          };
+        }
+        return next;
+      });
+
+      setDailySavedSuccess(true);
+      refetchDaily();
+      invalidateDependents();
+      setLiburModal(prev => ({ ...prev, isOpen: false }));
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Gagal menyimpan status libur');
+    } finally {
+      setIsSavingLiburModal(false);
+    }
   };
 
   const handleResetDailyAbsensi = async (kelasId: string, silabusId: string, mataPelajaranId: string, mapelName: string, kelasName: string) => {
@@ -740,11 +891,19 @@ export default function KontrolSilabus() {
 
                   <button
                     type="button"
-                    onClick={() => markDailyAll('LIBUR')}
+                    onClick={() => {
+                      setLiburModalCatatanInput('');
+                      setLiburModal({
+                        isOpen: true,
+                        mode: 'ALL',
+                        catatan: ''
+                      });
+                    }}
                     disabled={isFutureDate(selectedDate)}
                     className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 rounded-xl transition-all flex items-center gap-1 disabled:opacity-40"
-                    title="Tandai seluruh mapel di semua kelas Libur"
+                    title="Tandai seluruh mapel di semua kelas Libur dengan mengisi keterangan alasan"
                   >
+                    <CalendarOff className="w-3.5 h-3.5 text-slate-500" />
                     <span>Libur Semua</span>
                   </button>
                 </div>
@@ -852,7 +1011,7 @@ export default function KontrolSilabus() {
                         {cls.mapels.length > 0 ? (
                           cls.mapels.map((m) => {
                             const formKey = getDailyFormKey(cls.kelasId, m.mataPelajaranId);
-                            const currentForm = dailyFormState[formKey] || { status: m.status, guruId: m.guruId || m.defaultGuruId, silabusId: m.silabusId };
+                            const currentForm = dailyFormState[formKey] || { status: m.status, guruId: m.guruId || m.defaultGuruId, silabusId: m.silabusId, catatan: m.catatan || '' };
                             const isFuture = isFutureDate(selectedDate);
                             const isCompleted = currentForm.status === 'COMPLETED';
                             const isFieldDisabled = !isCompleted || isFuture;
@@ -869,7 +1028,23 @@ export default function KontrolSilabus() {
                                           key={opt.key}
                                           type="button"
                                           disabled={isReadOnly || isFuture}
-                                          onClick={() => !isReadOnly && handleDailyStatusChange(cls.kelasId, m.mataPelajaranId, opt.key)}
+                                          onClick={() => {
+                                            if (isReadOnly) return;
+                                            if (opt.key === 'LIBUR') {
+                                              setLiburModalCatatanInput(currentForm.catatan || '');
+                                              setLiburModal({
+                                                isOpen: true,
+                                                mode: 'SINGLE',
+                                                kelasId: cls.kelasId,
+                                                mapelId: m.mataPelajaranId,
+                                                kelasName: cls.kelasName,
+                                                mapelName: m.mataPelajaranName,
+                                                catatan: currentForm.catatan || ''
+                                              });
+                                            } else {
+                                              handleDailyStatusChange(cls.kelasId, m.mataPelajaranId, opt.key);
+                                            }
+                                          }}
                                           className={`px-2.5 py-1 rounded-full border text-[11px] font-bold transition-all ${isReadOnly ? 'cursor-default' : 'cursor-pointer'} disabled:opacity-40 ${
                                             active ? opt.activeBg : opt.hoverBg
                                           }`}
@@ -879,6 +1054,32 @@ export default function KontrolSilabus() {
                                       );
                                     })}
                                   </div>
+                                  {currentForm.status === 'LIBUR' && (
+                                    <div className="mt-1.5 flex items-center justify-center">
+                                      <button
+                                        type="button"
+                                        disabled={isReadOnly || isFuture}
+                                        onClick={() => {
+                                          if (isReadOnly || isFuture) return;
+                                          setLiburModalCatatanInput(currentForm.catatan || '');
+                                          setLiburModal({
+                                            isOpen: true,
+                                            mode: 'SINGLE',
+                                            kelasId: cls.kelasId,
+                                            mapelId: m.mataPelajaranId,
+                                            kelasName: cls.kelasName,
+                                            mapelName: m.mataPelajaranName,
+                                            catatan: currentForm.catatan || ''
+                                          });
+                                        }}
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-[10px] font-medium border border-amber-200 transition-colors max-w-[180px]"
+                                        title="Klik untuk melihat atau mengedit alasan libur"
+                                      >
+                                        <span className="font-bold text-amber-700">Alasan:</span>
+                                        <span className="truncate">{currentForm.catatan || '(Klik isi alasan)'}</span>
+                                      </button>
+                                    </div>
+                                  )}
                                 </td>
 
                                 {/* 2. Mapel & Selectable Silabus Target (SECOND COLUMN) */}
@@ -1287,6 +1488,116 @@ export default function KontrolSilabus() {
             }
           }}
         />
+      )}
+
+      {/* Modal Input Keterangan Libur (Libur Semua / Libur Mapel) */}
+      {liburModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200/60 shrink-0">
+                  <CalendarOff className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    {liburModal.mode === 'ALL' ? 'Tandai Libur Seluruh Kelas & Mapel' : 'Keterangan Libur Mata Pelajaran'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {liburModal.mode === 'ALL'
+                      ? `Semua rombel & mapel tanggal ${formatTanggal(selectedDate)}`
+                      : `${liburModal.kelasName} • ${liburModal.mapelName} (${formatTanggal(selectedDate)})`}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLiburModal(prev => ({ ...prev, isOpen: false }))}
+                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Pilihan Alasan Cepat:
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {LIBUR_PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setLiburModalCatatanInput(preset)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all text-left ${
+                        liburModalCatatanInput === preset
+                          ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Keterangan / Alasan Libur:
+                </label>
+                <textarea
+                  value={liburModalCatatanInput}
+                  onChange={(e) => setLiburModalCatatanInput(e.target.value)}
+                  placeholder="Tuliskan keterangan / alasan libur secara rinci..."
+                  rows={3}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand font-sans"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Keterangan ini akan tercatat dan dapat dipantau oleh Admin Pusat / Wilayah pada Dashboard Ringkasan.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-3.5 border-t border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setLiburModal(prev => ({ ...prev, isOpen: false }))}
+                disabled={isSavingLiburModal}
+                className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200 font-bold rounded-xl transition-colors disabled:opacity-50"
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyLiburDraft(liburModalCatatanInput)}
+                disabled={isSavingLiburModal}
+                className="px-3 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl border border-slate-200 transition-colors disabled:opacity-50"
+                title="Hanya isi formulir di halaman ini tanpa menyimpan langsung ke database"
+              >
+                Terapkan Sementara
+              </button>
+
+              <button
+                type="button"
+                onClick={() => saveLiburDirectly(liburModalCatatanInput)}
+                disabled={isSavingLiburModal}
+                className="px-4 py-1.5 text-xs bg-brand hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50"
+                title="Terapkan dan simpan permanen ke server"
+              >
+                {isSavingLiburModal ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Menyimpan...</>
+                ) : (
+                  <><Save className="w-3.5 h-3.5" /> Terapkan &amp; Simpan Langsung</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

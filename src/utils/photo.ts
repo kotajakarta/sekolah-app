@@ -6,10 +6,26 @@ import apiClient from '../lib/apiClient';
  */
 export function getFileUrl(filePath?: string | null): string {
   if (!filePath) return '';
-  if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('data:') || filePath.startsWith('blob:')) {
-    return filePath;
+  let pathOnly = filePath.trim();
+
+  if (pathOnly.startsWith('data:') || pathOnly.startsWith('blob:')) {
+    return pathOnly;
   }
-  const cleanPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
+
+  if (pathOnly.startsWith('http://') || pathOnly.startsWith('https://')) {
+    try {
+      const parsed = new URL(pathOnly);
+      if (parsed.pathname.includes('/uploads/')) {
+        pathOnly = parsed.pathname;
+      } else {
+        return pathOnly;
+      }
+    } catch {
+      return pathOnly;
+    }
+  }
+
+  const cleanPath = pathOnly.startsWith('/') ? pathOnly : `/${pathOnly}`;
   const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
   const tokenParam = token ? `token=${encodeURIComponent(token)}` : '';
 

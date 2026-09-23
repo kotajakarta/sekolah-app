@@ -13,9 +13,13 @@ import {
   FileDown,
   Paperclip,
   ExternalLink,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { PelanggaranRecord, SuratPeringatanRecord, PengeluaranSiswaRecord } from './types';
 import { downloadSpTemplateDocx, downloadPengeluaranTemplateDocx } from './useIndisipliner';
+import { getFileUrl } from '../../utils/photo';
 
 type DetailData =
   | { type: 'pelanggaran'; data: PelanggaranRecord }
@@ -95,10 +99,19 @@ export default function DetailIndisiplinerModal({ detail, onClose }: DetailIndis
               </div>
               <div>
                 <h4 className="font-bold text-slate-900 text-sm">{detail.data.namaSiswa}</h4>
-                <div className="flex items-center gap-3 text-xs text-slate-500 mt-0.5">
+                <div className="flex items-center flex-wrap gap-2 text-xs text-slate-500 mt-0.5">
                   <span>NIS: <strong className="text-slate-700 font-mono">{detail.data.nisLokal}</strong></span>
                   <span>•</span>
                   <span>Kelas: <span className="font-semibold text-indigo-700">{detail.data.kelas}</span></span>
+                  {detail.data.cabangName && (
+                    <>
+                      <span>•</span>
+                      <span className="inline-flex items-center gap-1 font-medium text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded text-[11px]">
+                        <Building className="w-3 h-3 text-indigo-500" />
+                        {detail.data.cabangName} {detail.data.wilayahName && detail.data.wilayahName !== '-' ? `(${detail.data.wilayahName})` : ''}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -146,6 +159,49 @@ export default function DetailIndisiplinerModal({ detail, onClose }: DetailIndis
           {/* Rincian Spesifik Sesuai Tipe Tab */}
           {detail.type === 'pelanggaran' && (
             <div className="space-y-4">
+              {/* Status Approval Pelanggaran */}
+              <div className={`p-3.5 rounded-xl border flex items-center justify-between text-xs ${
+                detail.data.status === 'PENDING'
+                  ? 'bg-amber-50/80 border-amber-200 text-amber-900'
+                  : detail.data.status === 'DITOLAK'
+                  ? 'bg-rose-50/80 border-rose-200 text-rose-900'
+                  : 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    detail.data.status === 'PENDING'
+                      ? 'bg-amber-100 text-amber-700'
+                      : detail.data.status === 'DITOLAK'
+                      ? 'bg-rose-100 text-rose-700'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {detail.data.status === 'PENDING' && <Clock className="w-4 h-4" />}
+                    {detail.data.status === 'DITOLAK' && <XCircle className="w-4 h-4" />}
+                    {(!detail.data.status || detail.data.status === 'DISETUJUI') && <CheckCircle2 className="w-4 h-4" />}
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm">
+                      {detail.data.status === 'PENDING' && 'Status: Menunggu Persetujuan Admin'}
+                      {detail.data.status === 'DITOLAK' && 'Status: Pelanggaran Ditolak'}
+                      {(!detail.data.status || detail.data.status === 'DISETUJUI') && 'Status: Telah Disetujui (Valid)'}
+                    </div>
+                    <div className="text-[11px] opacity-80 mt-0.5">
+                      {detail.data.status === 'PENDING' && 'Laporan pelanggaran ini masih menunggu verifikasi oleh Admin Yayasan/Pusat.'}
+                      {detail.data.status === 'DITOLAK' && `Laporan ditolak ${detail.data.approvedBy ? `oleh ${detail.data.approvedBy}` : 'oleh Admin'}. Poin tidak diakumulasikan ke santri.`}
+                      {(!detail.data.status || detail.data.status === 'DISETUJUI') && `Disetujui ${detail.data.approvedBy ? `oleh ${detail.data.approvedBy}` : 'oleh Admin'}${detail.data.approvedAt ? ` pada ${formatDate(detail.data.approvedAt)}` : ''}. Poin aktif terhitung.`}
+                    </div>
+                  </div>
+                </div>
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border bg-white/90 ${
+                  detail.data.status === 'PENDING'
+                    ? 'text-amber-700 border-amber-300'
+                    : detail.data.status === 'DITOLAK'
+                    ? 'text-rose-700 border-rose-300'
+                    : 'text-emerald-700 border-emerald-300'
+                }`}>
+                  {detail.data.status || 'DISETUJUI'}
+                </span>
+              </div>
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
                   <span className="text-slate-500 font-medium">Kategori Pelanggaran</span>
@@ -184,6 +240,50 @@ export default function DetailIndisiplinerModal({ detail, onClose }: DetailIndis
 
           {detail.type === 'sp' && (
             <div className="space-y-4">
+              {/* Status Approval SP */}
+              <div className={`p-3.5 rounded-xl border flex items-center justify-between text-xs ${
+                detail.data.statusApproval === 'PENDING'
+                  ? 'bg-amber-50/80 border-amber-200 text-amber-900'
+                  : detail.data.statusApproval === 'DITOLAK'
+                  ? 'bg-rose-50/80 border-rose-200 text-rose-900'
+                  : 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    detail.data.statusApproval === 'PENDING'
+                      ? 'bg-amber-100 text-amber-700'
+                      : detail.data.statusApproval === 'DITOLAK'
+                      ? 'bg-rose-100 text-rose-700'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {detail.data.statusApproval === 'PENDING' && <Clock className="w-4 h-4" />}
+                    {detail.data.statusApproval === 'DITOLAK' && <XCircle className="w-4 h-4" />}
+                    {(!detail.data.statusApproval || detail.data.statusApproval === 'DISETUJUI') && <CheckCircle2 className="w-4 h-4" />}
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm">
+                      {detail.data.statusApproval === 'PENDING' && 'Status: Menunggu Persetujuan Admin'}
+                      {detail.data.statusApproval === 'DITOLAK' && 'Status: Penerbitan SP Ditolak'}
+                      {(!detail.data.statusApproval || detail.data.statusApproval === 'DISETUJUI') && 'Status: Telah Disetujui Admin (Resmi)'}
+                    </div>
+                    <div className="text-[11px] opacity-80 mt-0.5">
+                      {detail.data.statusApproval === 'PENDING' && 'Surat peringatan ini masih menunggu verifikasi oleh Admin Yayasan/Pusat.'}
+                      {detail.data.statusApproval === 'DITOLAK' && `Penerbitan SP ditolak ${detail.data.approvedBy ? `oleh ${detail.data.approvedBy}` : 'oleh Admin'}.`}
+                      {(!detail.data.statusApproval || detail.data.statusApproval === 'DISETUJUI') && `Disetujui ${detail.data.approvedBy ? `oleh ${detail.data.approvedBy}` : 'oleh Admin'}${detail.data.approvedAt ? ` pada ${formatDate(detail.data.approvedAt)}` : ''}.`}
+                    </div>
+                  </div>
+                </div>
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border bg-white/90 ${
+                  detail.data.statusApproval === 'PENDING'
+                    ? 'text-amber-700 border-amber-300'
+                    : detail.data.statusApproval === 'DITOLAK'
+                    ? 'text-rose-700 border-rose-300'
+                    : 'text-emerald-700 border-emerald-300'
+                }`}>
+                  {detail.data.statusApproval || 'DISETUJUI'}
+                </span>
+              </div>
+
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
                   <span className="text-slate-500 font-medium">Nomor Surat Peringatan</span>
@@ -221,24 +321,35 @@ export default function DetailIndisiplinerModal({ detail, onClose }: DetailIndis
 
               {/* Lampiran Berkas Scan / Upload SP */}
               {detail.data.dokumenSpUrl ? (
-                <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
-                      <Paperclip className="w-4 h-4" />
+                <div className="space-y-2">
+                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-xl flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                        <Paperclip className="w-4 h-4" />
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-bold text-slate-900 block">Berkas Peringatan Terlampir</span>
+                        <span className="text-[10px] text-slate-500">{detail.data.ukuranDokumen || 'Dokumen'} • PDF/Gambar</span>
+                      </div>
                     </div>
-                    <div className="text-xs">
-                      <span className="font-bold text-slate-900 block">Berkas Peringatan Terlampir</span>
-                      <span className="text-[10px] text-slate-500">{detail.data.ukuranDokumen || 'Dokumen'} • PDF/Gambar</span>
-                    </div>
+                    <a
+                      href={getFileUrl(detail.data.dokumenSpUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" /> Buka Berkas
+                    </a>
                   </div>
-                  <a
-                    href={detail.data.dokumenSpUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" /> Buka Berkas
-                  </a>
+                  {/\.(jpe?g|png|webp|gif)$/i.test(detail.data.dokumenSpUrl) && (
+                    <div className="rounded-xl overflow-hidden border border-amber-200 bg-slate-950/5 flex items-center justify-center p-2">
+                      <img
+                        src={getFileUrl(detail.data.dokumenSpUrl)}
+                        alt="Berkas SP"
+                        className="max-h-60 max-w-full rounded-lg object-contain shadow-xs"
+                      />
+                    </div>
+                  )}
                 </div>
               ) : null}
 
@@ -266,6 +377,50 @@ export default function DetailIndisiplinerModal({ detail, onClose }: DetailIndis
 
           {detail.type === 'pengeluaran' && (
             <div className="space-y-4">
+              {/* Status Approval Pengeluaran */}
+              <div className={`p-3.5 rounded-xl border flex items-center justify-between text-xs ${
+                detail.data.status === 'PENDING'
+                  ? 'bg-amber-50/80 border-amber-200 text-amber-900'
+                  : detail.data.status === 'DITOLAK'
+                  ? 'bg-rose-50/80 border-rose-200 text-rose-900'
+                  : 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    detail.data.status === 'PENDING'
+                      ? 'bg-amber-100 text-amber-700'
+                      : detail.data.status === 'DITOLAK'
+                      ? 'bg-rose-100 text-rose-700'
+                      : 'bg-emerald-100 text-emerald-700'
+                  }`}>
+                    {detail.data.status === 'PENDING' && <Clock className="w-4 h-4" />}
+                    {detail.data.status === 'DITOLAK' && <XCircle className="w-4 h-4" />}
+                    {(!detail.data.status || detail.data.status === 'DISETUJUI') && <CheckCircle2 className="w-4 h-4" />}
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm">
+                      {detail.data.status === 'PENDING' && 'Status: Menunggu Persetujuan Admin (Santri Belum DO)'}
+                      {detail.data.status === 'DITOLAK' && 'Status: Pengeluaran Ditolak (Santri Tetap Aktif)'}
+                      {(!detail.data.status || detail.data.status === 'DISETUJUI') && 'Status: Telah Disetujui (Santri Resmi Drop Out)'}
+                    </div>
+                    <div className="text-[11px] opacity-80 mt-0.5">
+                      {detail.data.status === 'PENDING' && 'Laporan pengeluaran santri masih diverifikasi oleh Admin Yayasan/Pusat. Santri belum dinonaktifkan.'}
+                      {detail.data.status === 'DITOLAK' && `Pengeluaran ditolak ${detail.data.approvedBy ? `oleh ${detail.data.approvedBy}` : 'oleh Admin'}. Santri tetap aktif belajar.`}
+                      {(!detail.data.status || detail.data.status === 'DISETUJUI') && `Disetujui ${detail.data.approvedBy ? `oleh ${detail.data.approvedBy}` : 'oleh Admin'}${detail.data.approvedAt ? ` pada ${formatDate(detail.data.approvedAt)}` : ''}. Santri telah dinonaktifkan.`}
+                    </div>
+                  </div>
+                </div>
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border bg-white/90 ${
+                  detail.data.status === 'PENDING'
+                    ? 'text-amber-700 border-amber-300'
+                    : detail.data.status === 'DITOLAK'
+                    ? 'text-rose-700 border-rose-300'
+                    : 'text-emerald-700 border-emerald-300'
+                }`}>
+                  {detail.data.status || 'DISETUJUI'}
+                </span>
+              </div>
+
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
                   <span className="text-slate-500 font-medium">Nomor Dokumen SK</span>
@@ -299,24 +454,35 @@ export default function DetailIndisiplinerModal({ detail, onClose }: DetailIndis
 
               {/* Lampiran Dokumen SK (PDF / Gambar) */}
               {detail.data.dokumenSkUrl ? (
-                <div className="p-3 bg-red-50/60 border border-red-200 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center">
-                      <Paperclip className="w-4 h-4" />
+                <div className="space-y-2">
+                  <div className="p-3 bg-red-50/60 border border-red-200 rounded-xl flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center">
+                        <Paperclip className="w-4 h-4" />
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-bold text-slate-900 block">Berkas Asli SK Terlampir</span>
+                        <span className="text-[10px] text-slate-500">{detail.data.ukuranDokumen || 'Dokumen'} • PDF/Gambar</span>
+                      </div>
                     </div>
-                    <div className="text-xs">
-                      <span className="font-bold text-slate-900 block">Berkas Asli SK Terlampir</span>
-                      <span className="text-[10px] text-slate-500">{detail.data.ukuranDokumen || 'Dokumen'} • PDF/Gambar</span>
-                    </div>
+                    <a
+                      href={getFileUrl(detail.data.dokumenSkUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" /> Buka Berkas
+                    </a>
                   </div>
-                  <a
-                    href={detail.data.dokumenSkUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" /> Buka Berkas
-                  </a>
+                  {/\.(jpe?g|png|webp|gif)$/i.test(detail.data.dokumenSkUrl) && (
+                    <div className="rounded-xl overflow-hidden border border-red-200 bg-slate-950/5 flex items-center justify-center p-2">
+                      <img
+                        src={getFileUrl(detail.data.dokumenSkUrl)}
+                        alt="Berkas SK"
+                        className="max-h-60 max-w-full rounded-lg object-contain shadow-xs"
+                      />
+                    </div>
+                  )}
                 </div>
               ) : null}
 

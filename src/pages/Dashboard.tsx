@@ -46,10 +46,10 @@ interface DashboardStats {
   } | null;
   kelengkapanSiswa?: { total: number; lengkap: number; percent: number; };
   kelengkapanGuru?: { total: number; lengkap: number; percent: number; };
-  kelengkapanEntities?: { 
-    name: string; 
-    siswa: { total: number; lengkap: number; percent: number; }; 
-    guru?: { total: number; lengkap: number; percent: number; }; 
+  kelengkapanEntities?: {
+    name: string;
+    siswa: { total: number; lengkap: number; percent: number; };
+    guru?: { total: number; lengkap: number; percent: number; };
   }[];
 }
 
@@ -242,7 +242,7 @@ export default function Dashboard() {
 
             {statsData.rbacIdentity?.cabangName && (
               <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
-                <span className="text-slate-400 text-[11px]">{user?.scope === 'CABANG' ? 'Pesantren:' : 'Cabang:'}</span>
+                <span className="text-slate-400 text-[11px]">{user?.scope === 'CABANG' ? 'PESANTREN' : 'Cabang:'}</span>
                 <span className="font-semibold text-slate-800 text-[11px]">{statsData.rbacIdentity.cabangName}</span>
               </div>
             )}
@@ -562,13 +562,12 @@ export default function Dashboard() {
                         <span className="text-[10px] font-bold text-slate-700 mb-1 group-hover:text-indigo-600 transition-colors">
                           {item.value.toLocaleString('id-ID')}
                         </span>
-                        <div 
+                        <div
                           style={{ height: `${heightPercent}%` }}
-                          className={`w-full rounded-t-lg transition-all duration-300 shadow-sm cursor-pointer ${
-                            isNoGrup
+                          className={`w-full rounded-t-lg transition-all duration-300 shadow-sm cursor-pointer ${isNoGrup
                               ? 'bg-gradient-to-t from-slate-400 to-slate-300 group-hover:from-slate-500 group-hover:to-slate-400'
                               : 'bg-gradient-to-t from-indigo-600 via-indigo-500 to-indigo-400 group-hover:from-indigo-500 group-hover:to-indigo-300'
-                          }`}
+                            }`}
                           title={`${item.name}: ${item.value.toLocaleString('id-ID')} santri`}
                         />
                         <span className="mt-1 text-[10px] font-semibold text-slate-600 truncate max-w-full text-center group-hover:text-indigo-600 transition-colors" title={item.name}>
@@ -612,11 +611,11 @@ export default function Dashboard() {
                       <div className="flex items-center justify-between">
                         <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded uppercase">Wustha (7-9)</span>
                         <span className="text-xs font-extrabold text-slate-800">
-                          {statsData.chartKelas.filter(i => ['7','8','9'].includes(i.name)).reduce((a, b) => a + b.value, 0).toLocaleString('id-ID')}
+                          {statsData.chartKelas.filter(i => ['7', '8', '9'].includes(i.name)).reduce((a, b) => a + b.value, 0).toLocaleString('id-ID')}
                         </span>
                       </div>
                       <div className="flex items-end justify-around gap-1.5 h-28 mt-2">
-                        {statsData.chartKelas.filter(item => ['7','8','9'].includes(item.name)).map((item, i) => {
+                        {statsData.chartKelas.filter(item => ['7', '8', '9'].includes(item.name)).map((item, i) => {
                           const heightPercent = Math.max(Math.round((item.value / maxVal) * 100), 10);
                           return (
                             <div key={i} className="flex-1 flex flex-col items-center h-full justify-end">
@@ -634,11 +633,11 @@ export default function Dashboard() {
                       <div className="flex items-center justify-between">
                         <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded uppercase">Ulya (10-12)</span>
                         <span className="text-xs font-extrabold text-slate-800">
-                          {statsData.chartKelas.filter(i => ['10','11','12'].includes(i.name)).reduce((a, b) => a + b.value, 0).toLocaleString('id-ID')}
+                          {statsData.chartKelas.filter(i => ['10', '11', '12'].includes(i.name)).reduce((a, b) => a + b.value, 0).toLocaleString('id-ID')}
                         </span>
                       </div>
                       <div className="flex items-end justify-around gap-1.5 h-28 mt-2">
-                        {statsData.chartKelas.filter(item => ['10','11','12'].includes(item.name)).map((item, i) => {
+                        {statsData.chartKelas.filter(item => ['10', '11', '12'].includes(item.name)).map((item, i) => {
                           const heightPercent = Math.max(Math.round((item.value / maxVal) * 100), 10);
                           return (
                             <div key={i} className="flex-1 flex flex-col items-center h-full justify-end">
@@ -662,9 +661,9 @@ export default function Dashboard() {
                       <div className="flex items-end justify-center gap-1 h-28 mt-2">
                         <div className="w-full max-w-[36px] flex flex-col items-center h-full justify-end">
                           <span className="text-[9px] font-bold text-slate-600 mb-1">{nonMuadalahItem.value.toLocaleString('id-ID')}</span>
-                          <div 
-                            style={{ height: `${heightPercentNonM}%` }} 
-                            className="w-full bg-slate-400 hover:bg-slate-500 rounded-t-md transition-all shadow-2xs" 
+                          <div
+                            style={{ height: `${heightPercentNonM}%` }}
+                            className="w-full bg-slate-400 hover:bg-slate-500 rounded-t-md transition-all shadow-2xs"
                           />
                           <span className="text-[9px] font-semibold text-slate-500 mt-1.5 truncate" title="Non Muadalah">Non-M</span>
                         </div>
@@ -737,10 +736,9 @@ export default function Dashboard() {
                       </div>
                       <div className="w-full h-2 bg-slate-200/70 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            (entity.siswa?.percent || 0) === 100 ? 'bg-emerald-500' :
-                            (entity.siswa?.percent || 0) >= 50 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-amber-500'
-                          }`}
+                          className={`h-full rounded-full transition-all duration-500 ${(entity.siswa?.percent || 0) === 100 ? 'bg-emerald-500' :
+                              (entity.siswa?.percent || 0) >= 50 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-amber-500'
+                            }`}
                           style={{ width: `${entity.siswa?.percent || 0}%` }}
                         />
                       </div>
@@ -757,10 +755,9 @@ export default function Dashboard() {
                         </div>
                         <div className="w-full h-2 bg-slate-200/70 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              (entity.guru?.percent || 0) === 100 ? 'bg-emerald-500' :
-                              (entity.guru?.percent || 0) >= 50 ? 'bg-gradient-to-r from-indigo-500 to-purple-400' : 'bg-amber-500'
-                            }`}
+                            className={`h-full rounded-full transition-all duration-500 ${(entity.guru?.percent || 0) === 100 ? 'bg-emerald-500' :
+                                (entity.guru?.percent || 0) >= 50 ? 'bg-gradient-to-r from-indigo-500 to-purple-400' : 'bg-amber-500'
+                              }`}
                             style={{ width: `${entity.guru?.percent || 0}%` }}
                           />
                         </div>
